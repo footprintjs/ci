@@ -1,0 +1,18 @@
+{
+  "name": "footprintjs-dogfood",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sample pipeline config: footprintjs announcing its own releases",
+  "scripts": {
+    "validate": "tsx ../../packages/ci/dist/cli.js validate",
+    "run": "tsx ../../packages/ci/dist/cli.js run"
+  },
+  "dependencies": {
+    "@footprintjs/ci": "workspace:*",
+    "@footprintjs/release-announce": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0"
+  }
+}

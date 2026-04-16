@@ -1,0 +1,11 @@
+{
+  "ref": "refs/heads/main",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "abc123def456",
+  "commits": [
+    { "id": "abc123def456", "message": "feat: add new feature" }
+  ],
+  "repository": {
+    "full_name": "footprintjs/ci"
+  }
+}

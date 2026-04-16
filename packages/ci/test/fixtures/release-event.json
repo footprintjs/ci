@@ -1,0 +1,13 @@
+{
+  "action": "published",
+  "release": {
+    "tag_name": "v1.4.0",
+    "name": "v1.4.0",
+    "body": "## What's Changed\n\n### Features\n- new feature X\n\n### Fixes\n- fix for issue Y",
+    "draft": false,
+    "prerelease": false
+  },
+  "repository": {
+    "full_name": "footprintjs/ci"
+  }
+}

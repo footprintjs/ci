@@ -1,0 +1,5 @@
+{
+  "inputs": { "dry_run": "true" },
+  "ref": "refs/heads/main",
+  "repository": { "full_name": "footprintjs/ci" }
+}
