@@ -1,14 +1,10 @@
-import { createBuilder } from './internal/flow';
-import type { FlowDefinition } from './internal/flow';
-import type { Pipeline, PipelineConfig } from './types';
+import type { Pipeline, PipelineConfig } from './types.js';
 
+/**
+ * Define a pipeline. The `flow` callback builds and returns a FootPrint
+ * `RunnableFlowChart` (the output of `.build()` on `flowChart(...)`).
+ */
 export function pipeline(config: PipelineConfig): Pipeline {
-  const buildFlow = (): FlowDefinition => {
-    const builder = createBuilder();
-    const built = config.flow(builder);
-    return built.build();
-  };
-
   return {
     name: config.name,
     adapter: config.adapter,
@@ -17,6 +13,7 @@ export function pipeline(config: PipelineConfig): Pipeline {
     persistence: config.persistence,
     redaction: config.redaction,
     onFailure: config.onFailure,
-    buildFlow,
+    input: config.input,
+    timeoutMs: config.timeoutMs,
   };
 }

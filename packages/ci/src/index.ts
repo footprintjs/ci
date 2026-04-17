@@ -1,14 +1,14 @@
 // Core
-export { pipeline } from './pipeline';
-export { module } from './module';
-export { onFailure } from './failure-handler';
-export { runPipeline } from './runner';
+export { pipeline } from './pipeline.js';
+export { module } from './module.js';
+export { onFailure } from './failure-handler.js';
+export { runPipeline } from './runner.js';
 
 // Adapters (built-in)
-export { githubActions } from './adapters/github-actions';
-export { MockAdapter } from './adapters/mock';
+export { githubActions } from './adapters/github-actions/index.js';
+export { MockAdapter } from './adapters/mock.js';
 
-// Extensibility
+// Public types
 export type {
   CIAdapter,
   CommitToRepoOptions,
@@ -16,7 +16,7 @@ export type {
   Trigger,
   TriggerEvent,
   UploadArtifactOptions,
-} from './adapters/types';
+} from './adapters/types.js';
 export type {
   FailureHandler,
   FailureHandlerContext,
@@ -25,22 +25,32 @@ export type {
   Pipeline,
   PipelineConfig,
   PipelineModule,
+  RedactionPolicy,
   RunResult,
   TraceStorageConfig,
-} from './types';
+} from './types.js';
+
+// Re-export FootPrint essentials so consumers don't need two imports for the
+// common case. Keeps `.footprint-ci.ts` configs tidy.
+export {
+  FlowChartExecutor,
+  decide,
+  flowChart,
+  select,
+} from 'footprintjs';
 export type {
-  FootPrintBuilder,
-  FlowRecord,
-  StageTrace,
-  ForkTrace,
-  RetryPolicy,
-  StageFn,
-  DeciderFn,
-} from './internal/flow';
+  CombinedNarrativeEntry,
+  DecideRule,
+  DecisionEvidence,
+  ExecutionEnv,
+  ExecutorResult,
+  FlowChart,
+  PausableHandler,
+  RunOptions,
+  RunnableFlowChart,
+  RuntimeSnapshot,
+  StageHandler,
+  TypedScope,
+} from 'footprintjs';
 
-// Redaction
-export { presetRedactionPolicies, REDACTED, redact } from './redaction';
-export type { RedactionPolicy, RedactionReport } from './redaction';
-
-// Versioning
-export { PACKAGE_VERSION } from './version';
+export { PACKAGE_VERSION } from './version.js';

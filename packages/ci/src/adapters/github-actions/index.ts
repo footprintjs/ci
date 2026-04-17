@@ -1,8 +1,8 @@
-import type { CIAdapter } from '../types';
+import type { CIAdapter } from '../types.js';
 import {
   GitHubActionsAdapter,
   type GitHubActionsAdapterOptions,
-} from './adapter';
+} from './adapter.js';
 
 export type { GitHubActionsAdapterOptions };
 

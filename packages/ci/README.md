@@ -1,6 +1,8 @@
 # @footprintjs/ci
 
-Observable, adapter-based CI/CD pipelines powered by FootPrint flows.
+Observable, adapter-based CI/CD pipelines built on [`footprintjs`](https://github.com/footprintjs/footPrint) — the flowchart pattern for backend code.
+
+Pipelines are real FootPrint flowcharts. Traces are real FootPrint causal traces: every read, every write, every decision captured as a narrative the runtime generates for you.
 
 ## Install
 
@@ -14,21 +16,24 @@ npm i -D @actions/core @actions/artifact simple-git
 
 ```typescript
 // .footprint-ci.ts
-import { pipeline, githubActions } from '@footprintjs/ci';
+import { pipeline, githubActions, flowChart } from '@footprintjs/ci';
+
+interface State {
+  message: string;
+}
 
 export default pipeline({
   name: 'release',
   adapter: await githubActions(),
   triggers: ['release.published'],
 
-  flow: (fp) => fp.stage('hello', async (_input, ctx) => {
-    ctx.adapter.log('info', `shipping ${ctx.trigger.ref}`);
-    return { ok: true };
-  }),
+  flow: () =>
+    flowChart<State>('Announce', (scope) => {
+      scope.message = `shipping ${scope.$getArgs<{ ref: string }>().ref}`;
+    }, 'announce')
+      .build(),
 
-  persistence: {
-    traces: { dir: './traces', commitBack: true },
-  },
+  persistence: { traces: { dir: './traces', commitBack: true } },
 });
 ```
 
@@ -48,65 +53,53 @@ npx footprint-ci init --adapter=github-actions
 
 ### Pipeline
 
-A pipeline is a named flow bound to an adapter and a set of triggers. Given a
-real trigger event, the runner builds the flow, executes it, captures a trace,
-and persists the trace.
+A named FootPrint flowchart bound to an adapter and a trigger filter. Given a matching trigger, the runner builds the flowchart, hands it to `FlowChartExecutor`, captures the narrative + snapshot, and persists the trace.
 
 ### Adapter
 
-An adapter is a pure wrapper around the host CI environment. Two adapters ship
-with the library:
+Pure wrapper around the host CI environment. Two ship with the library:
 
-- **`githubActions()`** — reads `GITHUB_EVENT_*` env vars, uploads artifacts,
-  commits back via `simple-git`. Loads its peer deps at call time so non-GH
-  users don't pay the download cost.
+- **`githubActions()`** — reads `GITHUB_EVENT_*` env vars, uploads artifacts, commits back via `simple-git`. Loads its peer deps lazily so non-GH users don't pay the download cost.
 - **`MockAdapter`** — records every call for assertions. Use in unit tests.
 
-Adapters implement the `CIAdapter` interface (see `src/adapters/types.ts`).
-The contract is intentionally narrow; write your own for GitLab, CircleCI,
-Buildkite, etc.
+### Flow
 
-### Module
-
-A module is a reusable flow fragment — a named callback over the builder.
-
-```typescript
-import { module } from '@footprintjs/ci';
-
-const announce = module('announce', (fp) =>
-  fp.stage('parseChangelog', parseChangelog)
-    .stage('postTweet', postTweet)
-);
-```
+The `flow` callback returns the result of `flowChart(name, fn, id).addFunction(...).build()` — an actual FootPrint `RunnableFlowChart`. You have the full builder API: `addFunction`, `addDeciderFunction` / `addFunctionBranch`, `addListOfFunction`, `addSubFlowChart`, `addPausableFunction`, `decide()`, `select()`.
 
 ### Trace
 
-Every run produces a JSON trace: stages, durations, outputs, retries, redaction
-report. Traces are written atomically to `./traces/` by default and can
-optionally be uploaded as GH artifacts and/or committed to the repo.
+Every run produces a JSON trace containing:
+
+- `narrative` — human-readable causal trace from `FlowChartExecutor.getNarrative()`
+- `narrativeEntries` — structured entries keyed by `runtimeStageId`
+- `snapshot` — full `RuntimeSnapshot` (sharedState, executionTree, commitLog)
+- `redactionReport` — already emitted by FootPrint itself
+- Pipeline metadata (flowId, adapter name, trigger info, timings)
+
+Traces can be dropped into the [FootPrint playground](https://footprintjs.github.io/footprint-playground/) for replay.
 
 ## Redaction
 
-Wire up `presetRedactionPolicies` to strip secrets before traces hit disk:
+Pass any FootPrint `RedactionPolicy` — it flows straight to `executor.setRedactionPolicy()`:
 
 ```typescript
-import { pipeline, presetRedactionPolicies as r } from '@footprintjs/ci';
-
 pipeline({
   // ...
-  redaction: r.combine(
-    r.apiKeys,
-    r.envVars(['TWITTER_', 'GITHUB_']),
-  ),
+  redaction: {
+    keys: ['ssn', 'creditCard'],
+    patterns: [/^token$/i, /_SECRET$/],
+    fields: { user: ['password', 'authToken'] },
+  },
 });
 ```
+
+The runner additionally applies the same rules to `snapshot.sharedState` as a defense-in-depth pass (FootPrint scrubs the commit log; we also scrub the live state before serialization).
 
 ## CLI
 
 - `footprint-ci run` — load the config and execute the pipeline.
 - `footprint-ci validate` — build the flow without running it.
-- `footprint-ci init --adapter=github-actions` — scaffold config + workflow
-  templates.
+- `footprint-ci init --adapter=github-actions` — scaffold config + workflow templates.
 
 ## Adapter contract
 
@@ -116,11 +109,9 @@ An adapter must:
 2. Return a `Trigger` from `readTrigger()`.
 3. Return `undefined` (never throw) for missing keys in `readSecrets()`.
 4. Implement `log()` without throwing.
-5. Gracefully no-op on capabilities the host doesn't support
-   (e.g., `uploadArtifact` on a local runner).
+5. Gracefully no-op on capabilities the host doesn't support (e.g. `uploadArtifact` on a local runner).
 
-The library provides a reusable contract test in
-`test/adapter-contract.ts` — run it against any adapter you write.
+A reusable contract test lives at `test/adapter-contract.ts` — run it against any adapter you write.
 
 ## License
 

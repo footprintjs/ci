@@ -1,4 +1,4 @@
-import type { FailureHandler, FailureHandlerContext } from './types';
+import type { FailureHandler, FailureHandlerContext } from './types.js';
 
 /**
  * Wrap a user function as a `FailureHandler`. Primarily exists so the public

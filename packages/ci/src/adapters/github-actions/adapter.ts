@@ -4,11 +4,11 @@ import type {
   LogLevel,
   Trigger,
   UploadArtifactOptions,
-} from '../types';
-import { parseEvent } from './event-parser';
-import { logToGhActions } from './annotations';
-import { uploadArtifact } from './artifact-uploader';
-import { commitFile } from './git-commit';
+} from '../types.js';
+import { parseEvent } from './event-parser.js';
+import { logToGhActions } from './annotations.js';
+import { uploadArtifact } from './artifact-uploader.js';
+import { commitFile } from './git-commit.js';
 
 type CoreModule = typeof import('@actions/core');
 type ArtifactModule = typeof import('@actions/artifact');

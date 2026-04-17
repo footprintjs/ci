@@ -1,37 +1,43 @@
 import { describe, expect, it } from 'vitest';
+import { flowChart } from 'footprintjs';
 import { pipeline } from '../src/pipeline';
 import { module } from '../src/module';
 import { MockAdapter } from '../src/adapters/mock';
 
+interface State {
+  hello: string;
+}
+
 describe('pipeline() factory', () => {
-  it('stores config fields and builds a flow', () => {
+  it('stores config fields and can build its flow', () => {
     const adapter = new MockAdapter();
     const p = pipeline({
       name: 'test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => fp.stage('s1', async () => ({ ok: true })),
+      flow: () =>
+        flowChart<State>('Hello', (scope) => {
+          scope.hello = 'world';
+        }, 'hello').build(),
     });
 
     expect(p.name).toBe('test');
     expect(p.triggers).toEqual(['release.published']);
-    const def = p.buildFlow();
-    expect(def.nodes).toHaveLength(1);
-    expect(def.nodes[0]!.kind).toBe('stage');
+    const chart = p.flow();
+    expect(chart.stageMap.size).toBeGreaterThan(0);
   });
 
-  it('supports modules via module() helper', () => {
-    const announce = module('announce', (fp) =>
-      fp.stage('s1', async () => 1).stage('s2', async () => 2)
+  it('module() wraps a flow-chart factory', () => {
+    const announce = module('announce', () =>
+      flowChart<State>('A', (s) => { s.hello = 'a'; }, 'a').build()
     );
     const p = pipeline({
       name: 'mod-test',
       adapter: new MockAdapter(),
       triggers: ['release.published'],
-      flow: (fp) => announce.apply(fp),
+      flow: () => announce.build(),
     });
-    const def = p.buildFlow();
-    expect(def.nodes).toHaveLength(2);
-    expect(def.nodes.map((n) => n.name)).toEqual(['s1', 's2']);
+    expect(announce.name).toBe('announce');
+    expect(p.flow().stageMap.size).toBeGreaterThan(0);
   });
 });

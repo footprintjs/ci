@@ -26,6 +26,9 @@ importers:
       '@footprintjs/release-announce':
         specifier: workspace:*
         version: link:../../packages/release-announce
+      footprintjs:
+        specifier: ^4.12.0
+        version: 4.12.2(zod@3.25.76)
     devDependencies:
       tsx:
         specifier: ^4.7.0
@@ -36,9 +39,6 @@ importers:
       commander:
         specifier: ^12.0.0
         version: 12.1.0
-      footprintjs:
-        specifier: ^0.x
-        version: 0.18.1(zod@3.25.76)
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -52,6 +52,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.39
+      footprintjs:
+        specifier: ^4.12.0
+        version: 4.12.2(zod@3.25.76)
       simple-git:
         specifier: ^3.24.0
         version: 3.36.0
@@ -74,6 +77,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.39
+      footprintjs:
+        specifier: ^4.12.0
+        version: 4.12.2(zod@3.25.76)
       twitter-api-v2:
         specifier: ^1.17.0
         version: 1.29.0
@@ -961,10 +967,9 @@ packages:
     resolution: {integrity: sha512-5G+uaEBbOm9M4dgMOV3K/rBzfUNGqGqoUTaYJM3hBwM8t71w07gxLQZoTsjkY8FtfjabqgQHEkeIySBDYeBmJw==}
     hasBin: true
 
-  footprintjs@0.18.1:
-    resolution: {integrity: sha512-mtFBwkaTzol0YLngcS3LM52wRRk+iNg/nyAiiLxEMxBE+ueMwHwtkKFML3ze/67dS2abfYyWflElagQUpEU60w==}
+  footprintjs@4.12.2:
+    resolution: {integrity: sha512-qBjXtI4d7RFPreqRnqTmNWhDPI7BPlYvVzEa+avxKNAO8Ft2TVWB5/aiDFm320wH5h8THwF/tthV2r9LZbE4fA==}
     engines: {node: '>=20'}
-    hasBin: true
     peerDependencies:
       zod: ^3.0.0 || ^4.0.0
     peerDependenciesMeta:
@@ -1054,19 +1059,6 @@ packages:
   local-pkg@0.5.1:
     resolution: {integrity: sha512-9rrA30MRRP3gBD3HTGnC6cDFpaE1kVDWxWgqWJUN0RvDNAo+Nz/9GxB+nHOH0ifbVFy0hSA1V6vFDvnx54lTEQ==}
     engines: {node: '>=14'}
-
-  lodash.get@4.4.2:
-    resolution: {integrity: sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==}
-    deprecated: This package is deprecated. Use the optional chaining (?.) operator instead.
-
-  lodash.has@4.5.2:
-    resolution: {integrity: sha512-rnYUdIo6xRCJnQmbVFEwcxF144erlD+M3YcJUVesflU9paQaE8p+fJDcIQrlMYbxoANFL+AB9hZrzSBBk5PL+g==}
-
-  lodash.mergewith@4.6.2:
-    resolution: {integrity: sha512-GK3g5RPZWTRSeLSpgP8Xhra+pnjBC56q9FZYe1d5RN3TJ35dbkGy3YqBSMbyCrlbi+CM9Z3Jk5yTL7RCsqboyQ==}
-
-  lodash.set@4.3.2:
-    resolution: {integrity: sha512-4hNPN5jlm/N/HLMCO43v8BXKq9Z7QdAGc/VGrRD61w8gN9g/6jF9A4L1pbUgBLCffi0w9VsXfTOij5x8iTyFvg==}
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
@@ -2324,12 +2316,7 @@ snapshots:
       path-expression-matcher: 1.5.0
       strnum: 2.2.3
 
-  footprintjs@0.18.1(zod@3.25.76):
-    dependencies:
-      lodash.get: 4.4.2
-      lodash.has: 4.5.2
-      lodash.mergewith: 4.6.2
-      lodash.set: 4.3.2
+  footprintjs@4.12.2(zod@3.25.76):
     optionalDependencies:
       zod: 3.25.76
 
@@ -2410,14 +2397,6 @@ snapshots:
     dependencies:
       mlly: 1.8.2
       pkg-types: 1.3.1
-
-  lodash.get@4.4.2: {}
-
-  lodash.has@4.5.2: {}
-
-  lodash.mergewith@4.6.2: {}
-
-  lodash.set@4.3.2: {}
 
   lodash@4.18.1: {}
 

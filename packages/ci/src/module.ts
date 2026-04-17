@@ -1,18 +1,22 @@
-import type { FootPrintBuilder } from './internal/flow';
-import type { PipelineModule } from './types';
+import type { RunnableFlowChart } from 'footprintjs';
+import type { PipelineModule } from './types.js';
 
 /**
- * Create a reusable pipeline module — a named wrapper around a builder
- * transformation that can be embedded in a larger flow.
+ * Create a reusable pipeline module. A module wraps a `build()` function that
+ * returns a `RunnableFlowChart` — the result of `flowChart(...).build()`.
  *
  * @example
- *   const announce = module('announce', (fp) =>
- *     fp.stage('tweet', tweetStage).stage('post', postStage)
+ *   const announce = module('announce', () =>
+ *     flowChart<State>('Parse', parseFn, 'parse')
+ *       .addFunction('Format', formatFn, 'format')
+ *       .build()
  *   );
+ *
+ *   pipeline({ flow: () => announce.build(), ... });
  */
 export function module(
   name: string,
-  apply: (fp: FootPrintBuilder) => FootPrintBuilder
+  build: () => RunnableFlowChart<any, any>
 ): PipelineModule {
-  return { name, apply };
+  return { name, build };
 }

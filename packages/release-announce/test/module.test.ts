@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -39,7 +39,7 @@ describe('releaseAnnounce module (integration)', () => {
     rmSync(traceDir, { recursive: true, force: true });
   });
 
-  it('runs end-to-end on a minor release (no gate), posts to twitter', async () => {
+  it('runs end-to-end on a minor release (auto branch), posts to twitter', async () => {
     const tw = fakeTwitter();
     const adapter = new MockAdapter({
       trigger: {
@@ -48,11 +48,7 @@ describe('releaseAnnounce module (integration)', () => {
         payload: {
           release: {
             tag_name: 'v1.2.0',
-            body: `### Features
-- do a thing
-
-### Fixes
-- squash bug`,
+            body: '### Features\n- do a thing\n\n### Fixes\n- squash bug',
           },
         },
       },
@@ -68,7 +64,7 @@ describe('releaseAnnounce module (integration)', () => {
       name: 'announce-test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => announce.apply(fp),
+      flow: () => announce.build(),
       persistence: { traces: { dir: traceDir } },
     });
 
@@ -77,9 +73,20 @@ describe('releaseAnnounce module (integration)', () => {
     expect(tw.calls).toHaveLength(1);
     expect(tw.calls[0]!.text).toContain('v1.2.0');
     expect(tw.calls[0]!.text).toContain('do a thing');
+
+    // Trace contains FootPrint's causal narrative (keyed on stage names in
+    // structured entries, not the free-text lines).
+    const trace = JSON.parse(readFileSync(result.tracePath!, 'utf8'));
+    expect(trace.narrative.length).toBeGreaterThan(0);
+    const stageNames = trace.narrativeEntries
+      .filter((e: { type: string }) => e.type === 'stage')
+      .map((e: { stageName: string }) => e.stageName);
+    expect(stageNames).toContain('ParseChangelog');
+    expect(stageNames).toContain('FormatContent');
+    expect(stageNames).toContain('PostToTwitter');
   });
 
-  it('major-version review gate blocks until approved', async () => {
+  it('major-version review gate routes through the manual branch', async () => {
     const tw = fakeTwitter();
     let approved = false;
     const adapter = new MockAdapter({
@@ -109,16 +116,22 @@ describe('releaseAnnounce module (integration)', () => {
       name: 'announce-test-major',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => announce.apply(fp),
+      flow: () => announce.build(),
       persistence: { traces: { dir: traceDir } },
     });
 
     const result = await runPipeline(p);
     expect(result.status).toBe('success');
     expect(tw.calls).toHaveLength(1);
+    // Narrative should show the manual branch was taken.
+    const trace = JSON.parse(readFileSync(result.tracePath!, 'utf8'));
+    const stageNames = trace.narrativeEntries
+      .filter((e: { type: string }) => e.type === 'stage')
+      .map((e: { stageName: string }) => e.stageName);
+    expect(stageNames).toContain('WaitForApproval');
   });
 
-  it('dry-run path logs and produces a trace with a dryRun post', async () => {
+  it('dry-run path produces a dryRun result and records it in the trace', async () => {
     process.env.DRY_RUN = '1';
     try {
       const adapter = new MockAdapter({
@@ -135,14 +148,13 @@ describe('releaseAnnounce module (integration)', () => {
         name: 'announce-dry',
         adapter,
         triggers: ['release.published'],
-        flow: (fp) => announce.apply(fp),
+        flow: () => announce.build(),
         persistence: { traces: { dir: traceDir } },
       });
       const r = await runPipeline(p);
       expect(r.status).toBe('success');
-      const trace = JSON.parse(readFileSync(r.tracePath!, 'utf8'));
-      const serialized = JSON.stringify(trace);
-      expect(serialized).toMatch(/dryrun-/);
+      const text = readFileSync(r.tracePath!, 'utf8');
+      expect(text).toMatch(/dryrun-/);
     } finally {
       delete process.env.DRY_RUN;
     }

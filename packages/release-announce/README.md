@@ -1,14 +1,15 @@
 # @footprintjs/release-announce
 
-An opinionated pipeline module for [`@footprintjs/ci`](../ci) that announces
-releases across social platforms.
+An opinionated pipeline module for [`@footprintjs/ci`](../ci) that announces releases across social platforms.
 
 Starts with **Twitter only** in v0.1. LinkedIn comes in v0.2; dev.to in v0.3.
+
+Under the hood, `releaseAnnounce()` builds a real FootPrint `RunnableFlowChart`. Every stage is an `addFunction` or `addDeciderFunction` on the chart — which means every read, every write, and every routing decision shows up in the causal trace produced by `FlowChartExecutor`.
 
 ## Install
 
 ```bash
-npm i -D @footprintjs/ci @footprintjs/release-announce twitter-api-v2
+npm i -D footprintjs @footprintjs/ci @footprintjs/release-announce twitter-api-v2
 ```
 
 ## Quick start
@@ -21,13 +22,14 @@ import { releaseAnnounce } from '@footprintjs/release-announce';
 const announce = releaseAnnounce({
   platforms: ['twitter'],
   manualReviewOn: 'major',
+  repoUrl: 'https://github.com/my-org/my-project',
 });
 
 export default pipeline({
   name: 'release',
   adapter: await githubActions(),
   triggers: ['release.published'],
-  flow: (fp) => announce.apply(fp),
+  flow: () => announce.build(),
   persistence: { traces: { dir: './traces', commitBack: true } },
 });
 ```
@@ -39,20 +41,37 @@ Required GitHub Actions secrets:
 - `TWITTER_ACCESS_TOKEN`
 - `TWITTER_ACCESS_SECRET`
 
+## Flow shape
+
+The module builds this FootPrint flow:
+
+```
+ParseChangelog
+    ↓
+FormatContent
+    ↓
+ReviewGate  ─── decide()
+   ├── manual → WaitForApproval
+   └── auto   → AutoApprove
+    ↓
+PostTo<Platform>  (once per platform)
+    ↓
+LogMetrics  ($metric)
+```
+
+`decide()` is FootPrint's rule-based decider helper — it captures the rule that fired, so the narrative tells you *why* a release went to the manual branch, not just that it did.
+
 ## Dry-run
 
-Set `DRY_RUN=1` (or `true`) in the environment. Platform `post()` calls return
-a mock result without hitting the real API. Traces still record the full flow
-— useful for verifying the pipeline without side effects.
+Set `DRY_RUN=1` (or `true`) in the environment. Platform `post()` calls return a mock result without hitting the real API. Traces still record the full flow — useful for verifying the pipeline without side effects.
 
 ## Major-version review gate
 
-When `manualReviewOn: 'major'` is set and the release tag matches
-`v?<N>.0.0`, the flow routes through a `manual` branch that waits for an
-`/approve` comment (via `approvalProbe`) before fanning out.
+With `manualReviewOn: 'major'` and a release tag matching `v?<N>.0.0`:
 
-- Default poll interval: 30s
-- Default timeout: 1 hour
+1. `ReviewGate` routes to the `manual` branch via `decide()`.
+2. `WaitForApproval` polls `approvalProbe()` until it returns true or times out.
+3. Default poll interval: 30s. Default timeout: 1 hour. Both configurable via `reviewIntervalMs` / `reviewTimeoutMs`.
 
 ## Custom platforms
 
@@ -65,8 +84,7 @@ releaseAnnounce({
 });
 ```
 
-Community platforms (Mastodon, Bluesky, etc.) can ship as separate packages
-that export a `PlatformAdapter`.
+Community platforms (Mastodon, Bluesky, etc.) can ship as separate packages that export a `PlatformAdapter`.
 
 ## Template variants
 

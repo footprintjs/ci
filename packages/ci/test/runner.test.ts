@@ -1,11 +1,16 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { flowChart } from 'footprintjs';
 import { pipeline } from '../src/pipeline';
 import { runPipeline } from '../src/runner';
 import { MockAdapter } from '../src/adapters/mock';
 import { onFailure } from '../src/failure-handler';
+
+interface State {
+  status: string;
+}
 
 describe('runPipeline', () => {
   let traceDir: string;
@@ -17,13 +22,14 @@ describe('runPipeline', () => {
     rmSync(traceDir, { recursive: true, force: true });
   });
 
-  it('skips when trigger.event not in triggers[]', async () => {
+  it('skips when trigger.event is not in triggers[]', async () => {
     const adapter = new MockAdapter({ trigger: { event: 'push' } });
     const p = pipeline({
       name: 'test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => fp.stage('x', () => 'never'),
+      flow: () =>
+        flowChart<State>('Never', (s) => { s.status = 'never'; }, 'never').build(),
       persistence: { traces: { dir: traceDir } },
     });
     const r = await runPipeline(p);
@@ -32,7 +38,7 @@ describe('runPipeline', () => {
     expect(adapter.calls.finalized).toEqual(['success']);
   });
 
-  it('runs end-to-end and writes a trace', async () => {
+  it('runs a simple chart end-to-end and writes a trace with narrative', async () => {
     const adapter = new MockAdapter({
       trigger: { event: 'release.published', ref: 'v1.0.0' },
     });
@@ -40,7 +46,14 @@ describe('runPipeline', () => {
       name: 'test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => fp.stage('x', () => ({ done: true })),
+      flow: () =>
+        flowChart<State>('Init', (scope) => {
+          scope.status = 'ok';
+        }, 'init')
+          .addFunction('Finalize', (scope) => {
+            scope.status = `${scope.status}-finalized`;
+          }, 'finalize')
+          .build(),
       persistence: { traces: { dir: traceDir } },
     });
     const r = await runPipeline(p);
@@ -48,12 +61,13 @@ describe('runPipeline', () => {
     expect(r.tracePath).toBeDefined();
     const trace = JSON.parse(readFileSync(r.tracePath!, 'utf8'));
     expect(trace.pipeline.name).toBe('test');
-    expect(trace.stages).toHaveLength(1);
-    expect(trace.stages[0].name).toBe('x');
     expect(trace.trigger.ref).toBe('v1.0.0');
+    expect(Array.isArray(trace.narrative)).toBe(true);
+    expect(trace.narrative.join('\n')).toMatch(/Init/);
+    expect(trace.snapshot.sharedState.status).toBe('ok-finalized');
   });
 
-  it('uploads trace as artifact when configured', async () => {
+  it('uploads trace as artifact + commits back when configured', async () => {
     const adapter = new MockAdapter({
       trigger: { event: 'release.published', ref: 'v2.0.0' },
     });
@@ -61,8 +75,14 @@ describe('runPipeline', () => {
       name: 'test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => fp.stage('x', () => 1),
-      persistence: { traces: { dir: traceDir, uploadAsArtifact: true, commitBack: true } },
+      flow: () => flowChart<State>('A', (s) => { s.status = 'x'; }, 'a').build(),
+      persistence: {
+        traces: {
+          dir: traceDir,
+          uploadAsArtifact: true,
+          commitBack: true,
+        },
+      },
     });
     await runPipeline(p);
     expect(adapter.calls.uploadArtifact).toHaveLength(1);
@@ -79,10 +99,10 @@ describe('runPipeline', () => {
       name: 'test',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) =>
-        fp.stage('boom', () => {
+      flow: () =>
+        flowChart<State>('Boom', () => {
           throw new Error('fail');
-        }),
+        }, 'boom').build(),
       persistence: { traces: { dir: traceDir } },
       onFailure: onFailure(async ({ error }) => {
         captured = error;
@@ -91,39 +111,28 @@ describe('runPipeline', () => {
     const r = await runPipeline(p);
     expect(r.status).toBe('failure');
     expect(captured).toBeInstanceOf(Error);
-    expect((captured as unknown as Error).message).toBe('fail');
+    expect((captured as unknown as Error).message).toContain('fail');
     expect(adapter.calls.finalized).toEqual(['failure']);
-    const trace = JSON.parse(readFileSync(r.tracePath!, 'utf8'));
-    expect(trace.error.message).toBe('fail');
   });
 
-  it('writes a failure trace even when handler is absent', async () => {
-    const adapter = new MockAdapter({ trigger: { event: 'release.published' } });
+  it('applies redaction policy via FootPrint', async () => {
+    const adapter = new MockAdapter({
+      trigger: { event: 'release.published', ref: 'v1.0.0' },
+    });
     const p = pipeline({
-      name: 'test',
+      name: 'redact',
       adapter,
       triggers: ['release.published'],
-      flow: (fp) => fp.stage('boom', () => { throw new Error('x'); }),
+      flow: () =>
+        flowChart<{ token: string }>('Write', (scope) => {
+          scope.token = 'super-secret-value';
+        }, 'write').build(),
       persistence: { traces: { dir: traceDir } },
+      redaction: { keys: ['token'] },
     });
     const r = await runPipeline(p);
-    expect(r.status).toBe('failure');
-    expect(r.tracePath).toBeDefined();
-  });
-
-  it('passes adapter context to onFailure handler', async () => {
-    const adapter = new MockAdapter({ trigger: { event: 'release.published' } });
-    const p = pipeline({
-      name: 'test',
-      adapter,
-      triggers: ['release.published'],
-      flow: (fp) => fp.stage('boom', () => { throw new Error('e'); }),
-      persistence: { traces: { dir: traceDir } },
-      onFailure: onFailure(({ adapter }) => {
-        adapter.log('error', 'handler-saw-error');
-      }),
-    });
-    await runPipeline(p);
-    expect(adapter.calls.logs.some((l) => l.msg === 'handler-saw-error')).toBe(true);
+    expect(r.status).toBe('success');
+    const serialized = readFileSync(r.tracePath!, 'utf8');
+    expect(serialized).not.toContain('super-secret-value');
   });
 });

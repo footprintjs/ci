@@ -1,4 +1,4 @@
-import { MockAdapter, pipeline, presetRedactionPolicies as r } from '@footprintjs/ci';
+import { MockAdapter, pipeline } from '@footprintjs/ci';
 import { releaseAnnounce } from '@footprintjs/release-announce';
 
 /**
@@ -16,12 +16,12 @@ const adapter = new MockAdapter({
     payload: {
       release: {
         tag_name: 'v0.1.0',
-        body: `### ✨ Features
+        body: `### Features
 - ship the first public release
 - add GitHub Actions adapter
 - add Twitter platform adapter
 
-### 📚 Docs
+### Docs
 - write README and examples`,
       },
     },
@@ -31,15 +31,27 @@ const adapter = new MockAdapter({
 const announce = releaseAnnounce({
   platforms: ['twitter'],
   manualReviewOn: 'major',
+  repoUrl: 'https://github.com/footprintjs/ci',
 });
 
 export default pipeline({
   name: 'dogfood-release',
   adapter,
   triggers: ['release.published'],
-  flow: (fp) => announce.apply(fp),
+  flow: () => announce.build(),
   persistence: {
     traces: { dir: './traces', commitBack: false },
   },
-  redaction: r.combine(r.apiKeys, r.envVars(['TWITTER_', 'GITHUB_'])),
+  // Redact platform secrets from any trace that gets written. FootPrint's
+  // RedactionPolicy scrubs commit log entries; @footprintjs/ci extends it to
+  // cover snapshot.sharedState too (see runner.ts).
+  redaction: {
+    keys: [
+      'TWITTER_API_KEY',
+      'TWITTER_API_SECRET',
+      'TWITTER_ACCESS_TOKEN',
+      'TWITTER_ACCESS_SECRET',
+    ],
+    patterns: [/^[A-Z_]+TOKEN$/, /^[A-Z_]+SECRET$/],
+  },
 });

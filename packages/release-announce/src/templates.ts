@@ -1,4 +1,4 @@
-import type { ParsedChangelog } from './changelog-parser';
+import type { ParsedChangelog } from './changelog-parser.js';
 
 export type TemplateName = 'default' | 'minimal' | 'long-form';
 

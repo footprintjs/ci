@@ -1,17 +1,18 @@
 import { module, type PipelineModule } from '@footprintjs/ci';
-import type { FootPrintBuilder, StageFn } from '@footprintjs/ci';
-import { parseChangelog, type ParsedChangelog } from './changelog-parser';
-import { renderTemplate, type TemplateName } from './templates';
-import { twitterAdapter } from './platforms/twitter';
-import { linkedinAdapter } from './platforms/linkedin';
-import { devtoAdapter } from './platforms/devto';
-import type {
-  FormattedContent,
-  PlatformAdapter,
-  PlatformName,
-  PostResult,
-} from './platforms/types';
-import { reviewBranchFor, waitForApproval, type ReviewMode } from './review-gate';
+import { decide, flowChart } from 'footprintjs';
+import type { RunnableFlowChart, TypedScope } from 'footprintjs';
+import { parseChangelog, type ParsedChangelog } from './changelog-parser.js';
+import { renderTemplate, type TemplateName } from './templates.js';
+import { twitterAdapter } from './platforms/twitter.js';
+import { linkedinAdapter } from './platforms/linkedin.js';
+import { devtoAdapter } from './platforms/devto.js';
+import {
+  type FormattedContent,
+  type PlatformAdapter,
+  type PlatformName,
+  type PostResult,
+} from './platforms/types.js';
+import { isMajorVersion, waitForApproval, type ReviewMode } from './review-gate.js';
 
 export interface ReleaseAnnounceOptions {
   platforms: PlatformName[];
@@ -32,138 +33,177 @@ export interface ReleaseAnnounceOptions {
   repoUrl?: string;
 }
 
-interface FormattedPayload {
-  version: string;
+/**
+ * Shape of the FootPrint scope for the release-announce flow. Each stage
+ * reads and writes typed properties via FootPrint's `TypedScope`.
+ */
+export interface AnnounceState {
+  /** Raw release body supplied by the trigger payload. */
+  releaseBody: string;
+  /** Parsed changelog buckets. */
   changelog: ParsedChangelog;
+  /** Human-readable version string (e.g. "v1.4.0"). */
+  version: string;
+  /** Rendered announcement content. */
   content: FormattedContent;
-  platforms: PlatformName[];
+  /** Review-gate routing key. */
+  reviewRoute: 'auto' | 'manual';
+  /** Per-platform post results keyed by platform name. */
+  results: Record<string, PostResult | { error: string }>;
+  /** Summary counts. */
+  successes: string[];
+  failures: string[];
 }
 
 /**
- * Build a pipeline module that announces a release to the configured social
- * platforms.
- *
- * Example:
- * ```ts
- * pipeline({
- *   flow: (fp) => fp.stage('announce', releaseAnnounce({
- *     platforms: ['twitter'],
- *     manualReviewOn: 'major',
- *   }).apply),
- * });
- * ```
+ * Runtime args passed to the flow via `executor.run({ input })`. The
+ * `@footprintjs/ci` runner passes the `Trigger` directly as input, so args
+ * IS the trigger (not nested).
+ */
+interface AnnounceArgs {
+  event: string;
+  ref?: string;
+  payload?: { release?: { body?: string; tag_name?: string } };
+}
+
+/**
+ * Build a release-announce pipeline module. The returned module wraps a
+ * full `RunnableFlowChart` — you can plug it into `pipeline({ flow: () =>
+ * announce.build() })` or call `.build()` directly.
  */
 export function releaseAnnounce(opts: ReleaseAnnounceOptions): PipelineModule {
-  const platformList = opts.platforms;
-
-  return module('release-announce', (fp: FootPrintBuilder) =>
-    fp
-      .stage('parseChangelog', parseChangelogStage)
-      .stage('formatContent', formatContentStage(opts))
-      .decider('reviewGate', reviewGateDecider(opts))
-      .branch('manual', waitForApprovalStage(opts))
-      .branch('auto', passthroughStage)
-      .fork(
-        platformList.map((name) => ({
-          name,
-          stage: postToPlatformStage(name, opts),
-          retry: { maxAttempts: 3, backoff: 'exponential' as const, initialDelayMs: 1000 },
-        }))
-      )
-      .join('collectResults', collectResultsStage)
-      .stage('logMetrics', logMetricsStage)
-  );
+  return module('release-announce', () => buildChart(opts));
 }
 
-const parseChangelogStage: StageFn = async (_input, ctx) => {
-  const payload = (ctx.trigger.payload ?? {}) as {
-    release?: { body?: string; tag_name?: string };
-  };
-  const body = payload.release?.body ?? '';
-  const changelog = parseChangelog(body);
-  const version = changelog.version ?? ctx.trigger.ref ?? 'unknown';
-  ctx.adapter.log(
-    'info',
-    `parsed changelog: ${changelog.features.length} features, ${changelog.fixes.length} fixes, ${changelog.breaking.length} breaking`
-  );
-  return { version, changelog };
-};
-
-function formatContentStage(opts: ReleaseAnnounceOptions): StageFn {
-  return async (input, ctx) => {
-    const { version, changelog } = input as {
-      version: string;
-      changelog: ParsedChangelog;
-    };
-    const rendered = renderTemplate(opts.template ?? 'default', {
-      version,
-      changelog,
-      emojiPrefix: opts.emojiPrefix,
-      repoUrl: opts.repoUrl ?? detectRepoUrl(ctx.env),
-    });
-    const content: FormattedContent = { text: rendered.text };
-    return {
-      version,
-      changelog,
-      content,
-      platforms: opts.platforms,
-    } satisfies FormattedPayload;
-  };
-}
-
-function reviewGateDecider(opts: ReleaseAnnounceOptions) {
-  return async (input: unknown) => {
-    const payload = input as FormattedPayload;
-    return reviewBranchFor(payload.version, opts.manualReviewOn ?? 'none');
-  };
-}
-
-function waitForApprovalStage(opts: ReleaseAnnounceOptions): StageFn {
-  return async (input, ctx) => {
-    const payload = input as FormattedPayload;
-    ctx.adapter.log(
-      'info',
-      `review gate: waiting for /approve on ${payload.version}`
-    );
-    const probe = opts.approvalProbe ?? (async () => false);
-    await waitForApproval({
-      isApproved: probe,
-      intervalMs: opts.reviewIntervalMs ?? 30_000,
-      timeoutMs: opts.reviewTimeoutMs ?? 60 * 60 * 1000,
-    });
-    ctx.adapter.log('info', `review gate: approved ${payload.version}`);
-    return payload;
-  };
-}
-
-const passthroughStage: StageFn = async (input) => input;
-
-function postToPlatformStage(
-  name: PlatformName,
+function buildChart(
   opts: ReleaseAnnounceOptions
-): StageFn {
-  return async (input, ctx): Promise<PostResult> => {
-    const payload = input as FormattedPayload;
-    const adapter =
-      opts.platformOverrides?.[name] ?? (await resolvePlatform(name));
-    const keys = adapter.requiredSecrets();
-    const secrets = ctx.adapter.readSecrets(keys);
-    ctx.adapter.log('info', `posting to ${name}`);
-    const result = await adapter.post(payload.content, secrets);
-    if (result.dryRun) {
-      ctx.adapter.log('info', `${name}: dry-run ok (${result.postId})`);
-    } else {
-      ctx.adapter.log('info', `${name}: posted ${result.url}`);
-    }
-    return result;
-  };
+): RunnableFlowChart<any, TypedScope<AnnounceState>> {
+  const builder = flowChart<AnnounceState>(
+    'ParseChangelog',
+    (scope) => {
+      const args = scope.$getArgs<AnnounceArgs>();
+      const body = args?.payload?.release?.body ?? '';
+      scope.releaseBody = body;
+      scope.changelog = parseChangelog(body);
+      scope.version = scope.changelog.version ?? args?.ref ?? 'unknown';
+    },
+    'parse-changelog',
+    undefined,
+    'Parse the release changelog into typed buckets'
+  )
+    .addFunction(
+      'FormatContent',
+      (scope) => {
+        const rendered = renderTemplate(opts.template ?? 'default', {
+          version: scope.version,
+          changelog: scope.changelog,
+          ...(opts.emojiPrefix !== undefined ? { emojiPrefix: opts.emojiPrefix } : {}),
+          ...(opts.repoUrl ? { repoUrl: opts.repoUrl } : {}),
+        });
+        scope.content = { text: rendered.text };
+      },
+      'format-content',
+      'Render the announcement content from the changelog'
+    )
+    .addDeciderFunction(
+      'ReviewGate',
+      (scope) => {
+        const mode = opts.manualReviewOn ?? 'none';
+        return decide(
+          scope,
+          [
+            {
+              when: () => mode === 'major' && isMajorVersion(scope.version),
+              then: 'manual',
+              label: 'Major version release — manual approval required',
+            },
+          ],
+          'auto'
+        );
+      },
+      'review-gate',
+      'Route to manual approval for major releases'
+    )
+      .addFunctionBranch(
+        'manual',
+        'WaitForApproval',
+        async (scope) => {
+          const probe = opts.approvalProbe ?? (async () => false);
+          await waitForApproval({
+            isApproved: probe,
+            intervalMs: opts.reviewIntervalMs ?? 30_000,
+            timeoutMs: opts.reviewTimeoutMs ?? 60 * 60 * 1000,
+          });
+          scope.reviewRoute = 'manual';
+        },
+        'wait-for-approval'
+      )
+      .addFunctionBranch(
+        'auto',
+        'AutoApprove',
+        (scope) => {
+          scope.reviewRoute = 'auto';
+        },
+        'auto-approve'
+      )
+      .setDefault('auto')
+      .end()
+    // Platform posts are sequential. Parallel fan-out via
+    // `addListOfFunction` is deferred until we have a standalone repro for
+    // the builder semantics with a single branch.
+    ;
+
+  for (const name of opts.platforms) {
+    builder.addFunction(
+      `PostTo${capitalize(name)}`,
+      async (scope) => {
+        const adapter =
+          opts.platformOverrides?.[name] ?? (await resolvePlatform(name));
+        const secrets = readPlatformSecrets(scope, adapter);
+        try {
+          const result = await adapter.post(scope.content, secrets);
+          const existing = scope.successes ?? [];
+          scope.successes = [...existing, name];
+          scope.results = { ...(scope.results ?? {}), [name]: result };
+        } catch (err) {
+          const existing = scope.failures ?? [];
+          scope.failures = [...existing, name];
+          scope.results = {
+            ...(scope.results ?? {}),
+            [name]: { error: (err as Error).message },
+          };
+        }
+      },
+      `post-${name}`,
+      `Post the release announcement to ${name}`
+    );
+  }
+
+  builder.addFunction(
+    'LogMetrics',
+    (scope) => {
+      scope.$metric('announce.successes', scope.successes?.length ?? 0);
+      scope.$metric('announce.failures', scope.failures?.length ?? 0);
+    },
+    'log-metrics',
+    'Emit success/failure metrics'
+  );
+
+  return builder.build();
+}
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0]!.toUpperCase() + s.slice(1);
 }
 
 async function resolvePlatform(name: PlatformName): Promise<PlatformAdapter> {
   switch (name) {
-    case 'twitter': return twitterAdapter();
-    case 'linkedin': return linkedinAdapter();
-    case 'devto': return devtoAdapter();
+    case 'twitter':
+      return twitterAdapter();
+    case 'linkedin':
+      return linkedinAdapter();
+    case 'devto':
+      return devtoAdapter();
     default: {
       const _exhaustive: never = name;
       throw new Error(`Unknown platform: ${String(_exhaustive)}`);
@@ -171,32 +211,18 @@ async function resolvePlatform(name: PlatformName): Promise<PlatformAdapter> {
   }
 }
 
-const collectResultsStage: StageFn = async (input) => {
-  return { results: input as Record<string, PostResult | { error: string }> };
-};
-
-const logMetricsStage: StageFn = async (input, ctx) => {
-  const { results } = input as {
-    results: Record<string, PostResult | { error: string }>;
-  };
-  const successes: string[] = [];
-  const failures: string[] = [];
-  for (const [platform, r] of Object.entries(results)) {
-    if (r && typeof r === 'object' && 'postId' in r) {
-      successes.push(platform);
-    } else {
-      failures.push(platform);
-    }
+/**
+ * Read platform credentials from `process.env`. Secrets are never written to
+ * scope, so they don't appear in FootPrint's narrative, commit log, or
+ * snapshot. In GitHub Actions the env is the canonical place for secrets.
+ */
+function readPlatformSecrets(
+  _scope: TypedScope<AnnounceState>,
+  adapter: PlatformAdapter
+): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = {};
+  for (const key of adapter.requiredSecrets()) {
+    out[key] = process.env[key];
   }
-  ctx.adapter.log(
-    'info',
-    `announce complete: ${successes.length} ok, ${failures.length} failed`
-  );
-  return { successes, failures, results };
-};
-
-function detectRepoUrl(env: Record<string, string | undefined>): string | undefined {
-  const repo = env['GITHUB_REPOSITORY'];
-  if (!repo) return undefined;
-  return `https://github.com/${repo}`;
+  return out;
 }

@@ -1,7 +1,7 @@
-export { MockAdapter } from './mock';
-export type { MockAdapterOptions, MockAdapterCalls } from './mock';
-export { githubActions } from './github-actions';
-export type { GitHubActionsAdapterOptions } from './github-actions';
+export { MockAdapter } from './mock.js';
+export type { MockAdapterOptions, MockAdapterCalls } from './mock.js';
+export { githubActions } from './github-actions/index.js';
+export type { GitHubActionsAdapterOptions } from './github-actions/index.js';
 export type {
   CIAdapter,
   CommitToRepoOptions,
@@ -9,4 +9,4 @@ export type {
   Trigger,
   TriggerEvent,
   UploadArtifactOptions,
-} from './types';
+} from './types.js';

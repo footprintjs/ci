@@ -2,9 +2,9 @@ import type {
   FormattedContent,
   PlatformAdapter,
   PostResult,
-} from './types';
-import { isDryRun } from './types';
-import { truncate } from '../templates';
+} from './types.js';
+import { isDryRun } from './types.js';
+import { truncate } from '../templates.js';
 
 const REQUIRED = [
   'TWITTER_API_KEY',

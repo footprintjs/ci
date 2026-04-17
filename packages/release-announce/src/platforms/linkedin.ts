@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from './types';
+import type { PlatformAdapter } from './types.js';
 
 /**
  * LinkedIn platform adapter — stub for v0.2.

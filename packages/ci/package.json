@@ -40,7 +40,7 @@
   "peerDependencies": {
     "@actions/artifact": "^2.0.0",
     "@actions/core": "^1.10.0",
-    "footprintjs": "^0.x",
+    "footprintjs": "^4.12.0",
     "simple-git": "^3.20.0"
   },
   "peerDependenciesMeta": {
@@ -56,6 +56,7 @@
     "@actions/artifact": "^2.1.0",
     "@actions/core": "^1.10.0",
     "@types/node": "^20.0.0",
+    "footprintjs": "^4.12.0",
     "simple-git": "^3.24.0",
     "typescript": "^5.4.0",
     "vitest": "^1.5.0"

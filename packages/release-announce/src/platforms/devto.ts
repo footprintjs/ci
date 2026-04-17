@@ -1,4 +1,4 @@
-import type { PlatformAdapter } from './types';
+import type { PlatformAdapter } from './types.js';
 
 /**
  * dev.to platform adapter — stub for v0.3.

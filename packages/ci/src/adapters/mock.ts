@@ -4,7 +4,7 @@ import type {
   LogLevel,
   Trigger,
   UploadArtifactOptions,
-} from './types';
+} from './types.js';
 
 export interface MockAdapterOptions {
   trigger?: Partial<Trigger>;
