@@ -12,6 +12,6 @@ The baseline compares Foottrace only. AgentFootprint, FootPrint and other reposi
 | Original Foottrace workflow | 321 | 12,207 |
 | Original release tests/fixtures | 9,917 | 411,512 |
 | v1 source/config/workflows | 3,285 | 161,770 |
-| v1 tests/historical snapshots | 18,661 | 803,992 |
+| v1 tests/historical snapshots | 18,677 | 804,993 |
 | Generated dist files | 26,701 | 1,095,795 |
 | Vendored npm archive | compressed | 2,998,121 |

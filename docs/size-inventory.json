@@ -261,8 +261,8 @@
   },
   "v1TestsAndHistoricalFixtures": {
     "files": 47,
-    "lines": 18661,
-    "bytes": 803992,
+    "lines": 18677,
+    "bytes": 804993,
     "inventory": [
       {
         "file": "test/flow/flow.test.mjs",
@@ -291,8 +291,8 @@
       },
       {
         "file": "test/shadow/cli.test.mjs",
-        "bytes": 3058,
-        "lines": 41
+        "bytes": 4059,
+        "lines": 57
       },
       {
         "file": "test/shadow/collector.test.mjs",

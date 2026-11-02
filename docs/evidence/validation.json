@@ -2,7 +2,7 @@
   "node": "24.21.0",
   "npm": "11.19.0",
   "tests": {
-    "pass": 513,
+    "pass": 514,
     "fail": 0,
     "skipped": 0,
     "todo": 0

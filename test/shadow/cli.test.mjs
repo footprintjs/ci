@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { parseArguments, main } from '../../bin/release.mjs';
+import { parseArguments, main, invocationFromEnvironment } from '../../bin/release.mjs';
 
 test('CLI rejects live, unknown flags, duplicate flags, alternate phase and candidate config imports', () => {
   for (const args of [['--mode','live'],['--publish','true'],['--config','evil.mjs'],['--phase','publish'],['--mode','shadow','--mode','shadow'],['--source-sha','main']]) assert.throws(() => parseArguments(args));
@@ -29,6 +29,9 @@ test('committed packed executable bootstraps independently of broken candidate m
 });
 test('CLI saves native record and public observations with bounded safe filenames', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'release-output-'));
+  const previousActions = process.env.GITHUB_ACTIONS;
+  // This fixture exercises local output with mocked ports, independent of the CI caller.
+  delete process.env.GITHUB_ACTIONS;
   try {
     const code = await main(['--output',dir], { createShadow: async () => ({ context: {mode:'shadow'}, ports: {}, observations: () => [{ host:'registry.npmjs.org',status:200,bytes:1,sha256:'a'.repeat(64) }] }),
       runFlow: async () => ({ status:'complete', stages:{}, record:{ format:'shared-release-native-v1',complete:true }, summary:'complete; verify: VERIFICATION_READY' }) });
@@ -37,5 +40,18 @@ test('CLI saves native record and public observations with bounded safe filename
     assert.equal(JSON.parse(await readFile(join(dir,'observations.json')))[0].status, 200);
     const second = await main(['--output',dir], { createShadow: async () => { throw Error('secret-token /private/path'); } });
     assert.equal(second, 1);
-  } finally { await rm(dir, { recursive: true, force: true }); }
+  } finally {
+    if (previousActions === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = previousActions;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('production invocation rejects a foreign Actions repository despite otherwise valid actual run identity', () => {
+  const sha = 'a'.repeat(40);
+  const env = { GITHUB_ACTIONS:'true', GITHUB_REPOSITORY:'footprintjs/ci', GITHUB_SHA:sha,
+    GITHUB_RUN_ID:'123456789', GITHUB_RUN_ATTEMPT:'1', GITHUB_REF:'refs/heads/main', GITHUB_EVENT_NAME:'push' };
+  assert.throws(() => invocationFromEnvironment(env, sha), { code:'shadow-invocation' });
+  assert.deepEqual(invocationFromEnvironment({ ...env, GITHUB_REPOSITORY:'footprintjs/foottrace' }, sha),
+    { kind:'github-actions', runId:123456789, runAttempt:1, eventName:'push', ref:'refs/heads/main' });
 });
