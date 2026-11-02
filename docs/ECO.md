@@ -12,6 +12,7 @@ From this checkout:
 npm run eco -- status --repo footprintjs/ci --pr <PR-number> --output eco-evidence
 npm run eco -- explain --record eco-evidence/record.json --key reportFacts
 npm run eco -- explain --record eco-evidence/record.json --key observeSources
+npm run eco -- explain --record eco-evidence/record.json --key observeReceipt
 ```
 
 The output directory must be new. It contains a native `record.json`, a short
@@ -60,7 +61,10 @@ observe → observation decision → admit → admission decision
 ```
 
 Scope holds only finite facts, static findings, body/source digests and bounded
-request-boundary metadata. Raw comment bodies, full scopes/footers, check names,
+request-boundary metadata. The value-free compact observation receipt is also saved:
+comment IDs, body digests, syntax metadata and explicit unknown creation remain
+inspectable without refetching GitHub. Its digest is a native decision dependency,
+not a dangling reference or evidence of complete history. Raw comment bodies, full scopes/footers, check names,
 credentials and provider error strings stay outside scope. Failed handoffs retain
 an explicit route kind/status/refusal code. Omitted observations are counted.
 Those source digests are actual native read dependencies of the decision record;

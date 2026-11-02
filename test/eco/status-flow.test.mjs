@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import test from 'node:test';import assert from 'node:assert/strict';import {existsSync} from 'node:fs';
 import {createEcoReader} from '../../src/eco/github-reader.mjs';
 const path=new URL('../../src/eco/status-flow.mjs',import.meta.url);const mod=existsSync(path)?await import(path):{};
@@ -52,4 +53,19 @@ test('global pause false cannot clear a repo hold, and native profiles remain an
  const held=policyFixture(p=>{p.releasesPaused=false;});const h=await run({target,anchor:held.anchor,reader:held.reader});assert.equal(h.status,'held');assert(h.report.findings.includes('repo-held'));
  const native=policyFixture(p=>{p.repositories[0].approvalProfile='foottrace-disclosed-user';p.repositories[0].held=false;p.repositories[0].holds=[];});
  const n=await run({target,anchor:native.anchor,reader:native.reader});assert.equal(n.status,'unknown');assert(n.report.findings.includes('native-approval-unobserved'));assert(n.report.findings.includes('verdict-missing'));
+});
+
+test('a saved receipt digest resolves to the admitted compact comment evidence without a new request',async()=>{
+ const f=fixture();const r=await run({target,reader:f.reader});assert.equal(r.record.complete,true);
+ const state=r.record.snapshot.sharedState;
+ assert(Object.hasOwn(state,'observeReceipt'),'saved producer digest must have its compact evidence in the native record');
+ assert.equal(state.observeReceipt?.format,'eco-verdict-observations-v2');
+ assert.equal(state.observeFacts.receiptDigest,createHash('sha256').update(JSON.stringify(state.observeReceipt)).digest('hex'));
+ assert(r.record.snapshot.readSources.record.occurrences.some(row=>row.key==='observeReceipt'));
+ assert.equal(state.observeReceipt.entries[0].id,100);assert.equal(state.observeReceipt.entries[0].authorId,7);
+ assert.equal(state.observeReceipt.entries[0].createdSequence,null);assert.equal(state.observeReceipt.continuous,false);
+ assert.equal(state.observeReceipt.entries[0].first.kind,'parsed');
+ assert.doesNotMatch(JSON.stringify(r.record),/secret body|\/Users\/private|Scope:|Reviewer:/);
+ const explanation=mod.explainEcoRecord(JSON.parse(JSON.stringify(r.record)),'observeReceipt');assert.match(explanation,/observe.*wrote: observeReceipt/);
+ assert.match(mod.explainEcoRecord(r.record,'reportFacts'),/observeReceipt/);
 });

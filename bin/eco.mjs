@@ -15,7 +15,7 @@ export function parseEcoArguments(args){
  const allowed=command==='status'?['--repo','--pr','--action','--policy-commit','--policy-sha256','--owner-id','--output']:['--record','--key'];const options={};
  for(let i=1;i<args.length;i+=2){const flag=args[i],value=args[i+1];if(!allowed.includes(flag)||Object.hasOwn(options,flag)||typeof value!=='string'||value.startsWith('--'))refuse('eco-arguments');options[flag]=value;}
  if(command==='explain'){
-  if(!options['--record']||!options['--key']||!/^(observe|admit|diff|report)(Facts|Decision|Sources)$/.test(options['--key']))refuse('eco-arguments');
+  if(!options['--record']||!options['--key']||!/^(?:(observe|admit|diff|report)(Facts|Decision|Sources)|observeReceipt)$/.test(options['--key']))refuse('eco-arguments');
   return {command,record:options['--record'],key:options['--key']};
  }
  const repository=options['--repo'],pull=options['--pr'],action=options['--action']??'merge-source';

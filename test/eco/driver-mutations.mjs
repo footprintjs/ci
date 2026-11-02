@@ -21,6 +21,10 @@ const cases=[
  ['reopen-without-provider',[['bin/eco.mjs',"if(options.command==='explain'){","if(options.command==='explain'){await fetcher('https://api.github.com/repos/footprintjs/ci');"]]],
  ['exclusive-evidence-output',[['bin/eco.mjs',"mkdir(output,{mode:0o700})","mkdir(output,{mode:0o700,recursive:true})"],['bin/eco.mjs',"join(output,name),'wx'","join(output,name),'w'"]]],
 ];
+cases.push(
+ ['saved-receipt-discarded',[['src/eco/status-flow.mjs','scope.observeReceipt=snapshot?jsonData(snapshot.receipt.state):null;','scope.observeReceipt=null;']]],
+ ['saved-receipt-dependency',[['src/eco/status-flow.mjs','JSON.stringify(scope.observeReceipt)','JSON.stringify(snapshot.receipt.state)']]],
+);
 const results=[];
 for(const [name,edits] of cases){
  const dir=mkdtempSync(join(tmpdir(),'eco-driver-mutation-'));

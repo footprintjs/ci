@@ -23,8 +23,9 @@ export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),
    }catch{facts={available:false,historyComplete:false};}
    // Preserve the external handoff boundary, including failed HTTP/size reads,
    // before SDK capture. Payload bytes/bodies/token/error text never enter scope.
+   scope.observeReceipt=snapshot?jsonData(snapshot.receipt.state):null;
    scope.observeSources=isEcoReader(reader)?jsonData({responses:reader.observations(),totals:reader.totals()}):{responses:[],totals:{requests:0,bytes:0,omittedObservations:0}};
-   scope.observeFacts=jsonData({...facts,sourcesDigest:createHash('sha256').update(JSON.stringify(scope.observeSources)).digest('hex')});
+   scope.observeFacts=jsonData({...facts,...(snapshot?{receiptDigest:createHash('sha256').update(JSON.stringify(scope.observeReceipt)).digest('hex')}:{}),sourcesDigest:createHash('sha256').update(JSON.stringify(scope.observeSources)).digest('hex')});
   },
   admit:async scope=>{
    // This branch's facts are recorded by the preceding observation decide node.
@@ -70,7 +71,7 @@ export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),
 /** Saved native Foottrace navigation only, never execution or fresh authority. */
 export function explainEcoRecord(record,key){
  if(!record?.complete||record.format!=='eco-status-native-v1'||!record.snapshot)return 'Incomplete native eco evidence.';
- if(typeof key!=='string'||!/^(?:observe|admit|diff|report)(?:Facts|Decision|Sources)$/.test(key))return 'Unsupported eco evidence key.';
+ if(typeof key!=='string'||!/^(?:(?:observe|admit|diff|report)(?:Facts|Decision|Sources)|observeReceipt)$/.test(key))return 'Unsupported eco evidence key.';
  try{const {commitLog,executionTree}=record.snapshot;return formatSlice(sliceForKey(commitLog,key,keysReadFromExecutionTree(executionTree)));}
  catch{return 'Unreadable native eco evidence.';}
 }

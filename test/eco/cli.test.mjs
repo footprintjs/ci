@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {exi
 const file=new URL('../../bin/eco.mjs',import.meta.url);const mod=existsSync(file)?await import(file):{};
 const parser=args=>{assert.equal(typeof mod.parseEcoArguments,'function','eco CLI feature required');return mod.parseEcoArguments(args);};
 test('CLI accepts only finite read-only status/explain commands and separately pinned owner inputs',()=>{
- assert.equal(parser(['status']).command,'status');assert.equal(parser(['status','--repo','footprintjs/ci','--pr','2']).target.pullNumber,2);
+ assert.equal(parser(['status']).command,'status');assert.equal(parser(['explain','--record','saved.json','--key','observeReceipt']).key,'observeReceipt');assert.equal(parser(['status','--repo','footprintjs/ci','--pr','2']).target.pullNumber,2);
  for(const args of [['publish'],['status','--live','true'],['status','--repo','other/repo','--pr','2'],['status','--pr','0'],['status','--repo','footprintjs/ci'],['status','--history','made-up.json'],['status','--policy-commit','a'.repeat(40)],['status','--pr','2','--pr','3']])assert.throws(()=>parser(args),{code:'eco-arguments'});
  const p=parser(['status','--repo','footprintjs/ci','--pr','2','--policy-commit','a'.repeat(40),'--policy-sha256','b'.repeat(64),'--owner-id','7']);assert.equal(p.anchor.ownerId,7);
 });
