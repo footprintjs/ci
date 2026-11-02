@@ -1,0 +1,330 @@
+{
+  "repository": "https://github.com/footprintjs/foottrace",
+  "commit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
+  "license": "MIT",
+  "scope": "Six production guard modules exact. Complete native release test corpus; only three test helper imports adapted to exercise production guards. Snapshot runner/workflows are test-only historical compatibility fixtures, never entrypoints.",
+  "files": [
+    {
+      "source": ".github/workflows/ci.yml",
+      "destination": "test/upstream/.github/workflows/ci.yml",
+      "sourceSha256": "af9710a00773a3e2e642e0021dce54c1bda05740a2c5d0db25bf041d1aa54986",
+      "sha256": "af9710a00773a3e2e642e0021dce54c1bda05740a2c5d0db25bf041d1aa54986",
+      "adaptation": "exact"
+    },
+    {
+      "source": ".github/workflows/codeql.yml",
+      "destination": "test/upstream/.github/workflows/codeql.yml",
+      "sourceSha256": "849d3333fbac4475cd52ebdcf56b121a7e8fef159dc5b99b2b989d4706848d32",
+      "sha256": "849d3333fbac4475cd52ebdcf56b121a7e8fef159dc5b99b2b989d4706848d32",
+      "adaptation": "exact"
+    },
+    {
+      "source": ".github/workflows/publish.yml",
+      "destination": "test/upstream/.github/workflows/publish.yml",
+      "sourceSha256": "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73",
+      "sha256": "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73",
+      "adaptation": "exact"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "destination": "test/upstream/CHANGELOG.md",
+      "sourceSha256": "2798cbec112e27051f1388bf22ff5998d78b8e64b6f90d00fa3927dd9b68fd6d",
+      "sha256": "2798cbec112e27051f1388bf22ff5998d78b8e64b6f90d00fa3927dd9b68fd6d",
+      "adaptation": "exact"
+    },
+    {
+      "source": "LICENSE",
+      "destination": "test/upstream/LICENSE",
+      "sourceSha256": "69efc6154da14ec63e8bfe0bf3c6a3c945a8b3481e6fe8536144d8cc696000ee",
+      "sha256": "69efc6154da14ec63e8bfe0bf3c6a3c945a8b3481e6fe8536144d8cc696000ee",
+      "adaptation": "exact"
+    },
+    {
+      "source": "README.md",
+      "destination": "test/upstream/README.md",
+      "sourceSha256": "8925e2f1bd30f9599df097bacb8a6513a6b24eb833cf80830fbb6998dcd33e75",
+      "sha256": "8925e2f1bd30f9599df097bacb8a6513a6b24eb833cf80830fbb6998dcd33e75",
+      "adaptation": "exact"
+    },
+    {
+      "source": "docs/RELEASING.md",
+      "destination": "test/upstream/docs/RELEASING.md",
+      "sourceSha256": "e998ffa300a7e1b2387ce3a962f86282701fe5d65c99c81464a76a31e76d17eb",
+      "sha256": "e998ffa300a7e1b2387ce3a962f86282701fe5d65c99c81464a76a31e76d17eb",
+      "adaptation": "exact"
+    },
+    {
+      "source": "docs/metadata.md",
+      "destination": "test/upstream/docs/metadata.md",
+      "sourceSha256": "83789689ca465c380c0f6bb77be250a56d52f51792c686e4124c5d848f093876",
+      "sha256": "83789689ca465c380c0f6bb77be250a56d52f51792c686e4124c5d848f093876",
+      "adaptation": "exact"
+    },
+    {
+      "source": "package-lock.json",
+      "destination": "test/upstream/package-lock.json",
+      "sourceSha256": "3e2335f520329b4d287dfd4e307d28f06df54f090ea37b87c02f46d2db933fed",
+      "sha256": "3e2335f520329b4d287dfd4e307d28f06df54f090ea37b87c02f46d2db933fed",
+      "adaptation": "exact"
+    },
+    {
+      "source": "package.json",
+      "destination": "test/upstream/package.json",
+      "sourceSha256": "b87684ce2ab1cf4a0e622dffa4575753669f3873f1a6eacdcd6bd9ac8cc56848",
+      "sha256": "b87684ce2ab1cf4a0e622dffa4575753669f3873f1a6eacdcd6bd9ac8cc56848",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-app-auth.cjs",
+      "destination": "test/upstream/scripts/release-app-auth.cjs",
+      "sourceSha256": "121bc384e468ebc2246043996e7744bee914fa78005247b810782921c824c6d1",
+      "sha256": "121bc384e468ebc2246043996e7744bee914fa78005247b810782921c824c6d1",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-archive.cjs",
+      "destination": "test/upstream/scripts/release-archive.cjs",
+      "sourceSha256": "0a24d129d2bd3b4e9a31c27e00aea35d8a86fd1af76fd287a8f988da672af742",
+      "sha256": "0a24d129d2bd3b4e9a31c27e00aea35d8a86fd1af76fd287a8f988da672af742",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-changes.cjs",
+      "destination": "test/upstream/scripts/release-changes.cjs",
+      "sourceSha256": "5a935d66f2c9d3756ea4ddbb5d5fe377a5840196e9c2f5d4dab8c4cfb5f4496e",
+      "sha256": "5a935d66f2c9d3756ea4ddbb5d5fe377a5840196e9c2f5d4dab8c4cfb5f4496e",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-control.cjs",
+      "destination": "test/upstream/scripts/release-control.cjs",
+      "sourceSha256": "d995efcdc233a7df91281e46cdb98fc7ed4a9a8bafc64adf4c8cc72bf8802d53",
+      "sha256": "d995efcdc233a7df91281e46cdb98fc7ed4a9a8bafc64adf4c8cc72bf8802d53",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-github.cjs",
+      "destination": "test/upstream/scripts/release-github.cjs",
+      "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "sha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-prepare.cjs",
+      "destination": "test/upstream/scripts/release-prepare.cjs",
+      "sourceSha256": "6479d1030fd9cafb71d9ac32ba71b87c99375f052156ca3794c2052a63486e08",
+      "sha256": "6479d1030fd9cafb71d9ac32ba71b87c99375f052156ca3794c2052a63486e08",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-runner.cjs",
+      "destination": "test/upstream/scripts/release-runner.cjs",
+      "sourceSha256": "16638886696dc013a0fdc0dec0486cd3317178b410ce548d03b6d2a0bed4b015",
+      "sha256": "16638886696dc013a0fdc0dec0486cd3317178b410ce548d03b6d2a0bed4b015",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/app-identity.test.mjs",
+      "destination": "test/upstream/test/release/app-identity.test.mjs",
+      "sourceSha256": "12b153efc17ae37e3ae386c6c52aab4535f1c5df341d94605036d25e05c7f437",
+      "sha256": "173fc1455f5137768b188dcd47fafb3e08631aa75bf809c5df464722e7f8cb6e",
+      "adaptation": "production guard import paths only"
+    },
+    {
+      "source": "test/release/archive.test.mjs",
+      "destination": "test/upstream/test/release/archive.test.mjs",
+      "sourceSha256": "065e0d3b27e84b70ad8eccb6793820c508ecf39aaba3f7cf5098a0e93bbf780b",
+      "sha256": "065e0d3b27e84b70ad8eccb6793820c508ecf39aaba3f7cf5098a0e93bbf780b",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/changes.test.mjs",
+      "destination": "test/upstream/test/release/changes.test.mjs",
+      "sourceSha256": "fce19723d725df56cbd0e563f5264e45043b399af0306cce716e31adf8812878",
+      "sha256": "fce19723d725df56cbd0e563f5264e45043b399af0306cce716e31adf8812878",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/diagnostics.test.mjs",
+      "destination": "test/upstream/test/release/diagnostics.test.mjs",
+      "sourceSha256": "e537a64bdb715f3645e54aa8fc46dda35ce9b30d3da53e24824a6233dab5f6bd",
+      "sha256": "4ca52d9c3b7b7b737e8f2d12220c8a93b3dfea12248a144ebbec97692209f4ca",
+      "adaptation": "production guard import paths only"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/.changes/metadata-query.md",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/.changes/metadata-query.md",
+      "sourceSha256": "f0cb8459a2ef823c843348bf7e43fc0d18c494ebfa73926672d6d672d587b725",
+      "sha256": "f0cb8459a2ef823c843348bf7e43fc0d18c494ebfa73926672d6d672d587b725",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/CHANGELOG.md",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/CHANGELOG.md",
+      "sourceSha256": "8245bf75ee8f2bd32cba9f49ca4a29112b97de877fc9be410e52e1e27dad32b8",
+      "sha256": "8245bf75ee8f2bd32cba9f49ca4a29112b97de877fc9be410e52e1e27dad32b8",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/PROVENANCE.md",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/PROVENANCE.md",
+      "sourceSha256": "877e967bd844b886164cd619a27ccdd0b5d62a45f4b319b675473186630cf6b7",
+      "sha256": "877e967bd844b886164cd619a27ccdd0b5d62a45f4b319b675473186630cf6b7",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/README.md",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/README.md",
+      "sourceSha256": "58ac2e5baea58fdf996bb47e06b8fd282e897c4fd193109be27d98175b44e15c",
+      "sha256": "58ac2e5baea58fdf996bb47e06b8fd282e897c4fd193109be27d98175b44e15c",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/docs/metadata.md",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/docs/metadata.md",
+      "sourceSha256": "a0d40250602b1c5a0ff5303d17383fc6f9a7c173ef8a6bbc45e1b5e6ed781bd9",
+      "sha256": "a0d40250602b1c5a0ff5303d17383fc6f9a7c173ef8a6bbc45e1b5e6ed781bd9",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/manifest.json",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/manifest.json",
+      "sourceSha256": "73d3c28e7e9b268a911a3cec9ea1c5e29d634100e4d0206264e0f6582baefc4d",
+      "sha256": "73d3c28e7e9b268a911a3cec9ea1c5e29d634100e4d0206264e0f6582baefc4d",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/package-lock.json",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/package-lock.json",
+      "sourceSha256": "d1d62027827b83d826c850811d2f5ea3852703efd5d13af64d8285c33523b0e7",
+      "sha256": "d1d62027827b83d826c850811d2f5ea3852703efd5d13af64d8285c33523b0e7",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/fixtures/pre-metadata-release/package.json",
+      "destination": "test/upstream/test/release/fixtures/pre-metadata-release/package.json",
+      "sourceSha256": "c7d3e02ef0deed3c6a5d39ef68852f831234694228b14dd1f34ab7a908b743ef",
+      "sha256": "c7d3e02ef0deed3c6a5d39ef68852f831234694228b14dd1f34ab7a908b743ef",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/helpers.mjs",
+      "destination": "test/upstream/test/release/helpers.mjs",
+      "sourceSha256": "d52ee13ce77cb3374d152d680cc5425075fb2ecc5b7043b7cab21f08bc637b49",
+      "sha256": "6fe367294f9ec42d53eb1895661f52e40d931f6968342fb24d8119f09957529e",
+      "adaptation": "production guard import paths only"
+    },
+    {
+      "source": "test/release/release-control.test.mjs",
+      "destination": "test/upstream/test/release/release-control.test.mjs",
+      "sourceSha256": "e947d1ea98d4ee06dc8fc9a7604f8e06b41172db987eefef5188fd1da7698e73",
+      "sha256": "e947d1ea98d4ee06dc8fc9a7604f8e06b41172db987eefef5188fd1da7698e73",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/repository-status.test.mjs",
+      "destination": "test/upstream/test/release/repository-status.test.mjs",
+      "sourceSha256": "62c925e6532e7d55c5b3516389d00108b7f42a84b31ab9e54d1b83cc0a3f2161",
+      "sha256": "62c925e6532e7d55c5b3516389d00108b7f42a84b31ab9e54d1b83cc0a3f2161",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/run-guard-diagnostics.test.mjs",
+      "destination": "test/upstream/test/release/run-guard-diagnostics.test.mjs",
+      "sourceSha256": "3d1e5f4889c155af194ad7692833401030463dead6c3bca05e6e01b1fafad544",
+      "sha256": "3d1e5f4889c155af194ad7692833401030463dead6c3bca05e6e01b1fafad544",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/runner.test.mjs",
+      "destination": "test/upstream/test/release/runner.test.mjs",
+      "sourceSha256": "d2b479bf61e195c9f0517184915ac95c26a38a18f0ba4215f8889cd7bf1d1bd3",
+      "sha256": "d2b479bf61e195c9f0517184915ac95c26a38a18f0ba4215f8889cd7bf1d1bd3",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/status-assertions.mjs",
+      "destination": "test/upstream/test/release/status-assertions.mjs",
+      "sourceSha256": "d4e258d31c5451a507b34b3597cc9e8d66fe01ee4e9424c168febe60084c59c0",
+      "sha256": "d4e258d31c5451a507b34b3597cc9e8d66fe01ee4e9424c168febe60084c59c0",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/unpublished-recovery.test.mjs",
+      "destination": "test/upstream/test/release/unpublished-recovery.test.mjs",
+      "sourceSha256": "aa37e4a21c53bf703ef4929c8f8b167adbf2e57f18243a14657a6abd6b78e167",
+      "sha256": "aa37e4a21c53bf703ef4929c8f8b167adbf2e57f18243a14657a6abd6b78e167",
+      "adaptation": "exact"
+    },
+    {
+      "source": "test/release/workflow-contract.test.mjs",
+      "destination": "test/upstream/test/release/workflow-contract.test.mjs",
+      "sourceSha256": "99ecd21bf48bf28bb03f13615ae62520ba50645ad50b9a0259a31ef9e3efe124",
+      "sha256": "99ecd21bf48bf28bb03f13615ae62520ba50645ad50b9a0259a31ef9e3efe124",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-app-auth.cjs",
+      "destination": "src/guards/release-app-auth.cjs",
+      "sourceSha256": "121bc384e468ebc2246043996e7744bee914fa78005247b810782921c824c6d1",
+      "sha256": "121bc384e468ebc2246043996e7744bee914fa78005247b810782921c824c6d1",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-archive.cjs",
+      "destination": "src/guards/release-archive.cjs",
+      "sourceSha256": "0a24d129d2bd3b4e9a31c27e00aea35d8a86fd1af76fd287a8f988da672af742",
+      "sha256": "0a24d129d2bd3b4e9a31c27e00aea35d8a86fd1af76fd287a8f988da672af742",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-changes.cjs",
+      "destination": "src/guards/release-changes.cjs",
+      "sourceSha256": "5a935d66f2c9d3756ea4ddbb5d5fe377a5840196e9c2f5d4dab8c4cfb5f4496e",
+      "sha256": "5a935d66f2c9d3756ea4ddbb5d5fe377a5840196e9c2f5d4dab8c4cfb5f4496e",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-control.cjs",
+      "destination": "src/guards/release-control.cjs",
+      "sourceSha256": "d995efcdc233a7df91281e46cdb98fc7ed4a9a8bafc64adf4c8cc72bf8802d53",
+      "sha256": "d995efcdc233a7df91281e46cdb98fc7ed4a9a8bafc64adf4c8cc72bf8802d53",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-github.cjs",
+      "destination": "src/guards/release-github.cjs",
+      "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "sha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-prepare.cjs",
+      "destination": "src/guards/release-prepare.cjs",
+      "sourceSha256": "6479d1030fd9cafb71d9ac32ba71b87c99375f052156ca3794c2052a63486e08",
+      "sha256": "6479d1030fd9cafb71d9ac32ba71b87c99375f052156ca3794c2052a63486e08",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/release-github.cjs",
+      "sourceLines": "712-741",
+      "destination": "src/guards/security-evidence.mjs",
+      "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "sha256": "9974d80c81ff09db40a4459f91f85ac7cbe8137c7eb73ac9d90ec33dc440e217",
+      "adaptation": "Pure synchronous requireSecurity witness adapter, retaining exact native run/job predicates plus explicit page completion. No native source changed."
+    }
+  ],
+  "testExecution": {
+    "productionGuardImports": [
+      "test/upstream/test/release/helpers.mjs",
+      "test/upstream/test/release/app-identity.test.mjs",
+      "test/upstream/test/release/diagnostics.test.mjs"
+    ],
+    "historicalSnapshotOnly": [
+      "test/upstream/scripts/release-runner.cjs",
+      "test/upstream/.github/workflows/"
+    ],
+    "nativeTests": 449,
+    "note": "Historical runner snapshots retain local static helpers for original mocked workflow/runner compatibility assertions. Pure guard, archive, closure, history, collection, and verification fixture calls load src/guards production modules via the three documented import adaptations."
+  }
+}

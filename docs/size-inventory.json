@@ -1,0 +1,524 @@
+{
+  "baselineCommit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
+  "method": "Physical byte lines using Python bytes.splitlines(), not decoded Unicode splitlines; regular files only. Production copies/snapshot fixtures counted separately; symlinks not double-counted. No migration/deletion has occurred.",
+  "beforeFoottraceHelpers": {
+    "files": 7,
+    "lines": 2486,
+    "bytes": 110763,
+    "inventory": [
+      {
+        "file": "foottrace@f55250ad/scripts/release-app-auth.cjs",
+        "bytes": 1608,
+        "lines": 48
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-archive.cjs",
+        "bytes": 8098,
+        "lines": 220
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-changes.cjs",
+        "bytes": 2829,
+        "lines": 81
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-control.cjs",
+        "bytes": 9093,
+        "lines": 260
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-github.cjs",
+        "bytes": 69621,
+        "lines": 1484
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-prepare.cjs",
+        "bytes": 15263,
+        "lines": 295
+      },
+      {
+        "file": "foottrace@f55250ad/scripts/release-runner.cjs",
+        "bytes": 4251,
+        "lines": 98
+      }
+    ]
+  },
+  "beforeFoottraceWorkflow": {
+    "files": 1,
+    "lines": 321,
+    "bytes": 12207,
+    "inventory": [
+      {
+        "file": "foottrace@f55250ad/.github/workflows/publish.yml",
+        "bytes": 12207,
+        "lines": 321
+      }
+    ]
+  },
+  "beforeFoottraceReleaseTests": {
+    "files": 20,
+    "lines": 9917,
+    "bytes": 411512,
+    "inventory": [
+      {
+        "file": "foottrace@f55250ad/test/release/app-identity.test.mjs",
+        "bytes": 15939,
+        "lines": 296
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/archive.test.mjs",
+        "bytes": 20588,
+        "lines": 616
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/changes.test.mjs",
+        "bytes": 7706,
+        "lines": 154
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/diagnostics.test.mjs",
+        "bytes": 36799,
+        "lines": 1074
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/.changes/metadata-query.md",
+        "bytes": 490,
+        "lines": 6
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/CHANGELOG.md",
+        "bytes": 19684,
+        "lines": 219
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/PROVENANCE.md",
+        "bytes": 735,
+        "lines": 5
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/README.md",
+        "bytes": 14988,
+        "lines": 201
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/docs/metadata.md",
+        "bytes": 9599,
+        "lines": 163
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/manifest.json",
+        "bytes": 1539,
+        "lines": 43
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/package-lock.json",
+        "bytes": 148248,
+        "lines": 4340
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/fixtures/pre-metadata-release/package.json",
+        "bytes": 4018,
+        "lines": 137
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/helpers.mjs",
+        "bytes": 24844,
+        "lines": 438
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/release-control.test.mjs",
+        "bytes": 23069,
+        "lines": 704
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/repository-status.test.mjs",
+        "bytes": 8119,
+        "lines": 78
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/run-guard-diagnostics.test.mjs",
+        "bytes": 6036,
+        "lines": 232
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/runner.test.mjs",
+        "bytes": 13175,
+        "lines": 339
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/status-assertions.mjs",
+        "bytes": 5017,
+        "lines": 69
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/unpublished-recovery.test.mjs",
+        "bytes": 38477,
+        "lines": 501
+      },
+      {
+        "file": "foottrace@f55250ad/test/release/workflow-contract.test.mjs",
+        "bytes": 12442,
+        "lines": 302
+      }
+    ]
+  },
+  "v1Production": {
+    "files": 18,
+    "lines": 3285,
+    "bytes": 161770,
+    "inventory": [
+      {
+        "file": ".github/workflows/check.yml",
+        "bytes": 677,
+        "lines": 25
+      },
+      {
+        "file": ".github/workflows/release.yml",
+        "bytes": 7476,
+        "lines": 148
+      },
+      {
+        "file": "bin/caller-preflight.cjs",
+        "bytes": 3616,
+        "lines": 63
+      },
+      {
+        "file": "bin/release.mjs",
+        "bytes": 4718,
+        "lines": 71
+      },
+      {
+        "file": "configs/foottrace.json",
+        "bytes": 450,
+        "lines": 21
+      },
+      {
+        "file": "scripts/build.mjs",
+        "bytes": 1808,
+        "lines": 20
+      },
+      {
+        "file": "src/flow.mjs",
+        "bytes": 6258,
+        "lines": 105
+      },
+      {
+        "file": "src/github-readonly.mjs",
+        "bytes": 6718,
+        "lines": 112
+      },
+      {
+        "file": "src/guards/release-app-auth.cjs",
+        "bytes": 1608,
+        "lines": 48
+      },
+      {
+        "file": "src/guards/release-archive.cjs",
+        "bytes": 8098,
+        "lines": 220
+      },
+      {
+        "file": "src/guards/release-changes.cjs",
+        "bytes": 2829,
+        "lines": 81
+      },
+      {
+        "file": "src/guards/release-control.cjs",
+        "bytes": 9093,
+        "lines": 260
+      },
+      {
+        "file": "src/guards/release-github.cjs",
+        "bytes": 69621,
+        "lines": 1484
+      },
+      {
+        "file": "src/guards/release-prepare.cjs",
+        "bytes": 15263,
+        "lines": 295
+      },
+      {
+        "file": "src/guards/security-evidence.mjs",
+        "bytes": 1507,
+        "lines": 38
+      },
+      {
+        "file": "src/policy.mjs",
+        "bytes": 11369,
+        "lines": 155
+      },
+      {
+        "file": "src/record.mjs",
+        "bytes": 4928,
+        "lines": 71
+      },
+      {
+        "file": "src/shadow.mjs",
+        "bytes": 5733,
+        "lines": 68
+      }
+    ]
+  },
+  "v1TestsAndHistoricalFixtures": {
+    "files": 47,
+    "lines": 18661,
+    "bytes": 803992,
+    "inventory": [
+      {
+        "file": "test/flow/flow.test.mjs",
+        "bytes": 10640,
+        "lines": 179
+      },
+      {
+        "file": "test/policy/config.test.mjs",
+        "bytes": 2950,
+        "lines": 36
+      },
+      {
+        "file": "test/policy/guards.test.mjs",
+        "bytes": 6277,
+        "lines": 53
+      },
+      {
+        "file": "test/policy/mutation-check.mjs",
+        "bytes": 2990,
+        "lines": 36
+      },
+      {
+        "file": "test/policy/security.test.mjs",
+        "bytes": 1810,
+        "lines": 15
+      },
+      {
+        "file": "test/shadow/cli.test.mjs",
+        "bytes": 3058,
+        "lines": 41
+      },
+      {
+        "file": "test/shadow/collector.test.mjs",
+        "bytes": 8793,
+        "lines": 112
+      },
+      {
+        "file": "test/shadow/transport.test.mjs",
+        "bytes": 5932,
+        "lines": 77
+      },
+      {
+        "file": "test/upstream/.github/workflows/ci.yml",
+        "bytes": 1180,
+        "lines": 36
+      },
+      {
+        "file": "test/upstream/.github/workflows/codeql.yml",
+        "bytes": 1519,
+        "lines": 50
+      },
+      {
+        "file": "test/upstream/.github/workflows/publish.yml",
+        "bytes": 12207,
+        "lines": 321
+      },
+      {
+        "file": "test/upstream/CHANGELOG.md",
+        "bytes": 22381,
+        "lines": 248
+      },
+      {
+        "file": "test/upstream/LICENSE",
+        "bytes": 1089,
+        "lines": 21
+      },
+      {
+        "file": "test/upstream/README.md",
+        "bytes": 14987,
+        "lines": 201
+      },
+      {
+        "file": "test/upstream/docs/RELEASING.md",
+        "bytes": 18593,
+        "lines": 130
+      },
+      {
+        "file": "test/upstream/docs/metadata.md",
+        "bytes": 9590,
+        "lines": 162
+      },
+      {
+        "file": "test/upstream/package-lock.json",
+        "bytes": 148250,
+        "lines": 4340
+      },
+      {
+        "file": "test/upstream/package.json",
+        "bytes": 4016,
+        "lines": 137
+      },
+      {
+        "file": "test/upstream/scripts/release-app-auth.cjs",
+        "bytes": 1608,
+        "lines": 48
+      },
+      {
+        "file": "test/upstream/scripts/release-archive.cjs",
+        "bytes": 8098,
+        "lines": 220
+      },
+      {
+        "file": "test/upstream/scripts/release-changes.cjs",
+        "bytes": 2829,
+        "lines": 81
+      },
+      {
+        "file": "test/upstream/scripts/release-control.cjs",
+        "bytes": 9093,
+        "lines": 260
+      },
+      {
+        "file": "test/upstream/scripts/release-github.cjs",
+        "bytes": 69621,
+        "lines": 1484
+      },
+      {
+        "file": "test/upstream/scripts/release-prepare.cjs",
+        "bytes": 15263,
+        "lines": 295
+      },
+      {
+        "file": "test/upstream/scripts/release-runner.cjs",
+        "bytes": 4251,
+        "lines": 98
+      },
+      {
+        "file": "test/upstream/test/release/app-identity.test.mjs",
+        "bytes": 15948,
+        "lines": 296
+      },
+      {
+        "file": "test/upstream/test/release/archive.test.mjs",
+        "bytes": 20588,
+        "lines": 616
+      },
+      {
+        "file": "test/upstream/test/release/changes.test.mjs",
+        "bytes": 7706,
+        "lines": 154
+      },
+      {
+        "file": "test/upstream/test/release/diagnostics.test.mjs",
+        "bytes": 36817,
+        "lines": 1074
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/.changes/metadata-query.md",
+        "bytes": 490,
+        "lines": 6
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/CHANGELOG.md",
+        "bytes": 19684,
+        "lines": 219
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/PROVENANCE.md",
+        "bytes": 735,
+        "lines": 5
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/README.md",
+        "bytes": 14988,
+        "lines": 201
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/docs/metadata.md",
+        "bytes": 9599,
+        "lines": 163
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/manifest.json",
+        "bytes": 1539,
+        "lines": 43
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/package-lock.json",
+        "bytes": 148248,
+        "lines": 4340
+      },
+      {
+        "file": "test/upstream/test/release/fixtures/pre-metadata-release/package.json",
+        "bytes": 4018,
+        "lines": 137
+      },
+      {
+        "file": "test/upstream/test/release/helpers.mjs",
+        "bytes": 24871,
+        "lines": 438
+      },
+      {
+        "file": "test/upstream/test/release/release-control.test.mjs",
+        "bytes": 23069,
+        "lines": 704
+      },
+      {
+        "file": "test/upstream/test/release/repository-status.test.mjs",
+        "bytes": 8119,
+        "lines": 78
+      },
+      {
+        "file": "test/upstream/test/release/run-guard-diagnostics.test.mjs",
+        "bytes": 6036,
+        "lines": 232
+      },
+      {
+        "file": "test/upstream/test/release/runner.test.mjs",
+        "bytes": 13175,
+        "lines": 339
+      },
+      {
+        "file": "test/upstream/test/release/status-assertions.mjs",
+        "bytes": 5017,
+        "lines": 69
+      },
+      {
+        "file": "test/upstream/test/release/unpublished-recovery.test.mjs",
+        "bytes": 38477,
+        "lines": 501
+      },
+      {
+        "file": "test/upstream/test/release/workflow-contract.test.mjs",
+        "bytes": 12442,
+        "lines": 302
+      },
+      {
+        "file": "test/workflow/caller-binding.test.mjs",
+        "bytes": 3311,
+        "lines": 37
+      },
+      {
+        "file": "test/workflow/structure.test.mjs",
+        "bytes": 2090,
+        "lines": 26
+      }
+    ]
+  },
+  "generated": {
+    "files": 2,
+    "lines": 26701,
+    "bytes": 1095795,
+    "inventory": [
+      {
+        "file": "dist/build-metadata.json",
+        "bytes": 29840,
+        "lines": 1078
+      },
+      {
+        "file": "dist/release.cjs",
+        "bytes": 1065955,
+        "lines": 25623
+      }
+    ]
+  },
+  "vendor": {
+    "npmArchiveBytes": 2998121
+  }
+}

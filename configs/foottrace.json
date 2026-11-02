@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "profile": "foottrace-v1",
+  "repository": {
+    "id": 1412256080,
+    "full_name": "footprintjs/foottrace"
+  },
+  "package": "foottrace",
+  "app": {
+    "slug": "agentfootprint-release",
+    "clientId": "Iv23lix2kJ6BtJxoUp8Y"
+  },
+  "workflow": ".github/workflows/publish.yml",
+  "requiredGates": [
+    "check (22)",
+    "check (24)",
+    "tested-tree",
+    "Analyze (actions)",
+    "Analyze (javascript-typescript)"
+  ]
+}
