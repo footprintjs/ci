@@ -6,15 +6,18 @@ const digest=value=>createHash('sha256').update(typeof value==='string'?value:JS
 const bool=v=>{if(typeof v!=='boolean')invalid();return v;};
 function validateReceipt(prior) {
  fields(prior,['format','repositoryId','pullNumber','throughSequence','push','entries','continuous','lastBatchDigest']);
- if(prior.format!=='eco-verdict-observations-v1'||!Number.isSafeInteger(prior.throughSequence)||prior.throughSequence<0)invalid();
+ if(prior.format!=='eco-verdict-observations-v2'||!Number.isSafeInteger(prior.throughSequence)||prior.throughSequence<0)invalid();
  id(prior.repositoryId);id(prior.pullNumber);bool(prior.continuous);
  if(prior.lastBatchDigest!==null)text(prior.lastBatchDigest,DIGEST,64);
  if(prior.push!==null){fields(prior.push,['head','sequence','providerId']);text(prior.push.head,SHA,40);id(prior.push.sequence);text(prior.push.providerId,PROVIDER,32);if(prior.push.sequence>prior.throughSequence)invalid();}
  array(prior.entries,512);const ids=new Set(),positions=new Set();
  for(const e of prior.entries){
-  fields(e,['id','authorId','createdSequence','bodySha256','first','everVerdictLike','changed','deleted']);id(e.id);id(e.authorId);
+  fields(e,['id','authorId','firstObservedSequence','createdSequence','bodySha256','first','everVerdictLike','changed','deleted']);id(e.id);id(e.authorId);
   if(ids.has(e.id))invalid();ids.add(e.id);text(e.bodySha256,DIGEST,64);bool(e.everVerdictLike);bool(e.changed);bool(e.deleted);
-  if(e.createdSequence!==null){id(e.createdSequence);if(e.createdSequence>prior.throughSequence||positions.has(e.createdSequence))invalid();positions.add(e.createdSequence);}
+  id(e.firstObservedSequence);
+  if(e.firstObservedSequence>prior.throughSequence||positions.has(e.firstObservedSequence))invalid();positions.add(e.firstObservedSequence);
+  if(e.createdSequence!==null&&e.createdSequence!==e.firstObservedSequence)invalid();
+  if(prior.continuous&&e.createdSequence===null&&(!prior.push||e.firstObservedSequence>prior.push.sequence))invalid();
   if(e.first?.kind==='parsed'){
    fields(e.first,['kind','verdict','bodySha256']);if(e.first.bodySha256!==e.bodySha256)invalid();const v=e.first.verdict;
    fields(v,['reviewer','verdict','action','head','base','tree','scope']);
@@ -34,14 +37,16 @@ function validateReceipt(prior) {
 export function foldVerdictObservations(previous,rawBatch,expectedPreviousDigest=null) {
  const batch=jsonData(rawBatch);fields(batch,['schemaVersion','repositoryId','pullNumber','fromSequence','continuous','events']);
  if(batch.schemaVersion!==1)invalid();id(batch.repositoryId);id(batch.pullNumber);id(batch.fromSequence);bool(batch.continuous);array(batch.events,512);
+ // An envelope may not contradict its first event, even at the initial fold.
+ if(batch.events.length&&batch.events[0]?.sequence!==batch.fromSequence)invalid();
  const batchDigest=digest(batch);let state;
  if(previous===null){
   if(expectedPreviousDigest!==null)invalid();
-  state={format:'eco-verdict-observations-v1',repositoryId:batch.repositoryId,pullNumber:batch.pullNumber,throughSequence:0,push:null,entries:[],continuous:false,lastBatchDigest:null};
+  state={format:'eco-verdict-observations-v2',repositoryId:batch.repositoryId,pullNumber:batch.pullNumber,throughSequence:0,push:null,entries:[],continuous:false,lastBatchDigest:null};
  } else {
   text(expectedPreviousDigest,DIGEST,64);const prior=validateReceipt(jsonData(previous));if(digest(prior)!==expectedPreviousDigest)invalid();
   fields(prior,['format','repositoryId','pullNumber','throughSequence','push','entries','continuous','lastBatchDigest']);
-  if(prior.format!=='eco-verdict-observations-v1'||prior.repositoryId!==batch.repositoryId||prior.pullNumber!==batch.pullNumber)invalid();
+  if(prior.format!=='eco-verdict-observations-v2'||prior.repositoryId!==batch.repositoryId||prior.pullNumber!==batch.pullNumber)invalid();
   if(batchDigest===prior.lastBatchDigest)return Object.freeze({state:prior,digest:digest(prior),replayed:true});
   // A prior receipt was produced by this folder and pinned separately by caller.
   // Clone before updating; its historical bytes remain immutable.
@@ -82,7 +87,9 @@ export function foldVerdictObservations(previous,rawBatch,expectedPreviousDigest
   }
   if(event.kind==='comment-edited'){state.continuous=false;continue;}
   if(state.entries.length>=512)invalid();
-  state.entries.push({id:event.id,authorId:event.authorId,createdSequence:event.kind==='comment-created'?event.sequence:null,
+  // Unknown creation breaks this epoch for every actor/body, not just refusals.
+  if(event.kind==='comment-seen')state.continuous=false;
+  state.entries.push({id:event.id,authorId:event.authorId,firstObservedSequence:event.sequence,createdSequence:event.kind==='comment-created'?event.sequence:null,
    bodySha256,first:parsed,everVerdictLike:parsed.kind!=='not-verdict',changed:false,deleted:false});
  }
  state.lastBatchDigest=batchDigest;

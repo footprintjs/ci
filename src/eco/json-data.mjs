@@ -1,30 +1,60 @@
 /** Strict data boundary shared by finite ledger and observation schemas. */
 export function invalid() { const error = new Error('ledger-invalid'); error.code = 'ledger-invalid'; throw error; }
-export function jsonData(input) {
-  let nodes=0; const stack=new Set();
+/** Count the serialized UTF8 bytes before retaining each piece of owned data.
+ * The pinned Foottrace public APIs do not expose their internal JSON budget.
+ * Limits cover repeated values, keys, punctuation and JSON escaping; no stringify
+ * of an unadmitted tree. This is a data boundary, not a hostile-Proxy sandbox.
+ * A caller may lower, never raise, the fixed one-MiB ceiling.
+ */
+export function jsonData(input,maxBytes=1024*1024) {
+  if(!Number.isSafeInteger(maxBytes)||maxBytes<1||maxBytes>1024*1024)invalid();
+  let nodes=0,remaining=maxBytes;const stack=new Set();
+  const spend=bytes=>{if(bytes>remaining)invalid();remaining-=bytes;};
+  const string=value=>{
+    spend(2);
+    for(let i=0;i<value.length;i++){
+      const c=value.charCodeAt(i);
+      if(c===34||c===92||[8,9,10,12,13].includes(c))spend(2);
+      else if(c<32)spend(6);
+      else if(c<128)spend(1);
+      else if(c<2048)spend(2);
+      else if(c>=0xd800&&c<=0xdbff&&i+1<value.length&&value.charCodeAt(i+1)>=0xdc00&&value.charCodeAt(i+1)<=0xdfff){spend(4);i++;}
+      else if(c>=0xd800&&c<=0xdfff)spend(6);
+      else spend(3);
+    }
+  };
   const visit=(value,depth)=>{
     if (++nodes>50000 || depth>12) invalid();
-    if (value===null || typeof value==='boolean') return value;
-    if (typeof value==='string') { if(Buffer.byteLength(value)>1024*1024) invalid(); return value; }
-    if (typeof value==='number') {if(!Number.isSafeInteger(value))invalid();return value;}
-    if (!value || typeof value!=='object' || stack.has(value)) invalid();
-    const proto=Object.getPrototypeOf(value), descriptors=Object.getOwnPropertyDescriptors(value);
-    if (Array.isArray(value)) {
-      if(proto!==Array.prototype || value.length>4096 || Reflect.ownKeys(descriptors).length!==value.length+1) invalid();
+    if(value===null){spend(4);return value;}
+    if(typeof value==='boolean'){spend(value?4:5);return value;}
+    if(typeof value==='string'){string(value);return value;}
+    if(typeof value==='number'){if(!Number.isSafeInteger(value))invalid();spend(String(value).length);return value;}
+    if(!value||typeof value!=='object'||stack.has(value))invalid();
+    const proto=Object.getPrototypeOf(value);
+    if(Array.isArray(value)){
+      const length=Object.getOwnPropertyDescriptor(value,'length')?.value;
+      if(proto!==Array.prototype||!Number.isSafeInteger(length)||length>4096)invalid();
+      spend(2+Math.max(0,length-1));
+      if(Reflect.ownKeys(value).length!==length+1)invalid();
       stack.add(value);const result=[];
-      for(let i=0;i<value.length;i++){const d=descriptors[i];if(!d || !Object.hasOwn(d,'value'))invalid();result.push(visit(d.value,depth+1));}
+      for(let i=0;i<length;i++){
+        const d=Object.getOwnPropertyDescriptor(value,String(i));if(!d||!Object.hasOwn(d,'value'))invalid();
+        result.push(visit(d.value,depth+1));
+      }
       stack.delete(value);return Object.freeze(result);
     }
-    if(proto!==Object.prototype && proto!==null)invalid();
-    if(Reflect.ownKeys(descriptors).length>256)invalid();stack.add(value);const result=Object.create(null);
-    for(const key of Reflect.ownKeys(descriptors)){
-      const d=descriptors[key];if(typeof key!=='string'||!Object.hasOwn(d,'value')||['__proto__','constructor','prototype'].includes(key))invalid();
+    if(proto!==Object.prototype&&proto!==null)invalid();
+    const keys=Reflect.ownKeys(value);if(keys.length>256)invalid();
+    spend(2+Math.max(0,keys.length-1)+keys.length);
+    stack.add(value);const result=Object.create(null);
+    for(const key of keys){
+      if(typeof key!=='string'||['__proto__','constructor','prototype'].includes(key))invalid();
+      string(key);const d=Object.getOwnPropertyDescriptor(value,key);if(!d||!Object.hasOwn(d,'value'))invalid();
       result[key]=visit(d.value,depth+1);
     }
     stack.delete(value);return Object.freeze(result);
   };
-  try {const result=visit(input,0);if(Buffer.byteLength(JSON.stringify(result))>1024*1024)invalid();return result;}
-  catch{invalid();}
+  try{return visit(input,0);}catch{invalid();}
 }
 export function fields(value,names) {
   if(!value||typeof value!=='object'||Array.isArray(value))invalid();const keys=Object.keys(value);
