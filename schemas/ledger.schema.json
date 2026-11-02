@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/footprintjs/ci/schemas/ledger.schema.json",
+  "description": "Finite desired-state contracts only; not evidence or effect authority. Runtime also enforces UTF8 bytes and unique identity keys. No live ledger is seeded by step2. Select #/$defs/versions or #/$defs/work for the other two files.",
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^footprintjs/[A-Za-z0-9_.-]{1,100}$"
+    },
+    "package": {
+      "type": "string",
+      "maxLength": 214,
+      "pattern": "^(?:@[a-z0-9-]{1,80}/)?[a-z0-9][a-z0-9._-]{0,100}$"
+    },
+    "version": {
+      "type": "string",
+      "maxLength": 100,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$"
+    },
+    "action": {
+      "enum": [
+        "merge-source",
+        "release",
+        "policy"
+      ]
+    },
+    "profile": {
+      "enum": [
+        "structured-owner-comment",
+        "foottrace-disclosed-user"
+      ]
+    },
+    "holdKind": {
+      "enum": [
+        "owner",
+        "reservation",
+        "inflight"
+      ]
+    },
+    "workState": {
+      "enum": [
+        "pending",
+        "review",
+        "held",
+        "complete"
+      ]
+    },
+    "gateName": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+      "x-maxUtf8Bytes": 128
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{0,63}$"
+    },
+    "hold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/holdKind"
+        },
+        "ref": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "appId"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/gateName"
+        },
+        "appId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "repoPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "repository",
+        "package",
+        "held",
+        "holds",
+        "approvalProfile",
+        "actions",
+        "gates"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "package": {
+          "$ref": "#/$defs/package"
+        },
+        "held": {
+          "type": "boolean"
+        },
+        "holds": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/hold"
+          }
+        },
+        "approvalProfile": {
+          "$ref": "#/$defs/profile"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 3,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "gates": {
+          "type": "array",
+          "maxItems": 64,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "held": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "holds": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "ownerId",
+        "releasesPaused",
+        "verdictRequired",
+        "noForce",
+        "repositories"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "ownerId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "releasesPaused": {
+          "type": "boolean"
+        },
+        "verdictRequired": {
+          "const": true
+        },
+        "noForce": {
+          "const": true
+        },
+        "repositories": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/repoPolicy"
+          }
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "head",
+        "version"
+      ],
+      "properties": {
+        "head": {
+          "$ref": "#/$defs/sha"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        }
+      }
+    },
+    "versionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "desiredVersion",
+        "candidate",
+        "intentRefs",
+        "reservationRefs"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "desiredVersion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/candidate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intentRefs": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        },
+        "reservationRefs": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "items"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/versionItem"
+          }
+        }
+      }
+    },
+    "workItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "repository",
+        "action",
+        "state",
+        "head",
+        "receiptRefs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/workId"
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        },
+        "state": {
+          "$ref": "#/$defs/workState"
+        },
+        "head": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiptRefs": {
+          "type": "array",
+          "maxItems": 128,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "work": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "items"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 512,
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/workItem"
+          }
+        }
+      }
+    }
+  },
+  "$ref": "#/$defs/policy"
+}

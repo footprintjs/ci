@@ -10,6 +10,15 @@ plan → propose → verdict → authority → build → publish → verify
 
 Planning and verification read real GitHub/npm evidence. Steps requiring changes stop with a named refusal, or are recorded as skipped when the plan requires verification only. The executable cannot create a proposal, reserve an attempt or publish. Its policy tests exercise those existing guards using fixtures; those tests are not live release authorization.
 
+## Read-only ecosystem status
+
+The separate Beta [`eco status`](docs/ECO.md) observes a PR, admits separately pinned
+prior policy and finite desired-state ledgers, and records its findings as a native
+FootPrint flow. Reopen that saved record through Foottrace without making requests.
+Current REST pages remain **history-incomplete**, so a matching comment alone never
+becomes an admitted verdict or authority to merge or publish. No active ledger is
+seeded and no live release route is changed.
+
 ## Try the committed bundle
 
 Use Node 22.14 or newer. Download/checkout one **reviewed full commit** of this repository, then run:
