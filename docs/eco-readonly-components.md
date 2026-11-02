@@ -1,8 +1,9 @@
-# Read-only eco component boundaries (work in progress)
+# Read-only eco component boundaries
 
 These units support the separate read-only status feature. They do not install a
 caller, write policy, approve a merge, authorize publishing or authenticate AI.
-The status driver and native FootPrint status flow are still being built.
+The bounded GitHub GET driver, native FootPrint status flow and saved-record CLI
+are implemented. See [ECO.md](ECO.md) for Beta usage and operational limits.
 
 The verdict comment syntax remains v1. Its matcher establishes conditional
 metadata agreement only. Account attribution is cooperative; driver provenance,
