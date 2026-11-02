@@ -1,0 +1,3 @@
+SLICE for 'proposeResult' — reads via: execution-tree
+propose (propose#3) [wrote: proposeResult, proposeOutcome, proposeReason]
+  plan (plan#0) ← via planResult [wrote: planResult, planOutcome, planReason]

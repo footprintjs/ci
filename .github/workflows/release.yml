@@ -1,0 +1,148 @@
+name: Shared release shadow
+on:
+  workflow_call:
+    inputs:
+      tool_sha:
+        description: Exact reviewed footprintjs/ci tool commit, also pinned in the caller uses reference
+        required: true
+        type: string
+      source_sha:
+        description: Exact Foottrace main commit to observe
+        required: true
+        type: string
+      mode:
+        type: string
+        default: shadow
+permissions:
+  contents: read
+jobs:
+  shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Validate shadow binding
+        env:
+          MODE: ${{ inputs.mode }}
+          TOOL_SHA: ${{ inputs.tool_sha }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          CALLER_SHA: ${{ github.sha }}
+          CALLER_REF: ${{ github.ref }}
+          CALLER_REPOSITORY: ${{ github.repository }}
+          CALLER_EVENT: ${{ github.event_name }}
+        run: |
+          test "$MODE" = shadow
+          test "$CALLER_REPOSITORY" = footprintjs/foottrace
+          [[ "$CALLER_EVENT" = push || "$CALLER_EVENT" = workflow_dispatch ]]
+          test "$CALLER_REF" = refs/heads/main
+          test "$SOURCE_SHA" = "$CALLER_SHA"
+          [[ "$TOOL_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+      - name: Bind the caller pin before tool checkout
+        env:
+          TOOL_SHA: ${{ inputs.tool_sha }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          'use strict';
+          // This dependency-free validator is embedded in the reviewed reusable workflow.
+          // It executes before any tool checkout and accepts only canonical JSON (valid YAML).
+          const SHA = /^[a-f0-9]{40}$/;
+          const REF = 'footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main';
+          function fail() { throw new Error('caller-binding-refused'); }
+          function fields(value, expected) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) fail();
+            const keys = Object.keys(value).sort();
+            if (JSON.stringify(keys) !== JSON.stringify([...expected].sort())) fail();
+          }
+          function validateCaller(bytes, toolSha) {
+            if (typeof bytes !== 'string' || Buffer.byteLength(bytes) > 512 * 1024 || !SHA.test(toolSha)) fail();
+            let caller;
+            try { caller = JSON.parse(bytes); } catch { fail(); }
+            if (JSON.stringify(caller) !== bytes.trim()) fail();
+            fields(caller, ['name','on','permissions','jobs']);
+            if (typeof caller.name !== 'string' || caller.name.length > 100) fail();
+            fields(caller.permissions, ['contents']);
+            if (caller.permissions.contents !== 'read') fail();
+            fields(caller.on, ['push','workflow_dispatch']);
+            fields(caller.on.push, ['branches']);
+            if (JSON.stringify(caller.on.push.branches) !== '["main"]') fail();
+            fields(caller.on.workflow_dispatch, []);
+            fields(caller.jobs, ['release']);
+            fields(caller.jobs.release, ['uses','with']);
+            if (caller.jobs.release.uses !== `footprintjs/ci/.github/workflows/release.yml@${toolSha}`) fail();
+            fields(caller.jobs.release.with, ['tool_sha','source_sha','mode']);
+            if (caller.jobs.release.with.tool_sha !== toolSha || caller.jobs.release.with.source_sha !== '$' + '{{ github.sha }}' || caller.jobs.release.with.mode !== 'shadow') fail();
+            return true;
+          }
+          async function readBounded(response) {
+            const declared = response.headers.get('content-length');
+            if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > 1024 * 1024)) fail();
+            const reader = response.body?.getReader();
+            if (!reader) fail();
+            let size = 0; const chunks = [];
+            for (;;) {
+              const next = await reader.read(); if (next.done) break;
+              size += next.value.byteLength;
+              if (size > 1024 * 1024) { await reader.cancel(); fail(); }
+              chunks.push(Buffer.from(next.value));
+            }
+            return Buffer.concat(chunks);
+          }
+          async function main(env = process.env, fetcher = fetch) {
+            const { TOOL_SHA, SOURCE_SHA, WORKFLOW_REF, GH_TOKEN } = env;
+            if (!SHA.test(TOOL_SHA ?? '') || !SHA.test(SOURCE_SHA ?? '') || WORKFLOW_REF !== REF ||
+                typeof GH_TOKEN !== 'string' || !/^[A-Za-z0-9_]{1,8192}$/.test(GH_TOKEN)) fail();
+            const url = `https://api.github.com/repos/footprintjs/foottrace/contents/.github/workflows/publish.yml?ref=${SOURCE_SHA}`;
+            const response = await fetcher(url, { method:'GET', redirect:'error', signal:AbortSignal.timeout(30000),
+              headers: { authorization:`Bearer ${GH_TOKEN}`, accept:'application/vnd.github+json', 'x-github-api-version':'2022-11-28' } });
+            if (response.status !== 200) fail();
+            let value;
+            try { value = JSON.parse((await readBounded(response)).toString('utf8')); } catch { fail(); }
+            if (value.type !== 'file' || value.path !== '.github/workflows/publish.yml' || value.encoding !== 'base64' ||
+                !Number.isSafeInteger(value.size) || value.size < 1 || value.size > 512 * 1024 ||
+                typeof value.content !== 'string' || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content)) fail();
+            const bytes = Buffer.from(value.content,'base64');
+            if (bytes.length !== value.size) fail();
+            validateCaller(new TextDecoder('utf-8',{fatal:true}).decode(bytes), TOOL_SHA);
+          }
+          module.exports = { validateCaller, main };
+          main().catch(() => { process.stderr.write('caller-binding-refused\n'); process.exitCode = 1; });
+          NODE
+      - name: Checkout reviewed tool
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: footprintjs/ci
+          ref: ${{ inputs.tool_sha }}
+          persist-credentials: false
+          path: shared-release-tool
+      - name: Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Observe seven-stage flow
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: node shared-release-tool/dist/release.cjs --mode shadow --phase control --source-sha "$SOURCE_SHA" --output release-shadow
+      - name: Always expose completion state
+        if: always()
+        run: |
+          mkdir -p release-shadow
+          if test -f release-shadow/summary.json; then
+            cat release-shadow/summary.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' '{"status":"hold","reason":"shadow-interrupted-or-not-started","evidenceComplete":false,"executedWrites":0}' > release-shadow/incomplete.json
+            cat release-shadow/incomplete.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Preserve bounded release record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-shadow-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-shadow/*.json
+          if-no-files-found: error
+          retention-days: 90

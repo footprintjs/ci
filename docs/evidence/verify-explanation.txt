@@ -1,0 +1,28 @@
+SLICE for 'verifyResult' — reads via: execution-tree
+verify (verify#18) [wrote: verifyResult, verifyOutcome, verifyReason]
+  plan (plan#0) ← via planResult [wrote: planResult, planOutcome, planReason]
+  propose (propose#3) ← via proposeResult [wrote: proposeResult, proposeOutcome, proposeReason]
+    ↳ plan#0 (see above)
+    plan verify only (plan-verify-only#2) ← via verifyOnly [wrote: verifyOnly]
+  verdict (verdict#6) ← via verdictResult [wrote: verdictResult, verdictOutcome, verdictReason]
+    ↳ plan#0 (see above)
+    ↳ propose#3 (see above)
+    ↳ plan-verify-only#2 (see above)
+  authority (authority#9) ← via authorityResult [wrote: authorityResult, authorityOutcome, authorityReason]
+    ↳ plan#0 (see above)
+    ↳ propose#3 (see above)
+    ↳ verdict#6 (see above)
+    ↳ plan-verify-only#2 (see above)
+  build (build#12) ← via buildResult [wrote: buildResult, buildOutcome, buildReason]
+    ↳ plan#0 (see above)
+    ↳ propose#3 (see above)
+    ↳ verdict#6 (see above)
+    ↳ authority#9 (see above)
+    ↳ plan-verify-only#2 (see above)
+  publish (publish#15) ← via publishResult [wrote: publishResult, publishOutcome, publishReason]
+    ↳ plan#0 (see above)
+    ↳ propose#3 (see above)
+    ↳ verdict#6 (see above)
+    ↳ authority#9 (see above)
+    ↳ build#12 (see above)
+    ↳ plan-verify-only#2 (see above)
