@@ -1,0 +1,36 @@
+{
+  "node": "24.21.0",
+  "npm": "11.19.0",
+  "tests": {
+    "pass": 514,
+    "fail": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "mutations": {
+    "flow": 11,
+    "policy": 8,
+    "transport": 2,
+    "assertionFailures": 21,
+    "setupFailuresCounted": 0
+  },
+  "bundleSha256": "bb178f17b747edad115875b1cd4bf2b7f50e4c2f51d98194ad422c206e2279b1",
+  "runtime": {
+    "footprintjs": "10.7.1",
+    "foottrace": "1.10.0"
+  },
+  "guardSourceCommit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
+  "packedProof": {
+    "package": "footprintjs-release-flow-0.1.0-beta.1.tgz",
+    "archiveSha256": "b008770f9238d520c9426ed22ae9ce1551c02b7780f9d9490304b77a6b9ff2fa",
+    "bundleSha256": "bb178f17b747edad115875b1cd4bf2b7f50e4c2f51d98194ad422c206e2279b1",
+    "brokenCandidateBoot": true,
+    "expectedRefusal": "cli-live-disabled",
+    "exitCode": 1,
+    "networkRequests": 0,
+    "executedWrites": 0,
+    "node": "v24.21.0"
+  },
+  "trialKind": "local source/API trial, fixed GET transport using existing gh authentication for GitHub and public npm; not a live Actions or packed CLI trial",
+  "executedWrites": 0
+}
