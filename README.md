@@ -54,3 +54,11 @@ Ordinary CI runs the full suite on Node 22 and 24 and rejects bundle drift. The 
 [Architecture and rollout limits](docs/CONTRACT.md) · [Measured footprint](docs/SIZE.md) · [Trial evidence](docs/TRIAL.md)
 
 Future live cutover needs its own exact-head review and owner approval: separate build/control/publisher jobs, real App/OIDC and archive binding, mandatory repository/consumer gates and current authority rechecks. No npm trust, credential or live publisher configuration is changed by this version. Version-set promotion and the broader ecosystem checker remain separate design work.
+
+## FootPrint ecosystem
+
+- [FootPrint](https://github.com/footprintjs/footPrint): TypeScript workflows and native execution provenance.
+- [Foottrace](https://github.com/footprintjs/foottrace): saved execution records and evidence readers.
+- [Interactive playground](https://footprintjs.github.io/footprint-playground/): explore workflow tracing.
+
+Repository-specific checks remain with each library; this repository supplies the shared release tool described above.
