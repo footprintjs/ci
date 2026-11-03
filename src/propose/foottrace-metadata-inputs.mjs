@@ -21,7 +21,7 @@ const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
  * still leaves source-parent eligibility, full retained history/writer/effects
  * unadmitted. Every mutable native guard is required again before any effect.
  */
-export function createFoottraceMetadataInputBootstrap({transport,context,artifactId}={}) {
+export function createFoottraceMetadataInputBootstrap({transport,context,artifactId}={},start) {
  let pinned,port,readInputs,readCurrent,readArchive,readLineage,readPending,readCommit,readParentSource,readReviews;
  try{
   pinned=foottraceInvocationContext(context);id(artifactId);port=foottraceTransportPort(transport);
@@ -52,7 +52,7 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
   };
  }catch{port=null;}
  let prepared=null,current=null,archive=null,lineage=null,pending=null,parentSource=null,reviews=null,available=false;
- const chart=flowChart('Discover current ordinary target independently',async scope=>{
+ const inspectInputs=async scope=>{
   scope.metadataInputFacts={currentInputs:false,currentIdentity:false,currentArchive:false,lineage:false,pending:false,parentSource:false,reviews:false,sameTarget:false,
    available:false,reason:'metadata-context-unavailable',authorized:false,executedWrites:0,originalProducerAttributed:false};
   scope.metadataInputRefs=[];
@@ -64,7 +64,9 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
    prepared=value.prepared;scope.metadataInputRefs=[{kind:'current-preparation',receiptRef:value.digest,sourceSha:prepared.sourceSha}];
    scope.metadataInputFacts={...scope.metadataInputFacts,currentInputs:true,reason:'current-proposer-unavailable'};
   }catch{/* Closed current-input refusal. */}
- },'metadata-current-inputs')
+ };
+ const chart=(start?start.addFunction('Discover current ordinary target independently',inspectInputs,'metadata-current-inputs'):
+  flowChart('Discover current ordinary target independently',inspectInputs,'metadata-current-inputs'))
  .addDeciderFunction('Current ordinary inputs independently bound',scope=>decide(scope,[
   {when:s=>s.metadataInputFacts.currentInputs===true,then:'metadata-read-current',label:'Actual current invocation, never a historical creator'}
  ],'metadata-hold-current'),'metadata-current-input-decision')

@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
-import {decide} from 'footprintjs';
+import {flowChart,decide} from 'footprintjs';
 import {foottraceInvocationContext} from './foottrace-context.mjs';
 import {foottraceTransportPort} from './foottrace-transport.mjs';
 import {createFoottraceWorkflowProfile,createFoottraceRetainedAttemptProfile} from './foottrace-profile.mjs';
@@ -24,8 +24,15 @@ const reason=v=>reasons.includes(v)?v:'metadata-history-unavailable';
  * historical creator or publication ledger. Input knowledge never grants effects.
  * Production accepts only actual invocation facts and an opaque runtime client.
  */
-export async function runFoottraceMetadataHistoryInspection({recordLimitBytes,...options}={}) {
- const input=createFoottraceMetadataInputBootstrap(options);
+export function createFoottraceMetadataHistoryInspection(options={}) {
+ let started=false,backend=null;
+ const resultStageId='metadata-history-result';
+ const start=flowChart('Capture one native metadata-history invocation',scope=>{
+  backend=null;
+  if(started)throw new Error('metadata-history-already-executed');
+  started=true;scope.metadataHistoryInvocation={readOnly:true,authorized:false};
+ },'metadata-history-invocation');
+ const input=createFoottraceMetadataInputBootstrap(options,start);
  const signed=createObservedAppCommitInspection({start:input.chart,readCommit:input.readCommit,readInputs:()=>{
   const b=input.getBackend();return b?{prepared:b.prepared,pending:b.pending,current:b.current}:null;
  }});
@@ -40,7 +47,7 @@ export async function runFoottraceMetadataHistoryInspection({recordLimitBytes,..
   readCandidate=createFoottraceCandidatePublicationReader({api:port.api,registry:port.registry,repository:port.repository,candidateScope:'current-target'});
  }catch{port=null;}
  const assess=createRetainedAttemptAssessor(createFoottraceRetainedAttemptProfile());
- let inputs=null,observed=null,workflows=null,versions=null,attempts=null,candidate=null,metadata=null,backend=null;
+ let inputs=null,observed=null,workflows=null,versions=null,attempts=null,candidate=null,metadata=null;
  const chart=signed.chart.addFunction('Initialize current metadata history observation',scope=>{
   inputs=input.getBackend();observed=signed.getBackend();
   const ready=port!==null&&inputs!==null&&observed!==null&&observed.sameTargetTree===true;
@@ -141,11 +148,22 @@ export async function runFoottraceMetadataHistoryInspection({recordLimitBytes,..
  .addFunctionBranch('metadata-history-known','Native snapshot history known',()=>{
   backend=Object.freeze({...inputs,observedCommit:observed,workflows,versions,attempts,candidate,metadata});
  })
- .addFunctionBranch('metadata-history-held','Native history knowledge held',()=>{}).setDefault('metadata-history-held').end()
+ .addFunctionBranch('metadata-history-held','Native history knowledge held',()=>{backend=null;}).setDefault('metadata-history-held').end()
  .addFunction('Record native metadata history result',scope=>{
   scope.metadataHistoryResult={...scope.metadataHistoryFacts,count:scope.metadataHistoryRefs.length,receiptRef:digest(scope.metadataHistoryRefs)};
- },'metadata-history-result');
- const {record,snapshot}=await runNativeObservationRecord({chart,recordLimitBytes}),facts=snapshot?.sharedState?.metadataHistoryResult;
+ },resultStageId);
+ // Backend is runtime INPUT knowledge only. Neither this accessor nor the
+ // declared native stage ID proves completion, eligibility or permission.
+ // The owning executor observes its actual completed prefix before continuing.
+ return Object.freeze({chart,getBackend:()=>backend,resultStageId});
+}
+/** Complete read-only facade: incomplete native capture discards all backend
+ * inputs. A composed caller owns its one executor and the whole run outcome.
+ */
+export async function runFoottraceMetadataHistoryInspection({recordLimitBytes,...options}={}) {
+ const stage=createFoottraceMetadataHistoryInspection(options);
+ const {record,snapshot}=await runNativeObservationRecord({chart:stage.chart,recordLimitBytes}),
+  facts=snapshot?.sharedState?.metadataHistoryResult,backend=stage.getBackend();
  const known=record.complete&&backend!==null&&facts?.fresh===true;
  return {status:!record.complete?'incomplete':known?'metadata-history-only':'held',record,
   report:{authorized:false,executedWrites:0,reason:facts?.reason??'metadata-history-unavailable',retainedAttemptsEligible:record.complete&&facts?.attempts===true,
