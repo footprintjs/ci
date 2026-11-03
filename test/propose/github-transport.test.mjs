@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGitHubGetTransport} from '../../src/propose/github-get-transport.mjs';
+import {createGitHubTransport} from '../../src/propose/github-transport.mjs';
 const repo={id:123,full_name:'footprintjs/foottrace'},base='https://api.github.com/repos/'+repo.full_name;
 const artifact=base+'/actions/artifacts/800/zip',signed='https://synthetic.blob.core.windows.net/container/artifact.zip?sig=PRIVATE-SIGNED-QUERY';
 const TOKEN='Bearer offline_transport_token',PRIVATE='PRIVATE-HTTP-ERROR';
 const options={method:'GET',headers:{authorization:TOKEN,accept:'application/vnd.github+json'}};
 function fixture(reply=(u,o)=>new Response('{"id":77}',{headers:{'content-type':'application/json'}}),limits) {
- const calls=[],transport=createGitHubGetTransport({repository:repo,limits,fetcher:async(u,o)=>{calls.push({url:String(u),options:o});return reply(String(u),o,calls.length);}});
+ const calls=[],transport=createGitHubTransport({repository:repo,limits,fetcher:async(u,o)=>{calls.push({url:String(u),options:o});return reply(String(u),o,calls.length);}});
  return {transport,view:transport.createView(),calls};
 }
 test('bounded JSON bytes preserve content type and GET/auth routing without exposing headers in facts',async()=>{

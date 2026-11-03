@@ -40,3 +40,8 @@ Own data descriptors, dense arrays, finite integers and cycle checks avoid
 ordinary getters/toJSON conversion hooks. Reflection on JavaScript Proxies can
 run traps; this is not a hostile-code sandbox. External readers must admit
 bounded JSON bytes first. Failures return static codes without input echo.
+
+
+Migration: the unpublished internal github-get transport is now github-transport, with createGitHubTransport; all internal callers migrate together, without a compatibility alias. GET/registry views remain read-only. The separate exact-title/body PATCH view binds one repository, pull number and canonical UTF8 payload, shares the captured owner's response/request/cancellation bank, and admits at most one PATCH attempt per owner. It is an internal IO component, not a domain permission: full current writer/eligibility, native pre-effect capture, immediate rechecks and C1 GET reconciliation are still required before production wiring. A new owner does not itself establish later-run eligibility. No writer is exported by the read-only inspection program; no non-idempotent submission is admitted here.
+
+The opaque runtime owner now identifies its scope as captured-native-http-owner; it does not label all its capabilities read-only. Individual GET facets enforce that boundary. Inspection reports still describe only their actual GET-only operation. No serialized owner label reconstructs its private CODE brand.

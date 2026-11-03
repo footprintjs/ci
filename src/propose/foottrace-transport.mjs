@@ -2,11 +2,13 @@ import {isOpaqueCredential} from '../http-credential.cjs';
 import native from '../guards/release-github.cjs';
 import { jsonData, fields, id, text } from '../eco/json-data.mjs';
 import { own } from './source-inventory.mjs';
-import { createGitHubGetTransport } from './github-get-transport.mjs';
+import { createGitHubTransport } from './github-transport.mjs';
+import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
 const transports = new WeakMap();
-const fail = () => { throw new Error('foottrace-read-transport-unavailable'); };
-/** Runtime-only private native API closure. This is a GET transport, never a
- * writer grant. No saved/model JSON can supply its opaque brand or code port.
+const fail = () => { throw new Error('foottrace-transport-unavailable'); };
+/** Runtime-only private native API closure. Its read facet remains GET-only;
+ * a separate closed exact-PATCH facet is IO, never a writer grant. No saved/model
+ * JSON can supply its opaque brand or code port.
  */
 export function createFoottraceTransport({ repository, token, appIdentity, fetcher, limits } = {}) {
   const repo = fields(jsonData(repository), ['id', 'full_name']); id(repo.id);
@@ -16,8 +18,8 @@ export function createFoottraceTransport({ repository, token, appIdentity, fetch
   const slug = text(own(appIdentity, 'slug'), /^[a-z0-9-]+$/, 100),
     clientId = text(own(appIdentity, 'clientId'), /^[A-Za-z0-9_.-]+$/, 128), privateKey = own(appIdentity, 'privateKey');
   if (typeof privateKey !== 'string' || privateKey.length > 65536) fail();
-  const http = createGitHubGetTransport({ repository: repo, fetcher, limits });
-  const value = Object.freeze({ readOnly: true });
+  const http = createGitHubTransport({ repository: repo, fetcher, limits });
+  const value = Object.freeze({ scope: 'captured-native-http-owner' });
   transports.set(value, { http, repository: repo, settings: jsonData({ slug, clientId }),
     makeApi: fetchBounded => native.makeApi(token, fetchBounded, { slug, clientId, privateKey }) });
   return value;
@@ -31,4 +33,24 @@ export function foottraceTransportPort(transport, limits) {
   return Object.freeze({ api: value.makeApi(view.fetch), repository: value.repository, settings: value.settings,
     registry: version => value.http.createRegistryView({ packageName: 'foottrace', version, ...(limits === undefined ? {} : { limits }) }).fetch,
     facts: view.facts, transportFacts: value.http.facts });
+}
+
+/** Trusted CODE-only exact metadata IO from the SAME captured credential owner.
+ * No raw API/fetch, fresh client, credential or saved authority is returned.
+ * Full native eligibility/writer admission and committed pre-effect/rechecks
+ * remain the domain controller's responsibility before calling setExact().
+ */
+export function foottraceMetadataPatchPort(transport, input) {
+  const value = transports.get(transport); if (!value) fail();
+  try {
+    const binding = jsonData(input, 128 * 1024);
+    fields(binding, Object.hasOwn(binding, 'limits') ? ['pullNumber', 'desired', 'limits'] : ['pullNumber', 'desired']);
+    id(binding.pullNumber);
+    const exact = bindProposalMetadata(binding.desired, true),
+      payload = Object.freeze({ title: exact.title, body: exact.body }),
+      view = value.http.createExactPatchView(binding), api = value.makeApi(view.fetch),
+      route = '/repos/' + value.repository.full_name + '/pulls/' + binding.pullNumber;
+    return Object.freeze({ scope: 'exact-metadata-io-only', authorized: false,
+      setExact: () => api('PATCH', route, payload), facts: view.facts, transportFacts: value.http.facts });
+  } catch { fail(); }
 }

@@ -1,7 +1,7 @@
 import { jsonData, fields, id, text } from '../eco/json-data.mjs';
-import { own } from './source-inventory.mjs';
+import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
 const MiB = 1024 * 1024, HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
-const fail = () => { throw new Error('github-get-unavailable'); };
+const fail = () => { throw new Error('github-transport-unavailable'); };
 function limits(input = HARD) {
   const value = fields(jsonData(input), ['requests', 'totalBytes']);
   for (const key of ['requests', 'totalBytes'])
@@ -16,15 +16,17 @@ const counters = () => ({ fetchAttempts: 0, admittedBytes: 0, exhausted: false }
  * chunk is cancelled rather than copied. No absolute socket/heap guarantee is
  * inferred for a caller-supplied fetch implementation.
  */
-export function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } = {}) {
+export function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}) {
   const repo = fields(jsonData(repository), ['id', 'full_name']); id(repo.id);
   text(repo.full_name, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201);
   if (typeof fetcher !== 'function') fail();
   const globalLimit = limits(inputLimits), global = counters(), controller = new AbortController(), prefix = '/repos/' + repo.full_name;
+  // Ephemeral within this captured owner only; not a saved outcome or later-run grant.
+  let patchAttempted = false;
   const facts = value => Object.freeze({ ...value });
-  const makeView = (input, registry) => {
+  const makeView = (input, registry, patch = null) => {
     const bound = limits(input), local = counters();
-    const exhausted = () => { global.exhausted = local.exhausted = true; controller.abort(new Error('github-get-budget')); fail(); };
+    const exhausted = () => { global.exhausted = local.exhausted = true; controller.abort(new Error('github-transport-budget')); fail(); };
     const takeRequest = () => {
       if (global.exhausted || local.exhausted || global.fetchAttempts >= globalLimit.requests || local.fetchAttempts >= bound.requests) exhausted();
       global.fetchAttempts++; local.fetchAttempts++;
@@ -74,6 +76,22 @@ export function createGitHubGetTransport({ repository, fetcher, limits: inputLim
     const fetchBounded = async (url, options = {}) => {
       try {
         if (typeof url !== 'string' || url.length > 8192) fail();
+        if (patch) {
+          if (url !== patch.url || options.method !== 'PATCH' || options.body !== patch.body || patchAttempted) fail();
+          const signal = requestSignal(options.signal); signal.throwIfAborted();
+          // Lock before awaiting fetch: another view cannot repeat an uncertain submission.
+          patchAttempted = true;
+          const response = await invoke(url, { ...options, method: 'PATCH', body: patch.body,
+            credentials: 'omit', redirect: 'error', signal });
+          if (response.status >= 300 && response.status < 400) { await response.body?.cancel(); fail(); }
+          if (response.ok) {
+            const type = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+            if (!['application/json', 'application/vnd.github+json'].includes(type)) {
+              await response.body?.cancel(); fail();
+            }
+          }
+          return await bounded(response, 2 * MiB, false);
+        }
         if (registry) {
           if (!registry.urls.has(url) || (options.method ?? 'GET') !== 'GET' || options.body !== undefined) fail();
           const signal = requestSignal(options.signal), tarball = url === registry.tarball;
@@ -120,5 +138,21 @@ export function createGitHubGetTransport({ repository, fetcher, limits: inputLim
       tarball = base + '/-/' + value.packageName + '-' + value.version + '.tgz';
     return makeView(value.limits, { urls: new Set([base + '/' + value.version, base + '/latest', tarball]), tarball });
   };
-  return Object.freeze({ createView: input => makeView(input, null), createRegistryView, facts: () => facts(global) });
+  const createExactPatchView = input => {
+    try {
+      const value = jsonData(input, 128 * 1024);
+      fields(value, Object.hasOwn(value, 'limits') ? ['pullNumber', 'desired', 'limits'] : ['pullNumber', 'desired']);
+      id(value.pullNumber);
+      const desired = bindProposalMetadata(value.desired, true);
+      return makeView(value.limits, null, {
+        url: 'https://api.github.com' + prefix + '/pulls/' + value.pullNumber,
+        body: JSON.stringify({ title: desired.title, body: desired.body })
+      });
+    } catch { fail(); }
+  };
+  // Trusted internal IO only. These route/byte limits do not grant domain eligibility.
+  // Read-only bundle exports never return this owner or its exact-PATCH view.
+  return Object.freeze({ createView: input => makeView(input, null), createRegistryView,
+    createExactPatchView, facts: () => facts(global) });
+
 }

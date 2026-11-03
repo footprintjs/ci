@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createGitHubGetTransport} from '../../src/propose/github-get-transport.mjs';
+import {createGitHubTransport} from '../../src/propose/github-transport.mjs';
 import native from '../../src/guards/release-github.cjs';
 const repo={id:123,full_name:'footprintjs/foottrace'},base='https://registry.npmjs.org/foottrace',api='https://api.github.com/repos/'+repo.full_name;
 const privateValue='PRIVATE-REGISTRY-TRANSPORT',credentials={authorization:'Bearer '+privateValue,cookie:privateValue,'x-github-api-version':'2022-11-28'};
 function fixture(reply=()=>new Response('{"name":"foottrace","version":"1.11.0","dist":{"integrity":"sha512-Zm9v"}}',{headers:{'content-type':'application/json'}}),limits) {
- const calls=[],transport=createGitHubGetTransport({repository:repo,limits,fetcher:async(u,o)=>{calls.push({url:u,options:o});return reply(u,o,calls.length);}});
+ const calls=[],transport=createGitHubTransport({repository:repo,limits,fetcher:async(u,o)=>{calls.push({url:u,options:o});return reply(u,o,calls.length);}});
  return {transport,view:transport.createRegistryView({packageName:'foottrace',version:'1.11.0'}),calls};
 }
 test('native registry metadata GET is version-bound, anonymous and shares finite transport facts',async()=>{

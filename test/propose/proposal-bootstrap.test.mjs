@@ -11,7 +11,7 @@ test('trusted CODE host/source/workflow/entry and current private producer share
  const f=await proposalBootstrapFixture(),{r,invocation}=await run(f);
  assert.equal(r.status,'proposal-bootstrap-only');assert.equal(r.record.complete,true);
  assert.equal(r.backend.context.sha,f.M);assert.equal(r.backend.sourceBinding.reference.sourceTree,f.current.commit.tree.sha);
- assert.equal(r.backend.current.identity.runId,500);assert.equal(r.backend.transport.readOnly,true);
+ assert.equal(r.backend.current.identity.runId,500);assert.equal(r.backend.transport.scope,'captured-native-http-owner');assert.equal(Object.hasOwn(r.backend.transport,'readOnly'),false);
  assert.equal('APP_PRIVATE_KEY' in invocation.env,false);assert.equal('GH_TOKEN' in invocation.env,false);
  assert.equal(invocation.env.UNREAD_OTHER,PRIVATE);
  assert.equal(r.report.authorized,false);assert.equal(r.report.executedWrites,0);

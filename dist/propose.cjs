@@ -46,46 +46,46 @@ var require_release_changes = __commonJS({
     });
     var BUMPS = Object.freeze({ patch: 0, minor: 1, major: 2 });
     var own5 = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-    var fail9 = (code) => {
+    var fail10 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
     };
     function parseFragment(name, text2) {
       if (typeof name !== "string" || !/^[a-z0-9][a-z0-9-]*\.md$/.test(name) || typeof text2 !== "string" || Buffer.byteLength(text2) > 65536 || text2.includes("\r"))
-        fail9("invalid-fragment");
+        fail10("invalid-fragment");
       const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text2);
-      if (!match) fail9("invalid-fragment");
+      if (!match) fail10("invalid-fragment");
       const fields3 = /* @__PURE__ */ Object.create(null);
       for (const line of match[1].split("\n")) {
         const field = /^(type|bump): ([a-z]+)$/.exec(line);
-        if (!field || own5(fields3, field[1])) fail9("invalid-fragment");
+        if (!field || own5(fields3, field[1])) fail10("invalid-fragment");
         fields3[field[1]] = field[2];
       }
       const body = match[2].trim();
       if (!own5(TYPES, fields3.type) || !own5(BUMPS, fields3.bump) || !body || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(body))
-        fail9("invalid-fragment");
+        fail10("invalid-fragment");
       return { name, type: fields3.type, bump: fields3.bump, body };
     }
     function selectBump(fragments) {
-      if (!Array.isArray(fragments)) fail9("invalid-fragment");
+      if (!Array.isArray(fragments)) fail10("invalid-fragment");
       let result = null;
       for (const fragment of fragments) {
-        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail9("invalid-fragment");
+        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail10("invalid-fragment");
         if (result === null || BUMPS[fragment.bump] > BUMPS[result]) result = fragment.bump;
       }
       return result;
     }
     function parseVersion(version) {
       if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
-        fail9("invalid-version");
+        fail10("invalid-version");
       const parts = version.split(".").map(Number);
-      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail9("invalid-version");
+      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail10("invalid-version");
       return parts;
     }
     function nextVersion(version, bump) {
       const p = parseVersion(version);
-      if (!own5(BUMPS, bump)) fail9("invalid-version");
+      if (!own5(BUMPS, bump)) fail10("invalid-version");
       const i = 2 - BUMPS[bump];
       p[i] += 1;
       for (let j = i + 1; j < 3; j++) p[j] = 0;
@@ -94,7 +94,7 @@ var require_release_changes = __commonJS({
     function readFragments(directory) {
       return fs.readdirSync(directory).filter((n) => n !== "README.md").sort().map((name) => {
         const file = path.join(directory, name);
-        if (!fs.lstatSync(file).isFile()) fail9("invalid-fragment");
+        if (!fs.lstatSync(file).isFile()) fail10("invalid-fragment");
         return parseFragment(name, fs.readFileSync(file, "utf8"));
       });
     }
@@ -111,7 +111,7 @@ var require_release_prepare = __commonJS({
   "src/guards/release-prepare.cjs"(exports2, module2) {
     "use strict";
     var { TYPES, parseFragment, parseVersion, selectBump, nextVersion } = require_release_changes();
-    var fail9 = (code) => {
+    var fail10 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
@@ -119,12 +119,12 @@ var require_release_prepare = __commonJS({
     var heading = "## Value-free trace metadata \u2014 unreleased";
     var paragraph = "This is an unreleased additive entry point. The package version and existing\nrecord fixtures remain unchanged until a separately reviewed release.";
     function replaceOnce(text2, before, after) {
-      if (typeof text2 !== "string" || text2.split(before).length !== 2) fail9("invalid-release-docs");
+      if (typeof text2 !== "string" || text2.split(before).length !== 2) fail10("invalid-release-docs");
       return text2.replace(before, after);
     }
     function prepareReleaseDocs({ documents, version, selectedFragments }) {
       parseVersion(version);
-      if (!documents || !Array.isArray(selectedFragments)) fail9("invalid-release-docs");
+      if (!documents || !Array.isArray(selectedFragments)) fail10("invalid-release-docs");
       const result = { ...documents };
       if (selectedFragments.includes("metadata-query.md")) {
         result["README.md"] = replaceOnce(
@@ -142,7 +142,7 @@ var require_release_prepare = __commonJS({
     }
     function prepareRelease({ files, fragments, date }) {
       if (!files || !fragments || !/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail9("invalid-release-input");
+        fail10("invalid-release-input");
       const parsed = Object.keys(fragments).sort().map((name) => parseFragment(name, fragments[name]));
       if (!parsed.length) return null;
       let pkg, lock;
@@ -150,13 +150,13 @@ var require_release_prepare = __commonJS({
         pkg = JSON.parse(files["package.json"]);
         lock = JSON.parse(files["package-lock.json"]);
       } catch {
-        fail9("invalid-release-input");
+        fail10("invalid-release-input");
       }
       if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version)
-        fail9("invalid-release-input");
+        fail10("invalid-release-input");
       const fromVersion = pkg.version, bump = selectBump(parsed), version = nextVersion(pkg.version, bump);
       if (typeof files["CHANGELOG.md"] !== "string" || !files["CHANGELOG.md"].startsWith("# Changelog\n\n"))
-        fail9("invalid-release-input");
+        fail10("invalid-release-input");
       const groups = Object.keys(TYPES).flatMap((type) => {
         const notes2 = parsed.filter((f) => f.type === type).map((f) => f.body);
         return notes2.length ? [`### ${TYPES[type]}
@@ -210,100 +210,100 @@ ${suffix}`
       return 0;
     }
     function fields3(value, keys2) {
-      if (!value || typeof value !== "object" || Array.isArray(value)) fail9("recovery-intent");
+      if (!value || typeof value !== "object" || Array.isArray(value)) fail10("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
       if (Reflect.ownKeys(descriptors2).length !== keys2.length || keys2.some((key) => !Object.hasOwn(descriptors2, key)))
-        fail9("recovery-intent");
+        fail10("recovery-intent");
       return keys2.map((key) => {
         const d = descriptors2[key];
-        if (!Object.hasOwn(d, "value")) fail9("recovery-intent");
+        if (!Object.hasOwn(d, "value")) fail10("recovery-intent");
         return d.value;
       });
     }
     function dataArray(value, max) {
-      if (!Array.isArray(value) || value.length > max) fail9("recovery-intent");
+      if (!Array.isArray(value) || value.length > max) fail10("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
-      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail9("recovery-intent");
+      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail10("recovery-intent");
       return Array.from({ length: value.length }, (_, i) => {
-        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail9("recovery-intent");
+        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail10("recovery-intent");
         return descriptors2[i].value;
       });
     }
     function lineageData(value) {
       const [pr, head, tree, merge] = fields3(value, ["pr", "head", "tree", "merge"]);
-      if (!positive(pr) || ![head, tree, merge].every(sha3)) fail9("recovery-intent");
+      if (!positive(pr) || ![head, tree, merge].every(sha3)) fail10("recovery-intent");
       return { pr, head, tree, merge };
     }
     function intentPath(version, sequence) {
       parseVersion(version);
-      if (!positive(sequence) || sequence > 100) fail9("recovery-intent");
+      if (!positive(sequence) || sequence > 100) fail10("recovery-intent");
       return `${intentPrefix}${version}/${String(sequence).padStart(3, "0")}.json`;
     }
     function admitIntent(value, repository) {
       const [schema, kind, pkg, version, sequence, repo2, baseValue, originValue, predecessorValue, prior, queue] = fields3(value, ["schema", "kind", "package", "version", "sequence", "repository", "base", "origin", "predecessor", "previous", "queuedFragments"]);
-      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail9("recovery-intent");
+      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail10("recovery-intent");
       intentPath(version, sequence);
       const [id2, full_name] = fields3(repo2, ["id", "full_name"]);
-      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail9("recovery-intent");
+      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail10("recovery-intent");
       const [baseSha, tree] = fields3(baseValue, ["sha", "tree"]);
-      if (![baseSha, tree].every(sha3)) fail9("recovery-intent");
+      if (![baseSha, tree].every(sha3)) fail10("recovery-intent");
       const origin = lineageData(originValue), predecessor = lineageData(predecessorValue);
       let previous = null;
       if (sequence === 1) {
-        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail9("recovery-intent");
+        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail10("recovery-intent");
       } else {
         const [path, sha256] = fields3(prior, ["path", "sha256"]);
-        if (path !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail9("recovery-intent");
+        if (path !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail10("recovery-intent");
         previous = { path, sha256 };
       }
       let last = "";
       const queuedFragments = dataArray(queue, 100).map((entry) => {
         const [path, sha256, bytes, mode] = fields3(entry, ["path", "sha256", "bytes", "mode"]);
         if (!fragmentPath(path) || path <= last || !hexDigest(sha256) || !positive(bytes) || bytes > 65536 || mode !== "100644")
-          fail9("recovery-intent");
+          fail10("recovery-intent");
         last = path;
         return { path, sha256, bytes, mode };
       });
-      if (!queuedFragments.length) fail9("recovery-intent");
+      if (!queuedFragments.length) fail10("recovery-intent");
       return { schema, kind, package: pkg, version, sequence, repository: { id: id2, full_name }, base: { sha: baseSha, tree }, origin, predecessor, previous, queuedFragments };
     }
     function intentBytes(value, repository) {
       const data = admitIntent(value, repository), raw = Buffer.from(JSON.stringify(data) + "\n");
-      if (raw.length > 65536) fail9("recovery-intent");
+      if (raw.length > 65536) fail10("recovery-intent");
       return raw;
     }
     function decodeRaw(bytes) {
-      if (!Buffer.isBuffer(bytes)) fail9("recovery-source");
+      if (!Buffer.isBuffer(bytes)) fail10("recovery-source");
       let text2;
       try {
         text2 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
       } catch {
-        fail9("recovery-source");
+        fail10("recovery-source");
       }
-      if (!Buffer.from(text2).equals(bytes)) fail9("recovery-source");
+      if (!Buffer.from(text2).equals(bytes)) fail10("recovery-source");
       return text2;
     }
     function admitIntentNamespace(inventory, version, repository) {
       const records = [];
       for (const [path, row] of inventory) {
         if (!path.startsWith(".release/")) continue;
-        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail9("recovery-intent");
+        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail10("recovery-intent");
         let value;
         try {
           value = JSON.parse(decodeRaw(row.bytes));
         } catch {
-          fail9("recovery-intent");
+          fail10("recovery-intent");
         }
         const data = admitIntent(value, repository);
         if (path !== intentPath(data.version, data.sequence) || versionOrder(data.version, version) > 0 || !intentBytes(data, repository).equals(row.bytes))
-          fail9("recovery-intent");
+          fail10("recovery-intent");
         records.push({ path, sha256: digest4(row.bytes), data });
       }
       records.sort((a, b) => versionOrder(a.data.version, b.data.version) || a.data.sequence - b.data.sequence);
       const chains = /* @__PURE__ */ new Map();
       for (const record of records) {
         const chain = chains.get(record.data.version) ?? [], prior = chain.at(-1);
-        if (record.data.sequence !== chain.length + 1 || prior && (record.data.previous.sha256 !== prior.sha256 || JSON.stringify(record.data.origin) !== JSON.stringify(prior.data.origin))) fail9("recovery-intent");
+        if (record.data.sequence !== chain.length + 1 || prior && (record.data.previous.sha256 !== prior.sha256 || JSON.stringify(record.data.origin) !== JSON.stringify(prior.data.origin))) fail10("recovery-intent");
         chain.push(record);
         chains.set(record.data.version, chain);
       }
@@ -313,29 +313,29 @@ ${suffix}`
       const result = [];
       for (const [path, row] of [...inventory].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
         if (!path.startsWith(".changes/") || path === ".changes/README.md") continue;
-        if (!fragmentPath(path) || row.mode !== "100644" || result.length >= 100) fail9("fragment-path");
+        if (!fragmentPath(path) || row.mode !== "100644" || result.length >= 100) fail10("fragment-path");
         parseFragment(path.slice(9), decodeRaw(row.bytes));
         result.push({ path, sha256: digest4(row.bytes), bytes: row.bytes.length, mode: row.mode });
       }
       return result;
     }
     function requireQueueSubset(prior, current) {
-      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail9("recovery-queue");
+      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail10("recovery-queue");
     }
     function treeOid(inventory) {
       const root = /* @__PURE__ */ new Map();
       for (const [path, row] of inventory) {
         if (typeof path !== "string" || Buffer.byteLength(path) > 1024 || /[\x00-\x1f\x7f\\]/.test(path) || path.split("/").some((x) => !x || x === "." || x === "..") || !sha3(row.sha) || !["100644", "100755"].includes(row.mode))
-          fail9("recovery-source");
+          fail10("recovery-source");
         const parts = path.split("/");
         let directory = root;
         for (const name of parts.slice(0, -1)) {
           if (!directory.has(name)) directory.set(name, /* @__PURE__ */ new Map());
           directory = directory.get(name);
-          if (!(directory instanceof Map)) fail9("recovery-source");
+          if (!(directory instanceof Map)) fail10("recovery-source");
         }
         const leaf = parts.at(-1);
-        if (directory.has(leaf)) fail9("recovery-source");
+        if (directory.has(leaf)) fail10("recovery-source");
         directory.set(leaf, row);
       }
       const encode = (directory) => {
@@ -373,11 +373,11 @@ ${suffix}`
         if (a && b && a.mode === b.mode && a.sha === b.sha) continue;
         if (path.startsWith(".release/")) {
           if (!a && b && admittedHistory.has(path)) continue;
-          fail9("recovery-payload");
+          fail10("recovery-payload");
         }
-        if (a && !b) fail9("recovery-payload");
-        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail9("recovery-payload");
-        if (a && fragmentPath(path)) fail9("recovery-payload");
+        if (a && !b) fail10("recovery-payload");
+        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail10("recovery-payload");
+        if (a && fragmentPath(path)) fail10("recovery-payload");
         if (processPaths.has(path) || !a && fragmentPath(path)) continue;
         if (a && fixtureTransitions.has(path)) {
           const [before, after] = fixtureTransitions.get(path);
@@ -389,7 +389,7 @@ ${suffix}`
           const text2 = decodeRaw(b.bytes);
           if (digest4(b.bytes) === "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73" && text2.split(line).length === 4 && Buffer.from(text2.split(line).join("")).equals(a.bytes)) continue;
         }
-        fail9("recovery-payload");
+        fail10("recovery-payload");
       }
     }
     function prepareRecovery({ repository, sha: baseSha, tree, version, origin, predecessor, previous, queue, notes }) {
@@ -635,7 +635,7 @@ var require_release_archive = __commonJS({
     "use strict";
     var { gunzipSync, inflateRawSync } = require("node:zlib");
     var { createHash: createHash4 } = require("node:crypto");
-    var fail9 = () => {
+    var fail10 = () => {
       const e = new Error("invalid-archive");
       e.code = "invalid-archive";
       throw e;
@@ -645,7 +645,7 @@ var require_release_archive = __commonJS({
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail9();
+        fail10();
       }
     }
     function field(bytes) {
@@ -654,9 +654,9 @@ var require_release_archive = __commonJS({
     }
     function octal(bytes) {
       const value = field(bytes).trim();
-      if (!/^[0-7]+$/.test(value)) fail9();
+      if (!/^[0-7]+$/.test(value)) fail10();
       const n = Number.parseInt(value, 8);
-      if (!Number.isSafeInteger(n)) fail9();
+      if (!Number.isSafeInteger(n)) fail10();
       return n;
     }
     function pax(bytes) {
@@ -664,15 +664,15 @@ var require_release_archive = __commonJS({
       let at = 0;
       while (at < bytes.length) {
         const space = bytes.indexOf(32, at);
-        if (space < 0 || space - at > 9) fail9();
+        if (space < 0 || space - at > 9) fail10();
         const sizeText = text2(bytes.subarray(at, space));
-        if (!/^[1-9]\d*$/.test(sizeText)) fail9();
+        if (!/^[1-9]\d*$/.test(sizeText)) fail10();
         const size = Number(sizeText), end = at + size;
-        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail9();
+        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail10();
         const entry = text2(bytes.subarray(space + 1, end - 1)), eq = entry.indexOf("=");
-        if (eq <= 0) fail9();
+        if (eq <= 0) fail10();
         const key = entry.slice(0, eq), value = entry.slice(eq + 1);
-        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail9();
+        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail10();
         result[key] = value;
         at = end;
       }
@@ -684,50 +684,50 @@ var require_release_archive = __commonJS({
         const maxExpanded = expected.maxExpandedBytes ?? 64 * 1024 * 1024;
         const maxFiles = expected.maxFiles ?? 1e4;
         if (![maxArchive, maxExpanded, maxFiles].every((n) => Number.isSafeInteger(n) && n > 0) || !Buffer.isBuffer(bytes) || bytes.length > maxArchive)
-          fail9();
+          fail10();
         const tar = gunzipSync(bytes, { maxOutputLength: maxExpanded });
-        if (tar.length % 512 !== 0) fail9();
+        if (tar.length % 512 !== 0) fail10();
         const names = /* @__PURE__ */ new Set(), files = [];
         let at = 0, pending = null, identity = null, ended = false;
         while (at + 512 <= tar.length) {
           const header = tar.subarray(at, at + 512);
           at += 512;
           if (header.every((n) => n === 0)) {
-            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail9();
+            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail10();
             ended = true;
             break;
           }
           let sum = 0;
           for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : header[i];
-          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail9();
+          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail10();
           const size = octal(header.subarray(124, 136));
-          if (at + size > tar.length) fail9();
+          if (at + size > tar.length) fail10();
           const data = tar.subarray(at, at + size);
           at += Math.ceil(size / 512) * 512;
           const type = field(header.subarray(156, 157)) || "0";
           if (type === "x") {
-            if (pending || size > 65536) fail9();
+            if (pending || size > 65536) fail10();
             pending = pax(data);
             continue;
           }
-          if (type !== "0" || field(header.subarray(157, 257))) fail9();
+          if (type !== "0" || field(header.subarray(157, 257))) fail10();
           const prefix = field(header.subarray(345, 500));
           const name = pending?.path ?? `${prefix ? prefix + "/" : ""}${field(header.subarray(0, 100))}`;
           pending = null;
           if (!name.startsWith("package/") || /[\\\x00-\x1f]/.test(name) || name.split("/").some((p) => p === ".." || p === "." || p === "") || names.has(name))
-            fail9();
+            fail10();
           if (!["package/package.json", "package/README.md", "package/LICENSE"].includes(name) && !name.startsWith("package/dist/"))
-            fail9();
+            fail10();
           names.add(name);
-          if (names.size > maxFiles) fail9();
+          if (names.size > maxFiles) fail10();
           files.push({ path: name, size, sha256: hash(data, "sha256") });
           if (name === "package/package.json") {
-            if (size > 1024 * 1024) fail9();
+            if (size > 1024 * 1024) fail10();
             identity = JSON.parse(text2(data));
           }
         }
         if (!ended || !identity || identity.name !== expected.package || identity.version !== expected.version || !files.some((f) => f.path.startsWith("package/dist/")))
-          fail9();
+          fail10();
         return {
           package: identity.name,
           version: identity.version,
@@ -739,7 +739,7 @@ var require_release_archive = __commonJS({
         };
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail9();
+        fail10();
       }
     }
     function crc32(bytes) {
@@ -753,41 +753,41 @@ var require_release_archive = __commonJS({
     function readArtifactZip(bytes, allowedNames) {
       try {
         if (!Buffer.isBuffer(bytes) || bytes.length > 20 * 1024 * 1024 || bytes.length < 22 || !Array.isArray(allowedNames))
-          fail9();
+          fail10();
         let end = -1;
         for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--)
           if (bytes.readUInt32LE(i) === 101010256 && i + 22 + bytes.readUInt16LE(i + 20) === bytes.length) {
             end = i;
             break;
           }
-        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail9();
+        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail10();
         const count3 = bytes.readUInt16LE(end + 10), size = bytes.readUInt32LE(end + 12), start = bytes.readUInt32LE(end + 16);
-        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail9();
+        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail10();
         const result = /* @__PURE__ */ Object.create(null), ranges = [];
         let at = start, total = 0;
         for (let i = 0; i < count3; i++) {
-          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail9();
+          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail10();
           const flags = bytes.readUInt16LE(at + 8), method = bytes.readUInt16LE(at + 10), crc = bytes.readUInt32LE(at + 16), packed = bytes.readUInt32LE(at + 20), expanded = bytes.readUInt32LE(at + 24), nl = bytes.readUInt16LE(at + 28), extra = bytes.readUInt16LE(at + 30), comment = bytes.readUInt16LE(at + 32), external = bytes.readUInt32LE(at + 38), local = bytes.readUInt32LE(at + 42);
           if (flags & ~2056 || ![0, 8].includes(method) || bytes.readUInt16LE(at + 34) !== 0 || at + 46 + nl + extra + comment > end || expanded > 16 * 1024 * 1024 || (external >>> 16 & 61440) === 40960)
-            fail9();
+            fail10();
           const name = text2(bytes.subarray(at + 46, at + 46 + nl));
           at += 46 + nl + extra + comment;
           if (!allowedNames.includes(name) || Object.prototype.hasOwnProperty.call(result, name) || local + 30 > start || bytes.readUInt32LE(local) !== 67324752)
-            fail9();
+            fail10();
           const localNameSize = bytes.readUInt16LE(local + 26), localExtra = bytes.readUInt16LE(local + 28), dataStart = local + 30 + localNameSize + localExtra, dataEnd = dataStart + packed;
           if (dataEnd > start || bytes.readUInt16LE(local + 6) !== flags || bytes.readUInt16LE(local + 8) !== method || text2(bytes.subarray(local + 30, local + 30 + localNameSize)) !== name)
-            fail9();
-          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail9();
+            fail10();
+          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail10();
           ranges.push([local, dataEnd]);
           const input = bytes.subarray(dataStart, dataEnd), output = method === 0 ? input : inflateRawSync(input, { maxOutputLength: 16 * 1024 * 1024 });
-          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail9();
+          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail10();
           result[name] = output;
         }
-        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail9();
+        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail10();
         return result;
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail9();
+        fail10();
       }
     }
     module2.exports = { inspectArchive, readArtifactZip };
@@ -802,7 +802,7 @@ var require_release_github = __commonJS({
     var { prepareRelease } = preparation6;
     var control8 = require_release_control();
     var { appRequest } = require_release_app_auth();
-    var fail9 = (code) => {
+    var fail10 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
@@ -1039,7 +1039,7 @@ var require_release_github = __commonJS({
     var enc = encodeURIComponent;
     var prefix = (context) => {
       if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
-        fail9("repository");
+        fail10("repository");
       return `/repos/${context.repository.full_name}`;
     };
     async function pages(api, route, key) {
@@ -1047,35 +1047,35 @@ var require_release_github = __commonJS({
       for (let page = 1; page <= 50; page++) {
         const response = await api("GET", `${route}${route.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
         const rows = key ? response.data?.[key] : response.data;
-        if (!Array.isArray(rows) || rows.length > 100) fail9("incomplete-pages");
+        if (!Array.isArray(rows) || rows.length > 100) fail10("incomplete-pages");
         for (const row of rows) {
-          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail9("incomplete-pages");
+          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail10("incomplete-pages");
           seen.add(row.id);
           result.push(row);
         }
         if (rows.length < 100) {
           if (key && response.data.total_count !== void 0 && response.data.total_count !== result.length)
-            fail9("incomplete-pages");
+            fail10("incomplete-pages");
           return result;
         }
       }
-      fail9("incomplete-pages");
+      fail10("incomplete-pages");
     }
     async function assertCurrentMain(api, context) {
       const current = (await api("GET", `${prefix(context)}/git/ref/heads/main`)).data;
-      if (current.object?.sha !== context.sha) fail9("main-moved");
+      if (current.object?.sha !== context.sha) fail10("main-moved");
     }
     async function content(api, context, path) {
-      if (!control8.validSha(context.sha)) fail9("source-sha");
+      if (!control8.validSha(context.sha)) fail10("source-sha");
       const data = (await api("GET", `${prefix(context)}/contents/${path}?ref=${context.sha}`)).data;
       if (data.type !== "file" || data.encoding !== "base64" || typeof data.content !== "string" || data.size > 2 * 1024 * 1024)
-        fail9("source-content");
+        fail10("source-content");
       const bytes = Buffer.from(data.content, "base64");
-      if (bytes.length !== data.size) fail9("source-content");
+      if (bytes.length !== data.size) fail10("source-content");
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail9("source-content");
+        fail10("source-content");
       }
     }
     function sourceView(api, context) {
@@ -1095,11 +1095,11 @@ var require_release_github = __commonJS({
       ]);
       let totalBytes = 0;
       const commit = async (id2) => {
-        if (!control8.validSha(id2)) fail9("source-sha");
+        if (!control8.validSha(id2)) fail10("source-sha");
         if (!commits.has(id2)) {
-          if (commits.size >= 512) fail9("recovery-source");
+          if (commits.size >= 512) fail10("recovery-source");
           const value = (await api("GET", `${prefix(context)}/git/commits/${id2}`)).data;
-          if (value.sha !== id2 || !control8.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control8.validSha(p.sha))) fail9("source-commit");
+          if (value.sha !== id2 || !control8.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control8.validSha(p.sha))) fail10("source-commit");
           commits.set(id2, value);
         }
         return commits.get(id2);
@@ -1109,25 +1109,25 @@ var require_release_github = __commonJS({
         const c = await commit(id2), result = /* @__PURE__ */ new Map();
         const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
         if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail9("source-tree");
+          fail10("source-tree");
         const seen = /* @__PURE__ */ new Set();
         for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control8.validSha(row.sha)) fail9("source-tree");
+          if (typeof row.path !== "string" || seen.has(row.path) || !control8.validSha(row.sha)) fail10("source-tree");
           seen.add(row.path);
           if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail9("source-tree");
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail10("source-tree");
           const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
           if (needsBytes && !blobs.has(row.sha)) {
             const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail9("source-content");
+            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail10("source-content");
             const bytes = Buffer.from(value.content, "base64");
             totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation6.gitObject("blob", bytes) !== row.sha) fail9("source-content");
+            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation6.gitObject("blob", bytes) !== row.sha) fail10("source-content");
             blobs.set(row.sha, bytes);
           }
           result.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
         }
-        if (preparation6.treeOid(result) !== c.tree.sha) fail9("source-tree");
+        if (preparation6.treeOid(result) !== c.tree.sha) fail10("source-tree");
         inventories.set(id2, result);
         return result;
       };
@@ -1136,19 +1136,19 @@ var require_release_github = __commonJS({
     function packageIdentity(inventory, version) {
       const raw = (name) => {
         const row = inventory.get(name);
-        if (!row || row.mode !== "100644") fail9("package-version");
+        if (!row || row.mode !== "100644") fail10("package-version");
         return preparation6.decodeRaw(row.bytes);
       };
       const pkg = parseJson("package-json", raw("package.json")), lock = parseJson("lock-json", raw("package-lock.json"));
       preparation6.parseVersion(pkg.version);
-      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail9("package-version");
+      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail10("package-version");
       return pkg;
     }
     async function sourceInput(api, context, view = sourceView(api, context)) {
       const commit = await view.commit(context.sha), inventory = await view.inventory(context.sha), files = {}, fragments = {};
       for (const path of ["package.json", "package-lock.json", "CHANGELOG.md", "README.md", "docs/metadata.md"]) {
         const row = inventory.get(path);
-        if (!row || row.mode !== "100644") fail9("source-content");
+        if (!row || row.mode !== "100644") fail10("source-content");
         files[path] = preparation6.decodeRaw(row.bytes);
       }
       const pkg = packageIdentity(inventory), queue = preparation6.fragmentQueue(inventory);
@@ -1158,45 +1158,45 @@ var require_release_github = __commonJS({
       return { commit, inventory, files, fragments, queue, intents, date, pkg, view };
     }
     async function requireAncestor(api, context, from, to) {
-      if (![from, to].every(control8.validSha)) fail9("recovery-ancestry");
+      if (![from, to].every(control8.validSha)) fail10("recovery-ancestry");
       const seen = /* @__PURE__ */ new Set();
       let counts;
       for (let page = 1; page <= 10; page++) {
         const value = (await api("GET", `${prefix(context)}/compare/${from}...${to}?per_page=100&page=${page}`)).data;
         const tuple = [value.status, value.ahead_by, value.behind_by, value.total_commits];
-        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail9("recovery-ancestry");
+        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail10("recovery-ancestry");
         counts = tuple;
         if (from === to) {
-          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail9("recovery-ancestry");
+          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail10("recovery-ancestry");
           return;
         }
-        if (value.status !== "ahead" || value.ahead_by === 0) fail9("recovery-ancestry");
+        if (value.status !== "ahead" || value.ahead_by === 0) fail10("recovery-ancestry");
         for (const c of value.commits) {
-          if (!control8.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail9("recovery-ancestry");
+          if (!control8.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail10("recovery-ancestry");
           seen.add(c.sha);
         }
-        if (seen.size > value.total_commits) fail9("recovery-ancestry");
+        if (seen.size > value.total_commits) fail10("recovery-ancestry");
         if (seen.size === value.total_commits) {
-          if (value.commits.at(-1)?.sha !== to) fail9("recovery-ancestry");
+          if (value.commits.at(-1)?.sha !== to) fail10("recovery-ancestry");
           return;
         }
-        if (value.commits.length !== 100) fail9("recovery-ancestry");
+        if (value.commits.length !== 100) fail10("recovery-ancestry");
       }
-      fail9("recovery-ancestry");
+      fail10("recovery-ancestry");
     }
     async function publicBot(api, settings) {
-      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail9("app-settings");
+      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail10("app-settings");
       const bot = (await api("GET", `/users/${enc(settings.slug + "[bot]")}`)).data;
       if (bot.login !== settings.slug + "[bot]" || bot.type !== "Bot" || !Number.isSafeInteger(bot.id) || bot.id <= 0)
-        fail9("recovery-lineage");
+        fail10("recovery-lineage");
       return bot;
     }
     async function mergedLineage(api, context, view, bot, prNumber, version) {
-      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail9("recovery-lineage");
+      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail10("recovery-lineage");
       const p = (await api("GET", `${prefix(context)}/pulls/${prNumber}`)).data;
-      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control8.sameRepo(p.base?.repo, context.repository) || !control8.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.validSha(p.merge_commit_sha) || !control8.validSha(p.head.sha) || !control8.validSha(p.base.sha)) fail9("recovery-lineage");
+      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control8.sameRepo(p.base?.repo, context.repository) || !control8.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.validSha(p.merge_commit_sha) || !control8.validSha(p.head.sha) || !control8.validSha(p.base.sha)) fail10("recovery-lineage");
       const h = await view.commit(p.head.sha), s = await view.commit(p.merge_commit_sha);
-      if (h.tree.sha !== s.tree.sha) fail9("recovery-lineage");
+      if (h.tree.sha !== s.tree.sha) fail10("recovery-lineage");
       packageIdentity(await view.inventory(p.head.sha), version);
       packageIdentity(await view.inventory(p.merge_commit_sha), version);
       return { pr: p.number, head: h.sha, tree: h.tree.sha, merge: s.sha };
@@ -1204,25 +1204,25 @@ var require_release_github = __commonJS({
     async function linkedLineage(api, context, view, bot, source, version) {
       const rows = await pages(api, `${prefix(context)}/commits/${source}/pulls`);
       const matches = rows.filter((p) => p.merge_commit_sha === source && p.head?.ref === "release/next");
-      if (matches.length !== 1) fail9("recovery-lineage");
+      if (matches.length !== 1) fail10("recovery-lineage");
       return mergedLineage(api, context, view, bot, matches[0].number, version);
     }
     function exactData(a, b, code = "recovery-intent") {
-      if (JSON.stringify(a) !== JSON.stringify(b)) fail9(code);
+      if (JSON.stringify(a) !== JSON.stringify(b)) fail10(code);
     }
     function addedInventory(base, path, bytes) {
-      if (base.has(path)) fail9("recovery-intent");
+      if (base.has(path)) fail10("recovery-intent");
       return new Map([...base, [path, { mode: "100644", sha: preparation6.gitObject("blob", bytes), bytes }]]);
     }
     async function activeHistory(api, context, input, bot) {
       const chain = input.intents.active;
       for (let i = 0; i < chain.length; i++) {
         const record = chain[i], d = record.data, base = await input.view.inventory(d.base.sha), c = await input.view.commit(d.base.sha);
-        if (c.tree.sha !== d.base.tree) fail9("recovery-intent");
+        if (c.tree.sha !== d.base.tree) fail10("recovery-intent");
         const baseRecords = preparation6.admitIntentNamespace(base, d.version, context.repository);
-        if (baseRecords.active.length !== i) fail9("recovery-intent");
+        if (baseRecords.active.length !== i) fail10("recovery-intent");
         for (let j = 0; j < i; j++) {
-          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail9("recovery-intent");
+          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail10("recovery-intent");
         }
         exactData(preparation6.fragmentQueue(base), d.queuedFragments, "recovery-queue");
         const predecessor = await mergedLineage(api, context, input.view, bot, d.predecessor.pr, d.version);
@@ -1242,26 +1242,26 @@ var require_release_github = __commonJS({
       const d = record.data, head = await view.commit(lineage.head), merged = await view.commit(lineage.merge), base = await view.inventory(d.base.sha), candidate = await view.inventory(head.sha);
       exactData(head.parents.map((p) => p.sha), [d.base.sha, d.predecessor.head]);
       const expected = addedInventory(base, record.path, preparation6.intentBytes(d, context.repository));
-      if (preparation6.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation6.treeOid(candidate) !== head.tree.sha) fail9("recovery-intent");
+      if (preparation6.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation6.treeOid(candidate) !== head.tree.sha) fail10("recovery-intent");
       const pr = (await api("GET", `${prefix(context)}/pulls/${lineage.pr}`)).data;
-      if (pr.base.sha !== d.base.sha) fail9("recovery-lineage");
+      if (pr.base.sha !== d.base.sha) fail10("recovery-lineage");
       await requireAncestor(api, context, d.base.sha, lineage.merge);
     }
     async function retainedProposal(api, context, view, bot, version) {
       const base = prefix(context), ref = await optional(api, `${base}/git/ref/heads/release/next`);
       const pulls = await pages(api, `${base}/pulls?state=open&head=footprintjs:release/next&base=main`);
-      if (!ref || ref.object?.type !== "commit" || !control8.validSha(ref.object.sha) || pulls.length > 1) fail9("proposal-existing");
+      if (!ref || ref.object?.type !== "commit" || !control8.validSha(ref.object.sha) || pulls.length > 1) fail10("proposal-existing");
       const head = await view.commit(ref.object.sha);
       if (pulls.length) {
         const p = pulls[0];
-        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.sameRepo(p.head.repo, context.repository) || !control8.sameRepo(p.base.repo, context.repository)) fail9("proposal-existing");
+        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.sameRepo(p.head.repo, context.repository) || !control8.sameRepo(p.base.repo, context.repository)) fail10("proposal-existing");
         return { head, open: p };
       }
       const closed = await pages(api, `${base}/pulls?state=closed&head=footprintjs:release/next&base=main`);
       const matches = closed.filter((p) => p.head?.sha === head.sha && p.merged_at);
-      if (matches.length !== 1) fail9("proposal-existing");
+      if (matches.length !== 1) fail10("proposal-existing");
       const predecessor = await mergedLineage(api, context, view, bot, matches[0].number, version);
-      if (predecessor.head !== head.sha) fail9("proposal-existing");
+      if (predecessor.head !== head.sha) fail10("proposal-existing");
       await requireAncestor(api, context, predecessor.merge, context.sha);
       return { head, predecessor };
     }
@@ -1272,7 +1272,7 @@ var require_release_github = __commonJS({
       if (retained.open) {
         const candidate = await input.view.inventory(retained.head.sha), records = preparation6.admitIntentNamespace(candidate, input.pkg.version, context.repository);
         const record = records.active.at(-1);
-        if (!record || record.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail9("proposal-existing");
+        if (!record || record.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail10("proposal-existing");
         predecessor = await mergedLineage(api, context, input.view, bot, record.data.predecessor.pr, input.pkg.version);
       }
       const origin = prior?.data.origin ?? predecessor;
@@ -1282,7 +1282,7 @@ var require_release_github = __commonJS({
       }
       const original = await input.view.inventory(origin.head);
       preparation6.requirePublicationClosure(original, input.inventory, new Set(input.intents.records.map((x) => x.path)));
-      if (!input.queue.length) fail9("recovery-queue");
+      if (!input.queue.length) fail10("recovery-queue");
       const prepared = preparation6.prepareRecovery({
         repository: context.repository,
         sha: context.sha,
@@ -1297,7 +1297,7 @@ var require_release_github = __commonJS({
       const [[path, text2]] = Object.entries(prepared.updates), expectedTree = preparation6.treeOid(addedInventory(input.inventory, path, Buffer.from(text2)));
       if (retained.open) {
         exactData(retained.head.parents.map((p) => p.sha), [context.sha, predecessor.head], "proposal-existing");
-        if (retained.head.tree.sha !== expectedTree) fail9("proposal-existing");
+        if (retained.head.tree.sha !== expectedTree) fail10("proposal-existing");
       }
       return { prepared, expectedTree, predecessor, retained };
     }
@@ -1318,23 +1318,23 @@ var require_release_github = __commonJS({
     async function requireRecoverySource(api, context, identity, options) {
       const tree = (await api("GET", `${prefix(context)}/git/trees/${identity.tree}?recursive=1`)).data;
       if (tree.sha !== identity.tree || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-        fail9("source-tree");
+        fail10("source-tree");
       const paths2 = /* @__PURE__ */ new Set();
       for (const row of tree.tree) {
-        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control8.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail9("source-tree");
+        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control8.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail10("source-tree");
         paths2.add(row.path);
       }
       if (![...paths2].some((path) => path.startsWith(".release/"))) return false;
       const input = await sourceInput(api, context);
-      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail9("identity-changed");
+      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail10("identity-changed");
       if (input.intents.active.length) await currentRecovery(api, context, input, await publicBot(api, options.settings));
       await assertCurrentMain(api, context);
       return input.intents.active.length > 0;
     }
     async function plan(api, context, options = {}) {
-      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control8.validSha(context.sha)) fail9("event");
+      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control8.validSha(context.sha)) fail10("event");
       const repo2 = (await api("GET", prefix(context))).data;
-      if (!control8.sameRepo(repo2, context.repository)) fail9("repository");
+      if (!control8.sameRepo(repo2, context.repository)) fail10("repository");
       await assertCurrentMain(api, context);
       const input = await sourceInput(api, context);
       if (input.intents.active.length) await activeHistory(api, context, input, await publicBot(api, options.settings));
@@ -1351,13 +1351,13 @@ var require_release_github = __commonJS({
           const last = input.intents.active.at(-1);
           const linked = await pages(api, `${prefix(context)}/commits/${context.sha}/pulls`);
           const current = linked.filter((p) => p.merge_commit_sha === context.sha && p.head?.ref === "release/next");
-          if (current.length > 1) fail9("recovery-lineage");
+          if (current.length > 1) fail10("recovery-lineage");
           if (current.length === 1) {
             const bot = await publicBot(api, options.settings);
             await currentRecovery(api, context, input, bot);
             mode = "publish";
           } else {
-            if (last.data.base.sha === context.sha) fail9("recovery-intent");
+            if (last.data.base.sha === context.sha) fail10("recovery-intent");
             await recoveryPreparation(api, context, input, await publicBot(api, options.settings));
             mode = "prepare";
             preparationKind = "recovery";
@@ -1367,7 +1367,7 @@ var require_release_github = __commonJS({
           mode = "prepare";
           preparationKind = "recovery";
         } else mode = "publish";
-      } else fail9("recovery-state");
+      } else fail10("recovery-state");
       const prepared = preparationKind === "next" ? prepareRelease({ files: input.files, fragments: input.fragments, date: input.date }) : null;
       await assertCurrentMain(api, context);
       return {
@@ -1384,12 +1384,12 @@ var require_release_github = __commonJS({
     async function prepareProposal(api, context, pinned, options = {}) {
       const fresh = await plan(api, context, options);
       exactData(fresh, pinned, "proposal-plan");
-      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail9("proposal-plan");
+      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail10("proposal-plan");
       const input = await sourceInput(api, context);
       let prepared;
       if (pinned.preparationKind === "next") prepared = prepareRelease({ files: input.files, fragments: input.fragments, date: input.date });
       else prepared = (await recoveryPreparation(api, context, input, await publicBot(api, options.settings))).prepared;
-      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail9("proposal-plan");
+      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail10("proposal-plan");
       await assertCurrentMain(api, context);
       return { base: context.sha, tree: pinned.tree, repository: context.repository, prepared };
     }
@@ -1401,7 +1401,7 @@ var require_release_github = __commonJS({
       );
       const linked = await withRefusal("authority-linked-prs", () => pages(api, `${base}/commits/${context.sha}/pulls`));
       const candidates = linked.filter((p2) => p2.head?.ref === "release/next" && p2.merge_commit_sha === context.sha);
-      if (candidates.length !== 1) fail9("release-pr");
+      if (candidates.length !== 1) fail10("release-pr");
       const p = await withRefusal(
         "authority-pr",
         async () => (await api("GET", `${base}/pulls/${candidates[0].number}`)).data
@@ -1419,7 +1419,7 @@ var require_release_github = __commonJS({
         reviewerPermissions.push(permission);
       }
       if (!/^[a-z0-9-]+$/.test(settings.slug ?? "") || typeof settings.clientId !== "string" || !settings.clientId)
-        fail9("app-settings");
+        fail10("app-settings");
       const metadata = await withRefusal(
         "authority-app",
         async () => (await api("GET", `/apps/${enc(settings.slug)}`)).data
@@ -1458,12 +1458,12 @@ var require_release_github = __commonJS({
         reviewerPermissions
       };
       const result = control8.decideAuthority(world);
-      if (!result.authorized) fail9(`authority-${result.reason}`);
+      if (!result.authorized) fail10(`authority-${result.reason}`);
       const fresh = await withRefusal(
         "authority-recheck",
         async () => (await api("GET", `${base}/pulls/${p.number}`)).data
       );
-      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail9("pr-moved");
+      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail10("pr-moved");
       return expected;
     }
     async function workflowEvidence(api, identity, file) {
@@ -1492,11 +1492,11 @@ var require_release_github = __commonJS({
       return withRefusal("security-evidence", async () => {
         const w = await workflowEvidence(api, identity, "codeql.yml"), r = [...w.runs].sort((a, b) => b.id - a.id)[0];
         if (w.workflow.path !== ".github/workflows/codeql.yml" || !r || r.head_sha !== identity.headSha || r.event !== "pull_request" || !control8.sameRepo(r.head_repository, identity.repository) || r.workflow_id !== w.workflow.id || r.path !== w.workflow.path || !control8.success(r) || !control8.success(w.attempt) || w.attempt.id !== r.id || w.attempt.run_attempt !== r.run_attempt)
-          fail9("security-run");
+          fail10("security-run");
         for (const name of ["Analyze (javascript-typescript)", "Analyze (actions)"]) {
           const jobs = w.jobs.filter((j) => j.name === name);
           if (jobs.length !== 1 || !control8.success(jobs[0]) || jobs[0].run_id !== r.id || jobs[0].run_attempt !== r.run_attempt)
-            fail9("security-job");
+            fail10("security-job");
         }
         return { runId: r.id, attempt: r.run_attempt };
       });
@@ -1505,12 +1505,12 @@ var require_release_github = __commonJS({
       if (!/^https:\/\/uploads\.github\.com\/repos\/footprintjs\/foottrace\/releases\/\d+\/assets\{\?name,label\}$/.test(
         release.upload_url ?? ""
       ))
-        fail9("release-upload-url");
+        fail10("release-upload-url");
       const url = release.upload_url.replace("{?name,label}", `?name=${enc(`publish-attempt-${marker.version}.json`)}`);
       const bytes = Buffer.from(JSON.stringify(marker) + "\n");
       const r = await api("POST", url, { raw: bytes, contentType: "application/json" });
       if (r.data?.state !== "uploaded" || r.data.size !== bytes.length || !Number.isSafeInteger(r.data.id))
-        fail9("reservation-ambiguous");
+        fail10("reservation-ambiguous");
       return { assetId: r.data.id, fresh: true };
     }
     async function optional(api, route) {
@@ -1522,7 +1522,7 @@ var require_release_github = __commonJS({
       }
     }
     async function proposalPreflight(api, context, payload, pinned, options) {
-      if (payload?.base !== context.sha || !control8.sameRepo(payload.repository, context.repository)) fail9("proposal-base");
+      if (payload?.base !== context.sha || !control8.sameRepo(payload.repository, context.repository)) fail10("proposal-base");
       const rebuilt = await prepareProposal(api, context, pinned, options);
       exactData(payload, rebuilt, "proposal-substitution");
       const input = await sourceInput(api, context), bot = await publicBot(api, options.settings);
@@ -1538,7 +1538,7 @@ var require_release_github = __commonJS({
         const recovery = await recoveryPreparation(api, context, input, bot);
         retained = recovery.retained;
         predecessor = recovery.predecessor;
-        if (expectedTree !== recovery.expectedTree) fail9("proposal-tree");
+        if (expectedTree !== recovery.expectedTree) fail10("proposal-tree");
       } else {
         retained = await retainedProposal(api, context, input.view, bot, input.pkg.version);
         predecessor = retained.predecessor;
@@ -1553,19 +1553,19 @@ var require_release_github = __commonJS({
               pulls: [retained.open],
               complete: true
             });
-            if (state3.action !== "no-op") fail9("proposal-existing");
+            if (state3.action !== "no-op") fail10("proposal-existing");
             await assertCurrentMain(api, context);
             return { rebuilt, expectedTree, predecessor: null, retained, state: state3, bot };
           }
-          if (parents.length !== 2 || parents[0].sha !== context.sha) fail9("proposal-existing");
+          if (parents.length !== 2 || parents[0].sha !== context.sha) fail10("proposal-existing");
           const closed = await pages(api, `${prefix(context)}/pulls?state=closed&head=footprintjs:release/next&base=main`);
           const previous = closed.filter((p) => p.head?.sha === parents[1].sha && p.merged_at);
-          if (previous.length !== 1) fail9("proposal-existing");
+          if (previous.length !== 1) fail10("proposal-existing");
           predecessor = await mergedLineage(api, context, input.view, bot, previous[0].number, input.pkg.version);
           await requireAncestor(api, context, predecessor.merge, context.sha);
         }
       }
-      if (predecessor.head === context.sha) fail9("proposal-existing");
+      if (predecessor.head === context.sha) fail10("proposal-existing");
       const state2 = control8.decideProposalState({
         base: context.sha,
         currentMain: context.sha,
@@ -1575,7 +1575,7 @@ var require_release_github = __commonJS({
         complete: true,
         predecessor: { head: predecessor.head, closedMerged: true }
       });
-      if (!["rollover", "no-op"].includes(state2.action)) fail9("proposal-existing");
+      if (!["rollover", "no-op"].includes(state2.action)) fail10("proposal-existing");
       await assertCurrentMain(api, context);
       return { rebuilt, expectedTree, predecessor, retained, state: state2, bot };
     }
@@ -1585,28 +1585,28 @@ var require_release_github = __commonJS({
       const entries = [];
       for (const [path, content2] of Object.entries(rebuilt.prepared.updates)) {
         const blob = (await api("POST", `${base}/git/blobs`, { content: content2, encoding: "utf-8" })).data;
-        if (blob.sha !== preparation6.gitObject("blob", Buffer.from(content2))) fail9("blob");
+        if (blob.sha !== preparation6.gitObject("blob", Buffer.from(content2))) fail10("blob");
         entries.push({ path, mode: "100644", type: "blob", sha: blob.sha });
       }
       for (const path of rebuilt.prepared.deletions) entries.push({ path, mode: "100644", type: "blob", sha: null });
       const tree = (await api("POST", `${base}/git/trees`, { base_tree: pinned.tree, tree: entries })).data;
-      if (tree.sha !== expectedTree) fail9("proposal-tree");
+      if (tree.sha !== expectedTree) fail10("proposal-tree");
       const commit = (await api("POST", `${base}/git/commits`, {
         message: `chore: release ${pinned.version}`,
         tree: expectedTree,
         parents: [context.sha, predecessor.head]
       })).data;
-      if (!control8.validSha(commit.sha)) fail9("proposal-commit");
+      if (!control8.validSha(commit.sha)) fail10("proposal-commit");
       const actual = (await api("GET", `${base}/git/commits/${commit.sha}`)).data;
-      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail9("proposal-commit");
+      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail10("proposal-commit");
       exactData(actual.parents?.map((p) => p.sha), [context.sha, predecessor.head], "proposal-commit");
       const fresh = await proposalPreflight(api, context, payload, pinned, options);
-      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail9("proposal-existing");
+      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail10("proposal-existing");
       const updated = (await api("PATCH", `${base}/git/refs/heads/release/next`, { sha: commit.sha, force: false })).data;
-      if (updated.object?.sha !== commit.sha) fail9("proposal-existing");
+      if (updated.object?.sha !== commit.sha) fail10("proposal-existing");
       await assertCurrentMain(api, context);
       const current = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (current.object?.sha !== commit.sha) fail9("proposal-existing");
+      if (current.object?.sha !== commit.sha) fail10("proposal-existing");
       const pr = (await api("POST", `${base}/pulls`, {
         title: `Release ${pinned.version}`,
         head: "release/next",
@@ -1617,46 +1617,46 @@ ${rebuilt.prepared.notes}
 After Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`
       })).data;
       const requireCreated = (value) => {
-        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail9("proposal-pr");
+        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail10("proposal-pr");
       };
       requireCreated(pr);
       const created = (await api("GET", `${base}/pulls/${pr.number}`)).data;
       requireCreated(created);
       await assertCurrentMain(api, context);
       const finalRef = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (finalRef.object?.sha !== commit.sha) fail9("proposal-existing");
+      if (finalRef.object?.sha !== commit.sha) fail10("proposal-existing");
       await assertCurrentMain(api, context);
       return { action: "created", pr: pr.number, head: commit.sha, tree: expectedTree };
     }
     async function producerIdentity(api, context, name, completed = false) {
       const run = (await api("GET", `${prefix(context)}/actions/runs/${context.runId}`)).data;
-      if (run.id !== context.runId) fail9("current-run-id");
-      if (run.run_attempt !== context.runAttempt) fail9("current-run-attempt");
-      if (run.head_sha !== context.sha) fail9("current-run-sha");
-      if (!control8.sameRepo(run.repository, context.repository)) fail9("current-run-repository");
-      if (!control8.sameRepo(run.head_repository, context.repository)) fail9("current-run-head-repository");
-      if (run.path !== ".github/workflows/publish.yml") fail9("current-run-workflow");
-      if (run.head_branch !== "main") fail9("current-run-branch");
-      if (run.event !== context.eventName) fail9("current-run-event");
-      if (context.ref !== "refs/heads/main") fail9("current-run-ref");
-      if (!["push", "workflow_dispatch"].includes(run.event)) fail9("current-run-trigger");
-      if (run.status !== "in_progress") fail9("current-run-status");
-      if (run.conclusion !== null) fail9("current-run-conclusion");
+      if (run.id !== context.runId) fail10("current-run-id");
+      if (run.run_attempt !== context.runAttempt) fail10("current-run-attempt");
+      if (run.head_sha !== context.sha) fail10("current-run-sha");
+      if (!control8.sameRepo(run.repository, context.repository)) fail10("current-run-repository");
+      if (!control8.sameRepo(run.head_repository, context.repository)) fail10("current-run-head-repository");
+      if (run.path !== ".github/workflows/publish.yml") fail10("current-run-workflow");
+      if (run.head_branch !== "main") fail10("current-run-branch");
+      if (run.event !== context.eventName) fail10("current-run-event");
+      if (context.ref !== "refs/heads/main") fail10("current-run-ref");
+      if (!["push", "workflow_dispatch"].includes(run.event)) fail10("current-run-trigger");
+      if (run.status !== "in_progress") fail10("current-run-status");
+      if (run.conclusion !== null) fail10("current-run-conclusion");
       const jobs = await pages(
         api,
         `${prefix(context)}/actions/runs/${context.runId}/attempts/${context.runAttempt}/jobs`,
         "jobs"
       );
       const chosen = jobs.filter((j) => j.name === name);
-      if (chosen.length !== 1) fail9("producer-job");
+      if (chosen.length !== 1) fail10("producer-job");
       const job = chosen[0];
       if (job.run_id !== context.runId || job.run_attempt !== context.runAttempt || job.head_sha !== context.sha || completed && !control8.success(job))
-        fail9("producer-attempt");
+        fail10("producer-attempt");
       return job;
     }
     async function readArtifact(api, context, pinned, artifactId, role) {
       const { readArtifactZip } = require_release_archive();
-      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail9("artifact-id");
+      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail10("artifact-id");
       const artifact = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}`)).data;
       const producer = await producerIdentity(api, context, role, true);
       const expected = {
@@ -1679,7 +1679,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest: preflight
       }).valid)
-        fail9("artifact-source");
+        fail10("artifact-source");
       const downloaded = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}/zip`)).data;
       const members = readArtifactZip(
         Buffer.from(downloaded),
@@ -1692,7 +1692,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest
       }).valid)
-        fail9("artifact-manifest");
+        fail10("artifact-manifest");
       return { manifest, members };
     }
     async function peeledTag(api, context, tag) {
@@ -1701,10 +1701,10 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       let object = ref.object;
       for (let i = 0; i < 5; i++) {
         if (object?.type === "commit" && control8.validSha(object.sha)) return object.sha;
-        if (object?.type !== "tag" || !control8.validSha(object.sha)) fail9("tag-shape");
+        if (object?.type !== "tag" || !control8.validSha(object.sha)) fail10("tag-shape");
         object = (await api("GET", `${prefix(context)}/git/tags/${object.sha}`)).data.object;
       }
-      fail9("tag-depth");
+      fail10("tag-depth");
     }
     async function sourceReleaseNotes(api, context, version) {
       const changelog = await content(api, context, "CHANGELOG.md");
@@ -1713,18 +1713,18 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       const prefix2 = `## ${version} \u2014 `;
       const matching = sections.filter((row) => row.line.startsWith(prefix2));
       if (!changelog.startsWith("# Changelog\n\n") || matching.length !== 1 || sections[0] !== matching[0])
-        fail9("release-notes");
+        fail10("release-notes");
       const date = matching[0].line.slice(prefix2.length);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(new Date(date).getTime()) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail9("release-notes");
+        fail10("release-notes");
       const end = sections[1]?.index ?? lines.length;
       const body = lines.slice(matching[0].index + 1, end).join("\n").trim();
-      if (!body) fail9("release-notes");
+      if (!body) fail10("release-notes");
       return body + "\n";
     }
     function requireReleaseNotes(release, context, tag, notes) {
       if (release.tag_name !== tag || release.target_commitish !== context.sha || release.body !== notes || release.draft !== false || release.prerelease !== false)
-        fail9("release-conflict");
+        fail10("release-conflict");
     }
     async function releaseState(api, context, identity, archive2, registry) {
       await assertCurrentMain(api, context);
@@ -1737,15 +1737,15 @@ After Claude's independent merge verdict for this exact head is recorded publicl
         integrity: archive2.integrity
       };
       const existingTag = await peeledTag(api, context, identity.tag);
-      if (existingTag && existingTag !== context.sha) fail9("tag-conflict");
+      if (existingTag && existingTag !== context.sha) fail10("tag-conflict");
       let release = await optional(api, `${base}/releases/tags/${enc(identity.tag)}`);
       const notes = await sourceReleaseNotes(api, context, identity.version);
       if (release) requireReleaseNotes(release, context, identity.tag, notes);
       const assets = release ? await pages(api, `${base}/releases/${release.id}/assets`) : [];
       const matching = assets.filter((a) => a.name === name);
-      if (matching.length > 1) fail9("journal-conflict");
+      if (matching.length > 1) fail10("journal-conflict");
       const decision = control8.decideSubmission({ journal: matching[0] ?? null, registry, expected: marker });
-      if (decision.action === "hold") fail9("registry-conflict");
+      if (decision.action === "hold") fail10("registry-conflict");
       if (decision.action === "verify-only")
         return { fresh: false, assetId: matching[0]?.id ?? null, runId: context.runId, runAttempt: context.runAttempt };
       await assertCurrentMain(api, context);
@@ -1764,10 +1764,10 @@ After Claude's independent merge verdict for this exact head is recorded publicl
     }
     async function publishGrant(api, context, identity, archive2, grant) {
       await assertCurrentMain(api, context);
-      if (!Number.isSafeInteger(grant.assetId)) fail9("journal-asset");
+      if (!Number.isSafeInteger(grant.assetId)) fail10("journal-asset");
       const asset = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`)).data;
       if (asset.name !== `publish-attempt-${identity.version}.json` || asset.state !== "uploaded" || asset.size > 4096)
-        fail9("journal-asset");
+        fail10("journal-asset");
       const raw = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`, { accept: "application/octet-stream" })).data;
       const marker = parseJson("journal-json", Buffer.from(raw).toString("utf8"));
       const expected = {
@@ -1777,18 +1777,18 @@ After Claude's independent merge verdict for this exact head is recorded publicl
         sha: context.sha,
         integrity: archive2.integrity
       };
-      if (!control8.validatePublishGrant({ expected, marker, grant }).mayPublish) fail9("journal-grant");
-      if (await peeledTag(api, context, identity.tag) !== context.sha) fail9("tag-conflict");
+      if (!control8.validatePublishGrant({ expected, marker, grant }).mayPublish) fail10("journal-grant");
+      if (await peeledTag(api, context, identity.tag) !== context.sha) fail10("tag-conflict");
       return true;
     }
     async function responseBytes(response, max = 24 * 1024 * 1024, failure = "github-body") {
       try {
-        if (Number(response.headers.get("content-length") ?? 0) > max) fail9("response-limit");
+        if (Number(response.headers.get("content-length") ?? 0) > max) fail10("response-limit");
         const chunks = [];
         let size = 0;
         for await (const chunk of response.body) {
           size += chunk.length;
-          if (size > max) fail9("response-limit");
+          if (size > max) fail10("response-limit");
           chunks.push(Buffer.from(chunk));
         }
         return Buffer.concat(chunks);
@@ -1801,7 +1801,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       return async (method, route, body) => {
         try {
           if (!(route.startsWith("/repos/footprintjs/foottrace/") || route === "/repos/footprintjs/foottrace" || route.startsWith("/apps/") || route.startsWith("/users/") || route.startsWith("https://uploads.github.com/repos/footprintjs/foottrace/releases/")))
-            fail9("api-route");
+            fail10("api-route");
           const headers = {
             authorization: `Bearer ${token}`,
             accept: body?.accept ?? "application/vnd.github+json",
@@ -1860,57 +1860,57 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       };
     }
     async function registryVersion(version, fetcher = fetch) {
-      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail9("version");
+      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail10("version");
       const response = await registryFetch(`https://registry.npmjs.org/foottrace/${version}`, fetcher);
       if (response.status === 404) return null;
-      if (!response.ok || response.status !== 200) fail9("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
       const value = parseJson(
         "registry-json",
         (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8")
       );
       if (value.name !== "foottrace" || value.version !== version || typeof value.dist?.integrity !== "string")
-        fail9("registry-shape");
+        fail10("registry-shape");
       return { ...value.dist, version: value.version };
     }
     function markerData(bytes, expectedVersion, source, size) {
-      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail9("journal-conflict");
+      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail10("journal-conflict");
       const value = parseJson("journal-json", preparation6.decodeRaw(bytes));
-      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail9("journal-conflict");
+      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail10("journal-conflict");
       return value;
     }
     async function publicationState(api, context, input, { fetcher = fetch, settings } = {}) {
       const version = input.pkg.version, tag = `v${version}`, base = prefix(context), registry = await registryVersion(version, fetcher), source = await peeledTag(api, context, tag), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!source && !release) {
-        if (registry) fail9("recovery-state");
+        if (registry) fail10("recovery-state");
         await requireUnpublishedLatest(version, fetcher);
         return { state: "absent", version };
       }
-      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail9("recovery-state");
+      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail10("recovery-state");
       const historical = { ...context, sha: source }, sourceInventory = await input.view.inventory(source);
       packageIdentity(sourceInventory, version);
       const bot = await publicBot(api, settings), lineage = await linkedLineage(api, context, input.view, bot, source, version);
-      if (lineage.merge !== source) fail9("recovery-lineage");
+      if (lineage.merge !== source) fail10("recovery-lineage");
       await requireAncestor(api, context, source, context.sha);
       const notes = await sourceReleaseNotes(api, historical, version);
       requireReleaseNotes(release, historical, tag, notes);
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail9("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail10("journal-conflict");
       const raw = Buffer.from((await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data), marker = markerData(raw, version, source, markers[0].size);
       if (!registry) return { state: "pending", reason: "pending-registry", version, sha: source };
-      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail9("registry-conflict");
+      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail10("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok || response.status !== 200) fail9("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         { package: "foottrace", version }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail9("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail10("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok || latestResponse.status !== 200) fail9("registry-unavailable");
+      if (!latestResponse.ok || latestResponse.status !== 200) fail10("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace") fail9("registry-shape");
+      if (latest.name !== "foottrace") fail10("registry-shape");
       const order = preparation6.versionOrder(latest.version, version);
-      if (order > 0) fail9("recovery-state");
+      if (order > 0) fail10("recovery-state");
       return {
         state: order < 0 ? "pending" : "published",
         reason: order < 0 ? "pending-latest" : "verified",
@@ -1928,31 +1928,31 @@ After Claude's independent merge verdict for this exact head is recorded publicl
     }
     async function requireUnpublishedLatest(version, fetcher) {
       const response = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!response.ok || response.status !== 200) fail9("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace" || preparation6.versionOrder(latest.version, version) >= 0) fail9("recovery-state");
+      if (latest.name !== "foottrace" || preparation6.versionOrder(latest.version, version) >= 0) fail10("recovery-state");
     }
     async function verifyPublished(api, context, pinned, fetcher = fetch) {
       const tag = `v${pinned.version}`, base = prefix(context), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!release) return { state: "pending-release" };
       const notes = await sourceReleaseNotes(api, context, pinned.version);
       requireReleaseNotes(release, context, tag, notes);
-      if (await peeledTag(api, context, tag) !== context.sha) fail9("release-conflict");
+      if (await peeledTag(api, context, tag) !== context.sha) fail10("release-conflict");
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${pinned.version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail9("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail10("journal-conflict");
       const marker = parseJson(
         "journal-json",
         Buffer.from(
           (await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data
         ).toString("utf8")
       );
-      if (marker.sha !== context.sha || marker.version !== pinned.version) fail9("journal-conflict");
+      if (marker.sha !== context.sha || marker.version !== pinned.version) fail10("journal-conflict");
       const registry = await registryVersion(pinned.version, fetcher);
       if (!registry) return { state: "pending-registry" };
       if (registry.integrity !== marker.integrity || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${pinned.version}.tgz`)
-        fail9("registry-conflict");
+        fail10("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok) fail9("registry-unavailable");
+      if (!response.ok) fail10("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         {
@@ -1960,9 +1960,9 @@ After Claude's independent merge verdict for this exact head is recorded publicl
           version: pinned.version
         }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail9("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail10("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok) fail9("registry-unavailable");
+      if (!latestResponse.ok) fail10("registry-unavailable");
       const latest = parseJson(
         "registry-latest-json",
         (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8")
@@ -1992,7 +1992,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       };
       prefix(context);
       if (!control8.validSha(context.sha) || !Number.isSafeInteger(context.runId) || context.runId <= 0 || !Number.isSafeInteger(context.runAttempt) || context.runAttempt <= 0)
-        fail9("context");
+        fail10("context");
       return context;
     }
     async function runStage(stage, { api, context, env, io, fetcher = fetch }) {
@@ -2002,11 +2002,11 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       const phaseOptions = { settings, fetcher };
       const bound = () => {
         if (!pinned || pinned.sha !== context.sha || !control8.sameRepo(pinned.repository, context.repository))
-          fail9("plan-substitution");
+          fail10("plan-substitution");
       };
       const freshAuthority = async () => {
         const fresh = await collectAuthority(api, context, settings);
-        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail9("identity-changed");
+        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail10("identity-changed");
         await requireSecurity(api, fresh);
       };
       if (stage === "plan") {
@@ -2050,24 +2050,24 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       }
       if (stage === "authority") {
         const id2 = await collectAuthority(api, context, settings);
-        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail9("authority-plan");
+        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail10("authority-plan");
         await requireSecurity(api, id2);
         await requireRecoverySource(api, context, id2, phaseOptions);
         return { identity: JSON.stringify(id2), authorized: "true" };
       }
       if (stage === "verdict") {
-        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail9("identity");
+        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail10("identity");
         return { tested: String((await ciVerdict(api, identity)).tested) };
       }
       if (stage === "build-manifest") {
-        if (io.gitTree() !== pinned.tree) fail9("build-tree");
+        if (io.gitTree() !== pinned.tree) fail10("build-tree");
         io.requireClean();
         const pkg = parseJson("package-json", io.read("package.json")), lock = parseJson("lock-json", io.read("package-lock.json"));
         if (pkg.name !== pinned.package || pkg.version !== pinned.version || lock.version !== pkg.version || lock.packages?.[""].version !== pkg.version)
-          fail9("package-version");
+          fail10("package-version");
         const pack = parseJson("pack-json", io.read("pack.json"));
         if (!Array.isArray(pack) || pack.length !== 1 || pack[0].filename !== `foottrace-${pinned.version}.tgz`)
-          fail9("pack-identity");
+          fail10("pack-identity");
         const bytes = io.read(pack[0].filename), archive2 = require_release_archive().inspectArchive(bytes, {
           package: pinned.package,
           version: pinned.version
@@ -2100,7 +2100,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
           version: pinned.version
         });
         if (artifact.manifest.integrity !== archive2.integrity || artifact.manifest.sha256 !== archive2.sha256 || artifact.manifest.shasum !== archive2.shasum)
-          fail9("archive-manifest");
+          fail10("archive-manifest");
         const registry = await registryVersion(pinned.version, fetcher);
         if (stage === "release") {
           if (await requireRecoverySource(api, context, identity, phaseOptions)) {
@@ -2115,7 +2115,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
         }
         await publishGrant(api, context, identity, archive2, grant);
         if (registry) {
-          if (registry.integrity !== archive2.integrity) fail9("registry-conflict");
+          if (registry.integrity !== archive2.integrity) fail10("registry-conflict");
           return { submit: "false" };
         }
         const file = io.publishFile(context.runId, context.runAttempt);
@@ -2125,14 +2125,14 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       if (stage === "verify") {
         if (pinned.mode === "publish")
           return { verification: JSON.stringify(await verifyPublished(api, context, pinned, fetcher)) };
-        if (pinned.mode !== "verify") fail9("recovery-phase");
+        if (pinned.mode !== "verify") fail10("recovery-phase");
         const input = await sourceInput(api, context);
-        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail9("plan-substitution");
+        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail10("plan-substitution");
         const result = await publicationState(api, context, input, phaseOptions);
         await assertCurrentMain(api, context);
         return { verification: JSON.stringify({ ...result, state: result.reason ?? "pending-release" }) };
       }
-      fail9("stage");
+      fail10("stage");
     }
     module2.exports = {
       refusalCode,
@@ -24876,32 +24876,46 @@ function foottraceInvocationContext(context) {
 var import_http_credential = __toESM(require_http_credential(), 1);
 var import_release_github = __toESM(require_release_github(), 1);
 
-// src/propose/github-get-transport.mjs
+// src/propose/proposal-metadata-payload.mjs
+var fail3 = () => {
+  throw new Error("pending-metadata-unavailable");
+};
+function bindProposalMetadata(raw, desired = false) {
+  const value = desired ? fields2(jsonData(raw, 128 * 1024), ["title", "body"]) : jsonData({ title: own4(raw, "title"), body: own4(raw, "body") === null ? "" : own4(raw, "body") }, 128 * 1024);
+  for (const [key, limit] of [["title", 256], ["body", 65536]]) {
+    const text2 = value[key];
+    if (typeof text2 !== "string" || Buffer.byteLength(text2) > limit || Buffer.from(text2).toString("utf8") !== text2 || key === "title" && !text2.length) fail3();
+  }
+  return value;
+}
+
+// src/propose/github-transport.mjs
 var MiB = 1024 * 1024;
 var HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
-var fail3 = () => {
-  throw new Error("github-get-unavailable");
+var fail4 = () => {
+  throw new Error("github-transport-unavailable");
 };
 function limits(input = HARD) {
   const value = fields2(jsonData(input), ["requests", "totalBytes"]);
   for (const key of ["requests", "totalBytes"])
-    if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > HARD[key]) fail3();
+    if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > HARD[key]) fail4();
   return value;
 }
 var counters = () => ({ fetchAttempts: 0, admittedBytes: 0, exhausted: false });
-function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } = {}) {
+function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}) {
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
   text(repo2.full_name, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201);
-  if (typeof fetcher !== "function") fail3();
+  if (typeof fetcher !== "function") fail4();
   const globalLimit = limits(inputLimits), global = counters(), controller = new AbortController(), prefix = "/repos/" + repo2.full_name;
+  let patchAttempted = false;
   const facts = (value) => Object.freeze({ ...value });
-  const makeView = (input, registry) => {
+  const makeView = (input, registry, patch = null) => {
     const bound = limits(input), local = counters();
     const exhausted = () => {
       global.exhausted = local.exhausted = true;
-      controller.abort(new Error("github-get-budget"));
-      fail3();
+      controller.abort(new Error("github-transport-budget"));
+      fail4();
     };
     const takeRequest = () => {
       if (global.exhausted || local.exhausted || global.fetchAttempts >= globalLimit.requests || local.fetchAttempts >= bound.requests) exhausted();
@@ -24918,7 +24932,7 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
       options.signal.throwIfAborted();
       takeRequest();
       const response = await fetcher(url, options);
-      if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 || typeof response.ok !== "boolean" || response.ok !== (response.status >= 200 && response.status < 300)) fail3();
+      if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 || typeof response.ok !== "boolean" || response.ok !== (response.status >= 200 && response.status < 300)) fail4();
       return response;
     };
     const bounded = async (response, maximum, artifact) => {
@@ -24928,12 +24942,12 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
       }
       if (response.status !== 200) {
         await response.body?.cancel();
-        fail3();
+        fail4();
       }
       const contentType = response.headers.get("content-type");
       if (artifact && !["application/zip", "application/octet-stream"].includes(contentType?.split(";")[0].trim().toLowerCase())) {
         await response.body?.cancel();
-        fail3();
+        fail4();
       }
       const declared = response.headers.get("content-length");
       if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum || Number(declared) > globalLimit.totalBytes - global.admittedBytes || Number(declared) > bound.totalBytes - local.admittedBytes)) {
@@ -24948,7 +24962,7 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
           if (next.done) break;
           if (!(next.value instanceof Uint8Array)) {
             await reader.cancel();
-            fail3();
+            fail4();
           }
           size += next.value.byteLength;
           if (size > maximum || !admit(next.value.byteLength)) {
@@ -24963,14 +24977,40 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
       return new Response(Buffer.concat(chunks), { status: 200, headers: { "content-type": contentType ?? "application/octet-stream" } });
     };
     const requestSignal = (signal) => {
-      if (signal !== void 0 && !(signal instanceof AbortSignal)) fail3();
+      if (signal !== void 0 && !(signal instanceof AbortSignal)) fail4();
       return AbortSignal.any([AbortSignal.timeout(3e4), controller.signal, ...signal === void 0 ? [] : [signal]]);
     };
     const fetchBounded = async (url, options = {}) => {
       try {
-        if (typeof url !== "string" || url.length > 8192) fail3();
+        if (typeof url !== "string" || url.length > 8192) fail4();
+        if (patch) {
+          if (url !== patch.url || options.method !== "PATCH" || options.body !== patch.body || patchAttempted) fail4();
+          const signal2 = requestSignal(options.signal);
+          signal2.throwIfAborted();
+          patchAttempted = true;
+          const response2 = await invoke(url, {
+            ...options,
+            method: "PATCH",
+            body: patch.body,
+            credentials: "omit",
+            redirect: "error",
+            signal: signal2
+          });
+          if (response2.status >= 300 && response2.status < 400) {
+            await response2.body?.cancel();
+            fail4();
+          }
+          if (response2.ok) {
+            const type = response2.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+            if (!["application/json", "application/vnd.github+json"].includes(type)) {
+              await response2.body?.cancel();
+              fail4();
+            }
+          }
+          return await bounded(response2, 2 * MiB, false);
+        }
         if (registry) {
-          if (!registry.urls.has(url) || (options.method ?? "GET") !== "GET" || options.body !== void 0) fail3();
+          if (!registry.urls.has(url) || (options.method ?? "GET") !== "GET" || options.body !== void 0) fail4();
           const signal2 = requestSignal(options.signal), tarball = url === registry.tarball;
           const response2 = await invoke(url, {
             method: "GET",
@@ -24981,19 +25021,19 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
           });
           if (response2.status >= 300 && response2.status < 400) {
             await response2.body?.cancel();
-            fail3();
+            fail4();
           }
           if (response2.ok) {
             const type = response2.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
             if (tarball ? !["application/octet-stream", "application/gzip", "application/x-gzip"].includes(type) : type !== "application/json") {
               await response2.body?.cancel();
-              fail3();
+              fail4();
             }
           }
           return await bounded(response2, tarball ? 16 * MiB : 2 * MiB, false);
         }
         const target = new URL(url), path = target.pathname;
-        if (target.origin !== "https://api.github.com" || target.username || target.password || target.hash || options.method !== "GET" || options.body !== void 0 || /%(?:2f|5c|25|00)/i.test(path) || path.split("/").some((part) => [".", ".."].includes(decodeURIComponent(part))) || !(path === prefix || path.startsWith(prefix + "/") || path === "/app" || path.startsWith("/users/"))) fail3();
+        if (target.origin !== "https://api.github.com" || target.username || target.password || target.hash || options.method !== "GET" || options.body !== void 0 || /%(?:2f|5c|25|00)/i.test(path) || path.split("/").some((part) => [".", ".."].includes(decodeURIComponent(part))) || !(path === prefix || path.startsWith(prefix + "/") || path === "/app" || path.startsWith("/users/"))) fail4();
         const suffix = path.startsWith(prefix + "/") ? path.slice((prefix + "/").length) : "";
         const artifact = /^actions\/artifacts\/[1-9]\d*\/zip$/.test(suffix);
         const signal = requestSignal(options.signal);
@@ -25001,20 +25041,20 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
         if (response.status >= 300 && response.status < 400) {
           const location = response.headers.get("location");
           await response.body?.cancel();
-          if (!artifact || response.status !== 302 || typeof location !== "string" || location.length > 16384 || !location.startsWith("https://")) fail3();
+          if (!artifact || response.status !== 302 || typeof location !== "string" || location.length > 16384 || !location.startsWith("https://")) fail4();
           const next = new URL(location);
           const host = /^[a-z0-9-]+\.blob\.core\.windows\.net$/.test(next.hostname) || next.hostname === "results-receiver.actions.githubusercontent.com";
-          if (!host || next.protocol !== "https:" || next.username || next.password || next.port || next.hash) fail3();
+          if (!host || next.protocol !== "https:" || next.username || next.password || next.port || next.hash) fail4();
           response = await invoke(next.href, { method: "GET", headers: { accept: "application/zip" }, credentials: "omit", signal, redirect: "error" });
           if (response.status >= 300 && response.status < 400) {
             await response.body?.cancel();
-            fail3();
+            fail4();
           }
         }
         const maximum = artifact ? 20 * MiB : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB : 2 * MiB;
         return await bounded(response, maximum, artifact);
       } catch {
-        fail3();
+        fail4();
       }
     };
     return Object.freeze({ fetch: fetchBounded, facts: () => facts(local) });
@@ -25027,23 +25067,42 @@ function createGitHubGetTransport({ repository, fetcher, limits: inputLimits } =
     const base = "https://registry.npmjs.org/" + value.packageName, tarball = base + "/-/" + value.packageName + "-" + value.version + ".tgz";
     return makeView(value.limits, { urls: /* @__PURE__ */ new Set([base + "/" + value.version, base + "/latest", tarball]), tarball });
   };
-  return Object.freeze({ createView: (input) => makeView(input, null), createRegistryView, facts: () => facts(global) });
+  const createExactPatchView = (input) => {
+    try {
+      const value = jsonData(input, 128 * 1024);
+      fields2(value, Object.hasOwn(value, "limits") ? ["pullNumber", "desired", "limits"] : ["pullNumber", "desired"]);
+      id(value.pullNumber);
+      const desired = bindProposalMetadata(value.desired, true);
+      return makeView(value.limits, null, {
+        url: "https://api.github.com" + prefix + "/pulls/" + value.pullNumber,
+        body: JSON.stringify({ title: desired.title, body: desired.body })
+      });
+    } catch {
+      fail4();
+    }
+  };
+  return Object.freeze({
+    createView: (input) => makeView(input, null),
+    createRegistryView,
+    createExactPatchView,
+    facts: () => facts(global)
+  });
 }
 
 // src/propose/foottrace-transport.mjs
 var transports = /* @__PURE__ */ new WeakMap();
-var fail4 = () => {
-  throw new Error("foottrace-read-transport-unavailable");
+var fail5 = () => {
+  throw new Error("foottrace-transport-unavailable");
 };
 function createFoottraceTransport({ repository, token, appIdentity, fetcher, limits: limits2 } = {}) {
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
-  if (repo2.full_name !== "footprintjs/foottrace") fail4();
-  if (!(0, import_http_credential.isOpaqueCredential)(token)) fail4();
+  if (repo2.full_name !== "footprintjs/foottrace") fail5();
+  if (!(0, import_http_credential.isOpaqueCredential)(token)) fail5();
   const slug = text(own4(appIdentity, "slug"), /^[a-z0-9-]+$/, 100), clientId = text(own4(appIdentity, "clientId"), /^[A-Za-z0-9_.-]+$/, 128), privateKey = own4(appIdentity, "privateKey");
-  if (typeof privateKey !== "string" || privateKey.length > 65536) fail4();
-  const http = createGitHubGetTransport({ repository: repo2, fetcher, limits: limits2 });
-  const value = Object.freeze({ readOnly: true });
+  if (typeof privateKey !== "string" || privateKey.length > 65536) fail5();
+  const http = createGitHubTransport({ repository: repo2, fetcher, limits: limits2 });
+  const value = Object.freeze({ scope: "captured-native-http-owner" });
   transports.set(value, {
     http,
     repository: repo2,
@@ -25054,7 +25113,7 @@ function createFoottraceTransport({ repository, token, appIdentity, fetcher, lim
 }
 function foottraceTransportPort(transport, limits2) {
   const value = transports.get(transport);
-  if (!value) fail4();
+  if (!value) fail5();
   const view = value.http.createView(limits2);
   return Object.freeze({
     api: value.makeApi(view.fetch),
@@ -25068,17 +25127,17 @@ function foottraceTransportPort(transport, limits2) {
 
 // src/propose/proposal-invocation.mjs
 var import_http_credential2 = __toESM(require_http_credential(), 1);
-var fail5 = () => {
+var fail6 = () => {
   throw new Error("proposal-invocation-unavailable");
 };
 function number(value) {
-  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail5();
+  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail6();
   return Number(value);
 }
 function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = {}) {
   try {
     const token = own4(env, "GH_TOKEN"), privateKey = own4(env, "APP_PRIVATE_KEY");
-    if (!(0, import_http_credential2.isOpaqueCredential)(token) || typeof privateKey !== "string" || !privateKey.length || privateKey.length > 65536) fail5();
+    if (!(0, import_http_credential2.isOpaqueCredential)(token) || typeof privateKey !== "string" || !privateKey.length || privateKey.length > 65536) fail6();
     const context = foottraceInvocationContext({
       repository: { id: number(own4(env, "REPO_ID")), full_name: own4(env, "REPO_NAME") },
       sha: own4(env, "SOURCE_SHA"),
@@ -25096,9 +25155,9 @@ function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = 
       ["GITHUB_EVENT_NAME", "EVENT_NAME"],
       ["GITHUB_RUN_ID", "RUN_ID"],
       ["GITHUB_RUN_ATTEMPT", "RUN_ATTEMPT"]
-    ]) if (own4(env, alias) !== own4(env, original)) fail5();
+    ]) if (own4(env, alias) !== own4(env, original)) fail6();
     const toolSha = own4(env, "TOOL_SHA"), workflowRef = own4(env, "GITHUB_WORKFLOW_REF");
-    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail5();
+    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail6();
     const artifactId = number(own4(env, "ARTIFACT_ID"));
     const transport = createFoottraceTransport({ repository: context.repository, token, appIdentity: {
       slug: own4(env, "APP_SLUG"),
@@ -25112,13 +25171,13 @@ function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = 
       toolSha
     }), ["job", "workflowRef", "workflowSha", "toolSha"]) });
   } catch {
-    fail5();
+    fail6();
   } finally {
     try {
       delete env.APP_PRIVATE_KEY;
       delete env.GH_TOKEN;
     } catch {
-      fail5();
+      fail6();
     }
   }
 }
@@ -25146,7 +25205,7 @@ function snapshotLocalHostSource(raw) {
 }
 
 // src/propose/host-source-binding.mjs
-var fail6 = () => {
+var fail7 = () => {
   throw new Error("proposal-host-source-unavailable");
 };
 var sha = (b) => (0, import_node_crypto.createHash)("sha256").update(b).digest("hex");
@@ -25156,17 +25215,17 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
   const pinned = foottraceInvocationContext(context), port = foottraceTransportPort(transport);
   keys(host, ["readProfile", "readSource", "requireClean"]);
   const readProfile = own4(host, "readProfile"), readSource = own4(host, "readSource"), requireClean = own4(host, "requireClean");
-  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail6();
+  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail7();
   const step = fields2(jsonData(invocation), ["job", "workflowRef", "workflowSha", "toolSha"]);
-  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail6();
+  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail7();
   return async (prepared) => {
     const observations = [];
     try {
-      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail6();
+      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail7();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail6();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail7();
         const boundary = { kind: "native-host-source", method: "GET", status: "unavailable" };
         observations.push(boundary);
         const result = await port.api(method, route);
@@ -25176,28 +25235,28 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
       const phase = async () => {
         await requireClean();
         const profile = fields2(jsonData(await readProfile()), ["id", "sourceSha", "sourceTree", "toolSha", "workflow", "entry", "profile"]);
-        if (profile.id !== "foottrace-proposal-host-v1" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail6();
+        if (profile.id !== "foottrace-proposal-host-v1" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail7();
         const local = snapshotLocalHostSource(await readSource());
-        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail6();
+        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail7();
         await import_release_github2.default.assertCurrentMain(read, pinned);
         const view = import_release_github2.default.sourceView(read, pinned), commit = await view.commit(pinned.sha), inventory = await view.inventory(pinned.sha);
-        if (commit.tree.sha !== prepared.sourceTree) fail6();
+        if (commit.tree.sha !== prepared.sourceTree) fail7();
         const blobs = {};
         for (const kind of Object.keys(paths)) {
           const rule = fields2(profile[kind], ["path", "sha", "sha256", "bytes", "mode"]);
-          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || kind === "workflow" && rule.mode !== "100644") fail6();
+          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || kind === "workflow" && rule.mode !== "100644") fail7();
           const actual = inventory.get(rule.path), raw = own4(local.files, kind);
-          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail6();
+          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail7();
           const bytes = Buffer.from(raw);
-          if (import_release_prepare2.default.gitObject("blob", bytes) !== rule.sha || sha(bytes) !== rule.sha256) fail6();
+          if (import_release_prepare2.default.gitObject("blob", bytes) !== rule.sha || sha(bytes) !== rule.sha256) fail7();
           let provider = actual.bytes;
           if (!provider) {
             const blob = own4(await read("GET", prefix + "blobs/" + rule.sha), "data");
             const content = own4(blob, "content");
-            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail6();
+            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail7();
             provider = Buffer.from(content, "base64");
           }
-          if (provider.length !== rule.bytes || import_release_prepare2.default.gitObject("blob", provider) !== rule.sha || sha(provider) !== rule.sha256 || !provider.equals(bytes)) fail6();
+          if (provider.length !== rule.bytes || import_release_prepare2.default.gitObject("blob", provider) !== rule.sha || sha(provider) !== rule.sha256 || !provider.equals(bytes)) fail7();
           blobs[kind + "Blob"] = rule.sha;
         }
         await import_release_github2.default.assertCurrentMain(read, pinned);
@@ -25213,7 +25272,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail6();
+      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail7();
       return Object.freeze({
         valid: true,
         scope: "host-source-binding-only",
@@ -25488,7 +25547,7 @@ function createCurrentPreparedInputReader(inputProfile) {
 
 // src/propose/foottrace-current-inputs.mjs
 var digest2 = (v) => (0, import_node_crypto2.createHash)("sha256").update(JSON.stringify(v)).digest("hex");
-var fail7 = (reason) => {
+var fail8 = (reason) => {
   const e = new Error("current-prepared-inputs-unavailable");
   e.ordinaryReason = reason;
   throw e;
@@ -25506,11 +25565,11 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
   return async () => {
     const observations = [];
     try {
-      if (!port) fail7();
+      if (!port) fail8();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail7();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail8();
         const row = { kind: "native-current-source", method: "GET", status: "unavailable" };
         observations.push(row);
         const value = await port.api(method, route);
@@ -25520,8 +25579,8 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
       const phase = async () => {
         await import_release_github3.default.assertCurrentMain(read, pinned);
         const view = import_release_github3.default.sourceView(read, pinned), source = await import_release_github3.default.sourceInput(read, pinned, view);
-        if (source.intents.active.length !== 0) fail7("ordinary-active-recovery");
-        if (!source.queue.length) fail7();
+        if (source.intents.active.length !== 0) fail8("ordinary-active-recovery");
+        if (!source.queue.length) fail8();
         const commit = jsonData({
           sha: source.commit.sha,
           tree: { sha: source.commit.tree.sha },
@@ -25529,7 +25588,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
           committer: { date: source.commit.committer.date }
         });
         const prepared = prepare({ source: { commit, inventory: source.inventory }, preparationDate: null });
-        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail7();
+        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail8();
         const inventory = [...source.inventory].map(([path, row]) => ({ path, mode: row.mode, sha: row.sha })).sort((a, b) => a.path.localeCompare(b.path));
         const reference = jsonData({
           repositoryId: pinned.repository.id,
@@ -25548,7 +25607,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
         return { prepared, reference };
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail7();
+      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail8();
       return Object.freeze({
         valid: true,
         scope: "native-current-prepared-inputs-only",
@@ -25581,7 +25640,7 @@ var import_node_crypto3 = require("node:crypto");
 var import_node_util4 = require("node:util");
 var import_release_github4 = __toESM(require_release_github(), 1);
 var import_release_control5 = __toESM(require_release_control(), 1);
-var fail8 = () => {
+var fail9 = () => {
   throw new Error("current-proposer-unavailable");
 };
 var digest3 = (value) => (0, import_node_crypto3.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
@@ -25590,14 +25649,14 @@ var repo = (value) => ({
   full_name: text(own4(value, "full_name"), /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201)
 });
 var sha2 = (value) => {
-  if (!import_release_control5.default.validSha(value)) fail8();
+  if (!import_release_control5.default.validSha(value)) fail9();
   return value;
 };
 var statuses = ["completed", "queued", "in_progress", "requested", "waiting", "pending", "action_required"];
 var conclusions = ["success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required", "stale", "startup_failure"];
 function state(raw) {
   const status = own4(raw, "status"), conclusion = own4(raw, "conclusion");
-  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail8();
+  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail9();
   return { status, conclusion };
 }
 function createFoottraceProposerReader({ transport, context }) {
@@ -25605,14 +25664,14 @@ function createFoottraceProposerReader({ transport, context }) {
   try {
     pinned = foottraceInvocationContext(context);
     port = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
-    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) fail8();
+    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) fail9();
   } catch {
     port = null;
   }
   return async (prepared) => {
     const observations = [];
     try {
-      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control5.default.validSha(own4(prepared, "sourceTree"))) fail8();
+      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control5.default.validSha(own4(prepared, "sourceTree"))) fail9();
       const active = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
       const prefix = "/repos/footprintjs/foottrace", { settings } = active, routes = /* @__PURE__ */ new Map();
       routes.set(prefix, (raw) => {
@@ -25622,17 +25681,17 @@ function createFoottraceProposerReader({ transport, context }) {
           defaultBranch: own4(raw, "default_branch"),
           push: own4(own4(raw, "permissions"), "push")
         };
-        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true) fail8();
+        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true) fail9();
         return value;
       });
       routes.set(prefix + "/git/ref/heads/main", (raw) => ({ object: { sha: sha2(own4(own4(raw, "object"), "sha")) } }));
       routes.set(prefix + "/git/commits/" + pinned.sha, (raw) => ({ sha: sha2(own4(raw, "sha")), tree: { sha: sha2(own4(own4(raw, "tree"), "sha")) } }));
       routes.set("/apps/" + settings.slug, (raw) => {
-        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail8();
+        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail9();
         return { id: id(own4(raw, "id")), settingsDigest: digest3(settings) };
       });
       routes.set("/users/" + encodeURIComponent(settings.slug + "[bot]"), (raw) => {
-        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail8();
+        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail9();
         return { id: id(own4(raw, "id")) };
       });
       routes.set(prefix + "/actions/runs/" + pinned.runId, (raw) => ({
@@ -25649,7 +25708,7 @@ function createFoottraceProposerReader({ transport, context }) {
       const jobs = prefix + "/actions/runs/" + pinned.runId + "/attempts/" + pinned.runAttempt + "/jobs";
       for (let page = 1; page <= 8; page++) routes.set(jobs + "?per_page=100&page=" + page, (raw) => {
         const count3 = own4(raw, "total_count"), rows = array(own4(raw, "jobs"), 32);
-        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail8();
+        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail9();
         const values = [];
         for (let i = 0; i < rows.length; i++) {
           const row = own4(rows, String(i));
@@ -25665,7 +25724,7 @@ function createFoottraceProposerReader({ transport, context }) {
         return { total_count: count3, jobs: values };
       });
       const api = async (method, route, body) => {
-        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail8();
+        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail9();
         const item = { kind: "native-current-identity", method: "GET", status: "unavailable" };
         observations.push(item);
         const value = jsonData(routes.get(route)(own4(await active.api(method, route), "data")));
@@ -25677,12 +25736,12 @@ function createFoottraceProposerReader({ transport, context }) {
         await import_release_github4.default.assertCurrentMain(api, pinned);
         await api("GET", prefix);
         const commit = (await api("GET", prefix + "/git/commits/" + pinned.sha)).data;
-        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail8();
+        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail9();
         const app = (await api("GET", "/apps/" + settings.slug)).data;
         const bot = (await api("GET", "/users/" + encodeURIComponent(settings.slug + "[bot]"))).data;
         const prepare = await import_release_github4.default.producerIdentity(api, pinned, "prepare", true);
         const proposal = await import_release_github4.default.producerIdentity(api, pinned, "proposal");
-        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail8();
+        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail9();
         await import_release_github4.default.assertCurrentMain(api, pinned);
         return jsonData({
           repositoryId: pinned.repository.id,
@@ -25698,7 +25757,7 @@ function createFoottraceProposerReader({ transport, context }) {
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail8();
+      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail9();
       return Object.freeze({
         valid: true,
         scope: "current-proposer-identity-only",
