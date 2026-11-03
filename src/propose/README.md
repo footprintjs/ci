@@ -449,3 +449,5 @@ Local host headers reject data accessors, and all three local file buffers are
 owned before provider awaits. A later mutation of the supplied host object or
 buffer cannot retarget an earlier observation. Cleanliness and identity/source
 are rechecked, but adjacent snapshots do not prove uninterrupted continuity.
+
+The input bootstrap is also emitted as dist/propose.cjs, with its own exact metadata and Node-only runtime imports. It is a read-only native observation bundle; a target control needs no dependency install. It does not expose a writer or complete Propose API.

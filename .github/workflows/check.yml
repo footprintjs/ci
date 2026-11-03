@@ -22,4 +22,4 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Verify committed bundle and metadata
-        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json
+        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json dist/propose.cjs dist/propose-metadata.json
