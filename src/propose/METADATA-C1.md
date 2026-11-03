@@ -20,7 +20,7 @@ one identical PATCH. Authorization, acquisition and verification failures stay
 technical. Native partial records retain finite diagnostic attempt state and
 completed rows; they are never continuation inputs or saved authority.
 
-This module is uncommitted source work, exercised through synthetic provider
+This module is internal source work, exercised through synthetic provider
 fixtures. It is not exported by the compiled read-only bootstrap and has no
 physical workflow caller. The actual pinned writer-action output to capture
 handoff, physical workflow/eco output consumption, remaining Propose effects,
