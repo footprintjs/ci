@@ -566,3 +566,5 @@ including a digest of the owned diagnostic projection. Diff reads that recorded
 boundary; the actual execution tree records the read and saved explanations can
 navigate the handoff. The digest is not App/workflow/source authentication or
 effect authority. The pure status-finding layer has no business-source callback.
+
+The native createMetadataHoldPersistenceStage composes actual LOCAL summary/output saving into the owning chart, reuses the one-attempt diagnostic writer, and records finite partial-save uncertainty plus an actual result-stage dependency. A declared readOnly context refuses before IO; the caller owns its executor and must declare local diagnostic IO truthfully. Record completion, output save and runtime signal ownership admit no provider/history/writer/technical-terminal authority. Do not execute the same owning chart twice or treat a retained last diagnostic result after an earlier upstream-stage failure as current eligibility. No hosted output collection/workflow/fresh-App route is implemented by this stage.
