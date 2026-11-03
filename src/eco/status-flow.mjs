@@ -1,3 +1,4 @@
+import {proposalBusinessFindings} from '../propose/proposal-business-gate.mjs';
 import {createHash} from 'node:crypto';
 import {flowChart,FlowChartExecutor,decide} from 'footprintjs';
 import {controlDepRecorder} from 'footprintjs/trace';
@@ -13,10 +14,13 @@ const knownPolicyCodes=new Set(['policy-unanchored','policy-stale','policy-repos
  * replay, arbitrary producer transcript or automatic retry exists in this API.
  * Raw replies, comments, gate names and anchors stay in backend closures.
  */
-export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),recordLimitBytes}={}){
+export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),recordLimitBytes,businessOutcome}={}){
  let snapshot=null,context=null,ledger=null,admissionCode=anchor===null?'policy-unanchored':'policy-unavailable',builder;
  const functions={
   observe:async scope=>{
+   // Negative business facts are an explicit native source handoff, not a
+   // closure-only reason or a saved permission. MATCH clears nothing.
+   const businessBoundary=jsonData(proposalBusinessFindings(businessOutcome));
    let facts;try{
     snapshot=await collectSnapshot({reader,target});
     facts=jsonData({available:true,...snapshot.facts,receiptDigest:snapshot.receipt.digest});
@@ -26,6 +30,7 @@ export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),
    scope.observeReceipt=snapshot?jsonData(snapshot.receipt.state):null;
    scope.observeSources=isEcoReader(reader)?jsonData({responses:reader.observations(),totals:reader.totals()}):{responses:[],totals:{requests:0,bytes:0,omittedObservations:0}};
    scope.observeFacts=jsonData({...facts,...(snapshot?{receiptDigest:createHash('sha256').update(JSON.stringify(scope.observeReceipt)).digest('hex')}:{}),sourcesDigest:createHash('sha256').update(JSON.stringify(scope.observeSources)).digest('hex')});
+   scope.observeBusinessFacts=businessBoundary;
   },
   admit:async scope=>{
    // This branch's facts are recorded by the preceding observation decide node.
@@ -40,7 +45,10 @@ export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),
   diff:scope=>{
    // Read the recorded preceding boundaries as actual native dependencies.
    const observed=scope.observeFacts.available,bound=scope.admitFacts.bound;
-   scope.diffFacts=statusFindings(observed?snapshot:null,bound?context:null,scope.admitFacts.reason,ledger);
+   const base=statusFindings(observed?snapshot:null,bound?context:null,scope.admitFacts.reason,ledger);
+   const business=scope.observeBusinessFacts;
+   scope.diffFacts=jsonData({findings:[...new Set([...base.findings,...business.findings])],
+    holds:[...new Set([...base.holds,...business.holds])]});
   },
   report:scope=>{
    const facts=scope.diffFacts;
@@ -71,7 +79,7 @@ export async function runEcoStatus({target,anchor=null,reader=createEcoReader(),
 /** Saved native Foottrace navigation only, never execution or fresh authority. */
 export function explainEcoRecord(record,key){
  if(!record?.complete||record.format!=='eco-status-native-v1'||!record.snapshot)return 'Incomplete native eco evidence.';
- if(typeof key!=='string'||!/^(?:(?:observe|admit|diff|report)(?:Facts|Decision|Sources)|observeReceipt)$/.test(key))return 'Unsupported eco evidence key.';
+ if(typeof key!=='string'||!/^(?:(?:observe|admit|diff|report)(?:Facts|Decision|Sources)|observeReceipt|observeBusinessFacts)$/.test(key))return 'Unsupported eco evidence key.';
  try{const {commitLog,executionTree}=record.snapshot;return formatSlice(sliceForKey(commitLog,key,keysReadFromExecutionTree(executionTree)));}
  catch{return 'Unreadable native eco evidence.';}
 }

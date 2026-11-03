@@ -533,3 +533,36 @@ profile still requires native push permission and a genuinely running producer.
 This is source/client capture only: exact reviewed workflow/action-output
 handoff, profile authority, all effect eligibility and the C1/T1 controller
 remain unadmitted. The public inspection program still chooses read-only.
+
+The internal metadata HOLD signal stage observes only a closed negative
+business-outcome report. It prepares the named output, fixed visible summary
+and open-finding label, and keeps downstreamBlocked:true even when the reported
+provider conclusion is success. Unknown data supplies no known signal.
+It never admits technical/provider completion, fresh verification, effect
+eligibility or release readiness. It composes into the owning native chart;
+diagnostic capture is not the effect executor's pre-effect completion boundary.
+Actual job output persistence, eco collection, downstream workflow gating and
+the complete C1/T1 terminal controller remain separately owed. This stage has no
+writer or provider port and is not exported by the public inspection bundle.
+
+The current diagnostic output adapter saves the fixed HOLD summary before its
+named machine output, attempts each runtime signal only once, and preserves
+partial save failures without append retries. Its CODE ports own output paths;
+a saved/model copy of signal fields cannot supply the live writer input.
+A native business-output gate now reads the one bounded named output and the
+reported actual job conclusion. HOLD blocks even after SUCCESS. Reported MATCH
+passes that business predicate only when the job succeeded; failed/running jobs
+and malformed/missing output block. No business result establishes native
+eligibility, fresh verification, terminal admission or release readiness.
+Eco's native status flow may consume the collected runtime observation as a
+negative finding: metadata HOLD stays open, unknown source stays unknown, and
+a reported match never clears another hold or finding. Saved/model fields cannot
+substitute that runtime collection. Actual hosted job-output acquisition,
+workflow wiring and the full private-App/current-writer/C1 terminal remain owed.
+These private interfaces are not a journal, saved grant or publication ledger.
+
+Eco now captures the negative business observation at its native observe boundary,
+including a digest of the owned diagnostic projection. Diff reads that recorded
+boundary; the actual execution tree records the read and saved explanations can
+navigate the handoff. The digest is not App/workflow/source authentication or
+effect authority. The pure status-finding layer has no business-source callback.
