@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createFoottraceTransport,foottraceTransportPort} from '../../src/propose/foottrace-transport.mjs';
 const repository={id:123,full_name:'footprintjs/foottrace'};
-const identity={slug:'release-app',clientId:'public-client-id',privateKey:'UNREGISTERED-UNUSED-TEST-KEY'};
+const identity={slug:'release-app',clientId:'public-client-id',jwt:'offline_unused_identity_jwt'};
 test('opaque installation credential punctuation and a long stateless-shaped value reach only the bound API header unchanged',async()=>{
  for(const token of ['ghs_fixtureLegacy123','ghs_700_eyJ0eXAiOiJKV1QifQ.'+'a-b_c'.repeat(100)+'.synthetic_signature','opaque.+/~=_-token']){
   let count=0;

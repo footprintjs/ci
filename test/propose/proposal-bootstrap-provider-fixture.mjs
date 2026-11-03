@@ -30,7 +30,7 @@ export async function proposalBootstrapFixture({changeProfile=()=>{},changeSourc
    GITHUB_SHA:c.sha,GITHUB_WORKFLOW_SHA:c.sha,GITHUB_REF:c.ref,GITHUB_EVENT_NAME:c.eventName,GITHUB_RUN_ID:String(c.runId),GITHUB_RUN_ATTEMPT:String(c.runAttempt),
    GITHUB_JOB:'proposal',GITHUB_WORKFLOW_REF:'footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main',
    TOOL_SHA:TOOL,ARTIFACT_ID:'800',APP_SLUG:input.appIdentity.slug,APP_CLIENT_ID:input.appIdentity.clientId,
-   GH_TOKEN:input.token,APP_PRIVATE_KEY:input.appIdentity.privateKey,UNREAD_OTHER:PRIVATE};
+   GH_TOKEN:input.token,APP_JWT:input.appIdentity.jwt,UNREAD_OTHER:PRIVATE};
   changeEnv(env);return {env,host,fetcher:input.fetcher};
  })};
 }

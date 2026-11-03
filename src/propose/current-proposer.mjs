@@ -39,7 +39,7 @@ export function createFoottraceProposerReader({ transport, context }) {
       routes.set(prefix, raw => {
         const value = { ...repo(raw), archived: own(raw, 'archived'), defaultBranch: own(raw, 'default_branch'),
           push: own(own(raw, 'permissions'), 'push') };
-        if (!control.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== 'main' || value.push !== true) fail();
+        if (!control.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== 'main' || (value.push !== true && !(active.inspectionReadOnly && value.push === false))) fail();
         return value;
       });
       routes.set(prefix + '/git/ref/heads/main', raw => ({ object: { sha: sha(own(own(raw, 'object'), 'sha')) } }));

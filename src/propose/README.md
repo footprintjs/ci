@@ -216,8 +216,9 @@ inspection joins the exact preceding workflow digest and every source/date/
 producer/archive reference through a recorded decide() stage before later reads.
 
 Current proposer identity uses an opaque runtime-only transport constructed over
-the unchanged native makeApi/appRequest. The App metadata request is the native
-short-lived signed GET /app flow; repository calls retain their repository token.
+the native makeApi repository adapter and one bounded App identity read. The
+App metadata request uses a preissued short-lived JWT only for GET /app;
+repository calls retain their separately scoped installation token.
 No saved object, scope or JSON config can substitute that adapter. Secrets remain
 in the native API closure and never enter observations, errors or recordings.
 Every request is GET-only, redirect:error, at most2MiB per response/8MiB total/
@@ -421,8 +422,9 @@ submission retry implementation or completed C1 effect flow. Actual writer
 source/client admission and native capture-before-effect remain pending.
 
 Current proposal bootstrap observation now captures the supplied Actions aliases
-and one opaque credential owner, then removes APP_PRIVATE_KEY/GH_TOKEN from that
-environment before host I/O or provider acquisition. Platform source/workflow
+and one opaque read-only credential owner, rejects any private-key input, then
+removes APP_JWT/GH_TOKEN and defensively clears APP_PRIVATE_KEY before host I/O
+or provider acquisition. Platform source/workflow
 SHA and repository/run/attempt/ref/event/job must agree. The declared tool pin
 in the environment and CODE profile must agree; actual executing-tool identity
 and trusted bridge wiring still require independent admission.
@@ -441,7 +443,7 @@ This is a native recorded bootstrap INPUT prefix. Its profile-code authority,
 writer credential admission and all effect authority remain FALSE. A supplied
 CODE profile matching bytes does not substitute for the missing independently
 reviewed physical thin bridge/source/job-to-App-output root. That actual bridge,
-same-existing-secret workflow wiring/Git-child sanitization, current archive/full
+least-privilege per-step workflow wiring/Git-child sanitization, current archive/full
 eligibility and a distinct bounded writer facet still need implementation and
 full independent source review. Read-only facets are never widened into writers.
 
@@ -488,3 +490,20 @@ GET verification stays on that owner where its budget permits. Another facet
 cannot repeat it, and the observation is not saved authority. The full native
 eligibility/recheck controller, exact GET comparison, C1 terminal mapping and
 T1 visible/business-outcome/downstream gates remain separately required.
+
+
+Migration (unshipped shared transport API): both native profiles require a
+preissued short-lived App identity JWT in appIdentity.jwt; privateKey input is
+removed and rejected. The protected caller signs it in an isolated step. The
+inspection profile receives a separately minted repository-scoped read token
+and cannot derive the exact PATCH facet. The writer-capable IO profile is
+separate and still requires actual native writer eligibility before any effect.
+
+GET /app uses only the short-lived JWT through one bounded identity adapter;
+repository requests use only their installation token. Both route through the
+same request/byte/cancellation bank. A JWT remains an App-level credential and
+can authenticate sensitive App endpoints if stolen. This is cooperative exact
+CODE routing plus limited lifetime, not a claim that the JWT itself is scoped
+read-only. No key, raw credential or JWT is recorded. Wrong configured App/client
+identity and unknown or failed reads remain HOLD. A read-only repository may be
+observed without a push grant; the writer profile's push predicate stays strict.

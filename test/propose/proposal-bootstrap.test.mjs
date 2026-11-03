@@ -11,7 +11,7 @@ test('trusted CODE host/source/workflow/entry and current private producer share
  const f=await proposalBootstrapFixture(),{r,invocation}=await run(f);
  assert.equal(r.status,'proposal-bootstrap-only');assert.equal(r.record.complete,true);
  assert.equal(r.backend.context.sha,f.M);assert.equal(r.backend.sourceBinding.reference.sourceTree,f.current.commit.tree.sha);
- assert.equal(r.backend.current.identity.runId,500);assert.equal(r.backend.transport.scope,'captured-native-http-owner');assert.equal(Object.hasOwn(r.backend.transport,'readOnly'),false);
+ assert.equal(r.backend.current.identity.runId,500);assert.equal(r.backend.transport.scope,'captured-native-read-owner');assert.equal(Object.hasOwn(r.backend.transport,'readOnly'),false);
  assert.equal('APP_PRIVATE_KEY' in invocation.env,false);assert.equal('GH_TOKEN' in invocation.env,false);
  assert.equal(invocation.env.UNREAD_OTHER,PRIVATE);
  assert.equal(r.report.authorized,false);assert.equal(r.report.executedWrites,0);
@@ -118,4 +118,17 @@ test('local CODE source bytes are detached before any provider await can retarge
  const acquire=async(...args)=>{if(needsRestore){needsRestore=false;local.files.entry[0]^=1;}return fetcher(...args);};
  const r=await module.runFoottraceProposalBootstrapInspection({...invocation,host,fetcher:acquire});
  assert.equal(r.status,'held');assert.equal(r.backend===null,true);
+});
+
+test('inspection can observe a non-writable repository without admitting writer authority or retaining JWT bytes',async()=>{
+ const f=await proposalBootstrapFixture({change:(d,p)=>{if(p==='/repos/footprintjs/foottrace')d.permissions.push=false;}});
+ const invocation=f.makeInvocation(),jwt=invocation.env.APP_JWT;
+ const r=await module.runFoottraceProposalBootstrapInspection(invocation);
+ assert.equal(r.status,'proposal-bootstrap-only');assert.equal(r.report.writerCredentialBindingAdmitted,false);assert.equal(r.report.authorized,false);
+ assert.equal(Object.hasOwn(invocation.env,'APP_JWT'),false);assert.equal(JSON.stringify(r.record).includes(jwt),false);
+});
+test('accidental private-key input to inspection is refused and all credential fields are erased before IO',async()=>{
+ const f=await proposalBootstrapFixture({changeEnv:e=>{e.APP_PRIVATE_KEY='PRIVATE-FORBIDDEN';}});
+ const {r,invocation}=await run(f);assert.equal(r.status,'held');assert.equal(f.calls.length,0);
+ for(const key of ['APP_PRIVATE_KEY','APP_JWT','GH_TOKEN'])assert.equal(Object.hasOwn(invocation.env,key),false);
 });

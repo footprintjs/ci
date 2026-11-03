@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,verify} from 'node:crypto';
 import {createFoottraceTransport,foottraceTransportPort} from '../../src/propose/foottrace-transport.mjs';
+import auth from '../../src/guards/release-app-auth.cjs';
 import {managedReleaseFixture} from '../upstream/test/release/helpers.mjs';
 /** Actual-shaped HTTP over an offline native model; synthetic unregistered key only. */
 export function nativeHttpFixture({model=managedReleaseFixture({published:true}),api=model.api,change=()=>{},limits}={}) {
@@ -30,7 +31,7 @@ export function nativeHttpFixture({model=managedReleaseFixture({published:true})
   const response=new Response(binary?reply.data:JSON.stringify(reply.data),{headers:{'content-type':zip?'application/zip':binary?'application/octet-stream':'application/json'}});
   return change(response,url)??response;
  };
- const makeClient=factory=>factory({repository:f.repository,token:'offline_registry_token',appIdentity:{...f.options.settings,privateKey:key},fetcher,limits});
+ const makeClient=factory=>factory({repository:f.repository,token:'offline_registry_token',appIdentity:{...f.options.settings,jwt:auth.appRequest({...f.options.settings,privateKey:key},'GET','/apps/'+f.options.settings.slug).authorization.slice(7)},fetcher,limits});
  const transport=makeClient(createFoottraceTransport);
  const port=foottraceTransportPort(transport),context={repository:f.repository,sha:f.context.sha};
  return {f,calls,port,transport,context,makeClient,fullContext:structuredClone(f.context)};

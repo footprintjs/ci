@@ -1,7 +1,7 @@
 import {fields,jsonData} from '../eco/json-data.mjs';
 import {own} from './source-inventory.mjs';
 import {foottraceInvocationContext} from './foottrace-context.mjs';
-import {createFoottraceTransport} from './foottrace-transport.mjs';
+import {createFoottraceInspectionTransport} from './foottrace-transport.mjs';
 import {isOpaqueCredential} from '../http-credential.cjs';
 const fail=()=>{throw new Error('proposal-invocation-unavailable');};
 function number(value){
@@ -15,8 +15,8 @@ function number(value){
  */
 export function captureFoottraceProposalInvocation({env,fetcher,limits}={}){
  try{
-  const token=own(env,'GH_TOKEN'),privateKey=own(env,'APP_PRIVATE_KEY');
-  if(!isOpaqueCredential(token)||typeof privateKey!=='string'||!privateKey.length||privateKey.length>65536)fail();
+  const token=own(env,'GH_TOKEN'),jwt=own(env,'APP_JWT');
+  if(!isOpaqueCredential(token)||!isOpaqueCredential(jwt)||own(env,'APP_PRIVATE_KEY')!==undefined)fail();
   const context=foottraceInvocationContext({repository:{id:number(own(env,'REPO_ID')),full_name:own(env,'REPO_NAME')},
    sha:own(env,'SOURCE_SHA'),ref:own(env,'SOURCE_REF'),eventName:own(env,'EVENT_NAME'),
    runId:number(own(env,'RUN_ID')),runAttempt:number(own(env,'RUN_ATTEMPT'))});
@@ -28,12 +28,12 @@ export function captureFoottraceProposalInvocation({env,fetcher,limits}={}){
    workflowRef!=='footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main'||
    typeof toolSha!=='string'||! /^[a-f0-9]{40}$/.test(toolSha))fail();
   const artifactId=number(own(env,'ARTIFACT_ID'));
-  const transport=createFoottraceTransport({repository:context.repository,token,appIdentity:{
-   slug:own(env,'APP_SLUG'),clientId:own(env,'APP_CLIENT_ID'),privateKey},fetcher,limits});
+  const transport=createFoottraceInspectionTransport({repository:context.repository,token,appIdentity:{
+   slug:own(env,'APP_SLUG'),clientId:own(env,'APP_CLIENT_ID'),jwt},fetcher,limits});
   return Object.freeze({transport,context,artifactId,invocation:fields(jsonData({job:'proposal',workflowRef,
    workflowSha:context.sha,toolSha}),['job','workflowRef','workflowSha','toolSha'])});
  }catch{fail();}
  finally{
-  try{delete env.APP_PRIVATE_KEY;delete env.GH_TOKEN;}catch{fail();}
+  try{delete env.APP_PRIVATE_KEY;delete env.APP_JWT;delete env.GH_TOKEN;}catch{fail();}
  }
 }

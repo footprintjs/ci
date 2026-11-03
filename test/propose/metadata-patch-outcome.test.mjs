@@ -4,7 +4,7 @@ import {createFoottraceTransport,foottraceMetadataPatchPort,foottraceTransportPo
 const PRIVATE='PRIVATE-NETWORK-SCOPE-ERROR',repository={id:123,full_name:'footprintjs/foottrace'};
 function fixture(reply,limits){
  let calls=0;const transport=createFoottraceTransport({repository,limits,token:'offline_exact_patch_owner',
-  appIdentity:{slug:'offline-release',clientId:'offline-client',privateKey:'offline-unregistered-placeholder'},
+  appIdentity:{slug:'offline-release',clientId:'offline-client',jwt:'offline_unused_identity_jwt'},
   fetcher:async(url,options)=>{calls++;return reply(url,options);}});
  const port=foottraceMetadataPatchPort(transport,{pullNumber:43,desired:{title:'Release 1.11.1',body:'Exact computed notes'}});
  const observe=()=>{assert.equal(typeof port.observation,'function','actual exact endpoint has no finite attempt observation');return port.observation();};

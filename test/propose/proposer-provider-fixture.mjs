@@ -1,3 +1,4 @@
+import auth from '../../src/guards/release-app-auth.cjs';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,verify} from 'node:crypto';
 import {createFoottraceTransport} from '../../src/propose/foottrace-transport.mjs';
@@ -36,6 +37,6 @@ export function proposerFixture({change=()=>{},http=()=>null,extra=()=>undefined
   const override=http(path,data,{appReads,runReads});if(override)return override;
   return new Response(JSON.stringify(data),{status:200,headers:{'content-type':'application/json'}});
  };
- const transport=createFoottraceTransport({repository:context.repository,token:'offline_test_token',appIdentity:{...settings,privateKey},fetcher});
+ const transport=createFoottraceTransport({repository:context.repository,token:'offline_test_token',appIdentity:{...settings,jwt:auth.appRequest({...settings,privateKey},'GET','/apps/'+settings.slug).authorization.slice(7)},fetcher});
  return {transport,context,prepared:pending.prepared,settings,seen};
 }

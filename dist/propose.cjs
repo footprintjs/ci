@@ -581,10 +581,10 @@ var require_release_control = __commonJS({
 var require_http_credential = __commonJS({
   "src/http-credential.cjs"(exports2, module2) {
     "use strict";
-    function isOpaqueCredential3(value) {
+    function isOpaqueCredential4(value) {
       return typeof value === "string" && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
     }
-    module2.exports = { isOpaqueCredential: isOpaqueCredential3 };
+    module2.exports = { isOpaqueCredential: isOpaqueCredential4 };
   }
 });
 
@@ -24878,8 +24878,7 @@ function foottraceInvocationContext(context) {
 }
 
 // src/propose/foottrace-transport.mjs
-var import_http_credential = __toESM(require_http_credential(), 1);
-var import_release_github = __toESM(require_release_github(), 1);
+var import_http_credential2 = __toESM(require_http_credential(), 1);
 
 // src/propose/proposal-metadata-payload.mjs
 var fail3 = () => {
@@ -25141,26 +25140,65 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
   });
 }
 
+// src/propose/app-identity-api.mjs
+var import_release_github = __toESM(require_release_github(), 1);
+var import_http_credential = __toESM(require_http_credential(), 1);
+function createAppIdentityApi({ token, jwt, settings, fetchBounded }) {
+  if (!(0, import_http_credential.isOpaqueCredential)(jwt)) throw new Error("inspection-app-unavailable");
+  const api = import_release_github.default.makeApi(token, fetchBounded), fail10 = () => {
+    throw new Error("inspection-app-unavailable");
+  };
+  return async (method, route, body) => {
+    if (typeof route === "string" && route.startsWith("/apps/")) {
+      try {
+        if (method !== "GET" || route !== "/apps/" + settings.slug || body !== void 0) fail10();
+        const response = await fetchBounded("https://api.github.com/app", {
+          method: "GET",
+          redirect: "error",
+          headers: { authorization: "Bearer " + jwt, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" }
+        });
+        if (response.status !== 200 || !response.ok || !response.headers.get("content-type")?.includes("json")) fail10();
+        const value = jsonData(JSON.parse(Buffer.from(await response.arrayBuffer()).toString("utf8")));
+        if (value.slug !== settings.slug || value.client_id !== settings.clientId) fail10();
+        id(value.id);
+        return { data: { id: value.id, slug: value.slug, client_id: value.client_id } };
+      } catch {
+        fail10();
+      }
+    }
+    return api(method, route, body);
+  };
+}
+
 // src/propose/foottrace-transport.mjs
 var transports = /* @__PURE__ */ new WeakMap();
 var fail5 = () => {
   throw new Error("foottrace-transport-unavailable");
 };
-function createFoottraceTransport({ repository, token, appIdentity, fetcher, limits: limits2 } = {}) {
+function createFoottraceInspectionTransport(options = {}) {
+  return createNativeOwner(options, true);
+}
+function createNativeOwner({ repository, token, appIdentity, fetcher, limits: limits2 }, inspectionReadOnly) {
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
-  if (repo2.full_name !== "footprintjs/foottrace") fail5();
-  if (!(0, import_http_credential.isOpaqueCredential)(token)) fail5();
-  const slug = text(own4(appIdentity, "slug"), /^[a-z0-9-]+$/, 100), clientId = text(own4(appIdentity, "clientId"), /^[A-Za-z0-9_.-]+$/, 128), privateKey = own4(appIdentity, "privateKey");
-  if (typeof privateKey !== "string" || privateKey.length > 65536) fail5();
-  const http = createGitHubTransport({ repository: repo2, fetcher, limits: limits2 });
-  const value = Object.freeze({ scope: "captured-native-http-owner" });
-  transports.set(value, {
-    http,
+  if (repo2.full_name !== "footprintjs/foottrace" || !(0, import_http_credential2.isOpaqueCredential)(token)) fail5();
+  const identity = fields2(jsonData(appIdentity, 16384), ["slug", "clientId", "jwt"]);
+  const slug = text(identity.slug, /^[a-z0-9-]+$/, 100), clientId = text(identity.clientId, /^[A-Za-z0-9_.-]+$/, 128), jwt = identity.jwt;
+  if (!(0, import_http_credential2.isOpaqueCredential)(jwt)) fail5();
+  const settings = jsonData({ slug, clientId });
+  return registerOwner({
     repository: repo2,
-    settings: jsonData({ slug, clientId }),
-    makeApi: (fetchBounded) => import_release_github.default.makeApi(token, fetchBounded, { slug, clientId, privateKey })
+    settings,
+    fetcher,
+    limits: limits2,
+    inspectionReadOnly,
+    makeApi: (fetchBounded) => createAppIdentityApi({ token, jwt, settings, fetchBounded })
   });
+}
+function registerOwner({ repository, settings, fetcher, limits: limits2, inspectionReadOnly, makeApi }) {
+  const http = createGitHubTransport({ repository, fetcher, limits: limits2 });
+  const value = Object.freeze({ scope: inspectionReadOnly ? "captured-native-read-owner" : "captured-native-http-owner" });
+  transports.set(value, { http, repository, settings, inspectionReadOnly, makeApi });
   return value;
 }
 function foottraceTransportPort(transport, limits2) {
@@ -25173,12 +25211,13 @@ function foottraceTransportPort(transport, limits2) {
     settings: value.settings,
     registry: (version) => value.http.createRegistryView({ packageName: "foottrace", version, ...limits2 === void 0 ? {} : { limits: limits2 } }).fetch,
     facts: view.facts,
-    transportFacts: value.http.facts
+    transportFacts: value.http.facts,
+    inspectionReadOnly: value.inspectionReadOnly
   });
 }
 
 // src/propose/proposal-invocation.mjs
-var import_http_credential2 = __toESM(require_http_credential(), 1);
+var import_http_credential3 = __toESM(require_http_credential(), 1);
 var fail6 = () => {
   throw new Error("proposal-invocation-unavailable");
 };
@@ -25188,8 +25227,8 @@ function number(value) {
 }
 function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = {}) {
   try {
-    const token = own4(env, "GH_TOKEN"), privateKey = own4(env, "APP_PRIVATE_KEY");
-    if (!(0, import_http_credential2.isOpaqueCredential)(token) || typeof privateKey !== "string" || !privateKey.length || privateKey.length > 65536) fail6();
+    const token = own4(env, "GH_TOKEN"), jwt = own4(env, "APP_JWT");
+    if (!(0, import_http_credential3.isOpaqueCredential)(token) || !(0, import_http_credential3.isOpaqueCredential)(jwt) || own4(env, "APP_PRIVATE_KEY") !== void 0) fail6();
     const context = foottraceInvocationContext({
       repository: { id: number(own4(env, "REPO_ID")), full_name: own4(env, "REPO_NAME") },
       sha: own4(env, "SOURCE_SHA"),
@@ -25211,10 +25250,10 @@ function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = 
     const toolSha = own4(env, "TOOL_SHA"), workflowRef = own4(env, "GITHUB_WORKFLOW_REF");
     if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail6();
     const artifactId = number(own4(env, "ARTIFACT_ID"));
-    const transport = createFoottraceTransport({ repository: context.repository, token, appIdentity: {
+    const transport = createFoottraceInspectionTransport({ repository: context.repository, token, appIdentity: {
       slug: own4(env, "APP_SLUG"),
       clientId: own4(env, "APP_CLIENT_ID"),
-      privateKey
+      jwt
     }, fetcher, limits: limits2 });
     return Object.freeze({ transport, context, artifactId, invocation: fields2(jsonData({
       job: "proposal",
@@ -25227,6 +25266,7 @@ function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = 
   } finally {
     try {
       delete env.APP_PRIVATE_KEY;
+      delete env.APP_JWT;
       delete env.GH_TOKEN;
     } catch {
       fail6();
@@ -25733,7 +25773,7 @@ function createFoottraceProposerReader({ transport, context }) {
           defaultBranch: own4(raw, "default_branch"),
           push: own4(own4(raw, "permissions"), "push")
         };
-        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true) fail9();
+        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true && !(active.inspectionReadOnly && value.push === false)) fail9();
         return value;
       });
       routes.set(prefix + "/git/ref/heads/main", (raw) => ({ object: { sha: sha2(own4(own4(raw, "object"), "sha")) } }));

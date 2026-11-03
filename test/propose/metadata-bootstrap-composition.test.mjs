@@ -17,7 +17,7 @@ test('one captured runtime owner joins actual source/private identity and native
  assert.equal(r.report.writerCredentialBindingAdmitted,false);assert.equal(r.report.retainedEligibilityAdmitted,false);
  assert.equal(r.backend.context.sha,f.M);assert.equal(r.backend.current.digest,r.backend.history.current.digest);
  assert.equal(r.backend.prepared.targetTree,r.backend.history.prepared.targetTree);
- assert.equal(r.backend.transport.scope,'captured-native-http-owner');
+ assert.equal(r.backend.transport.scope,'captured-native-read-owner');
  const log=r.record.snapshot.commitLog,at=id=>log.findIndex(row=>row.stageId===id);
  assert.ok(at('proposal-bootstrap-result')>=0);assert.ok(at('metadata-bootstrap-root-boundary')>at('proposal-bootstrap-result'));
  assert.ok(at('metadata-history-invocation')>at('metadata-bootstrap-root-boundary'));

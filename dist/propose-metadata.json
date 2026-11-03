@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "e378e158ae94c2743b42676abe0bccc130d6c4506bdc0ce1e0388471e07f29b9",
+  "sha256": "3264d0f743f1bf4d26b5dafa7bc5f199461a491dbe2109aae05403e32966b716",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1045,12 +1045,16 @@
       "bytes": 11900
     },
     {
+      "path": "src/propose/app-identity-api.mjs",
+      "bytes": 1821
+    },
+    {
       "path": "src/propose/current-prepared-inputs.mjs",
       "bytes": 1287
     },
     {
       "path": "src/propose/current-proposer.mjs",
-      "bytes": 7102
+      "bytes": 7160
     },
     {
       "path": "src/propose/foottrace-context.mjs",
@@ -1066,7 +1070,7 @@
     },
     {
       "path": "src/propose/foottrace-transport.mjs",
-      "bytes": 3519
+      "bytes": 4030
     },
     {
       "path": "src/propose/github-transport.mjs",
@@ -1110,7 +1114,7 @@
     },
     {
       "path": "src/propose/proposal-invocation.mjs",
-      "bytes": 2603
+      "bytes": 2611
     },
     {
       "path": "src/propose/proposal-metadata-payload.mjs",
