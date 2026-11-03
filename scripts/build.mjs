@@ -1,6 +1,11 @@
 import { build } from 'esbuild';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import {isOpaqueCredential} from '../src/http-credential.cjs';
+const credentialPreflight = await readFile('bin/caller-preflight.cjs', 'utf8');
+// Pre-checkout code stays dependency-free; its embedded validator must equal
+// the shared source used by the bundled and unbundled adapters.
+if (!credentialPreflight.includes(isOpaqueCredential.toString())) throw new Error('caller-credential-binding-drift');
 const npmPayload = await readFile('vendor/npm/npm-11.19.0.tgz');
 const npmManifestBytes = await readFile('vendor/npm/manifest.json');
 const npmManifest = JSON.parse(npmManifestBytes);

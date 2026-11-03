@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "bb178f17b747edad115875b1cd4bf2b7f50e4c2f51d98194ad422c206e2279b1",
+  "sha256": "8b11edd9928ecf5a63d93607b4e5232c254d54365b75d3a79bcd48a8b601894a",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -1018,7 +1018,7 @@
     },
     {
       "path": "src/github-readonly.mjs",
-      "bytes": 6718
+      "bytes": 6728
     },
     {
       "path": "src/guards/release-app-auth.cjs",
@@ -1049,8 +1049,12 @@
       "bytes": 1507
     },
     {
+      "path": "src/http-credential.cjs",
+      "bytes": 285
+    },
+    {
       "path": "src/policy.mjs",
-      "bytes": 11369
+      "bytes": 11900
     },
     {
       "path": "src/record.mjs",

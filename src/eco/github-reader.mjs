@@ -1,3 +1,4 @@
+import {isOpaqueCredential} from '../http-credential.cjs';
 import {createHash} from 'node:crypto';
 import {jsonData,fields,id,text} from './json-data.mjs';
 const SHA=/^[a-f0-9]{40}$/;
@@ -41,7 +42,7 @@ function pathFor(r){
  */
 export function createEcoReader({fetcher=globalThis.fetch,githubToken,maxRequests,maxBytes,maxResponseBytes}={}){
  const requestLimit=bound(maxRequests,64,64),byteLimit=bound(maxBytes,8*1024*1024,8*1024*1024),responseLimit=bound(maxResponseBytes,1024*1024,1024*1024);
- if(typeof fetcher!=='function'||(githubToken!==undefined&&(typeof githubToken!=='string'||! /^[A-Za-z0-9_]{1,8192}$/.test(githubToken))))refuse('eco-options');
+ if(typeof fetcher!=='function'||(githubToken!==undefined&&!isOpaqueCredential(githubToken)))refuse('eco-options');
  let requests=0,bytes=0,omitted=0;const observations=[];
  const remember=observation=>{if(observations.length<65)observations.push(observation);else omitted=Math.min(Number.MAX_SAFE_INTEGER,omitted+1);};
  async function read(target){

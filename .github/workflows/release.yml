@@ -52,6 +52,9 @@ jobs:
           // It executes before any tool checkout and accepts only canonical JSON (valid YAML).
           const SHA = /^[a-f0-9]{40}$/;
           const REF = 'footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main';
+          function isOpaqueCredential(value) {
+            return typeof value === 'string' && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
+          }
           function fail() { throw new Error('caller-binding-refused'); }
           function fields(value, expected) {
             if (!value || typeof value !== 'object' || Array.isArray(value)) fail();
@@ -95,7 +98,7 @@ jobs:
           async function main(env = process.env, fetcher = fetch) {
             const { TOOL_SHA, SOURCE_SHA, WORKFLOW_REF, GH_TOKEN } = env;
             if (!SHA.test(TOOL_SHA ?? '') || !SHA.test(SOURCE_SHA ?? '') || WORKFLOW_REF !== REF ||
-                typeof GH_TOKEN !== 'string' || !/^[A-Za-z0-9_]{1,8192}$/.test(GH_TOKEN)) fail();
+                !isOpaqueCredential(GH_TOKEN)) fail();
             const url = `https://api.github.com/repos/footprintjs/foottrace/contents/.github/workflows/publish.yml?ref=${SOURCE_SHA}`;
             const response = await fetcher(url, { method:'GET', redirect:'error', signal:AbortSignal.timeout(30000),
               headers: { authorization:`Bearer ${GH_TOKEN}`, accept:'application/vnd.github+json', 'x-github-api-version':'2022-11-28' } });

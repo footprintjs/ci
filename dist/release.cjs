@@ -2165,6 +2165,17 @@ After Claude's independent merge verdict for this exact head is recorded publicl
   }
 });
 
+// src/http-credential.cjs
+var require_http_credential = __commonJS({
+  "src/http-credential.cjs"(exports2, module2) {
+    "use strict";
+    function isOpaqueCredential2(value) {
+      return typeof value === "string" && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
+    }
+    module2.exports = { isOpaqueCredential: isOpaqueCredential2 };
+  }
+});
+
 // bin/release.mjs
 var release_exports = {};
 __export(release_exports, {
@@ -2230,6 +2241,10 @@ var messages = {
   PLAN_VERIFY_ONLY: "The existing publication or uncertain attempt requires verification only.",
   PLAN_SKIP: "There is no release proposal to prepare.",
   PROPOSAL_READY: "Native proposal preflight admitted the complete input closure and retained history.",
+  PROPOSAL_EVIDENCE_READY: "Prepared inputs, published predecessor, source ancestry and native reviews agree; complete retained eligibility and effect authority remain separate.",
+  PROPOSAL_EVIDENCE_UNAVAILABLE: "Read-only source evidence could not be joined; no proposal effect is permitted.",
+  PROPOSAL_INPUTS_READY: "Prepared inputs are reconstructed; native lineage, eligibility and effect authority remain separate.",
+  PROPOSAL_INPUTS_UNAVAILABLE: "Prepared input closure is unavailable; no proposal effect is permitted.",
   PROPOSAL_IDENTICAL: "The exact proposal already exists.",
   CI_REUSE: "The trusted latest CI attempt tested the exact merged tree.",
   SECURITY_REQUIRED: "The mandatory latest CodeQL run and both unique successful Analyze gates are required.",
@@ -25278,6 +25293,7 @@ async function runReleaseFlow({ config, context = {}, ports = {}, recordLimitByt
 var import_release_github2 = __toESM(require_release_github(), 1);
 
 // src/github-readonly.mjs
+var import_http_credential = __toESM(require_http_credential(), 1);
 var import_node_crypto = require("node:crypto");
 var REPO = "/repos/footprintjs/foottrace";
 var SHA2 = "[a-f0-9]{40}";
@@ -25325,7 +25341,7 @@ function createReadOnlyTransport({
   maxBytes = 128 * 1024 * 1024,
   maxResponseBytes = 24 * 1024 * 1024
 } = {}) {
-  if (githubToken !== void 0 && (typeof githubToken !== "string" || !/^[A-Za-z0-9_]{1,8192}$/.test(githubToken))) refuse3("readonly-credentials");
+  if (githubToken !== void 0 && !(0, import_http_credential.isOpaqueCredential)(githubToken)) refuse3("readonly-credentials");
   let requests = 0, bytesRead = 0;
   const observations = [];
   const readonlyFetch = async (input, options = {}) => {
