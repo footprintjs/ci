@@ -34,7 +34,7 @@ var require_release_changes = __commonJS({
   "src/guards/release-changes.cjs"(exports2, module2) {
     "use strict";
     var fs = require("node:fs");
-    var path = require("node:path");
+    var path2 = require("node:path");
     var TYPES = Object.freeze({
       added: "Added",
       changed: "Changed",
@@ -46,46 +46,46 @@ var require_release_changes = __commonJS({
     });
     var BUMPS = Object.freeze({ patch: 0, minor: 1, major: 2 });
     var own5 = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-    var fail11 = (code) => {
+    var fail12 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
     };
-    function parseFragment(name, text2) {
-      if (typeof name !== "string" || !/^[a-z0-9][a-z0-9-]*\.md$/.test(name) || typeof text2 !== "string" || Buffer.byteLength(text2) > 65536 || text2.includes("\r"))
-        fail11("invalid-fragment");
-      const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text2);
-      if (!match) fail11("invalid-fragment");
+    function parseFragment(name, text3) {
+      if (typeof name !== "string" || !/^[a-z0-9][a-z0-9-]*\.md$/.test(name) || typeof text3 !== "string" || Buffer.byteLength(text3) > 65536 || text3.includes("\r"))
+        fail12("invalid-fragment");
+      const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text3);
+      if (!match) fail12("invalid-fragment");
       const fields3 = /* @__PURE__ */ Object.create(null);
       for (const line of match[1].split("\n")) {
         const field = /^(type|bump): ([a-z]+)$/.exec(line);
-        if (!field || own5(fields3, field[1])) fail11("invalid-fragment");
+        if (!field || own5(fields3, field[1])) fail12("invalid-fragment");
         fields3[field[1]] = field[2];
       }
       const body = match[2].trim();
       if (!own5(TYPES, fields3.type) || !own5(BUMPS, fields3.bump) || !body || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(body))
-        fail11("invalid-fragment");
+        fail12("invalid-fragment");
       return { name, type: fields3.type, bump: fields3.bump, body };
     }
     function selectBump(fragments) {
-      if (!Array.isArray(fragments)) fail11("invalid-fragment");
+      if (!Array.isArray(fragments)) fail12("invalid-fragment");
       let result = null;
       for (const fragment of fragments) {
-        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail11("invalid-fragment");
+        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail12("invalid-fragment");
         if (result === null || BUMPS[fragment.bump] > BUMPS[result]) result = fragment.bump;
       }
       return result;
     }
     function parseVersion(version) {
       if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
-        fail11("invalid-version");
+        fail12("invalid-version");
       const parts = version.split(".").map(Number);
-      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail11("invalid-version");
+      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail12("invalid-version");
       return parts;
     }
     function nextVersion(version, bump) {
       const p = parseVersion(version);
-      if (!own5(BUMPS, bump)) fail11("invalid-version");
+      if (!own5(BUMPS, bump)) fail12("invalid-version");
       const i = 2 - BUMPS[bump];
       p[i] += 1;
       for (let j = i + 1; j < 3; j++) p[j] = 0;
@@ -93,14 +93,14 @@ var require_release_changes = __commonJS({
     }
     function readFragments(directory) {
       return fs.readdirSync(directory).filter((n) => n !== "README.md").sort().map((name) => {
-        const file = path.join(directory, name);
-        if (!fs.lstatSync(file).isFile()) fail11("invalid-fragment");
+        const file = path2.join(directory, name);
+        if (!fs.lstatSync(file).isFile()) fail12("invalid-fragment");
         return parseFragment(name, fs.readFileSync(file, "utf8"));
       });
     }
     module2.exports = { TYPES, parseFragment, selectBump, parseVersion, nextVersion, readFragments };
     if (require.main === module2) {
-      readFragments(path.join(process.cwd(), ".changes"));
+      readFragments(path2.join(process.cwd(), ".changes"));
       console.log("Change fragments valid");
     }
   }
@@ -111,20 +111,20 @@ var require_release_prepare = __commonJS({
   "src/guards/release-prepare.cjs"(exports2, module2) {
     "use strict";
     var { TYPES, parseFragment, parseVersion, selectBump, nextVersion } = require_release_changes();
-    var fail11 = (code) => {
+    var fail12 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
     };
     var heading = "## Value-free trace metadata \u2014 unreleased";
     var paragraph = "This is an unreleased additive entry point. The package version and existing\nrecord fixtures remain unchanged until a separately reviewed release.";
-    function replaceOnce(text2, before, after) {
-      if (typeof text2 !== "string" || text2.split(before).length !== 2) fail11("invalid-release-docs");
-      return text2.replace(before, after);
+    function replaceOnce(text3, before, after) {
+      if (typeof text3 !== "string" || text3.split(before).length !== 2) fail12("invalid-release-docs");
+      return text3.replace(before, after);
     }
     function prepareReleaseDocs({ documents, version, selectedFragments }) {
       parseVersion(version);
-      if (!documents || !Array.isArray(selectedFragments)) fail11("invalid-release-docs");
+      if (!documents || !Array.isArray(selectedFragments)) fail12("invalid-release-docs");
       const result = { ...documents };
       if (selectedFragments.includes("metadata-query.md")) {
         result["README.md"] = replaceOnce(
@@ -142,7 +142,7 @@ var require_release_prepare = __commonJS({
     }
     function prepareRelease({ files, fragments, date }) {
       if (!files || !fragments || !/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail11("invalid-release-input");
+        fail12("invalid-release-input");
       const parsed = Object.keys(fragments).sort().map((name) => parseFragment(name, fragments[name]));
       if (!parsed.length) return null;
       let pkg, lock;
@@ -150,13 +150,13 @@ var require_release_prepare = __commonJS({
         pkg = JSON.parse(files["package.json"]);
         lock = JSON.parse(files["package-lock.json"]);
       } catch {
-        fail11("invalid-release-input");
+        fail12("invalid-release-input");
       }
       if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version)
-        fail11("invalid-release-input");
+        fail12("invalid-release-input");
       const fromVersion = pkg.version, bump = selectBump(parsed), version = nextVersion(pkg.version, bump);
       if (typeof files["CHANGELOG.md"] !== "string" || !files["CHANGELOG.md"].startsWith("# Changelog\n\n"))
-        fail11("invalid-release-input");
+        fail12("invalid-release-input");
       const groups = Object.keys(TYPES).flatMap((type) => {
         const notes2 = parsed.filter((f) => f.type === type).map((f) => f.body);
         return notes2.length ? [`### ${TYPES[type]}
@@ -184,7 +184,7 @@ ${suffix}`
         version,
         selectedFragments: parsed.map((f) => f.name)
       });
-      for (const [name, text2] of Object.entries(docs)) if (text2 !== files[name]) updates[name] = text2;
+      for (const [name, text3] of Object.entries(docs)) if (text3 !== files[name]) updates[name] = text3;
       return {
         package: pkg.name,
         fromVersion,
@@ -200,8 +200,8 @@ ${suffix}`
     var digest4 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
     var gitObject = (kind, bytes) => crypto.createHash("sha1").update(Buffer.from(`${kind} ${bytes.length}\0`)).update(bytes).digest("hex");
     var intentPrefix = ".release/recovery/";
-    var fragmentPath = (path) => typeof path === "string" && Buffer.byteLength(path) <= 512 && /^\.changes\/[a-z0-9][a-z0-9-]*\.md$/.test(path);
-    var sha3 = (value) => typeof value === "string" && /^[a-f0-9]{40}$/.test(value);
+    var fragmentPath = (path2) => typeof path2 === "string" && Buffer.byteLength(path2) <= 512 && /^\.changes\/[a-z0-9][a-z0-9-]*\.md$/.test(path2);
+    var sha4 = (value) => typeof value === "string" && /^[a-f0-9]{40}$/.test(value);
     var hexDigest = (value) => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
     var positive = (value) => Number.isSafeInteger(value) && value > 0;
     function versionOrder(a, b) {
@@ -210,132 +210,132 @@ ${suffix}`
       return 0;
     }
     function fields3(value, keys2) {
-      if (!value || typeof value !== "object" || Array.isArray(value)) fail11("recovery-intent");
+      if (!value || typeof value !== "object" || Array.isArray(value)) fail12("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
       if (Reflect.ownKeys(descriptors2).length !== keys2.length || keys2.some((key) => !Object.hasOwn(descriptors2, key)))
-        fail11("recovery-intent");
+        fail12("recovery-intent");
       return keys2.map((key) => {
         const d = descriptors2[key];
-        if (!Object.hasOwn(d, "value")) fail11("recovery-intent");
+        if (!Object.hasOwn(d, "value")) fail12("recovery-intent");
         return d.value;
       });
     }
     function dataArray(value, max) {
-      if (!Array.isArray(value) || value.length > max) fail11("recovery-intent");
+      if (!Array.isArray(value) || value.length > max) fail12("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
-      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail11("recovery-intent");
+      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail12("recovery-intent");
       return Array.from({ length: value.length }, (_, i) => {
-        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail11("recovery-intent");
+        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail12("recovery-intent");
         return descriptors2[i].value;
       });
     }
     function lineageData(value) {
       const [pr, head, tree, merge] = fields3(value, ["pr", "head", "tree", "merge"]);
-      if (!positive(pr) || ![head, tree, merge].every(sha3)) fail11("recovery-intent");
+      if (!positive(pr) || ![head, tree, merge].every(sha4)) fail12("recovery-intent");
       return { pr, head, tree, merge };
     }
     function intentPath(version, sequence) {
       parseVersion(version);
-      if (!positive(sequence) || sequence > 100) fail11("recovery-intent");
+      if (!positive(sequence) || sequence > 100) fail12("recovery-intent");
       return `${intentPrefix}${version}/${String(sequence).padStart(3, "0")}.json`;
     }
     function admitIntent(value, repository) {
       const [schema, kind, pkg, version, sequence, repo2, baseValue, originValue, predecessorValue, prior, queue] = fields3(value, ["schema", "kind", "package", "version", "sequence", "repository", "base", "origin", "predecessor", "previous", "queuedFragments"]);
-      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail11("recovery-intent");
+      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail12("recovery-intent");
       intentPath(version, sequence);
       const [id2, full_name] = fields3(repo2, ["id", "full_name"]);
-      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail11("recovery-intent");
+      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail12("recovery-intent");
       const [baseSha, tree] = fields3(baseValue, ["sha", "tree"]);
-      if (![baseSha, tree].every(sha3)) fail11("recovery-intent");
+      if (![baseSha, tree].every(sha4)) fail12("recovery-intent");
       const origin = lineageData(originValue), predecessor = lineageData(predecessorValue);
       let previous = null;
       if (sequence === 1) {
-        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail11("recovery-intent");
+        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail12("recovery-intent");
       } else {
-        const [path, sha256] = fields3(prior, ["path", "sha256"]);
-        if (path !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail11("recovery-intent");
-        previous = { path, sha256 };
+        const [path2, sha256] = fields3(prior, ["path", "sha256"]);
+        if (path2 !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail12("recovery-intent");
+        previous = { path: path2, sha256 };
       }
       let last = "";
       const queuedFragments = dataArray(queue, 100).map((entry) => {
-        const [path, sha256, bytes, mode] = fields3(entry, ["path", "sha256", "bytes", "mode"]);
-        if (!fragmentPath(path) || path <= last || !hexDigest(sha256) || !positive(bytes) || bytes > 65536 || mode !== "100644")
-          fail11("recovery-intent");
-        last = path;
-        return { path, sha256, bytes, mode };
+        const [path2, sha256, bytes, mode] = fields3(entry, ["path", "sha256", "bytes", "mode"]);
+        if (!fragmentPath(path2) || path2 <= last || !hexDigest(sha256) || !positive(bytes) || bytes > 65536 || mode !== "100644")
+          fail12("recovery-intent");
+        last = path2;
+        return { path: path2, sha256, bytes, mode };
       });
-      if (!queuedFragments.length) fail11("recovery-intent");
+      if (!queuedFragments.length) fail12("recovery-intent");
       return { schema, kind, package: pkg, version, sequence, repository: { id: id2, full_name }, base: { sha: baseSha, tree }, origin, predecessor, previous, queuedFragments };
     }
     function intentBytes(value, repository) {
       const data2 = admitIntent(value, repository), raw = Buffer.from(JSON.stringify(data2) + "\n");
-      if (raw.length > 65536) fail11("recovery-intent");
+      if (raw.length > 65536) fail12("recovery-intent");
       return raw;
     }
     function decodeRaw(bytes) {
-      if (!Buffer.isBuffer(bytes)) fail11("recovery-source");
-      let text2;
+      if (!Buffer.isBuffer(bytes)) fail12("recovery-source");
+      let text3;
       try {
-        text2 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+        text3 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
       } catch {
-        fail11("recovery-source");
+        fail12("recovery-source");
       }
-      if (!Buffer.from(text2).equals(bytes)) fail11("recovery-source");
-      return text2;
+      if (!Buffer.from(text3).equals(bytes)) fail12("recovery-source");
+      return text3;
     }
     function admitIntentNamespace(inventory, version, repository) {
       const records = [];
-      for (const [path, row] of inventory) {
-        if (!path.startsWith(".release/")) continue;
-        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail11("recovery-intent");
+      for (const [path2, row] of inventory) {
+        if (!path2.startsWith(".release/")) continue;
+        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail12("recovery-intent");
         let value;
         try {
           value = JSON.parse(decodeRaw(row.bytes));
         } catch {
-          fail11("recovery-intent");
+          fail12("recovery-intent");
         }
         const data2 = admitIntent(value, repository);
-        if (path !== intentPath(data2.version, data2.sequence) || versionOrder(data2.version, version) > 0 || !intentBytes(data2, repository).equals(row.bytes))
-          fail11("recovery-intent");
-        records.push({ path, sha256: digest4(row.bytes), data: data2 });
+        if (path2 !== intentPath(data2.version, data2.sequence) || versionOrder(data2.version, version) > 0 || !intentBytes(data2, repository).equals(row.bytes))
+          fail12("recovery-intent");
+        records.push({ path: path2, sha256: digest4(row.bytes), data: data2 });
       }
       records.sort((a, b) => versionOrder(a.data.version, b.data.version) || a.data.sequence - b.data.sequence);
       const chains = /* @__PURE__ */ new Map();
-      for (const record of records) {
-        const chain = chains.get(record.data.version) ?? [], prior = chain.at(-1);
-        if (record.data.sequence !== chain.length + 1 || prior && (record.data.previous.sha256 !== prior.sha256 || JSON.stringify(record.data.origin) !== JSON.stringify(prior.data.origin))) fail11("recovery-intent");
-        chain.push(record);
-        chains.set(record.data.version, chain);
+      for (const record2 of records) {
+        const chain = chains.get(record2.data.version) ?? [], prior = chain.at(-1);
+        if (record2.data.sequence !== chain.length + 1 || prior && (record2.data.previous.sha256 !== prior.sha256 || JSON.stringify(record2.data.origin) !== JSON.stringify(prior.data.origin))) fail12("recovery-intent");
+        chain.push(record2);
+        chains.set(record2.data.version, chain);
       }
       return { records, active: chains.get(version) ?? [] };
     }
     function fragmentQueue(inventory) {
       const result = [];
-      for (const [path, row] of [...inventory].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
-        if (!path.startsWith(".changes/") || path === ".changes/README.md") continue;
-        if (!fragmentPath(path) || row.mode !== "100644" || result.length >= 100) fail11("fragment-path");
-        parseFragment(path.slice(9), decodeRaw(row.bytes));
-        result.push({ path, sha256: digest4(row.bytes), bytes: row.bytes.length, mode: row.mode });
+      for (const [path2, row] of [...inventory].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
+        if (!path2.startsWith(".changes/") || path2 === ".changes/README.md") continue;
+        if (!fragmentPath(path2) || row.mode !== "100644" || result.length >= 100) fail12("fragment-path");
+        parseFragment(path2.slice(9), decodeRaw(row.bytes));
+        result.push({ path: path2, sha256: digest4(row.bytes), bytes: row.bytes.length, mode: row.mode });
       }
       return result;
     }
     function requireQueueSubset(prior, current) {
-      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail11("recovery-queue");
+      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail12("recovery-queue");
     }
     function treeOid(inventory) {
       const root = /* @__PURE__ */ new Map();
-      for (const [path, row] of inventory) {
-        if (typeof path !== "string" || Buffer.byteLength(path) > 1024 || /[\x00-\x1f\x7f\\]/.test(path) || path.split("/").some((x) => !x || x === "." || x === "..") || !sha3(row.sha) || !["100644", "100755"].includes(row.mode))
-          fail11("recovery-source");
-        const parts = path.split("/");
+      for (const [path2, row] of inventory) {
+        if (typeof path2 !== "string" || Buffer.byteLength(path2) > 1024 || /[\x00-\x1f\x7f\\]/.test(path2) || path2.split("/").some((x) => !x || x === "." || x === "..") || !sha4(row.sha) || !["100644", "100755"].includes(row.mode))
+          fail12("recovery-source");
+        const parts = path2.split("/");
         let directory = root;
         for (const name of parts.slice(0, -1)) {
           if (!directory.has(name)) directory.set(name, /* @__PURE__ */ new Map());
           directory = directory.get(name);
-          if (!(directory instanceof Map)) fail11("recovery-source");
+          if (!(directory instanceof Map)) fail12("recovery-source");
         }
         const leaf = parts.at(-1);
-        if (directory.has(leaf)) fail11("recovery-source");
+        if (directory.has(leaf)) fail12("recovery-source");
         directory.set(leaf, row);
       }
       const encode = (directory) => {
@@ -368,28 +368,28 @@ ${suffix}`
       ["test/release/diagnostics.test.mjs", ["b1d3f205bfe3d454fcff5bf40c0f0d097725416e09fb0fd24e392c3bb9819640", "e537a64bdb715f3645e54aa8fc46dda35ce9b30d3da53e24824a6233dab5f6bd"]]
     ]);
     function requirePublicationClosure(original, current, admittedHistory) {
-      for (const path of /* @__PURE__ */ new Set([...original.keys(), ...current.keys()])) {
-        const a = original.get(path), b = current.get(path);
+      for (const path2 of /* @__PURE__ */ new Set([...original.keys(), ...current.keys()])) {
+        const a = original.get(path2), b = current.get(path2);
         if (a && b && a.mode === b.mode && a.sha === b.sha) continue;
-        if (path.startsWith(".release/")) {
-          if (!a && b && admittedHistory.has(path)) continue;
-          fail11("recovery-payload");
+        if (path2.startsWith(".release/")) {
+          if (!a && b && admittedHistory.has(path2)) continue;
+          fail12("recovery-payload");
         }
-        if (a && !b) fail11("recovery-payload");
-        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail11("recovery-payload");
-        if (a && fragmentPath(path)) fail11("recovery-payload");
-        if (processPaths.has(path) || !a && fragmentPath(path)) continue;
-        if (a && fixtureTransitions.has(path)) {
-          const [before, after] = fixtureTransitions.get(path);
+        if (a && !b) fail12("recovery-payload");
+        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail12("recovery-payload");
+        if (a && fragmentPath(path2)) fail12("recovery-payload");
+        if (processPaths.has(path2) || !a && fragmentPath(path2)) continue;
+        if (a && fixtureTransitions.has(path2)) {
+          const [before, after] = fixtureTransitions.get(path2);
           if (digest4(a.bytes) === before && digest4(b.bytes) === after) continue;
         }
-        if (frozenPaths.has(path) && digest4(b.bytes) === frozenPaths.get(path)) continue;
-        if (path === ".github/workflows/publish.yml" && a) {
+        if (frozenPaths.has(path2) && digest4(b.bytes) === frozenPaths.get(path2)) continue;
+        if (path2 === ".github/workflows/publish.yml" && a) {
           const line = "          APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}\n";
-          const text2 = decodeRaw(b.bytes);
-          if (digest4(b.bytes) === "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73" && text2.split(line).length === 4 && Buffer.from(text2.split(line).join("")).equals(a.bytes)) continue;
+          const text3 = decodeRaw(b.bytes);
+          if (digest4(b.bytes) === "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73" && text3.split(line).length === 4 && Buffer.from(text3.split(line).join("")).equals(a.bytes)) continue;
         }
-        fail11("recovery-payload");
+        fail12("recovery-payload");
       }
     }
     function prepareRecovery({ repository, sha: baseSha, tree, version, origin, predecessor, previous, queue, notes }) {
@@ -406,7 +406,7 @@ ${suffix}`
         previous: previous ? { path: previous.path, sha256: previous.sha256 } : null,
         queuedFragments: queue
       };
-      const raw = intentBytes(data2, repository), path = intentPath(version, data2.sequence);
+      const raw = intentBytes(data2, repository), path2 = intentPath(version, data2.sequence);
       return {
         package: "foottrace",
         fromVersion: version,
@@ -414,7 +414,7 @@ ${suffix}`
         bump: null,
         tag: `v${version}`,
         notes,
-        updates: { [path]: decodeRaw(raw) },
+        updates: { [path2]: decodeRaw(raw) },
         deletions: []
       };
     }
@@ -558,9 +558,9 @@ var require_release_control = __commonJS({
         rows.push(`${key}=${value}
 `);
       }
-      const text2 = rows.join("");
-      if (Buffer.byteLength(text2, "utf16le") > 65536) throw new Error("output-limit");
-      return text2;
+      const text3 = rows.join("");
+      if (Buffer.byteLength(text3, "utf16le") > 65536) throw new Error("output-limit");
+      return text3;
     }
     module2.exports = {
       outputLines,
@@ -653,28 +653,28 @@ var require_release_archive = __commonJS({
     "use strict";
     var { gunzipSync, inflateRawSync } = require("node:zlib");
     var { createHash: createHash4 } = require("node:crypto");
-    var fail11 = () => {
+    var fail12 = () => {
       const e = new Error("invalid-archive");
       e.code = "invalid-archive";
       throw e;
     };
     var hash = (bytes, algorithm, encoding = "hex") => createHash4(algorithm).update(bytes).digest(encoding);
-    function text2(bytes) {
+    function text3(bytes) {
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail11();
+        fail12();
       }
     }
     function field(bytes) {
       const i = bytes.indexOf(0);
-      return text2(i < 0 ? bytes : bytes.subarray(0, i));
+      return text3(i < 0 ? bytes : bytes.subarray(0, i));
     }
     function octal(bytes) {
       const value = field(bytes).trim();
-      if (!/^[0-7]+$/.test(value)) fail11();
+      if (!/^[0-7]+$/.test(value)) fail12();
       const n = Number.parseInt(value, 8);
-      if (!Number.isSafeInteger(n)) fail11();
+      if (!Number.isSafeInteger(n)) fail12();
       return n;
     }
     function pax(bytes) {
@@ -682,15 +682,15 @@ var require_release_archive = __commonJS({
       let at = 0;
       while (at < bytes.length) {
         const space = bytes.indexOf(32, at);
-        if (space < 0 || space - at > 9) fail11();
-        const sizeText = text2(bytes.subarray(at, space));
-        if (!/^[1-9]\d*$/.test(sizeText)) fail11();
+        if (space < 0 || space - at > 9) fail12();
+        const sizeText = text3(bytes.subarray(at, space));
+        if (!/^[1-9]\d*$/.test(sizeText)) fail12();
         const size = Number(sizeText), end = at + size;
-        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail11();
-        const entry = text2(bytes.subarray(space + 1, end - 1)), eq = entry.indexOf("=");
-        if (eq <= 0) fail11();
+        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail12();
+        const entry = text3(bytes.subarray(space + 1, end - 1)), eq = entry.indexOf("=");
+        if (eq <= 0) fail12();
         const key = entry.slice(0, eq), value = entry.slice(eq + 1);
-        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail11();
+        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail12();
         result[key] = value;
         at = end;
       }
@@ -702,50 +702,50 @@ var require_release_archive = __commonJS({
         const maxExpanded = expected.maxExpandedBytes ?? 64 * 1024 * 1024;
         const maxFiles = expected.maxFiles ?? 1e4;
         if (![maxArchive, maxExpanded, maxFiles].every((n) => Number.isSafeInteger(n) && n > 0) || !Buffer.isBuffer(bytes) || bytes.length > maxArchive)
-          fail11();
+          fail12();
         const tar = gunzipSync(bytes, { maxOutputLength: maxExpanded });
-        if (tar.length % 512 !== 0) fail11();
+        if (tar.length % 512 !== 0) fail12();
         const names2 = /* @__PURE__ */ new Set(), files = [];
         let at = 0, pending = null, identity = null, ended = false;
         while (at + 512 <= tar.length) {
           const header = tar.subarray(at, at + 512);
           at += 512;
           if (header.every((n) => n === 0)) {
-            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail11();
+            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail12();
             ended = true;
             break;
           }
           let sum = 0;
           for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : header[i];
-          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail11();
+          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail12();
           const size = octal(header.subarray(124, 136));
-          if (at + size > tar.length) fail11();
+          if (at + size > tar.length) fail12();
           const data2 = tar.subarray(at, at + size);
           at += Math.ceil(size / 512) * 512;
           const type = field(header.subarray(156, 157)) || "0";
           if (type === "x") {
-            if (pending || size > 65536) fail11();
+            if (pending || size > 65536) fail12();
             pending = pax(data2);
             continue;
           }
-          if (type !== "0" || field(header.subarray(157, 257))) fail11();
+          if (type !== "0" || field(header.subarray(157, 257))) fail12();
           const prefix = field(header.subarray(345, 500));
           const name = pending?.path ?? `${prefix ? prefix + "/" : ""}${field(header.subarray(0, 100))}`;
           pending = null;
           if (!name.startsWith("package/") || /[\\\x00-\x1f]/.test(name) || name.split("/").some((p) => p === ".." || p === "." || p === "") || names2.has(name))
-            fail11();
+            fail12();
           if (!["package/package.json", "package/README.md", "package/LICENSE"].includes(name) && !name.startsWith("package/dist/"))
-            fail11();
+            fail12();
           names2.add(name);
-          if (names2.size > maxFiles) fail11();
+          if (names2.size > maxFiles) fail12();
           files.push({ path: name, size, sha256: hash(data2, "sha256") });
           if (name === "package/package.json") {
-            if (size > 1024 * 1024) fail11();
-            identity = JSON.parse(text2(data2));
+            if (size > 1024 * 1024) fail12();
+            identity = JSON.parse(text3(data2));
           }
         }
         if (!ended || !identity || identity.name !== expected.package || identity.version !== expected.version || !files.some((f) => f.path.startsWith("package/dist/")))
-          fail11();
+          fail12();
         return {
           package: identity.name,
           version: identity.version,
@@ -757,7 +757,7 @@ var require_release_archive = __commonJS({
         };
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail11();
+        fail12();
       }
     }
     function crc32(bytes) {
@@ -771,41 +771,41 @@ var require_release_archive = __commonJS({
     function readArtifactZip(bytes, allowedNames) {
       try {
         if (!Buffer.isBuffer(bytes) || bytes.length > 20 * 1024 * 1024 || bytes.length < 22 || !Array.isArray(allowedNames))
-          fail11();
+          fail12();
         let end = -1;
         for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--)
           if (bytes.readUInt32LE(i) === 101010256 && i + 22 + bytes.readUInt16LE(i + 20) === bytes.length) {
             end = i;
             break;
           }
-        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail11();
+        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail12();
         const count3 = bytes.readUInt16LE(end + 10), size = bytes.readUInt32LE(end + 12), start = bytes.readUInt32LE(end + 16);
-        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail11();
+        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail12();
         const result = /* @__PURE__ */ Object.create(null), ranges = [];
         let at = start, total = 0;
         for (let i = 0; i < count3; i++) {
-          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail11();
+          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail12();
           const flags = bytes.readUInt16LE(at + 8), method = bytes.readUInt16LE(at + 10), crc = bytes.readUInt32LE(at + 16), packed = bytes.readUInt32LE(at + 20), expanded = bytes.readUInt32LE(at + 24), nl = bytes.readUInt16LE(at + 28), extra = bytes.readUInt16LE(at + 30), comment = bytes.readUInt16LE(at + 32), external = bytes.readUInt32LE(at + 38), local = bytes.readUInt32LE(at + 42);
           if (flags & ~2056 || ![0, 8].includes(method) || bytes.readUInt16LE(at + 34) !== 0 || at + 46 + nl + extra + comment > end || expanded > 16 * 1024 * 1024 || (external >>> 16 & 61440) === 40960)
-            fail11();
-          const name = text2(bytes.subarray(at + 46, at + 46 + nl));
+            fail12();
+          const name = text3(bytes.subarray(at + 46, at + 46 + nl));
           at += 46 + nl + extra + comment;
           if (!allowedNames.includes(name) || Object.prototype.hasOwnProperty.call(result, name) || local + 30 > start || bytes.readUInt32LE(local) !== 67324752)
-            fail11();
+            fail12();
           const localNameSize = bytes.readUInt16LE(local + 26), localExtra = bytes.readUInt16LE(local + 28), dataStart = local + 30 + localNameSize + localExtra, dataEnd = dataStart + packed;
-          if (dataEnd > start || bytes.readUInt16LE(local + 6) !== flags || bytes.readUInt16LE(local + 8) !== method || text2(bytes.subarray(local + 30, local + 30 + localNameSize)) !== name)
-            fail11();
-          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail11();
+          if (dataEnd > start || bytes.readUInt16LE(local + 6) !== flags || bytes.readUInt16LE(local + 8) !== method || text3(bytes.subarray(local + 30, local + 30 + localNameSize)) !== name)
+            fail12();
+          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail12();
           ranges.push([local, dataEnd]);
           const input = bytes.subarray(dataStart, dataEnd), output = method === 0 ? input : inflateRawSync(input, { maxOutputLength: 16 * 1024 * 1024 });
-          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail11();
+          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail12();
           result[name] = output;
         }
-        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail11();
+        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail12();
         return result;
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail11();
+        fail12();
       }
     }
     module2.exports = { inspectArchive, readArtifactZip };
@@ -816,12 +816,12 @@ var require_release_archive = __commonJS({
 var require_release_github = __commonJS({
   "src/guards/release-github.cjs"(exports2, module2) {
     "use strict";
-    var preparation6 = require_release_prepare();
+    var preparation7 = require_release_prepare();
     var { proposalCreation } = require_proposal_metadata();
-    var { prepareRelease } = preparation6;
-    var control8 = require_release_control();
+    var { prepareRelease } = preparation7;
+    var control9 = require_release_control();
     var { appRequest } = require_release_app_auth();
-    var fail11 = (code) => {
+    var fail12 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
@@ -1058,7 +1058,7 @@ var require_release_github = __commonJS({
     var enc = encodeURIComponent;
     var prefix = (context) => {
       if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
-        fail11("repository");
+        fail12("repository");
       return `/repos/${context.repository.full_name}`;
     };
     async function pages(api, route, key) {
@@ -1066,35 +1066,35 @@ var require_release_github = __commonJS({
       for (let page = 1; page <= 50; page++) {
         const response = await api("GET", `${route}${route.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
         const rows = key ? response.data?.[key] : response.data;
-        if (!Array.isArray(rows) || rows.length > 100) fail11("incomplete-pages");
+        if (!Array.isArray(rows) || rows.length > 100) fail12("incomplete-pages");
         for (const row of rows) {
-          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail11("incomplete-pages");
+          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail12("incomplete-pages");
           seen.add(row.id);
           result.push(row);
         }
         if (rows.length < 100) {
           if (key && response.data.total_count !== void 0 && response.data.total_count !== result.length)
-            fail11("incomplete-pages");
+            fail12("incomplete-pages");
           return result;
         }
       }
-      fail11("incomplete-pages");
+      fail12("incomplete-pages");
     }
     async function assertCurrentMain(api, context) {
       const current = (await api("GET", `${prefix(context)}/git/ref/heads/main`)).data;
-      if (current.object?.sha !== context.sha) fail11("main-moved");
+      if (current.object?.sha !== context.sha) fail12("main-moved");
     }
-    async function content(api, context, path) {
-      if (!control8.validSha(context.sha)) fail11("source-sha");
-      const data2 = (await api("GET", `${prefix(context)}/contents/${path}?ref=${context.sha}`)).data;
+    async function content(api, context, path2) {
+      if (!control9.validSha(context.sha)) fail12("source-sha");
+      const data2 = (await api("GET", `${prefix(context)}/contents/${path2}?ref=${context.sha}`)).data;
       if (data2.type !== "file" || data2.encoding !== "base64" || typeof data2.content !== "string" || data2.size > 2 * 1024 * 1024)
-        fail11("source-content");
+        fail12("source-content");
       const bytes = Buffer.from(data2.content, "base64");
-      if (bytes.length !== data2.size) fail11("source-content");
+      if (bytes.length !== data2.size) fail12("source-content");
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail11("source-content");
+        fail12("source-content");
       }
     }
     function sourceView(api, context) {
@@ -1114,11 +1114,11 @@ var require_release_github = __commonJS({
       ]);
       let totalBytes = 0;
       const commit = async (id2) => {
-        if (!control8.validSha(id2)) fail11("source-sha");
+        if (!control9.validSha(id2)) fail12("source-sha");
         if (!commits.has(id2)) {
-          if (commits.size >= 512) fail11("recovery-source");
+          if (commits.size >= 512) fail12("recovery-source");
           const value = (await api("GET", `${prefix(context)}/git/commits/${id2}`)).data;
-          if (value.sha !== id2 || !control8.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control8.validSha(p.sha))) fail11("source-commit");
+          if (value.sha !== id2 || !control9.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control9.validSha(p.sha))) fail12("source-commit");
           commits.set(id2, value);
         }
         return commits.get(id2);
@@ -1128,25 +1128,25 @@ var require_release_github = __commonJS({
         const c = await commit(id2), result = /* @__PURE__ */ new Map();
         const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
         if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail11("source-tree");
+          fail12("source-tree");
         const seen = /* @__PURE__ */ new Set();
         for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control8.validSha(row.sha)) fail11("source-tree");
+          if (typeof row.path !== "string" || seen.has(row.path) || !control9.validSha(row.sha)) fail12("source-tree");
           seen.add(row.path);
           if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail11("source-tree");
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail12("source-tree");
           const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
           if (needsBytes && !blobs.has(row.sha)) {
             const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail11("source-content");
+            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail12("source-content");
             const bytes = Buffer.from(value.content, "base64");
             totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation6.gitObject("blob", bytes) !== row.sha) fail11("source-content");
+            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation7.gitObject("blob", bytes) !== row.sha) fail12("source-content");
             blobs.set(row.sha, bytes);
           }
           result.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
         }
-        if (preparation6.treeOid(result) !== c.tree.sha) fail11("source-tree");
+        if (preparation7.treeOid(result) !== c.tree.sha) fail12("source-tree");
         inventories.set(id2, result);
         return result;
       };
@@ -1155,67 +1155,67 @@ var require_release_github = __commonJS({
     function packageIdentity(inventory, version) {
       const raw = (name) => {
         const row = inventory.get(name);
-        if (!row || row.mode !== "100644") fail11("package-version");
-        return preparation6.decodeRaw(row.bytes);
+        if (!row || row.mode !== "100644") fail12("package-version");
+        return preparation7.decodeRaw(row.bytes);
       };
       const pkg = parseJson("package-json", raw("package.json")), lock = parseJson("lock-json", raw("package-lock.json"));
-      preparation6.parseVersion(pkg.version);
-      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail11("package-version");
+      preparation7.parseVersion(pkg.version);
+      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail12("package-version");
       return pkg;
     }
     async function sourceInput(api, context, view = sourceView(api, context)) {
       const commit = await view.commit(context.sha), inventory = await view.inventory(context.sha), files = {}, fragments = {};
-      for (const path of ["package.json", "package-lock.json", "CHANGELOG.md", "README.md", "docs/metadata.md"]) {
-        const row = inventory.get(path);
-        if (!row || row.mode !== "100644") fail11("source-content");
-        files[path] = preparation6.decodeRaw(row.bytes);
+      for (const path2 of ["package.json", "package-lock.json", "CHANGELOG.md", "README.md", "docs/metadata.md"]) {
+        const row = inventory.get(path2);
+        if (!row || row.mode !== "100644") fail12("source-content");
+        files[path2] = preparation7.decodeRaw(row.bytes);
       }
-      const pkg = packageIdentity(inventory), queue = preparation6.fragmentQueue(inventory);
-      for (const row of queue) fragments[row.path.slice(9)] = preparation6.decodeRaw(inventory.get(row.path).bytes);
-      const intents = preparation6.admitIntentNamespace(inventory, pkg.version, context.repository);
+      const pkg = packageIdentity(inventory), queue = preparation7.fragmentQueue(inventory);
+      for (const row of queue) fragments[row.path.slice(9)] = preparation7.decodeRaw(inventory.get(row.path).bytes);
+      const intents = preparation7.admitIntentNamespace(inventory, pkg.version, context.repository);
       const date = new Date(commit.committer?.date).toISOString().slice(0, 10);
       return { commit, inventory, files, fragments, queue, intents, date, pkg, view };
     }
     async function requireAncestor(api, context, from, to) {
-      if (![from, to].every(control8.validSha)) fail11("recovery-ancestry");
+      if (![from, to].every(control9.validSha)) fail12("recovery-ancestry");
       const seen = /* @__PURE__ */ new Set();
       let counts;
       for (let page = 1; page <= 10; page++) {
         const value = (await api("GET", `${prefix(context)}/compare/${from}...${to}?per_page=100&page=${page}`)).data;
         const tuple = [value.status, value.ahead_by, value.behind_by, value.total_commits];
-        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail11("recovery-ancestry");
+        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail12("recovery-ancestry");
         counts = tuple;
         if (from === to) {
-          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail11("recovery-ancestry");
+          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail12("recovery-ancestry");
           return;
         }
-        if (value.status !== "ahead" || value.ahead_by === 0) fail11("recovery-ancestry");
+        if (value.status !== "ahead" || value.ahead_by === 0) fail12("recovery-ancestry");
         for (const c of value.commits) {
-          if (!control8.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail11("recovery-ancestry");
+          if (!control9.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail12("recovery-ancestry");
           seen.add(c.sha);
         }
-        if (seen.size > value.total_commits) fail11("recovery-ancestry");
+        if (seen.size > value.total_commits) fail12("recovery-ancestry");
         if (seen.size === value.total_commits) {
-          if (value.commits.at(-1)?.sha !== to) fail11("recovery-ancestry");
+          if (value.commits.at(-1)?.sha !== to) fail12("recovery-ancestry");
           return;
         }
-        if (value.commits.length !== 100) fail11("recovery-ancestry");
+        if (value.commits.length !== 100) fail12("recovery-ancestry");
       }
-      fail11("recovery-ancestry");
+      fail12("recovery-ancestry");
     }
     async function publicBot(api, settings) {
-      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail11("app-settings");
+      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail12("app-settings");
       const bot = (await api("GET", `/users/${enc(settings.slug + "[bot]")}`)).data;
       if (bot.login !== settings.slug + "[bot]" || bot.type !== "Bot" || !Number.isSafeInteger(bot.id) || bot.id <= 0)
-        fail11("recovery-lineage");
+        fail12("recovery-lineage");
       return bot;
     }
     async function mergedLineage(api, context, view, bot, prNumber, version) {
-      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail11("recovery-lineage");
+      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail12("recovery-lineage");
       const p = (await api("GET", `${prefix(context)}/pulls/${prNumber}`)).data;
-      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control8.sameRepo(p.base?.repo, context.repository) || !control8.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.validSha(p.merge_commit_sha) || !control8.validSha(p.head.sha) || !control8.validSha(p.base.sha)) fail11("recovery-lineage");
+      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control9.sameRepo(p.base?.repo, context.repository) || !control9.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control9.validSha(p.merge_commit_sha) || !control9.validSha(p.head.sha) || !control9.validSha(p.base.sha)) fail12("recovery-lineage");
       const h = await view.commit(p.head.sha), s = await view.commit(p.merge_commit_sha);
-      if (h.tree.sha !== s.tree.sha) fail11("recovery-lineage");
+      if (h.tree.sha !== s.tree.sha) fail12("recovery-lineage");
       packageIdentity(await view.inventory(p.head.sha), version);
       packageIdentity(await view.inventory(p.merge_commit_sha), version);
       return { pr: p.number, head: h.sha, tree: h.tree.sha, merge: s.sha };
@@ -1223,64 +1223,64 @@ var require_release_github = __commonJS({
     async function linkedLineage(api, context, view, bot, source, version) {
       const rows = await pages(api, `${prefix(context)}/commits/${source}/pulls`);
       const matches = rows.filter((p) => p.merge_commit_sha === source && p.head?.ref === "release/next");
-      if (matches.length !== 1) fail11("recovery-lineage");
+      if (matches.length !== 1) fail12("recovery-lineage");
       return mergedLineage(api, context, view, bot, matches[0].number, version);
     }
     function exactData(a, b, code = "recovery-intent") {
-      if (JSON.stringify(a) !== JSON.stringify(b)) fail11(code);
+      if (JSON.stringify(a) !== JSON.stringify(b)) fail12(code);
     }
-    function addedInventory(base, path, bytes) {
-      if (base.has(path)) fail11("recovery-intent");
-      return new Map([...base, [path, { mode: "100644", sha: preparation6.gitObject("blob", bytes), bytes }]]);
+    function addedInventory(base, path2, bytes) {
+      if (base.has(path2)) fail12("recovery-intent");
+      return new Map([...base, [path2, { mode: "100644", sha: preparation7.gitObject("blob", bytes), bytes }]]);
     }
     async function activeHistory(api, context, input, bot) {
       const chain = input.intents.active;
       for (let i = 0; i < chain.length; i++) {
-        const record = chain[i], d = record.data, base = await input.view.inventory(d.base.sha), c = await input.view.commit(d.base.sha);
-        if (c.tree.sha !== d.base.tree) fail11("recovery-intent");
-        const baseRecords = preparation6.admitIntentNamespace(base, d.version, context.repository);
-        if (baseRecords.active.length !== i) fail11("recovery-intent");
+        const record2 = chain[i], d = record2.data, base = await input.view.inventory(d.base.sha), c = await input.view.commit(d.base.sha);
+        if (c.tree.sha !== d.base.tree) fail12("recovery-intent");
+        const baseRecords = preparation7.admitIntentNamespace(base, d.version, context.repository);
+        if (baseRecords.active.length !== i) fail12("recovery-intent");
         for (let j = 0; j < i; j++) {
-          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail11("recovery-intent");
+          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail12("recovery-intent");
         }
-        exactData(preparation6.fragmentQueue(base), d.queuedFragments, "recovery-queue");
+        exactData(preparation7.fragmentQueue(base), d.queuedFragments, "recovery-queue");
         const predecessor = await mergedLineage(api, context, input.view, bot, d.predecessor.pr, d.version);
         exactData(predecessor, d.predecessor);
         const origin = await mergedLineage(api, context, input.view, bot, d.origin.pr, d.version);
         exactData(origin, d.origin);
         await requireAncestor(api, context, predecessor.merge, d.base.sha);
         if (i) {
-          preparation6.requireQueueSubset(chain[i - 1].data.queuedFragments, d.queuedFragments);
+          preparation7.requireQueueSubset(chain[i - 1].data.queuedFragments, d.queuedFragments);
           await requireRecoveryMerge(api, context, input.view, bot, chain[i - 1], predecessor);
         }
         const original = await input.view.inventory(origin.head);
-        preparation6.requirePublicationClosure(original, base, new Set(baseRecords.records.map((x) => x.path)));
+        preparation7.requirePublicationClosure(original, base, new Set(baseRecords.records.map((x) => x.path)));
       }
     }
-    async function requireRecoveryMerge(api, context, view, bot, record, lineage) {
-      const d = record.data, head = await view.commit(lineage.head), merged = await view.commit(lineage.merge), base = await view.inventory(d.base.sha), candidate = await view.inventory(head.sha);
+    async function requireRecoveryMerge(api, context, view, bot, record2, lineage) {
+      const d = record2.data, head = await view.commit(lineage.head), merged = await view.commit(lineage.merge), base = await view.inventory(d.base.sha), candidate = await view.inventory(head.sha);
       exactData(head.parents.map((p) => p.sha), [d.base.sha, d.predecessor.head]);
-      const expected = addedInventory(base, record.path, preparation6.intentBytes(d, context.repository));
-      if (preparation6.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation6.treeOid(candidate) !== head.tree.sha) fail11("recovery-intent");
+      const expected = addedInventory(base, record2.path, preparation7.intentBytes(d, context.repository));
+      if (preparation7.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation7.treeOid(candidate) !== head.tree.sha) fail12("recovery-intent");
       const pr = (await api("GET", `${prefix(context)}/pulls/${lineage.pr}`)).data;
-      if (pr.base.sha !== d.base.sha) fail11("recovery-lineage");
+      if (pr.base.sha !== d.base.sha) fail12("recovery-lineage");
       await requireAncestor(api, context, d.base.sha, lineage.merge);
     }
     async function retainedProposal(api, context, view, bot, version) {
       const base = prefix(context), ref = await optional(api, `${base}/git/ref/heads/release/next`);
       const pulls = await pages(api, `${base}/pulls?state=open&head=footprintjs:release/next&base=main`);
-      if (!ref || ref.object?.type !== "commit" || !control8.validSha(ref.object.sha) || pulls.length > 1) fail11("proposal-existing");
+      if (!ref || ref.object?.type !== "commit" || !control9.validSha(ref.object.sha) || pulls.length > 1) fail12("proposal-existing");
       const head = await view.commit(ref.object.sha);
       if (pulls.length) {
         const p = pulls[0];
-        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.sameRepo(p.head.repo, context.repository) || !control8.sameRepo(p.base.repo, context.repository)) fail11("proposal-existing");
+        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control9.sameRepo(p.head.repo, context.repository) || !control9.sameRepo(p.base.repo, context.repository)) fail12("proposal-existing");
         return { head, open: p };
       }
       const closed = await pages(api, `${base}/pulls?state=closed&head=footprintjs:release/next&base=main`);
       const matches = closed.filter((p) => p.head?.sha === head.sha && p.merged_at);
-      if (matches.length !== 1) fail11("proposal-existing");
+      if (matches.length !== 1) fail12("proposal-existing");
       const predecessor = await mergedLineage(api, context, view, bot, matches[0].number, version);
-      if (predecessor.head !== head.sha) fail11("proposal-existing");
+      if (predecessor.head !== head.sha) fail12("proposal-existing");
       await requireAncestor(api, context, predecessor.merge, context.sha);
       return { head, predecessor };
     }
@@ -1289,20 +1289,20 @@ var require_release_github = __commonJS({
       const prior = input.intents.active.at(-1), retained = await retainedProposal(api, context, input.view, bot, input.pkg.version);
       let predecessor = retained.predecessor;
       if (retained.open) {
-        const candidate = await input.view.inventory(retained.head.sha), records = preparation6.admitIntentNamespace(candidate, input.pkg.version, context.repository);
-        const record = records.active.at(-1);
-        if (!record || record.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail11("proposal-existing");
-        predecessor = await mergedLineage(api, context, input.view, bot, record.data.predecessor.pr, input.pkg.version);
+        const candidate = await input.view.inventory(retained.head.sha), records = preparation7.admitIntentNamespace(candidate, input.pkg.version, context.repository);
+        const record2 = records.active.at(-1);
+        if (!record2 || record2.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail12("proposal-existing");
+        predecessor = await mergedLineage(api, context, input.view, bot, record2.data.predecessor.pr, input.pkg.version);
       }
       const origin = prior?.data.origin ?? predecessor;
       if (prior) {
         await requireRecoveryMerge(api, context, input.view, bot, prior, predecessor);
-        preparation6.requireQueueSubset(prior.data.queuedFragments, input.queue);
+        preparation7.requireQueueSubset(prior.data.queuedFragments, input.queue);
       }
       const original = await input.view.inventory(origin.head);
-      preparation6.requirePublicationClosure(original, input.inventory, new Set(input.intents.records.map((x) => x.path)));
-      if (!input.queue.length) fail11("recovery-queue");
-      const prepared = preparation6.prepareRecovery({
+      preparation7.requirePublicationClosure(original, input.inventory, new Set(input.intents.records.map((x) => x.path)));
+      if (!input.queue.length) fail12("recovery-queue");
+      const prepared = preparation7.prepareRecovery({
         repository: context.repository,
         sha: context.sha,
         tree: input.commit.tree.sha,
@@ -1313,22 +1313,22 @@ var require_release_github = __commonJS({
         queue: input.queue,
         notes: await sourceReleaseNotes(api, context, input.pkg.version)
       });
-      const [[path, text2]] = Object.entries(prepared.updates), expectedTree = preparation6.treeOid(addedInventory(input.inventory, path, Buffer.from(text2)));
+      const [[path2, text3]] = Object.entries(prepared.updates), expectedTree = preparation7.treeOid(addedInventory(input.inventory, path2, Buffer.from(text3)));
       if (retained.open) {
         exactData(retained.head.parents.map((p) => p.sha), [context.sha, predecessor.head], "proposal-existing");
-        if (retained.head.tree.sha !== expectedTree) fail11("proposal-existing");
+        if (retained.head.tree.sha !== expectedTree) fail12("proposal-existing");
       }
       return { prepared, expectedTree, predecessor, retained };
     }
     async function currentRecovery(api, context, input, bot) {
-      const record = input.intents.active.at(-1);
-      if (!record) return false;
+      const record2 = input.intents.active.at(-1);
+      if (!record2) return false;
       await activeHistory(api, context, input, bot);
       const lineage = await linkedLineage(api, context, input.view, bot, context.sha, input.pkg.version);
-      await requireRecoveryMerge(api, context, input.view, bot, record, lineage);
-      exactData(input.queue, record.data.queuedFragments, "recovery-queue");
-      preparation6.requirePublicationClosure(
-        await input.view.inventory(record.data.origin.head),
+      await requireRecoveryMerge(api, context, input.view, bot, record2, lineage);
+      exactData(input.queue, record2.data.queuedFragments, "recovery-queue");
+      preparation7.requirePublicationClosure(
+        await input.view.inventory(record2.data.origin.head),
         input.inventory,
         new Set(input.intents.records.map((x) => x.path))
       );
@@ -1337,23 +1337,23 @@ var require_release_github = __commonJS({
     async function requireRecoverySource(api, context, identity, options) {
       const tree = (await api("GET", `${prefix(context)}/git/trees/${identity.tree}?recursive=1`)).data;
       if (tree.sha !== identity.tree || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-        fail11("source-tree");
+        fail12("source-tree");
       const paths2 = /* @__PURE__ */ new Set();
       for (const row of tree.tree) {
-        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control8.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail11("source-tree");
+        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control9.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail12("source-tree");
         paths2.add(row.path);
       }
-      if (![...paths2].some((path) => path.startsWith(".release/"))) return false;
+      if (![...paths2].some((path2) => path2.startsWith(".release/"))) return false;
       const input = await sourceInput(api, context);
-      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail11("identity-changed");
+      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail12("identity-changed");
       if (input.intents.active.length) await currentRecovery(api, context, input, await publicBot(api, options.settings));
       await assertCurrentMain(api, context);
       return input.intents.active.length > 0;
     }
     async function plan(api, context, options = {}) {
-      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control8.validSha(context.sha)) fail11("event");
+      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control9.validSha(context.sha)) fail12("event");
       const repo2 = (await api("GET", prefix(context))).data;
-      if (!control8.sameRepo(repo2, context.repository)) fail11("repository");
+      if (!control9.sameRepo(repo2, context.repository)) fail12("repository");
       await assertCurrentMain(api, context);
       const input = await sourceInput(api, context);
       if (input.intents.active.length) await activeHistory(api, context, input, await publicBot(api, options.settings));
@@ -1370,13 +1370,13 @@ var require_release_github = __commonJS({
           const last = input.intents.active.at(-1);
           const linked = await pages(api, `${prefix(context)}/commits/${context.sha}/pulls`);
           const current = linked.filter((p) => p.merge_commit_sha === context.sha && p.head?.ref === "release/next");
-          if (current.length > 1) fail11("recovery-lineage");
+          if (current.length > 1) fail12("recovery-lineage");
           if (current.length === 1) {
             const bot = await publicBot(api, options.settings);
             await currentRecovery(api, context, input, bot);
             mode = "publish";
           } else {
-            if (last.data.base.sha === context.sha) fail11("recovery-intent");
+            if (last.data.base.sha === context.sha) fail12("recovery-intent");
             await recoveryPreparation(api, context, input, await publicBot(api, options.settings));
             mode = "prepare";
             preparationKind = "recovery";
@@ -1386,7 +1386,7 @@ var require_release_github = __commonJS({
           mode = "prepare";
           preparationKind = "recovery";
         } else mode = "publish";
-      } else fail11("recovery-state");
+      } else fail12("recovery-state");
       const prepared = preparationKind === "next" ? prepareRelease({ files: input.files, fragments: input.fragments, date: input.date }) : null;
       await assertCurrentMain(api, context);
       return {
@@ -1403,12 +1403,12 @@ var require_release_github = __commonJS({
     async function prepareProposal(api, context, pinned, options = {}) {
       const fresh = await plan(api, context, options);
       exactData(fresh, pinned, "proposal-plan");
-      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail11("proposal-plan");
+      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail12("proposal-plan");
       const input = await sourceInput(api, context);
       let prepared;
       if (pinned.preparationKind === "next") prepared = prepareRelease({ files: input.files, fragments: input.fragments, date: input.date });
       else prepared = (await recoveryPreparation(api, context, input, await publicBot(api, options.settings))).prepared;
-      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail11("proposal-plan");
+      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail12("proposal-plan");
       await assertCurrentMain(api, context);
       return { base: context.sha, tree: pinned.tree, repository: context.repository, prepared };
     }
@@ -1420,7 +1420,7 @@ var require_release_github = __commonJS({
       );
       const linked = await withRefusal("authority-linked-prs", () => pages(api, `${base}/commits/${context.sha}/pulls`));
       const candidates = linked.filter((p2) => p2.head?.ref === "release/next" && p2.merge_commit_sha === context.sha);
-      if (candidates.length !== 1) fail11("release-pr");
+      if (candidates.length !== 1) fail12("release-pr");
       const p = await withRefusal(
         "authority-pr",
         async () => (await api("GET", `${base}/pulls/${candidates[0].number}`)).data
@@ -1438,7 +1438,7 @@ var require_release_github = __commonJS({
         reviewerPermissions.push(permission);
       }
       if (!/^[a-z0-9-]+$/.test(settings.slug ?? "") || typeof settings.clientId !== "string" || !settings.clientId)
-        fail11("app-settings");
+        fail12("app-settings");
       const metadata = await withRefusal(
         "authority-app",
         async () => (await api("GET", `/apps/${enc(settings.slug)}`)).data
@@ -1476,13 +1476,13 @@ var require_release_github = __commonJS({
         reviews,
         reviewerPermissions
       };
-      const result = control8.decideAuthority(world);
-      if (!result.authorized) fail11(`authority-${result.reason}`);
+      const result = control9.decideAuthority(world);
+      if (!result.authorized) fail12(`authority-${result.reason}`);
       const fresh = await withRefusal(
         "authority-recheck",
         async () => (await api("GET", `${base}/pulls/${p.number}`)).data
       );
-      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail11("pr-moved");
+      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail12("pr-moved");
       return expected;
     }
     async function workflowEvidence(api, identity, file) {
@@ -1493,7 +1493,7 @@ var require_release_github = __commonJS({
         "workflow_runs"
       );
       const selected = runs.filter(
-        (r) => r.head_sha === identity.headSha && r.event === "pull_request" && control8.sameRepo(r.head_repository, identity.repository)
+        (r) => r.head_sha === identity.headSha && r.event === "pull_request" && control9.sameRepo(r.head_repository, identity.repository)
       ).sort((a, b) => b.id - a.id)[0];
       if (!selected) return { workflow, runs, runsComplete: true, jobs: [], jobsComplete: true };
       const attempt = (await api("GET", `${base}/actions/runs/${selected.id}/attempts/${selected.run_attempt}`)).data;
@@ -1502,7 +1502,7 @@ var require_release_github = __commonJS({
     }
     async function ciVerdict(api, identity) {
       try {
-        return control8.decideCiReuse({ expected: identity, ...await workflowEvidence(api, identity, "ci.yml") });
+        return control9.decideCiReuse({ expected: identity, ...await workflowEvidence(api, identity, "ci.yml") });
       } catch {
         return { tested: false, fallback: "both-full-runtime-gates", reason: "evidence-unavailable" };
       }
@@ -1510,12 +1510,12 @@ var require_release_github = __commonJS({
     async function requireSecurity(api, identity) {
       return withRefusal("security-evidence", async () => {
         const w = await workflowEvidence(api, identity, "codeql.yml"), r = [...w.runs].sort((a, b) => b.id - a.id)[0];
-        if (w.workflow.path !== ".github/workflows/codeql.yml" || !r || r.head_sha !== identity.headSha || r.event !== "pull_request" || !control8.sameRepo(r.head_repository, identity.repository) || r.workflow_id !== w.workflow.id || r.path !== w.workflow.path || !control8.success(r) || !control8.success(w.attempt) || w.attempt.id !== r.id || w.attempt.run_attempt !== r.run_attempt)
-          fail11("security-run");
+        if (w.workflow.path !== ".github/workflows/codeql.yml" || !r || r.head_sha !== identity.headSha || r.event !== "pull_request" || !control9.sameRepo(r.head_repository, identity.repository) || r.workflow_id !== w.workflow.id || r.path !== w.workflow.path || !control9.success(r) || !control9.success(w.attempt) || w.attempt.id !== r.id || w.attempt.run_attempt !== r.run_attempt)
+          fail12("security-run");
         for (const name of ["Analyze (javascript-typescript)", "Analyze (actions)"]) {
           const jobs = w.jobs.filter((j) => j.name === name);
-          if (jobs.length !== 1 || !control8.success(jobs[0]) || jobs[0].run_id !== r.id || jobs[0].run_attempt !== r.run_attempt)
-            fail11("security-job");
+          if (jobs.length !== 1 || !control9.success(jobs[0]) || jobs[0].run_id !== r.id || jobs[0].run_attempt !== r.run_attempt)
+            fail12("security-job");
         }
         return { runId: r.id, attempt: r.run_attempt };
       });
@@ -1524,12 +1524,12 @@ var require_release_github = __commonJS({
       if (!/^https:\/\/uploads\.github\.com\/repos\/footprintjs\/foottrace\/releases\/\d+\/assets\{\?name,label\}$/.test(
         release.upload_url ?? ""
       ))
-        fail11("release-upload-url");
+        fail12("release-upload-url");
       const url = release.upload_url.replace("{?name,label}", `?name=${enc(`publish-attempt-${marker.version}.json`)}`);
       const bytes = Buffer.from(JSON.stringify(marker) + "\n");
       const r = await api("POST", url, { raw: bytes, contentType: "application/json" });
       if (r.data?.state !== "uploaded" || r.data.size !== bytes.length || !Number.isSafeInteger(r.data.id))
-        fail11("reservation-ambiguous");
+        fail12("reservation-ambiguous");
       return { assetId: r.data.id, fresh: true };
     }
     async function optional(api, route) {
@@ -1541,30 +1541,30 @@ var require_release_github = __commonJS({
       }
     }
     async function proposalPreflight(api, context, payload, pinned, options) {
-      if (payload?.base !== context.sha || !control8.sameRepo(payload.repository, context.repository)) fail11("proposal-base");
+      if (payload?.base !== context.sha || !control9.sameRepo(payload.repository, context.repository)) fail12("proposal-base");
       const rebuilt = await prepareProposal(api, context, pinned, options);
       exactData(payload, rebuilt, "proposal-substitution");
       const input = await sourceInput(api, context), bot = await publicBot(api, options.settings);
       const candidate = new Map(input.inventory);
-      for (const [path, text2] of Object.entries(rebuilt.prepared.updates)) {
-        const bytes = Buffer.from(text2);
-        candidate.set(path, { bytes, mode: "100644", sha: preparation6.gitObject("blob", bytes) });
+      for (const [path2, text3] of Object.entries(rebuilt.prepared.updates)) {
+        const bytes = Buffer.from(text3);
+        candidate.set(path2, { bytes, mode: "100644", sha: preparation7.gitObject("blob", bytes) });
       }
-      for (const path of rebuilt.prepared.deletions) candidate.delete(path);
-      const expectedTree = preparation6.treeOid(candidate);
+      for (const path2 of rebuilt.prepared.deletions) candidate.delete(path2);
+      const expectedTree = preparation7.treeOid(candidate);
       let retained, predecessor;
       if (pinned.preparationKind === "recovery") {
         const recovery = await recoveryPreparation(api, context, input, bot);
         retained = recovery.retained;
         predecessor = recovery.predecessor;
-        if (expectedTree !== recovery.expectedTree) fail11("proposal-tree");
+        if (expectedTree !== recovery.expectedTree) fail12("proposal-tree");
       } else {
         retained = await retainedProposal(api, context, input.view, bot, input.pkg.version);
         predecessor = retained.predecessor;
         if (retained.open) {
           const parents = retained.head.parents;
           if (parents.length === 1 && parents[0].sha === context.sha) {
-            const state3 = control8.decideProposalState({
+            const state3 = control9.decideProposalState({
               base: context.sha,
               currentMain: context.sha,
               expectedTree,
@@ -1572,20 +1572,20 @@ var require_release_github = __commonJS({
               pulls: [retained.open],
               complete: true
             });
-            if (state3.action !== "no-op") fail11("proposal-existing");
+            if (state3.action !== "no-op") fail12("proposal-existing");
             await assertCurrentMain(api, context);
             return { rebuilt, expectedTree, predecessor: null, retained, state: state3, bot };
           }
-          if (parents.length !== 2 || parents[0].sha !== context.sha) fail11("proposal-existing");
+          if (parents.length !== 2 || parents[0].sha !== context.sha) fail12("proposal-existing");
           const closed = await pages(api, `${prefix(context)}/pulls?state=closed&head=footprintjs:release/next&base=main`);
           const previous = closed.filter((p) => p.head?.sha === parents[1].sha && p.merged_at);
-          if (previous.length !== 1) fail11("proposal-existing");
+          if (previous.length !== 1) fail12("proposal-existing");
           predecessor = await mergedLineage(api, context, input.view, bot, previous[0].number, input.pkg.version);
           await requireAncestor(api, context, predecessor.merge, context.sha);
         }
       }
-      if (predecessor.head === context.sha) fail11("proposal-existing");
-      const state2 = control8.decideProposalState({
+      if (predecessor.head === context.sha) fail12("proposal-existing");
+      const state2 = control9.decideProposalState({
         base: context.sha,
         currentMain: context.sha,
         expectedTree,
@@ -1594,7 +1594,7 @@ var require_release_github = __commonJS({
         complete: true,
         predecessor: { head: predecessor.head, closedMerged: true }
       });
-      if (!["rollover", "no-op"].includes(state2.action)) fail11("proposal-existing");
+      if (!["rollover", "no-op"].includes(state2.action)) fail12("proposal-existing");
       await assertCurrentMain(api, context);
       return { rebuilt, expectedTree, predecessor, retained, state: state2, bot };
     }
@@ -1602,72 +1602,72 @@ var require_release_github = __commonJS({
       const before = await proposalPreflight(api, context, payload, pinned, options), { rebuilt, expectedTree, predecessor, bot } = before, base = prefix(context);
       if (before.state.action === "no-op") return { action: "no-op", pr: before.retained.open.number };
       const entries = [];
-      for (const [path, content2] of Object.entries(rebuilt.prepared.updates)) {
+      for (const [path2, content2] of Object.entries(rebuilt.prepared.updates)) {
         const blob = (await api("POST", `${base}/git/blobs`, { content: content2, encoding: "utf-8" })).data;
-        if (blob.sha !== preparation6.gitObject("blob", Buffer.from(content2))) fail11("blob");
-        entries.push({ path, mode: "100644", type: "blob", sha: blob.sha });
+        if (blob.sha !== preparation7.gitObject("blob", Buffer.from(content2))) fail12("blob");
+        entries.push({ path: path2, mode: "100644", type: "blob", sha: blob.sha });
       }
-      for (const path of rebuilt.prepared.deletions) entries.push({ path, mode: "100644", type: "blob", sha: null });
+      for (const path2 of rebuilt.prepared.deletions) entries.push({ path: path2, mode: "100644", type: "blob", sha: null });
       const tree = (await api("POST", `${base}/git/trees`, { base_tree: pinned.tree, tree: entries })).data;
-      if (tree.sha !== expectedTree) fail11("proposal-tree");
+      if (tree.sha !== expectedTree) fail12("proposal-tree");
       const commit = (await api("POST", `${base}/git/commits`, {
         message: `chore: release ${pinned.version}`,
         tree: expectedTree,
         parents: [context.sha, predecessor.head]
       })).data;
-      if (!control8.validSha(commit.sha)) fail11("proposal-commit");
+      if (!control9.validSha(commit.sha)) fail12("proposal-commit");
       const actual = (await api("GET", `${base}/git/commits/${commit.sha}`)).data;
-      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail11("proposal-commit");
+      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail12("proposal-commit");
       exactData(actual.parents?.map((p) => p.sha), [context.sha, predecessor.head], "proposal-commit");
       const fresh = await proposalPreflight(api, context, payload, pinned, options);
-      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail11("proposal-existing");
+      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail12("proposal-existing");
       const updated = (await api("PATCH", `${base}/git/refs/heads/release/next`, { sha: commit.sha, force: false })).data;
-      if (updated.object?.sha !== commit.sha) fail11("proposal-existing");
+      if (updated.object?.sha !== commit.sha) fail12("proposal-existing");
       await assertCurrentMain(api, context);
       const current = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (current.object?.sha !== commit.sha) fail11("proposal-existing");
+      if (current.object?.sha !== commit.sha) fail12("proposal-existing");
       const pr = (await api("POST", `${base}/pulls`, proposalCreation(pinned.version, rebuilt.prepared.notes))).data;
       const requireCreated = (value) => {
-        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail11("proposal-pr");
+        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control9.sameRepo(value.head?.repo, context.repository) || !control9.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail12("proposal-pr");
       };
       requireCreated(pr);
       const created = (await api("GET", `${base}/pulls/${pr.number}`)).data;
       requireCreated(created);
       await assertCurrentMain(api, context);
       const finalRef = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (finalRef.object?.sha !== commit.sha) fail11("proposal-existing");
+      if (finalRef.object?.sha !== commit.sha) fail12("proposal-existing");
       await assertCurrentMain(api, context);
       return { action: "created", pr: pr.number, head: commit.sha, tree: expectedTree };
     }
     async function producerIdentity(api, context, name, completed = false) {
       const run = (await api("GET", `${prefix(context)}/actions/runs/${context.runId}`)).data;
-      if (run.id !== context.runId) fail11("current-run-id");
-      if (run.run_attempt !== context.runAttempt) fail11("current-run-attempt");
-      if (run.head_sha !== context.sha) fail11("current-run-sha");
-      if (!control8.sameRepo(run.repository, context.repository)) fail11("current-run-repository");
-      if (!control8.sameRepo(run.head_repository, context.repository)) fail11("current-run-head-repository");
-      if (run.path !== ".github/workflows/publish.yml") fail11("current-run-workflow");
-      if (run.head_branch !== "main") fail11("current-run-branch");
-      if (run.event !== context.eventName) fail11("current-run-event");
-      if (context.ref !== "refs/heads/main") fail11("current-run-ref");
-      if (!["push", "workflow_dispatch"].includes(run.event)) fail11("current-run-trigger");
-      if (run.status !== "in_progress") fail11("current-run-status");
-      if (run.conclusion !== null) fail11("current-run-conclusion");
+      if (run.id !== context.runId) fail12("current-run-id");
+      if (run.run_attempt !== context.runAttempt) fail12("current-run-attempt");
+      if (run.head_sha !== context.sha) fail12("current-run-sha");
+      if (!control9.sameRepo(run.repository, context.repository)) fail12("current-run-repository");
+      if (!control9.sameRepo(run.head_repository, context.repository)) fail12("current-run-head-repository");
+      if (run.path !== ".github/workflows/publish.yml") fail12("current-run-workflow");
+      if (run.head_branch !== "main") fail12("current-run-branch");
+      if (run.event !== context.eventName) fail12("current-run-event");
+      if (context.ref !== "refs/heads/main") fail12("current-run-ref");
+      if (!["push", "workflow_dispatch"].includes(run.event)) fail12("current-run-trigger");
+      if (run.status !== "in_progress") fail12("current-run-status");
+      if (run.conclusion !== null) fail12("current-run-conclusion");
       const jobs = await pages(
         api,
         `${prefix(context)}/actions/runs/${context.runId}/attempts/${context.runAttempt}/jobs`,
         "jobs"
       );
       const chosen = jobs.filter((j) => j.name === name);
-      if (chosen.length !== 1) fail11("producer-job");
+      if (chosen.length !== 1) fail12("producer-job");
       const job = chosen[0];
-      if (job.run_id !== context.runId || job.run_attempt !== context.runAttempt || job.head_sha !== context.sha || completed && !control8.success(job))
-        fail11("producer-attempt");
+      if (job.run_id !== context.runId || job.run_attempt !== context.runAttempt || job.head_sha !== context.sha || completed && !control9.success(job))
+        fail12("producer-attempt");
       return job;
     }
     async function readArtifact(api, context, pinned, artifactId, role) {
       const { readArtifactZip } = require_release_archive();
-      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail11("artifact-id");
+      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail12("artifact-id");
       const artifact = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}`)).data;
       const producer = await producerIdentity(api, context, role, true);
       const expected = {
@@ -1684,26 +1684,26 @@ var require_release_github = __commonJS({
         version: pinned.version
       };
       const preflight = { ...expected };
-      if (!control8.validateArtifactBinding({
+      if (!control9.validateArtifactBinding({
         expected,
         artifact,
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest: preflight
       }).valid)
-        fail11("artifact-source");
+        fail12("artifact-source");
       const downloaded = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}/zip`)).data;
       const members = readArtifactZip(
         Buffer.from(downloaded),
         role === "prepare" ? ["manifest.json", "proposal.json"] : ["manifest.json", "package.tgz"]
       );
       const manifest = parseJson("artifact-json", members["manifest.json"].toString("utf8"));
-      if (!control8.validateArtifactBinding({
+      if (!control9.validateArtifactBinding({
         expected,
         artifact,
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest
       }).valid)
-        fail11("artifact-manifest");
+        fail12("artifact-manifest");
       return { manifest, members };
     }
     async function peeledTag(api, context, tag) {
@@ -1711,11 +1711,11 @@ var require_release_github = __commonJS({
       if (!ref) return null;
       let object = ref.object;
       for (let i = 0; i < 5; i++) {
-        if (object?.type === "commit" && control8.validSha(object.sha)) return object.sha;
-        if (object?.type !== "tag" || !control8.validSha(object.sha)) fail11("tag-shape");
+        if (object?.type === "commit" && control9.validSha(object.sha)) return object.sha;
+        if (object?.type !== "tag" || !control9.validSha(object.sha)) fail12("tag-shape");
         object = (await api("GET", `${prefix(context)}/git/tags/${object.sha}`)).data.object;
       }
-      fail11("tag-depth");
+      fail12("tag-depth");
     }
     async function sourceReleaseNotes(api, context, version) {
       const changelog = await content(api, context, "CHANGELOG.md");
@@ -1724,18 +1724,18 @@ var require_release_github = __commonJS({
       const prefix2 = `## ${version} \u2014 `;
       const matching = sections.filter((row) => row.line.startsWith(prefix2));
       if (!changelog.startsWith("# Changelog\n\n") || matching.length !== 1 || sections[0] !== matching[0])
-        fail11("release-notes");
+        fail12("release-notes");
       const date = matching[0].line.slice(prefix2.length);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(new Date(date).getTime()) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail11("release-notes");
+        fail12("release-notes");
       const end = sections[1]?.index ?? lines.length;
       const body = lines.slice(matching[0].index + 1, end).join("\n").trim();
-      if (!body) fail11("release-notes");
+      if (!body) fail12("release-notes");
       return body + "\n";
     }
     function requireReleaseNotes(release, context, tag, notes) {
       if (release.tag_name !== tag || release.target_commitish !== context.sha || release.body !== notes || release.draft !== false || release.prerelease !== false)
-        fail11("release-conflict");
+        fail12("release-conflict");
     }
     async function releaseState(api, context, identity, archive2, registry) {
       await assertCurrentMain(api, context);
@@ -1748,15 +1748,15 @@ var require_release_github = __commonJS({
         integrity: archive2.integrity
       };
       const existingTag = await peeledTag(api, context, identity.tag);
-      if (existingTag && existingTag !== context.sha) fail11("tag-conflict");
+      if (existingTag && existingTag !== context.sha) fail12("tag-conflict");
       let release = await optional(api, `${base}/releases/tags/${enc(identity.tag)}`);
       const notes = await sourceReleaseNotes(api, context, identity.version);
       if (release) requireReleaseNotes(release, context, identity.tag, notes);
       const assets = release ? await pages(api, `${base}/releases/${release.id}/assets`) : [];
       const matching = assets.filter((a) => a.name === name);
-      if (matching.length > 1) fail11("journal-conflict");
-      const decision = control8.decideSubmission({ journal: matching[0] ?? null, registry, expected: marker });
-      if (decision.action === "hold") fail11("registry-conflict");
+      if (matching.length > 1) fail12("journal-conflict");
+      const decision = control9.decideSubmission({ journal: matching[0] ?? null, registry, expected: marker });
+      if (decision.action === "hold") fail12("registry-conflict");
       if (decision.action === "verify-only")
         return { fresh: false, assetId: matching[0]?.id ?? null, runId: context.runId, runAttempt: context.runAttempt };
       await assertCurrentMain(api, context);
@@ -1775,10 +1775,10 @@ var require_release_github = __commonJS({
     }
     async function publishGrant(api, context, identity, archive2, grant) {
       await assertCurrentMain(api, context);
-      if (!Number.isSafeInteger(grant.assetId)) fail11("journal-asset");
+      if (!Number.isSafeInteger(grant.assetId)) fail12("journal-asset");
       const asset = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`)).data;
       if (asset.name !== `publish-attempt-${identity.version}.json` || asset.state !== "uploaded" || asset.size > 4096)
-        fail11("journal-asset");
+        fail12("journal-asset");
       const raw = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`, { accept: "application/octet-stream" })).data;
       const marker = parseJson("journal-json", Buffer.from(raw).toString("utf8"));
       const expected = {
@@ -1788,18 +1788,18 @@ var require_release_github = __commonJS({
         sha: context.sha,
         integrity: archive2.integrity
       };
-      if (!control8.validatePublishGrant({ expected, marker, grant }).mayPublish) fail11("journal-grant");
-      if (await peeledTag(api, context, identity.tag) !== context.sha) fail11("tag-conflict");
+      if (!control9.validatePublishGrant({ expected, marker, grant }).mayPublish) fail12("journal-grant");
+      if (await peeledTag(api, context, identity.tag) !== context.sha) fail12("tag-conflict");
       return true;
     }
     async function responseBytes(response, max = 24 * 1024 * 1024, failure = "github-body") {
       try {
-        if (Number(response.headers.get("content-length") ?? 0) > max) fail11("response-limit");
+        if (Number(response.headers.get("content-length") ?? 0) > max) fail12("response-limit");
         const chunks = [];
         let size = 0;
         for await (const chunk of response.body) {
           size += chunk.length;
-          if (size > max) fail11("response-limit");
+          if (size > max) fail12("response-limit");
           chunks.push(Buffer.from(chunk));
         }
         return Buffer.concat(chunks);
@@ -1812,7 +1812,7 @@ var require_release_github = __commonJS({
       return async (method, route, body) => {
         try {
           if (!(route.startsWith("/repos/footprintjs/foottrace/") || route === "/repos/footprintjs/foottrace" || route.startsWith("/apps/") || route.startsWith("/users/") || route.startsWith("https://uploads.github.com/repos/footprintjs/foottrace/releases/")))
-            fail11("api-route");
+            fail12("api-route");
           const headers = {
             authorization: `Bearer ${token}`,
             accept: body?.accept ?? "application/vnd.github+json",
@@ -1871,57 +1871,57 @@ var require_release_github = __commonJS({
       };
     }
     async function registryVersion(version, fetcher = fetch) {
-      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail11("version");
+      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail12("version");
       const response = await registryFetch(`https://registry.npmjs.org/foottrace/${version}`, fetcher);
       if (response.status === 404) return null;
-      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail12("registry-unavailable");
       const value = parseJson(
         "registry-json",
         (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8")
       );
       if (value.name !== "foottrace" || value.version !== version || typeof value.dist?.integrity !== "string")
-        fail11("registry-shape");
+        fail12("registry-shape");
       return { ...value.dist, version: value.version };
     }
     function markerData(bytes, expectedVersion, source, size) {
-      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail11("journal-conflict");
-      const value = parseJson("journal-json", preparation6.decodeRaw(bytes));
-      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail11("journal-conflict");
+      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail12("journal-conflict");
+      const value = parseJson("journal-json", preparation7.decodeRaw(bytes));
+      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail12("journal-conflict");
       return value;
     }
     async function publicationState(api, context, input, { fetcher = fetch, settings } = {}) {
       const version = input.pkg.version, tag = `v${version}`, base = prefix(context), registry = await registryVersion(version, fetcher), source = await peeledTag(api, context, tag), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!source && !release) {
-        if (registry) fail11("recovery-state");
+        if (registry) fail12("recovery-state");
         await requireUnpublishedLatest(version, fetcher);
         return { state: "absent", version };
       }
-      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail11("recovery-state");
+      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail12("recovery-state");
       const historical = { ...context, sha: source }, sourceInventory = await input.view.inventory(source);
       packageIdentity(sourceInventory, version);
       const bot = await publicBot(api, settings), lineage = await linkedLineage(api, context, input.view, bot, source, version);
-      if (lineage.merge !== source) fail11("recovery-lineage");
+      if (lineage.merge !== source) fail12("recovery-lineage");
       await requireAncestor(api, context, source, context.sha);
       const notes = await sourceReleaseNotes(api, historical, version);
       requireReleaseNotes(release, historical, tag, notes);
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail11("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail12("journal-conflict");
       const raw = Buffer.from((await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data), marker = markerData(raw, version, source, markers[0].size);
       if (!registry) return { state: "pending", reason: "pending-registry", version, sha: source };
-      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail11("registry-conflict");
+      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail12("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail12("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         { package: "foottrace", version }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail11("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail12("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok || latestResponse.status !== 200) fail11("registry-unavailable");
+      if (!latestResponse.ok || latestResponse.status !== 200) fail12("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace") fail11("registry-shape");
-      const order = preparation6.versionOrder(latest.version, version);
-      if (order > 0) fail11("recovery-state");
+      if (latest.name !== "foottrace") fail12("registry-shape");
+      const order = preparation7.versionOrder(latest.version, version);
+      if (order > 0) fail12("recovery-state");
       return {
         state: order < 0 ? "pending" : "published",
         reason: order < 0 ? "pending-latest" : "verified",
@@ -1939,31 +1939,31 @@ var require_release_github = __commonJS({
     }
     async function requireUnpublishedLatest(version, fetcher) {
       const response = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail12("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace" || preparation6.versionOrder(latest.version, version) >= 0) fail11("recovery-state");
+      if (latest.name !== "foottrace" || preparation7.versionOrder(latest.version, version) >= 0) fail12("recovery-state");
     }
     async function verifyPublished(api, context, pinned, fetcher = fetch) {
       const tag = `v${pinned.version}`, base = prefix(context), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!release) return { state: "pending-release" };
       const notes = await sourceReleaseNotes(api, context, pinned.version);
       requireReleaseNotes(release, context, tag, notes);
-      if (await peeledTag(api, context, tag) !== context.sha) fail11("release-conflict");
+      if (await peeledTag(api, context, tag) !== context.sha) fail12("release-conflict");
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${pinned.version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail11("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail12("journal-conflict");
       const marker = parseJson(
         "journal-json",
         Buffer.from(
           (await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data
         ).toString("utf8")
       );
-      if (marker.sha !== context.sha || marker.version !== pinned.version) fail11("journal-conflict");
+      if (marker.sha !== context.sha || marker.version !== pinned.version) fail12("journal-conflict");
       const registry = await registryVersion(pinned.version, fetcher);
       if (!registry) return { state: "pending-registry" };
       if (registry.integrity !== marker.integrity || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${pinned.version}.tgz`)
-        fail11("registry-conflict");
+        fail12("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok) fail11("registry-unavailable");
+      if (!response.ok) fail12("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         {
@@ -1971,9 +1971,9 @@ var require_release_github = __commonJS({
           version: pinned.version
         }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail11("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail12("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok) fail11("registry-unavailable");
+      if (!latestResponse.ok) fail12("registry-unavailable");
       const latest = parseJson(
         "registry-latest-json",
         (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8")
@@ -2002,8 +2002,8 @@ var require_release_github = __commonJS({
         verify: env.VERIFY_ONLY === "true"
       };
       prefix(context);
-      if (!control8.validSha(context.sha) || !Number.isSafeInteger(context.runId) || context.runId <= 0 || !Number.isSafeInteger(context.runAttempt) || context.runAttempt <= 0)
-        fail11("context");
+      if (!control9.validSha(context.sha) || !Number.isSafeInteger(context.runId) || context.runId <= 0 || !Number.isSafeInteger(context.runAttempt) || context.runAttempt <= 0)
+        fail12("context");
       return context;
     }
     async function runStage(stage, { api, context, env, io, fetcher = fetch }) {
@@ -2012,12 +2012,12 @@ var require_release_github = __commonJS({
       const settings = { slug: env.APP_SLUG, clientId: env.APP_CLIENT_ID };
       const phaseOptions = { settings, fetcher };
       const bound = () => {
-        if (!pinned || pinned.sha !== context.sha || !control8.sameRepo(pinned.repository, context.repository))
-          fail11("plan-substitution");
+        if (!pinned || pinned.sha !== context.sha || !control9.sameRepo(pinned.repository, context.repository))
+          fail12("plan-substitution");
       };
       const freshAuthority = async () => {
         const fresh = await collectAuthority(api, context, settings);
-        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail11("identity-changed");
+        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail12("identity-changed");
         await requireSecurity(api, fresh);
       };
       if (stage === "plan") {
@@ -2061,24 +2061,24 @@ var require_release_github = __commonJS({
       }
       if (stage === "authority") {
         const id2 = await collectAuthority(api, context, settings);
-        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail11("authority-plan");
+        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail12("authority-plan");
         await requireSecurity(api, id2);
         await requireRecoverySource(api, context, id2, phaseOptions);
         return { identity: JSON.stringify(id2), authorized: "true" };
       }
       if (stage === "verdict") {
-        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail11("identity");
+        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail12("identity");
         return { tested: String((await ciVerdict(api, identity)).tested) };
       }
       if (stage === "build-manifest") {
-        if (io.gitTree() !== pinned.tree) fail11("build-tree");
+        if (io.gitTree() !== pinned.tree) fail12("build-tree");
         io.requireClean();
         const pkg = parseJson("package-json", io.read("package.json")), lock = parseJson("lock-json", io.read("package-lock.json"));
         if (pkg.name !== pinned.package || pkg.version !== pinned.version || lock.version !== pkg.version || lock.packages?.[""].version !== pkg.version)
-          fail11("package-version");
+          fail12("package-version");
         const pack = parseJson("pack-json", io.read("pack.json"));
         if (!Array.isArray(pack) || pack.length !== 1 || pack[0].filename !== `foottrace-${pinned.version}.tgz`)
-          fail11("pack-identity");
+          fail12("pack-identity");
         const bytes = io.read(pack[0].filename), archive2 = require_release_archive().inspectArchive(bytes, {
           package: pinned.package,
           version: pinned.version
@@ -2111,7 +2111,7 @@ var require_release_github = __commonJS({
           version: pinned.version
         });
         if (artifact.manifest.integrity !== archive2.integrity || artifact.manifest.sha256 !== archive2.sha256 || artifact.manifest.shasum !== archive2.shasum)
-          fail11("archive-manifest");
+          fail12("archive-manifest");
         const registry = await registryVersion(pinned.version, fetcher);
         if (stage === "release") {
           if (await requireRecoverySource(api, context, identity, phaseOptions)) {
@@ -2126,7 +2126,7 @@ var require_release_github = __commonJS({
         }
         await publishGrant(api, context, identity, archive2, grant);
         if (registry) {
-          if (registry.integrity !== archive2.integrity) fail11("registry-conflict");
+          if (registry.integrity !== archive2.integrity) fail12("registry-conflict");
           return { submit: "false" };
         }
         const file = io.publishFile(context.runId, context.runAttempt);
@@ -2136,14 +2136,14 @@ var require_release_github = __commonJS({
       if (stage === "verify") {
         if (pinned.mode === "publish")
           return { verification: JSON.stringify(await verifyPublished(api, context, pinned, fetcher)) };
-        if (pinned.mode !== "verify") fail11("recovery-phase");
+        if (pinned.mode !== "verify") fail12("recovery-phase");
         const input = await sourceInput(api, context);
-        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail11("plan-substitution");
+        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail12("plan-substitution");
         const result = await publicationState(api, context, input, phaseOptions);
         await assertCurrentMain(api, context);
         return { verification: JSON.stringify({ ...result, state: result.reason ?? "pending-release" }) };
       }
-      fail11("stage");
+      fail12("stage");
     }
     module2.exports = {
       refusalCode,
@@ -2238,8 +2238,8 @@ function subflowPathOf(runtimeStageId) {
   return splitStageId(stageIdOf(runtimeStageId)).subflowPath;
 }
 function subflowSegmentsOf(runtimeStageId) {
-  const path = subflowPathOf(runtimeStageId);
-  return path === void 0 ? [] : path.split(PATH_DELIMITER);
+  const path2 = subflowPathOf(runtimeStageId);
+  return path2 === void 0 ? [] : path2.split(PATH_DELIMITER);
 }
 function joinPath(...segments3) {
   return segments3.join(PATH_DELIMITER);
@@ -2346,11 +2346,11 @@ function observedOwn(object, key, observation) {
 function isDeniedSegment(segment) {
   return DENIED.has(String(segment));
 }
-function toSegments(path) {
-  return Array.isArray(path) ? path : path.split(".");
+function toSegments(path2) {
+  return Array.isArray(path2) ? path2 : path2.split(".");
 }
-function nativeGet(obj, path, defaultValue, observation) {
-  const segs = toSegments(path);
+function nativeGet(obj, path2, defaultValue, observation) {
+  const segs = toSegments(path2);
   let curr = obj;
   for (const seg of segs) {
     if (curr == null)
@@ -2363,8 +2363,8 @@ function nativeGet(obj, path, defaultValue, observation) {
   }
   return curr === void 0 ? defaultValue : curr;
 }
-function nativeSet(obj, path, value) {
-  const segs = toSegments(path);
+function nativeSet(obj, path2, value) {
+  const segs = toSegments(path2);
   if (segs.some(isDeniedSegment))
     return obj;
   let curr = obj;
@@ -2379,8 +2379,8 @@ function nativeSet(obj, path, value) {
   putOwn(curr, last, value);
   return obj;
 }
-function nativeDelete(obj, path) {
-  const segs = toSegments(path);
+function nativeDelete(obj, path2) {
+  const segs = toSegments(path2);
   let curr = obj;
   for (let i = 0; i < segs.length - 1; i++) {
     const seg = segs[i];
@@ -2431,8 +2431,8 @@ function shallowCopy(container) {
   }
   return copy;
 }
-function ownSpine(root, path, owned) {
-  const segs = toSegments(path);
+function ownSpine(root, path2, owned) {
+  const segs = toSegments(path2);
   if (segs.some(isDeniedSegment))
     return;
   let curr = root;
@@ -2473,8 +2473,8 @@ function adopt(tree, owned) {
       stack.push(value[key]);
   }
 }
-function nativeHas(obj, path) {
-  const segs = toSegments(path);
+function nativeHas(obj, path2) {
+  const segs = toSegments(path2);
   let curr = obj;
   for (let i = 0; i < segs.length; i++) {
     if (curr == null || !Object.prototype.hasOwnProperty.call(curr, segs[i]))
@@ -2509,11 +2509,11 @@ var DELIM = "";
 function normaliseStateKey(key) {
   return typeof key === "string" ? key : normalisePath([...key]);
 }
-function normalisePath(path) {
-  return path.map(String).join(DELIM);
+function normalisePath(path2) {
+  return path2.map(String).join(DELIM);
 }
-function pathSegments(path) {
-  return path.split(DELIM);
+function pathSegments(path2) {
+  return path2.split(DELIM);
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/verbs.js
@@ -2624,10 +2624,10 @@ function foldRows(out, updates, overwrite, rows, discipline) {
   for (let i = 0; i < rows.length; i++) {
     if (supersededByNextSet(rows, i))
       continue;
-    const { path, verb } = rows[i];
+    const { path: path2, verb } = rows[i];
     if (!isVerb(verb))
-      throw new UnknownVerbError(verb, { path, row: i });
-    const segs = path.split(DELIM);
+      throw new UnknownVerbError(verb, { path: path2, row: i });
+    const segs = path2.split(DELIM);
     if (owned !== void 0 && segs.length > 1)
       ownSpine(out, segs, owned);
     const next = applyVerb(verb, isTotal(verb) ? void 0 : nativeGet(out, segs), at, segs);
@@ -2720,12 +2720,12 @@ function relation(rowPath, key) {
   }
   return key.charCodeAt(rowPath.length) === DELIM_CODE && key.startsWith(rowPath) ? "around" : void 0;
 }
-function rootOf(path) {
-  const cut = path.indexOf(DELIM);
-  return cut === -1 ? path : path.slice(0, cut);
+function rootOf(path2) {
+  const cut = path2.indexOf(DELIM);
+  return cut === -1 ? path2 : path2.slice(0, cut);
 }
-function nodeOf(path) {
-  return { path, positions: [], totals: [], writes: [], children: /* @__PURE__ */ new Map() };
+function nodeOf(path2) {
+  return { path: path2, positions: [], totals: [], writes: [], children: /* @__PURE__ */ new Map() };
 }
 function pushOnce(list, i) {
   if (list[list.length - 1] !== i)
@@ -2736,8 +2736,8 @@ function buildWriterIndex(commitLog) {
   for (let i = 0; i < commitLog.length; i++) {
     const trace = commitLog[i].trace;
     for (let row = 0; row < trace.length; row++) {
-      const { path, verb } = trace[row];
-      const segs = path.split(DELIM);
+      const { path: path2, verb } = trace[row];
+      const segs = path2.split(DELIM);
       let node = roots.get(segs[0]);
       if (node === void 0) {
         node = nodeOf(segs[0]);
@@ -3166,16 +3166,16 @@ var LogModel = class {
         const trace = this.log[c].trace;
         queryWork.units += trace.length;
         for (let row = 0; row < trace.length && refused === void 0; row++) {
-          const { path, verb } = trace[row];
-          if (path !== root && relation(path, root) !== "inside")
+          const { path: path2, verb } = trace[row];
+          if (path2 !== root && relation(path2, root) !== "inside")
             continue;
           if (!isVerb(verb)) {
-            refused = new UnknownVerbError(verb, { path, row, commit: c });
+            refused = new UnknownVerbError(verb, { path: path2, row, commit: c });
             refusedAt = c;
             while (rows.length > 0 && rows[rows.length - 1].commitIdx === c)
               rows.pop();
           } else
-            rows.push({ verb, bundle: this.log[c], commitIdx: c, path });
+            rows.push({ verb, bundle: this.log[c], commitIdx: c, path: path2 });
         }
         if (refused !== void 0)
           break;
@@ -3465,25 +3465,25 @@ function deepFreeze(obj, arrays = "every-key") {
   return obj;
 }
 var OPEN = /* @__PURE__ */ new WeakMap();
-function freezeRecord(record, arrays = "every-key") {
-  if (!OPEN.has(record) && walkAndFreeze(record, arrays === "indices", true))
-    OPEN.set(record, false);
-  return record;
+function freezeRecord(record2, arrays = "every-key") {
+  if (!OPEN.has(record2) && walkAndFreeze(record2, arrays === "indices", true))
+    OPEN.set(record2, false);
+  return record2;
 }
-function serveRecord(record) {
-  if (record === null || typeof record !== "object")
-    return record;
-  const mapped = OPEN.get(record);
+function serveRecord(record2) {
+  if (record2 === null || typeof record2 !== "object")
+    return record2;
+  const mapped = OPEN.get(record2);
   if (mapped === void 0)
-    return record;
+    return record2;
   if (!mapped)
-    mapOpenPaths(record);
-  return OPEN.get(record) === true ? copyOpenPaths(record) : record;
+    mapOpenPaths(record2);
+  return OPEN.get(record2) === true ? copyOpenPaths(record2) : record2;
 }
 function isUnsealable(value) {
   return ArrayBuffer.isView(value) || !SEALABLE[kindOf(value)];
 }
-function walkAndFreeze(root, indices, record) {
+function walkAndFreeze(root, indices, record2) {
   let open = false;
   let lookedThrough;
   const stack = [root];
@@ -3495,17 +3495,17 @@ function walkAndFreeze(root, indices, record) {
     }
     const frozenBefore = Object.isFrozen(node);
     if (frozenBefore) {
-      if (!record || OPEN.has(node)) {
-        open ||= record;
+      if (!record2 || OPEN.has(node)) {
+        open ||= record2;
         continue;
       }
       if ((lookedThrough ??= /* @__PURE__ */ new Set()).has(node))
         continue;
       lookedThrough.add(node);
     }
-    if (record && !open && !SEALABLE[kindOf(node)])
+    if (record2 && !open && !SEALABLE[kindOf(node)])
       open = true;
-    const compacting = record && !frozenBefore;
+    const compacting = record2 && !frozenBefore;
     if (indices && Array.isArray(node)) {
       for (let i = 0; i < node.length; i++) {
         const child = node[i];
@@ -3650,10 +3650,10 @@ function copyLeaf(value) {
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/utils.js
-function getRunAndGlobalPaths(address = [], path = []) {
+function getRunAndGlobalPaths(address = [], path2 = []) {
   return {
-    runPath: addressOf(address).length > 0 ? pathUnder(address, path) : void 0,
-    globalPath: [...path]
+    runPath: addressOf(address).length > 0 ? pathUnder(address, path2) : void 0,
+    globalPath: [...path2]
   };
 }
 function addressOf(address) {
@@ -3661,20 +3661,20 @@ function addressOf(address) {
     return address;
   throw new TypeError(`footprintjs: an address is an array path prefix, got ${address === null ? "null" : typeof address}`);
 }
-function pathUnder(address, path) {
-  const out = new Array(address.length + path.length);
+function pathUnder(address, path2) {
+  const out = new Array(address.length + path2.length);
   for (let i = 0; i < address.length; i++)
     out[i] = address[i];
-  for (let i = 0; i < path.length; i++)
-    out[address.length + i] = path[i];
+  for (let i = 0; i < path2.length; i++)
+    out[address.length + i] = path2[i];
   return out;
 }
-function isDeniedWritePath(address = [], path = [], field) {
+function isDeniedWritePath(address = [], path2 = [], field) {
   const prefix = addressOf(address);
-  return prefix.some(isDeniedSegment) || path.some(isDeniedSegment) || isDeniedSegment(field);
+  return prefix.some(isDeniedSegment) || path2.some(isDeniedSegment) || isDeniedSegment(field);
 }
-function containerAt(obj, address = [], path = [], defaultValues) {
-  const segments3 = pathUnder(addressOf(address), path);
+function containerAt(obj, address = [], path2 = [], defaultValues) {
+  const segments3 = pathUnder(addressOf(address), path2);
   let current = obj;
   for (let i = 0; i < segments3.length; i++) {
     const key = segments3[i];
@@ -3685,16 +3685,16 @@ function containerAt(obj, address = [], path = [], defaultValues) {
   }
   return current;
 }
-function setNestedValue(obj, address, path, field, value, defaultValues) {
-  if (isDeniedWritePath(address, path, field))
+function setNestedValue(obj, address, path2, field, value, defaultValues) {
+  if (isDeniedWritePath(address, path2, field))
     return obj;
-  setOwnValue(containerAt(obj, address, path, defaultValues), field, value);
+  setOwnValue(containerAt(obj, address, path2, defaultValues), field, value);
   return obj;
 }
-function updateNestedValue(obj, address, path, field, value, defaultValues) {
-  if (isDeniedWritePath(address, path, field))
+function updateNestedValue(obj, address, path2, field, value, defaultValues) {
+  if (isDeniedWritePath(address, path2, field))
     return obj;
-  updateValue(containerAt(obj, address, path, defaultValues), field, value);
+  updateValue(containerAt(obj, address, path2, defaultValues), field, value);
   return obj;
 }
 function updateValue(object, key, value) {
@@ -3714,8 +3714,8 @@ function updateValue(object, key, value) {
     setOwnValue(object, key, value);
   }
 }
-function getNestedValue(root, path, field, observation) {
-  const node = path && path.length > 0 ? nativeGet(root, path, void 0, observation) : root;
+function getNestedValue(root, path2, field, observation) {
+  const node = path2 && path2.length > 0 ? nativeGet(root, path2, void 0, observation) : root;
   if (field === void 0 || node === void 0)
     return node;
   if (node !== null && typeof node === "object" && observedOwn(node, field, observation)) {
@@ -3765,8 +3765,8 @@ function ownData2(value, key, refuse3, policy) {
     throw refuse3();
   return descriptor.value;
 }
-function boundedName(value, maximum, refuse3, path = false) {
-  if (typeof value !== "string" || !value.length || value.length > maximum || (path ? /[\u0000-\u001e\u007f-\u009f]/ : /[\u0000-\u001f\u007f-\u009f]/).test(value))
+function boundedName(value, maximum, refuse3, path2 = false) {
+  if (typeof value !== "string" || !value.length || value.length > maximum || (path2 ? /[\u0000-\u001e\u007f-\u009f]/ : /[\u0000-\u001f\u007f-\u009f]/).test(value))
     throw refuse3();
   return value;
 }
@@ -3968,11 +3968,11 @@ function declaresNoEffect(error) {
     return false;
   }
 }
-function unknownEffectError(target, record, cause) {
+function unknownEffectError(target, record2, cause) {
   return new UnknownEffectError({
     system: target.system,
     ...recordedKeyOf(target) !== void 0 && { idempotencyKey: recordedKeyOf(target) },
-    attempts: record.attempt,
+    attempts: record2.attempt,
     cause
   });
 }
@@ -4106,9 +4106,9 @@ function extractErrorInfo(error) {
 }
 function thrownText(error) {
   try {
-    const text2 = error.toString();
-    if (typeof text2 === "string")
-      return text2;
+    const text3 = error.toString();
+    if (typeof text3 === "string")
+      return text3;
   } catch {
   }
   return extractErrorInfo(error).message;
@@ -4639,8 +4639,8 @@ function runAddress(runId) {
 // node_modules/footprintjs/dist/esm/lib/memory/redaction.js
 var SCOPE_PLACEHOLDER = "[REDACTED]";
 var CLEAR = Object.freeze({ kind: "clear" });
-function userKeyOf(path, key) {
-  return path.length > 0 ? [...path, key].join(".") : key;
+function userKeyOf(path2, key) {
+  return path2.length > 0 ? [...path2, key].join(".") : key;
 }
 var MAX_PATTERN_KEY_LEN = 256;
 function declaredFields(fields3, key) {
@@ -4788,21 +4788,21 @@ var RedactionRule = class _RedactionRule {
    * the engine composes has no name of its own, so no state selector reaches
    * it — only `policy.diagnostics` selects it.
    */
-  retainFlowText(address, text2) {
-    return this.diagnosticRule ? this.diagnosticRule.retain(address, text2) : text2;
+  retainFlowText(address, text3) {
+    return this.diagnosticRule ? this.diagnosticRule.retain(address, text3) : text3;
   }
   /** {@link retainDiagnostic}'s state half: the value named by `path` (its last segment), served whole. */
-  retainNamed(path, value) {
-    if (path.length === 0)
+  retainNamed(path2, value) {
+    if (path2.length === 0)
       return value;
-    const name = path[path.length - 1];
-    const verdict = path.length > 1 && this.isKeyRedacted(name) ? { kind: "whole", key: name } : this.verdict(path);
+    const name = path2[path2.length - 1];
+    const verdict = path2.length > 1 && this.isKeyRedacted(name) ? { kind: "whole", key: name } : this.verdict(path2);
     if (verdict.kind === "whole")
       return SCOPE_PLACEHOLDER;
     const kept = _RedactionRule.apply(verdict, value);
     if (kept === null || typeof kept !== "object")
       return kept;
-    const base = path.join(".");
+    const base = path2.join(".");
     return servedByPath(kept, base, this.dottedTargets(base), this.namesWalk(false), SCOPE_PLACEHOLDER);
   }
   /**
@@ -4817,12 +4817,12 @@ var RedactionRule = class _RedactionRule {
    * logger and a fork envelope serve the same form ({@link servedError}). The
    * thrown value itself stays real.
    */
-  retainStageError(error, text2, kept) {
+  retainStageError(error, text3, kept) {
     const info = extractErrorInfo(error);
-    const textSelected = kept !== text2;
+    const textSelected = kept !== text3;
     if (!textSelected && !this.carriesSelectedKey(error))
-      return { message: text2, structuredError: info };
-    const message = textSelected ? String(kept) : text2;
+      return { message: text3, structuredError: info };
+    const message = textSelected ? String(kept) : text3;
     const masked = {
       message: textSelected ? message : info.message,
       ...info.name !== void 0 && { name: info.name },
@@ -4884,7 +4884,7 @@ var RedactionRule = class _RedactionRule {
       names: {
         masks: (name) => this.isKeyRedacted(name),
         ...byPath.length > 0 && {
-          pathMasks: (path) => path.length <= MAX_PATTERN_KEY_LEN && matchesPattern(path, byPath)
+          pathMasks: (path2) => path2.length <= MAX_PATTERN_KEY_LEN && matchesPattern(path2, byPath)
         },
         fields: (name) => this.fieldsOf(name)
       },
@@ -4938,8 +4938,8 @@ var RedactionRule = class _RedactionRule {
     const known = this.maskedErrors?.get(error);
     if (known || this.isDiagnosticInert() && !this.maskedErrors?.any)
       return known;
-    const text2 = thrownText(error);
-    this.retainStageError(error, text2, this.retainDiagnostic(["errors", "stageExecutionError"], text2));
+    const text3 = thrownText(error);
+    this.retainStageError(error, text3, this.retainDiagnostic(["errors", "stageExecutionError"], text3));
     return this.maskedErrors?.get(error);
   }
   /**
@@ -4964,23 +4964,23 @@ var RedactionRule = class _RedactionRule {
    * path they are re-based onto the value being written, and a field that
    * names the written path exactly makes the whole value secret.
    */
-  verdict(path) {
-    if (path.length === 0)
+  verdict(path2) {
+    if (path2.length === 0)
       return CLEAR;
-    if (path.length === 1)
-      return this.verdictOfKey(path[0]);
+    if (path2.length === 1)
+      return this.verdictOfKey(path2[0]);
     let dotted = "";
-    for (let i = 0; i < path.length; i++) {
-      dotted = i === 0 ? path[0] : `${dotted}.${path[i]}`;
+    for (let i = 0; i < path2.length; i++) {
+      dotted = i === 0 ? path2[0] : `${dotted}.${path2[i]}`;
       if (this.isKeyRedacted(dotted))
         return { kind: "whole", key: dotted };
     }
-    const fields3 = this.fieldsOf(path[0]);
+    const fields3 = this.fieldsOf(path2[0]);
     if (!fields3 || fields3.length === 0)
       return CLEAR;
-    if (path.length === 1)
-      return { kind: "fields", key: path[0], paths: fields3 };
-    const rel = path.slice(1).join(".");
+    if (path2.length === 1)
+      return { kind: "fields", key: path2[0], paths: fields3 };
+    const rel = path2.slice(1).join(".");
     const inside = [];
     for (const field of fields3) {
       if (field === rel)
@@ -4988,15 +4988,15 @@ var RedactionRule = class _RedactionRule {
       if (field.startsWith(`${rel}.`))
         inside.push(field.slice(rel.length + 1));
     }
-    return inside.length > 0 ? { kind: "fields", key: path[0], paths: inside } : CLEAR;
+    return inside.length > 0 ? { kind: "fields", key: path2[0], paths: inside } : CLEAR;
   }
   /**
    * The verdict for `key` written or read under `path` — the common
    * single-segment case (`path` empty: every facade write and read) decides
    * on the key string alone, no array allocated.
    */
-  verdictAt(path, key) {
-    return path.length === 0 ? this.verdictOfKey(key) : this.verdict([...path, key]);
+  verdictAt(path2, key) {
+    return path2.length === 0 ? this.verdictOfKey(key) : this.verdict([...path2, key]);
   }
   /** The single-segment verdict: key-level hit → whole; declared or inherited fields → fields. */
   verdictOfKey(key) {
@@ -5067,8 +5067,8 @@ var RedactionRule = class _RedactionRule {
    * `placeholder` defaults to the scope-tier `'[REDACTED]'`; the mirror seed
    * passes the log's `'REDACTED'`.
    */
-  retain(path, value, placeholder = SCOPE_PLACEHOLDER) {
-    return _RedactionRule.apply(this.verdict(path), value, placeholder);
+  retain(path2, value, placeholder = SCOPE_PLACEHOLDER) {
+    return _RedactionRule.apply(this.verdict(path2), value, placeholder);
   }
   /**
    * The retained form of a STATE record (state read, mirror seed): each own
@@ -5078,18 +5078,18 @@ var RedactionRule = class _RedactionRule {
    * Returns the SAME object when unchanged. An inert rule does not enumerate
    * the value, so even an accessor is untouched on the no-policy fast path.
    */
-  retainRecord(record, placeholder = SCOPE_PLACEHOLDER) {
-    if (this.isInert() || record === null || typeof record !== "object" || Array.isArray(record))
-      return record;
+  retainRecord(record2, placeholder = SCOPE_PLACEHOLDER) {
+    if (this.isInert() || record2 === null || typeof record2 !== "object" || Array.isArray(record2))
+      return record2;
     let out;
-    for (const [key, value] of Object.entries(record)) {
+    for (const [key, value] of Object.entries(record2)) {
       const kept = this.retain([key], value, placeholder);
       if (kept === value)
         continue;
-      out ??= { ...record };
+      out ??= { ...record2 };
       out[key] = kept;
     }
-    return out ?? record;
+    return out ?? record2;
   }
   /**
    * The retained form of a BOUNDARY record — root input/output and a subflow's
@@ -5107,8 +5107,8 @@ var RedactionRule = class _RedactionRule {
    * keeps its own path verdicts ({@link verdict}); this walk is for records
    * handed out whole.
    */
-  retainBoundary(record, placeholder = SCOPE_PLACEHOLDER) {
-    const served = this.maskedErrors?.any ? this.withServedErrors(record) : record;
+  retainBoundary(record2, placeholder = SCOPE_PLACEHOLDER) {
+    const served = this.maskedErrors?.any ? this.withServedErrors(record2) : record2;
     if (this.isInert() || served === null || typeof served !== "object")
       return served;
     const top = this.retainRecord(served, placeholder);
@@ -5207,8 +5207,8 @@ var RedactionRule = class _RedactionRule {
   static holdsPaths(value, paths2) {
     if (paths2 === void 0)
       return false;
-    for (const path of paths2) {
-      if (Object.prototype.hasOwnProperty.call(value, path) || path.includes(".") && nativeHas(value, path)) {
+    for (const path2 of paths2) {
+      if (Object.prototype.hasOwnProperty.call(value, path2) || path2.includes(".") && nativeHas(value, path2)) {
         return true;
       }
     }
@@ -5230,9 +5230,9 @@ var RedactionRule = class _RedactionRule {
     if (runs === null || typeof runs !== "object" || Array.isArray(runs))
       return kept;
     let scrubbedRuns;
-    for (const [runId, record] of Object.entries(runs)) {
-      const keptRun = this.retainRecord(record, placeholder);
-      if (keptRun === record)
+    for (const [runId, record2] of Object.entries(runs)) {
+      const keptRun = this.retainRecord(record2, placeholder);
+      if (keptRun === record2)
         continue;
       scrubbedRuns ??= { ...runs };
       scrubbedRuns[runId] = keptRun;
@@ -5278,22 +5278,22 @@ var RedactionRule = class _RedactionRule {
     };
   }
 };
-function decideWrite(active, path, key, explicit) {
+function decideWrite(active, path2, key, explicit) {
   if (explicit)
-    return { kind: "whole", key: userKeyOf(path, key) };
-  return active !== void 0 ? active.verdictAt(path, key) : CLEAR;
+    return { kind: "whole", key: userKeyOf(path2, key) };
+  return active !== void 0 ? active.verdictAt(path2, key) : CLEAR;
 }
-function inheritByIdentity(active, verdict, selected, path, key, value) {
+function inheritByIdentity(active, verdict, selected, path2, key, value) {
   const read = active !== void 0 && verdict.kind !== "whole" && value !== null && typeof value === "object" ? selected?.get(value) : void 0;
   if (read === void 0 || active === void 0)
     return verdict;
   if (read.kind === "whole")
-    active.mark(userKeyOf(path, key));
+    active.mark(userKeyOf(path2, key));
   else if (read.kind === "fields") {
-    const at = [...path.slice(1), ...path.length > 0 ? [key] : []];
-    active.inheritFields(path[0] ?? key, read.paths.map((field) => [...at, field].join(".")));
+    const at = [...path2.slice(1), ...path2.length > 0 ? [key] : []];
+    active.inheritFields(path2[0] ?? key, read.paths.map((field) => [...at, field].join(".")));
   }
-  return active.verdictAt(path, key);
+  return active.verdictAt(path2, key);
 }
 var WHOLE_SCRUB = Object.freeze({ whole: true });
 function scrubOf(verdict) {
@@ -5301,9 +5301,9 @@ function scrubOf(verdict) {
     return WHOLE_SCRUB;
   return verdict.kind === "fields" ? { fields: verdict.paths } : void 0;
 }
-function markStagedWrite(active, rule, verdict, path, key, verb) {
+function markStagedWrite(active, rule, verdict, path2, key, verb) {
   if (verb === "delete")
-    active?.unmark(userKeyOf(path, key));
+    active?.unmark(userKeyOf(path2, key));
   else if (verdict.kind === "whole")
     rule?.mark(verdict.key);
 }
@@ -5346,10 +5346,10 @@ function closingBracket(source, from) {
 var KEEP = /* @__PURE__ */ Symbol("kept as it is");
 function targetsOf(paths2) {
   const out = [];
-  for (const path of paths2 ?? []) {
-    out.push([path]);
-    if (path.includes("."))
-      out.push(path.split("."));
+  for (const path2 of paths2 ?? []) {
+    out.push([path2]);
+    if (path2.includes("."))
+      out.push(path2.split("."));
   }
   return out;
 }
@@ -5538,11 +5538,11 @@ var MapperTaint = class _MapperTaint {
    * serialize what it is handed. An assignment lands on the view, never on the
    * live record behind it. Anything but a plain record is handed over as it is.
    */
-  watch(record) {
-    if (!isPlainRecord(record))
-      return record;
-    const view = this.viewOf(record, (key) => this.served(key, record[key]));
-    this.records.set(view, record);
+  watch(record2) {
+    if (!isPlainRecord(record2))
+      return record2;
+    const view = this.viewOf(record2, (key) => this.served(key, record2[key]));
+    this.records.set(view, record2);
     return view;
   }
   /**
@@ -5610,23 +5610,23 @@ var MapperTaint = class _MapperTaint {
     return value;
   }
   /** A `fields`-selected record: reading one of its selected fields (or a path's first segment) is a selected read. */
-  fieldsView(record, verdict) {
+  fieldsView(record2, verdict) {
     const selected = /* @__PURE__ */ new Set();
-    for (const path of verdict.paths)
-      selected.add(path).add(path.split(".")[0]);
-    const view = this.viewOf(record, (key) => {
+    for (const path2 of verdict.paths)
+      selected.add(path2).add(path2.split(".")[0]);
+    const view = this.viewOf(record2, (key) => {
       if (this.open && selected.has(key)) {
         this.selectedRead = true;
-        this.secretReads.push(record[key]);
+        this.secretReads.push(record2[key]);
       }
-      return record[key];
+      return record2[key];
     });
-    this.views.set(view, { raw: record, verdict });
+    this.views.set(view, { raw: record2, verdict });
     return view;
   }
-  viewOf(record, read) {
+  viewOf(record2, read) {
     const view = {};
-    for (const key of Object.keys(record)) {
+    for (const key of Object.keys(record2)) {
       Object.defineProperty(view, key, {
         enumerable: true,
         configurable: true,
@@ -5653,9 +5653,9 @@ var MapperTaint = class _MapperTaint {
       const view = this.views.get(value);
       if (view)
         return view.verdict;
-      const record = this.records.get(value);
-      if (record)
-        return this.selectedFieldsOf(record);
+      const record2 = this.records.get(value);
+      if (record2)
+        return this.selectedFieldsOf(record2);
       const known = this.sources.get(value);
       if (known)
         return known;
@@ -5664,15 +5664,15 @@ var MapperTaint = class _MapperTaint {
     return read?.some((v) => Object.is(v, value)) ? this.rule.verdictOfRead(target, value) : void 0;
   }
   /** A whole record's selected keys, as fields of whatever key it is passed on under. */
-  selectedFieldsOf(record) {
+  selectedFieldsOf(record2) {
     const paths2 = [];
-    for (const key of Object.keys(record)) {
-      const verdict = this.rule.verdictOfRead(key, record[key]);
+    for (const key of Object.keys(record2)) {
+      const verdict = this.rule.verdictOfRead(key, record2[key]);
       if (verdict.kind === "whole")
         paths2.push(key);
       else if (verdict.kind === "fields")
-        for (const path of verdict.paths)
-          paths2.push(`${key}.${path}`);
+        for (const path2 of verdict.paths)
+          paths2.push(`${key}.${path2}`);
     }
     return paths2.length === 0 ? CLEAR : { kind: "fields", key: "", paths: paths2 };
   }
@@ -5728,9 +5728,9 @@ var MapperTaint = class _MapperTaint {
     seen.add(value);
     if (this.views.has(value))
       return true;
-    const record = this.records.get(value);
-    if (record)
-      return this.selectedFieldsOf(record).kind !== "clear";
+    const record2 = this.records.get(value);
+    if (record2)
+      return this.selectedFieldsOf(record2).kind !== "clear";
     const known = this.sources.get(value);
     if (known !== void 0 && known.kind !== "clear")
       return true;
@@ -5993,7 +5993,7 @@ async function runAttempts(run, policy, options) {
     const served = inputs.failed ? (options.serve ?? extractErrorInfo)(inputs.failed.error) : void 0;
     const effect = options.effect ? effectOf(inputs.outcome, failure?.error) : void 0;
     const recordedKey = options.effect ? recordedKeyOf(options.effect) : void 0;
-    const record = freezeDeep({
+    const record2 = freezeDeep({
       series: options.series,
       kind: options.kind ?? "stage",
       ...options.target !== void 0 && { target: options.target },
@@ -6015,16 +6015,16 @@ async function runAttempts(run, policy, options) {
       ...recordedKey !== void 0 && { idempotencyKey: recordedKey },
       ...effect !== void 0 && { effect }
     });
-    tally.add(record);
-    if (record.effect === "unknown")
+    tally.add(record2);
+    if (record2.effect === "unknown")
       unknownSoFar = true;
-    if (record.next !== "retry")
-      options.onEnd?.(tally.summary(lastOf(record, unknownSoFar)));
-    options.onAttempt?.(record, served);
-    if (record.next === "done")
+    if (record2.next !== "retry")
+      options.onEnd?.(tally.summary(lastOf(record2, unknownSoFar)));
+    options.onAttempt?.(record2, served);
+    if (record2.next === "done")
       return value;
-    if (record.next === "stop")
-      throw stoppedFailure(options, record, failure, unknownSoFar, terminal);
+    if (record2.next === "stop")
+      throw stoppedFailure(options, record2, failure, unknownSoFar, terminal);
     options.onRetry?.(attempt, of, delayMs ?? 0, served);
     if (delayMs !== void 0 && delayMs > 0) {
       try {
@@ -6036,23 +6036,23 @@ async function runAttempts(run, policy, options) {
     }
     const cut = isCancelled(options.signal) ? "aborted" : options.signal?.aborted || deadline !== void 0 && now() >= deadline ? "no-time-left" : void 0;
     if (cut !== void 0) {
-      options.onEnd?.(tally.summary({ ...lastOf(record, unknownSoFar), next: "stop", reason: cut }));
-      throw stoppedFailure(options, record, failure, unknownSoFar, terminal);
+      options.onEnd?.(tally.summary({ ...lastOf(record2, unknownSoFar), next: "stop", reason: cut }));
+      throw stoppedFailure(options, record2, failure, unknownSoFar, terminal);
     }
   }
 }
-function stoppedFailure(options, record, failure, unknownSoFar, terminal) {
-  const error = stopError(options.effect, record, failure, unknownSoFar);
-  if (record.outcome !== "paused") {
-    const category = record.next === "stop" && Object.is(error, failure?.error) ? terminal : "unknown";
+function stoppedFailure(options, record2, failure, unknownSoFar, terminal) {
+  const error = stopError(options.effect, record2, failure, unknownSoFar);
+  if (record2.outcome !== "paused") {
+    const category = record2.next === "stop" && Object.is(error, failure?.error) ? terminal : "unknown";
     options.onFailure?.(error, category);
   }
   return error;
 }
-function stopError(effect, record, failure, unknownSoFar) {
-  if (effect === void 0 || !unknownSoFar || record.outcome === "paused")
+function stopError(effect, record2, failure, unknownSoFar) {
+  if (effect === void 0 || !unknownSoFar || record2.outcome === "paused")
     return failure?.error;
-  return unknownEffectError(effect, record, failure?.error);
+  return unknownEffectError(effect, record2, failure?.error);
 }
 var LiveAttempt = class {
   options;
@@ -6291,21 +6291,21 @@ function sleep(ms, signal) {
     signal?.addEventListener("abort", done, { once: true });
   });
 }
-function lastOf(record, unknownSoFar = false) {
-  const effect = record.effect !== void 0 && unknownSoFar && record.outcome !== "ok" ? "unknown" : record.effect;
+function lastOf(record2, unknownSoFar = false) {
+  const effect = record2.effect !== void 0 && unknownSoFar && record2.outcome !== "ok" ? "unknown" : record2.effect;
   return {
-    next: record.next,
-    reason: record.reason,
-    ...record.category !== void 0 && { category: record.category },
-    ...record.retryOnThrew && { retryOnThrew: true },
+    next: record2.next,
+    reason: record2.reason,
+    ...record2.category !== void 0 && { category: record2.category },
+    ...record2.retryOnThrew && { retryOnThrew: true },
     ...effect !== void 0 && { effect }
   };
 }
 var SeriesTally = class {
   counts = { count: 0, ok: 0, failed: 0, timeout: 0, aborted: 0, paused: 0 };
-  add(record) {
+  add(record2) {
     this.counts.count += 1;
-    this.counts[record.outcome] += 1;
+    this.counts[record2.outcome] += 1;
   }
   summary(last) {
     return freezeDeep({ ...this.counts, last });
@@ -6786,8 +6786,8 @@ function isChart(value) {
   const root = value.root;
   return root !== null && typeof root === "object";
 }
-function own2(record, key) {
-  return record !== void 0 && Object.prototype.hasOwnProperty.call(record, key) ? record[key] : void 0;
+function own2(record2, key) {
+  return record2 !== void 0 && Object.prototype.hasOwnProperty.call(record2, key) ? record2[key] : void 0;
 }
 function subflowDefOf(subflows, node) {
   for (const key of [node.subflowId, node.subflowName, node.name]) {
@@ -6814,15 +6814,15 @@ function admitAssumptions(assume) {
     branches: snapshot(given.branches, "branches", (key, chart) => assumedChart("branches", key, chart))
   };
 }
-function snapshot(record, field, admit) {
+function snapshot(record2, field, admit) {
   const copy = /* @__PURE__ */ Object.create(null);
-  if (record === void 0)
+  if (record2 === void 0)
     return copy;
-  if (record === null || typeof record !== "object") {
+  if (record2 === null || typeof record2 !== "object") {
     throw new TypeError(`timeBudget: assume.${field} must be an object keyed by id.`);
   }
-  for (const key of Object.keys(record))
-    copy[key] = admit(key, record[key]);
+  for (const key of Object.keys(record2))
+    copy[key] = admit(key, record2[key]);
   return Object.freeze(copy);
 }
 function assumedChart(field, key, chart) {
@@ -7269,16 +7269,16 @@ function detachAndForget(driver, child, input, sourcePrefix) {
 
 // node_modules/footprintjs/dist/esm/lib/recorder/attemptSeries.js
 var GAVE_UP = /* @__PURE__ */ new Set(["exhausted", "declined", "no-time-left"]);
-function gaveUp(record) {
-  return record.next === "stop" && GAVE_UP.has(record.reason);
+function gaveUp(record2) {
+  return record2.next === "stop" && GAVE_UP.has(record2.reason);
 }
-function isRetryEvidence(record) {
-  if (record.kind !== "stage")
+function isRetryEvidence(record2) {
+  if (record2.kind !== "stage")
     return false;
-  return record.attempt > 1 || record.next === "retry" || record.outcome === "timeout" || gaveUp(record) && (record.of ?? 1) > 1;
+  return record2.attempt > 1 || record2.next === "retry" || record2.outcome === "timeout" || gaveUp(record2) && (record2.of ?? 1) > 1;
 }
-function attemptRef(record) {
-  return { series: record.series, attempt: record.attempt };
+function attemptRef(record2) {
+  return { series: record2.series, attempt: record2.attempt };
 }
 function subflowOfAttempt(event) {
   const segments3 = subflowSegmentsOf(event.traversalContext?.runtimeStageId ?? event.record.series);
@@ -7289,20 +7289,20 @@ function emptyOutcomeCounts() {
 }
 var AttemptSeriesBook = class {
   bySeries = /* @__PURE__ */ new Map();
-  add(record) {
-    if (!isRetryEvidence(record))
+  add(record2) {
+    if (!isRetryEvidence(record2))
       return void 0;
-    let entry = this.bySeries.get(record.series);
+    let entry = this.bySeries.get(record2.series);
     if (!entry) {
       entry = { refs: [], counts: emptyOutcomeCounts() };
-      this.bySeries.set(record.series, entry);
+      this.bySeries.set(record2.series, entry);
     }
-    entry.refs.push(attemptRef(record));
-    entry.counts[record.outcome] += 1;
+    entry.refs.push(attemptRef(record2));
+    entry.counts[record2.outcome] += 1;
     const attempts = [...entry.refs];
-    if (record.next === "retry")
-      return { series: record.series, attempts };
-    return { series: record.series, attempts, summary: summaryOf(entry.refs.length, entry.counts, record) };
+    if (record2.next === "retry")
+      return { series: record2.series, attempts };
+    return { series: record2.series, attempts, summary: summaryOf(entry.refs.length, entry.counts, record2) };
   }
   clear() {
     this.bySeries.clear();
@@ -7523,11 +7523,11 @@ function createBreakHandler(flag) {
 // node_modules/footprintjs/dist/esm/lib/engine/handlers/stageError.js
 function recordStageError(context, error) {
   captureStageFailure(context, error);
-  const text2 = thrownText(error);
-  const kept = context.addDiagnostic("errors", "stageExecutionError", text2);
+  const text3 = thrownText(error);
+  const kept = context.addDiagnostic("errors", "stageExecutionError", text3);
   context.markStageFailure();
   const rule = context.getRedactionRule();
-  return rule ? rule.retainStageError(error, text2, kept) : { message: text2, structuredError: extractErrorInfo(error) };
+  return rule ? rule.retainStageError(error, text3, kept) : { message: text3, structuredError: extractErrorInfo(error) };
 }
 function captureStageFailure(context, error) {
   const identity = context.failureIdentity;
@@ -8418,7 +8418,7 @@ var NativeCapture = class {
     }
     this.boundary = { status, ...failure && { failure } };
   }
-  snapshot(to, control8 = "unknown", redacted = false) {
+  snapshot(to, control9 = "unknown", redacted = false) {
     const gaps = new Set(this.gaps);
     if (redacted)
       gaps.add("redacted-export");
@@ -8444,7 +8444,7 @@ var NativeCapture = class {
         reads: this.modes.readTracking === "off" ? "disabled" : gaps.has("read-retention-failed") ? "failed" : custom ? "unknown" : "captured",
         writes: this.modes.writeTracking === "off" ? "disabled" : failed ? "failed" : custom ? "unknown" : "captured",
         attention: failed || gaps.has("attention-omitted") ? "partial" : custom ? "unknown" : "captured",
-        control: gaps.has("recorder-snapshot-failed") ? "failed" : control8,
+        control: gaps.has("recorder-snapshot-failed") ? "failed" : control9,
         readSources: "not-collected"
       }),
       persistence: "memory-only",
@@ -8459,20 +8459,20 @@ function copyCaptureAcknowledgement(value) {
     const data2 = (key) => Object.getOwnPropertyDescriptor(value, key)?.value;
     const version = data2("version");
     const runId = data2("runId");
-    const control8 = data2("control");
-    if (version !== 1 || typeof runId !== "string" || runId.length === 0 || runId.length > 2048 || !isCaptureValue(control8, RECORDER_CONTROL_STATUSES))
+    const control9 = data2("control");
+    if (version !== 1 || typeof runId !== "string" || runId.length === 0 || runId.length > 2048 || !isCaptureValue(control9, RECORDER_CONTROL_STATUSES))
       return void 0;
-    return Object.freeze({ version, runId, control: control8 });
+    return Object.freeze({ version, runId, control: control9 });
   } catch {
     return void 0;
   }
 }
 
 // node_modules/footprintjs/dist/esm/lib/capture/noteShape.js
-function ownData3(record, key) {
-  if (!record || typeof record !== "object" || Object.getPrototypeOf(record) !== Object.prototype)
+function ownData3(record2, key) {
+  if (!record2 || typeof record2 !== "object" || Object.getPrototypeOf(record2) !== Object.prototype)
     return void 0;
-  return Object.getOwnPropertyDescriptor(record, key)?.value;
+  return Object.getOwnPropertyDescriptor(record2, key)?.value;
 }
 function captureIdentifier(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 2048;
@@ -8518,10 +8518,10 @@ function copyObservedChannels(value) {
   const reads = ownData3(value, "reads");
   const writes = ownData3(value, "writes");
   const attention = ownData3(value, "attention");
-  const control8 = ownData3(value, "control");
-  if (!isCaptureValue(reads, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(writes, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(attention, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(control8, CAPTURE_CHANNEL_STATUSES))
+  const control9 = ownData3(value, "control");
+  if (!isCaptureValue(reads, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(writes, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(attention, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(control9, CAPTURE_CHANNEL_STATUSES))
     return void 0;
-  return Object.freeze({ reads, writes, attention, control: control8 });
+  return Object.freeze({ reads, writes, attention, control: control9 });
 }
 function copyLimitations(value) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype)
@@ -8780,22 +8780,22 @@ var ResumeEntry = class _ResumeEntry {
    *   pause is malformed or is not a parallel sibling of the paused stage
    */
   static plan(args) {
-    const { root, subflows, path, captures, standIn } = args;
+    const { root, subflows, path: path2, captures, standIn } = args;
     const chart = new ChartIndex();
     const graphs = [root];
     const mounts = [];
-    for (let i = 0; i < path.length; i++) {
-      const subflowId = path[i];
-      mounts.push(chart.onlyMount(graphs[i], subflowId, i === 0 ? "the flowchart" : `subflow '${path[i - 1]}'`));
+    for (let i = 0; i < path2.length; i++) {
+      const subflowId = path2[i];
+      mounts.push(chart.onlyMount(graphs[i], subflowId, i === 0 ? "the flowchart" : `subflow '${path2[i - 1]}'`));
       const definition = ownEntry(subflows, subflowId);
       if (!definition) {
         throw new Error(`Cannot resume: subflow '${subflowId}' is not registered in the flowchart. The chart may have changed since the checkpoint was created.`);
       }
       graphs.push(definition.root);
     }
-    const leafLevel = path.length;
+    const leafLevel = path2.length;
     const paused = chart.stage(graphs[leafLevel], standIn.id);
-    const queues = queueSiblingPauses(args.pendingPauses, { chart, subflows, root, path, graphs, mounts, paused });
+    const queues = queueSiblingPauses(args.pendingPauses, { chart, subflows, root, path: path2, graphs, mounts, paused });
     const childAt = (level) => level < leafLevel ? mounts[level] : paused;
     const entryAt = (level) => {
       const child = childAt(level);
@@ -8806,10 +8806,10 @@ var ResumeEntry = class _ResumeEntry {
     };
     const hops = [];
     let everyLevelAtItsEntry = true;
-    for (let i = 0; i < path.length; i++) {
-      const subflowId = path[i];
+    for (let i = 0; i < path2.length; i++) {
+      const subflowId = path2[i];
       const seed = ownEntry(captures, subflowId);
-      const isLeafHop = i === path.length - 1;
+      const isLeafHop = i === path2.length - 1;
       if (seed === void 0 && !isLeafHop) {
         everyLevelAtItsEntry = false;
         hops.push({ subflowId });
@@ -8823,7 +8823,7 @@ var ResumeEntry = class _ResumeEntry {
         ...waiting && { pendingPauses: waiting }
       });
     }
-    return new _ResumeEntry(entryAt(0), hops, queues[0]?.pauses, everyLevelAtItsEntry ? path.length : void 0);
+    return new _ResumeEntry(entryAt(0), hops, queues[0]?.pauses, everyLevelAtItsEntry ? path2.length : void 0);
   }
   /**
    * A seed-only entry: each capture seeds the FIRST entry into its subflow,
@@ -8981,7 +8981,7 @@ function queueSiblingPauses(pending, at) {
   if (pending === void 0)
     return queues;
   const decoded = decodePendingPauses(pending);
-  const { chart, subflows, root, path, graphs, mounts, paused } = at;
+  const { chart, subflows, root, path: path2, graphs, mounts, paused } = at;
   const seen = /* @__PURE__ */ new Set();
   decoded.forEach((pause, n) => {
     const key = JSON.stringify([pause.subflowPath, pause.pausedStageId]);
@@ -8990,10 +8990,10 @@ function queueSiblingPauses(pending, at) {
     }
     seen.add(key);
     let level = 0;
-    while (level < path.length && level < pause.subflowPath.length && path[level] === pause.subflowPath[level])
+    while (level < path2.length && level < pause.subflowPath.length && path2[level] === pause.subflowPath[level])
       level++;
     const graph = graphs[level];
-    const ours = level < path.length ? mounts[level] : paused;
+    const ours = level < path2.length ? mounts[level] : paused;
     const theirMounts = level < pause.subflowPath.length ? chart.mountsOf(graph, pause.subflowPath[level]) : [];
     const theirs = level < pause.subflowPath.length ? theirMounts.length === 1 ? theirMounts[0] : void 0 : chart.stage(graph, pause.pausedStageId);
     const fanOut = ours ? chart.dispatcherOf(graph, ours) : void 0;
@@ -9020,8 +9020,8 @@ function walksToItsStage(chart, subflows, fanOutGraph, pause, level) {
   }
   return chart.stage(graph, pause.pausedStageId) !== void 0;
 }
-function ownEntry(record, key) {
-  return record && Object.prototype.hasOwnProperty.call(record, key) ? record[key] : void 0;
+function ownEntry(record2, key) {
+  return record2 && Object.prototype.hasOwnProperty.call(record2, key) ? record2[key] : void 0;
 }
 
 // node_modules/footprintjs/dist/esm/lib/engine/handlers/RuntimeStructureManager.js
@@ -9745,35 +9745,35 @@ var SharedMemory = class {
     return this._defaultValues ? structuredClone(this._defaultValues) : void 0;
   }
   /** Updates a value at `address` + `path` using merge semantics, as a new generation (path copy + swap). */
-  updateValue(address, path, key, value) {
+  updateValue(address, path2, key, value) {
     const previous = this.context;
-    const next = this.ownedPathTo(address, path, key);
+    const next = this.ownedPathTo(address, path2, key);
     if (next === void 0)
       return;
-    updateNestedValue(next, address, path, key, value, this.getDefaultValues());
+    updateNestedValue(next, address, path2, key, value, this.getDefaultValues());
     this.replaceGeneration(next, previous);
-    captureFor(this)?.invalidate([...address, ...path, key]);
+    captureFor(this)?.invalidate([...address, ...path2, key]);
   }
   /** Sets a value at `address` + `path` using overwrite semantics, as a new generation (path copy + swap). */
-  setValue(address, path, key, value) {
+  setValue(address, path2, key, value) {
     const previous = this.context;
-    const next = this.ownedPathTo(address, path, key);
+    const next = this.ownedPathTo(address, path2, key);
     if (next === void 0)
       return;
-    setNestedValue(next, address, path, key, value, this.getDefaultValues());
+    setNestedValue(next, address, path2, key, value, this.getDefaultValues());
     this.replaceGeneration(next, previous);
-    captureFor(this)?.invalidate([...address, ...path, key]);
+    captureFor(this)?.invalidate([...address, ...path2, key]);
   }
   /**
    * A copy of the current generation's root whose containers on the way to
    * `key` are owned — the in-place helpers above then edit only copies.
    */
-  ownedPathTo(address, path, key) {
-    if (isDeniedWritePath(address, path, key))
+  ownedPathTo(address, path2, key) {
+    if (isDeniedWritePath(address, path2, key))
       return void 0;
     const owned = /* @__PURE__ */ new WeakSet();
     const root = ownedRootOf(this.context, owned);
-    const { runPath, globalPath } = getRunAndGlobalPaths(address, path);
+    const { runPath, globalPath } = getRunAndGlobalPaths(address, path2);
     ownSpine(root, [...runPath || globalPath, key], owned);
     return root;
   }
@@ -9781,8 +9781,8 @@ var SharedMemory = class {
    * Reads a value from the store.
    * Looks up at `address` first, falls back to the root.
    */
-  getValue(address, path, key, observation) {
-    const { globalPath, runPath } = getRunAndGlobalPaths(address, path);
+  getValue(address, path2, key, observation) {
+    const { globalPath, runPath } = getRunAndGlobalPaths(address, path2);
     const value = runPath ? getNestedValue(this.context, runPath, key, observation) : void 0;
     if (typeof value !== "undefined") {
       if (observation)
@@ -9910,7 +9910,7 @@ function sourceNamespaces(value, limits2) {
   if (value === void 0)
     return [];
   let bytes = 0, components = 0;
-  return sourceList(value, limits2.maxOrigins, (path) => sourceList(path, 64, (part) => {
+  return sourceList(value, limits2.maxOrigins, (path2) => sourceList(path2, 64, (part) => {
     const key = sourceKey(part);
     bytes += sourceBytes(key) + 1;
     if (++components > limits2.maxOrigins || bytes > limits2.maxBytes)
@@ -10015,26 +10015,26 @@ function touchedFamilies(ops) {
   }
   const rootOf2 = /* @__PURE__ */ new Map();
   const families = /* @__PURE__ */ new Map();
-  for (const [path, touch] of touches) {
-    const root = shallowestIn(path, touches);
-    rootOf2.set(path, root);
+  for (const [path2, touch] of touches) {
+    const root = shallowestIn(path2, touches);
+    rootOf2.set(path2, root);
     let family = families.get(root);
     if (family === void 0) {
       family = { root, rootSegments: root.split(DELIM), members: [], slot: touch.last };
       families.set(root, family);
     }
-    family.members.push({ path, readKeys: touch.readKeys });
+    family.members.push({ path: path2, readKeys: touch.readKeys });
     if (touch.last > family.slot)
       family.slot = touch.last;
   }
   return { rootOf: rootOf2, families };
 }
-function addressDepthOf(path, address) {
+function addressDepthOf(path2, address) {
   const depth = address.length;
-  if (depth === 0 || path.length <= depth)
+  if (depth === 0 || path2.length <= depth)
     return 0;
   for (let i = 0; i < depth; i++)
-    if (String(path[i]) !== address[i])
+    if (String(path2[i]) !== address[i])
       return 0;
   return depth;
 }
@@ -10064,25 +10064,25 @@ function slotHeld(f, w, key) {
     return true;
   return Array.isArray(f) && index < f.length;
 }
-function shallowestIn(path, touched) {
-  if (path.indexOf(DELIM) === -1)
-    return path;
-  const segments3 = path.split(DELIM);
+function shallowestIn(path2, touched) {
+  if (path2.indexOf(DELIM) === -1)
+    return path2;
+  const segments3 = path2.split(DELIM);
   for (let i = 1; i < segments3.length; i++) {
     const ancestor = segments3.slice(0, i).join(DELIM);
     if (touched.has(ancestor))
       return ancestor;
   }
-  return path;
+  return path2;
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/deltaEncoding.js
-function pushValueRow(rows, path, segments3, before, value, prov, marked = false) {
+function pushValueRow(rows, path2, segments3, before, value, prov, marked = false) {
   if (!marked && isStrictArrayPrefix(before, value)) {
-    rows.trace.push({ path, verb: "append", ...prov });
+    rows.trace.push({ path: path2, verb: "append", ...prov });
     nativeSet(rows.overwrite, segments3, structuredClone(value.slice(before.length)));
   } else {
-    rows.trace.push({ path, verb: "set", ...prov });
+    rows.trace.push({ path: path2, verb: "set", ...prov });
     nativeSet(rows.overwrite, segments3, structuredClone(value));
   }
 }
@@ -10232,28 +10232,28 @@ var TransactionBuffer = class {
     return op;
   }
   /** Stage an op into `opTrace`, counting what decides whether {@link admit} must fold. */
-  stage(path, key, verb) {
+  stage(path2, key, verb) {
     if (verb === "merge")
       this.stagedMerges++;
-    if (path.length - addressDepthOf(path, this.address) > 1)
+    if (path2.length - addressDepthOf(path2, this.address) > 1)
       this.nestedOps++;
-    this.sourceStaging?.write(path, verb, this.redactedPaths.has(key));
+    this.sourceStaging?.write(path2, verb, this.redactedPaths.has(key));
     this.opTrace.push(this.stampReadKeys({ path: key, verb }));
   }
   /**
    * Hard overwrite at the specified path. Stores the REFERENCE in both trees
    * (9.23.0) — the record's copy is taken once, at commit; see the header.
    */
-  set(path, value, shouldRedact = false) {
+  set(path2, value, shouldRedact = false) {
     const source = this.sourceStaging;
     source?.beginMutation();
     let succeeded = false;
     try {
-      const key = normalisePath(path);
-      this.detachHeldAncestors(path);
-      ownSpine(this.workingCopy, path, this.owned);
-      nativeSet(this.workingCopy, path, value);
-      nativeSet(this.overwritePatch, path, value);
+      const key = normalisePath(path2);
+      this.detachHeldAncestors(path2);
+      ownSpine(this.workingCopy, path2, this.owned);
+      nativeSet(this.workingCopy, path2, value);
+      nativeSet(this.overwritePatch, path2, value);
       if (isContainer(value)) {
         this.heldRefs.add(key);
         this.staged.add(value);
@@ -10263,7 +10263,7 @@ var TransactionBuffer = class {
       if (shouldRedact) {
         this.redactedPaths.add(key);
       }
-      this.stage(path, key, "set");
+      this.stage(path2, key, "set");
       succeeded = true;
     } finally {
       source?.endMutation(succeeded);
@@ -10283,11 +10283,11 @@ var TransactionBuffer = class {
    * (the scope proxy writes ROOT keys). `workingCopy` keeps the reference,
    * as it always did.
    */
-  detachHeldAncestors(path) {
+  detachHeldAncestors(path2) {
     if (this.heldRefs.size === 0)
       return;
-    for (let i = 1; i < path.length; i++) {
-      const ancestor = path.slice(0, i);
+    for (let i = 1; i < path2.length; i++) {
+      const ancestor = path2.slice(0, i);
       const key = normalisePath(ancestor);
       if (!this.heldRefs.has(key))
         continue;
@@ -10313,21 +10313,21 @@ var TransactionBuffer = class {
    * lacks the key, deleting an absent key inside a container the stage also
    * re-wrote is the no-op it is, not a `set` of the whole container.
    */
-  delete(path, shouldRedact = false) {
+  delete(path2, shouldRedact = false) {
     const source = this.sourceStaging;
     source?.beginMutation();
     let succeeded = false;
     try {
-      const key = normalisePath(path);
-      this.detachHeldAncestors(path);
-      ownSpine(this.workingCopy, path, this.owned);
-      nativeSet(this.workingCopy, path, void 0);
-      nativeSet(this.overwritePatch, path, void 0);
+      const key = normalisePath(path2);
+      this.detachHeldAncestors(path2);
+      ownSpine(this.workingCopy, path2, this.owned);
+      nativeSet(this.workingCopy, path2, void 0);
+      nativeSet(this.overwritePatch, path2, void 0);
       this.heldRefs.delete(key);
       if (shouldRedact) {
         this.redactedPaths.add(key);
       }
-      this.stage(path, key, "delete");
+      this.stage(path2, key, "delete");
       succeeded = true;
     } finally {
       source?.endMutation(succeeded);
@@ -10344,26 +10344,26 @@ var TransactionBuffer = class {
    *  the base holds — a committed array would dedup an element the stage
    *  read from it before its first write, where the private copy (and
    *  9.28.0) appends it. */
-  merge(path, value, shouldRedact = false) {
+  merge(path2, value, shouldRedact = false) {
     const source = this.sourceStaging;
     source?.beginMutation();
     let succeeded = false;
     try {
-      const key = normalisePath(path);
-      this.detachHeldAncestors(path);
-      this.privatise(path);
-      const existing = nativeGet(this.workingCopy, path) ?? {};
+      const key = normalisePath(path2);
+      this.detachHeldAncestors(path2);
+      this.privatise(path2);
+      const existing = nativeGet(this.workingCopy, path2) ?? {};
       const merged = deepSmartMerge(existing, value);
-      ownSpine(this.workingCopy, path, this.owned);
+      ownSpine(this.workingCopy, path2, this.owned);
       own(merged, this.owned);
       if (isContainer(merged))
         this.privateTrees.add(merged);
-      nativeSet(this.workingCopy, path, merged);
-      nativeSet(this.updatePatch, path, deepSmartMerge(nativeGet(this.updatePatch, path) ?? {}, value));
+      nativeSet(this.workingCopy, path2, merged);
+      nativeSet(this.updatePatch, path2, deepSmartMerge(nativeGet(this.updatePatch, path2) ?? {}, value));
       if (shouldRedact) {
         this.redactedPaths.add(key);
       }
-      this.stage(path, key, "merge");
+      this.stage(path2, key, "merge");
       succeeded = true;
     } finally {
       source?.endMutation(succeeded);
@@ -10378,13 +10378,13 @@ var TransactionBuffer = class {
    * Marked paths survive commit only while the op path they sit under does
    * (see {@link survivingRedactedPaths}).
    */
-  markRedactedFields(path, fields3) {
+  markRedactedFields(path2, fields3) {
     if (fields3.length)
-      this.sourceStaging?.redact(path);
+      this.sourceStaging?.redact(path2);
     for (const field of fields3) {
-      this.redactedPaths.add(normalisePath([...path, field]));
+      this.redactedPaths.add(normalisePath([...path2, field]));
       if (field.includes("."))
-        this.redactedPaths.add(normalisePath([...path, ...field.split(".")]));
+        this.redactedPaths.add(normalisePath([...path2, ...field.split(".")]));
     }
   }
   /**
@@ -10394,8 +10394,8 @@ var TransactionBuffer = class {
    * A mark by NAME below an array (`obj.y`) means the same thing on the tail
    * as on the whole value, so the compact row stays (byte-identical).
    */
-  markedBelow(path) {
-    const prefix = path + DELIM;
+  markedBelow(path2) {
+    const prefix = path2 + DELIM;
     for (const marked of this.redactedPaths) {
       if (!marked.startsWith(prefix))
         continue;
@@ -10412,14 +10412,14 @@ var TransactionBuffer = class {
    */
   survivingRedactedPaths(survivingPaths) {
     const out = /* @__PURE__ */ new Set();
-    for (const path of this.redactedPaths) {
-      if (survivingPaths.has(path)) {
-        out.add(path);
+    for (const path2 of this.redactedPaths) {
+      if (survivingPaths.has(path2)) {
+        out.add(path2);
         continue;
       }
       for (const op of survivingPaths) {
-        if (path.startsWith(op + DELIM)) {
-          out.add(path);
+        if (path2.startsWith(op + DELIM)) {
+          out.add(path2);
           break;
         }
       }
@@ -10431,17 +10431,17 @@ var TransactionBuffer = class {
    * the stage's own — private to it, as the whole-state clone made every read
    * after the first write before 9.29.0 (`privatise`).
    */
-  get(path, defaultValue, observation) {
-    this.privatise(path);
-    return nativeGet(this.workingCopy, path, defaultValue, observation);
+  get(path2, defaultValue, observation) {
+    this.privatise(path2);
+    return nativeGet(this.workingCopy, path2, defaultValue, observation);
   }
   /**
    * Read the working copy at `path` WITHOUT taking a private copy — for a
    * reader that only compares (the dev-mode borrowed-mutation report in
    * `StageContext.commit`), never for a value handed to a stage.
    */
-  peek(path) {
-    return nativeGet(this.workingCopy, path);
+  peek(path2) {
+    return nativeGet(this.workingCopy, path2);
   }
   /**
    * Keep the diff base exact under a read the working copy cannot answer.
@@ -10472,11 +10472,11 @@ var TransactionBuffer = class {
    * twice: a path at or below an earlier detach is already private. O(path)
    * otherwise, plus O(value) once per detached path.
    */
-  detachBase(path) {
-    if (path.length === 0 || !isContainer(this.baseSnapshot))
+  detachBase(path2) {
+    if (path2.length === 0 || !isContainer(this.baseSnapshot))
       return;
     let at = this.baseSnapshot;
-    for (const k of path) {
+    for (const k of path2) {
       if (this.detachedBase?.has(at))
         return;
       const child = ownChild(at, k);
@@ -10489,10 +10489,10 @@ var TransactionBuffer = class {
     const owned = this.baseOwned ??= /* @__PURE__ */ new WeakSet();
     if (!owned.has(this.baseSnapshot))
       this.baseSnapshot = ownedRootOf(this.baseSnapshot, owned);
-    ownSpine(this.baseSnapshot, path, owned);
+    ownSpine(this.baseSnapshot, path2, owned);
     const copy = structuredClone(at);
     (this.detachedBase ??= /* @__PURE__ */ new WeakSet()).add(copy);
-    nativeSet(this.baseSnapshot, path, copy);
+    nativeSet(this.baseSnapshot, path2, copy);
   }
   /**
    * Private reads (9.29.0): make the value at `path` the stage's own before
@@ -10520,12 +10520,12 @@ var TransactionBuffer = class {
    * reads after its first write. A stage that never reads after writing pays
    * nothing; a read before the first write never reaches the buffer.
    */
-  privatise(path) {
-    if (path.length === 0)
+  privatise(path2) {
+    if (path2.length === 0)
       return;
     const chain = [];
     let at = this.workingCopy;
-    for (const k of path) {
+    for (const k of path2) {
       at = ownChild(at, k);
       if (!isContainer(at))
         return;
@@ -10533,14 +10533,14 @@ var TransactionBuffer = class {
     }
     let parent = this.workingCopy;
     let base = this.baseSnapshot;
-    for (let i = 0; i < path.length; i++) {
-      const k = path[i];
+    for (let i = 0; i < path2.length; i++) {
+      const k = path2[i];
       const atBase = ownChild(base, k);
       let value = chain[i];
       if (!this.owned.has(value)) {
         if (value !== atBase || this.staged.has(value))
           return;
-        if (i === path.length - 1) {
+        if (i === path2.length - 1) {
           putOwn(parent, k, this.privateCopyOf(value));
           return;
         }
@@ -10597,8 +10597,8 @@ var TransactionBuffer = class {
    * `outputMapper` merge-back, the resume re-seed). Dev-mode only — nothing on
    * the hot path calls it.
    */
-  wasStaged(path) {
-    const target = normalisePath(path);
+  wasStaged(path2) {
+    const target = normalisePath(path2);
     for (const op of this.opTrace) {
       if (relation(op.path, target) !== void 0)
         return true;
@@ -10796,26 +10796,26 @@ var TransactionBuffer = class {
   deltaRows(lossy, fullValueAt) {
     const rows = { overwrite: {}, updates: {}, trace: [] };
     const { overwrite, updates, trace } = rows;
-    const inLossy = (path) => lossy?.families.has(lossy.rootOf.get(path)) === true;
+    const inLossy = (path2) => lossy?.families.has(lossy.rootOf.get(path2)) === true;
     const survivors = this.netChangeSurvivors(this.opsByPath()).filter((s) => !inLossy(s.path));
     const { rootOf: rootOf2, byRoot } = groupIntoFamilies(survivors, new Set(survivors.map((s) => s.path)));
     const emit = (s) => {
-      const { path, segments: segments3, verbs, before } = s;
+      const { path: path2, segments: segments3, verbs, before } = s;
       const prov = provenance(s.readKeys);
-      if (byRoot.get(rootOf2.get(path)).length > 1) {
-        trace.push({ path, verb: "set", ...prov });
+      if (byRoot.get(rootOf2.get(path2)).length > 1) {
+        trace.push({ path: path2, verb: "set", ...prov });
         nativeSet(overwrite, segments3, structuredClone(fullValueAt(segments3)));
         return;
       }
       const lastVerb = verbs[verbs.length - 1];
       if (lastVerb === "delete" && s.after === void 0 && this.deleteReplaysAsFlattening(segments3)) {
-        trace.push({ path, verb: "delete", ...prov });
+        trace.push({ path: path2, verb: "delete", ...prov });
         nativeSet(overwrite, segments3, void 0);
       } else if (verbs.every((v) => v === "merge")) {
-        trace.push({ path, verb: "merge", ...prov });
+        trace.push({ path: path2, verb: "merge", ...prov });
         nativeSet(updates, segments3, structuredClone(nativeGet(this.updatePatch, segments3)));
       } else {
-        pushValueRow(rows, path, segments3, before, fullValueAt(segments3), prov, this.markedBelow(path));
+        pushValueRow(rows, path2, segments3, before, fullValueAt(segments3), prov, this.markedBelow(path2));
       }
     };
     const pending = lossy === void 0 ? [] : [...lossy.families.values()].sort((a, b) => a.slot - b.slot);
@@ -10966,13 +10966,13 @@ var TransactionBuffer = class {
   /** The net-change filter — identical to 'full' ({@link changedSinceBase}). Survivors keep last-touch order. */
   netChangeSurvivors(byPath) {
     const survivors = [];
-    for (const [path, { verbs, readKeys, last }] of byPath) {
-      const segments3 = path.split(DELIM);
+    for (const [path2, { verbs, readKeys, last }] of byPath) {
+      const segments3 = path2.split(DELIM);
       if (!this.changedSinceBase(segments3))
         continue;
       const before = nativeGet(this.baseSnapshot, segments3);
       const after = nativeGet(this.workingCopy, segments3);
-      survivors.push({ path, segments: segments3, verbs, readKeys, last, before, after });
+      survivors.push({ path: path2, segments: segments3, verbs, readKeys, last, before, after });
     }
     return survivors;
   }
@@ -11057,15 +11057,15 @@ var RecordFrame = class {
     this._mirror = mirror;
   }
   /** The absolute path of `key` under `path`: the frame's address, then the path, then the key. */
-  at(path, key) {
+  at(path2, key) {
     const address = this._address;
     if (address.length === 0)
-      return [...path, key];
-    const out = new Array(address.length + path.length + 1);
+      return [...path2, key];
+    const out = new Array(address.length + path2.length + 1);
     for (let i = 0; i < address.length; i++)
       out[i] = address[i];
-    for (let i = 0; i < path.length; i++)
-      out[address.length + i] = path[i];
+    for (let i = 0; i < path2.length; i++)
+      out[address.length + i] = path2[i];
     out[out.length - 1] = key;
     return out;
   }
@@ -11165,17 +11165,17 @@ var RecordFrame = class {
    * (`scrub.ts`). Live state takes the value as it is. A path marked by a write that the net-change
    * filter drops goes with it.
    */
-  write(path, value, verb, scrub) {
+  write(path2, value, verb, scrub) {
     const buffer = this.getTransactionBuffer();
     const whole = scrub?.whole === true;
     if (verb === "merge")
-      buffer.merge(path, value, whole);
+      buffer.merge(path2, value, whole);
     else if (verb === "delete")
-      buffer.delete(path, whole);
+      buffer.delete(path2, whole);
     else
-      buffer.set(path, value, whole);
+      buffer.set(path2, value, whole);
     if (scrub?.fields !== void 0)
-      buffer.markRedactedFields(path, scrub.fields);
+      buffer.markRedactedFields(path2, scrub.fields);
   }
   /** Has the frame staged a write since its last release — does its buffer exist? */
   get hasStaged() {
@@ -11198,13 +11198,13 @@ var RecordFrame = class {
    * Reads never construct the buffer (#13): a frame that never writes performs zero clones of the
    * shared state.
    */
-  read(path, key) {
-    return this.readValue(path, key);
+  read(path2, key) {
+    return this.readValue(path2, key);
   }
   /** One native read plus a bounded value-free descriptor. Existing string verdicts are unchanged.
    * An optional value-free verdict runs synchronously AFTER the read, once, even without capture.
    * Its exception is the caller's exception; collector failure must never swallow or replay it. */
-  readWithSource(path, key, owner, privacy = "visible") {
+  readWithSource(path2, key, owner, privacy = "visible") {
     const bound = captureFor(this.state);
     const capture2 = bound && bound === captureFor(this.log) ? bound : void 0;
     const ordinal = capture2?.begin(this.#sourceFrame?.clock);
@@ -11226,19 +11226,19 @@ var RecordFrame = class {
       try {
         this.firstTouch();
         frame = this.#sourceFrame;
-        value = this.readValue(path, key, capture2 ? observation : void 0);
+        value = this.readValue(path2, key, capture2 ? observation : void 0);
       } catch (error) {
         capture2?.poison();
         throw error;
       }
       try {
         selected = [...observation.selectedAddress ?? this._address];
-        rootKey = path.length ? path[0] : key;
+        rootKey = path2.length ? path2[0] : key;
         if (capture2) {
           if (selected.length > 64 || typeof rootKey !== "string" || rootKey.length > 1024)
             capture2.gap("budget-exhausted");
           else
-            source = capture2.select(frame, [...selected, rootKey], value, observation.dataOnly, observation.live === true, "visible", path.length !== 0);
+            source = capture2.select(frame, [...selected, rootKey], value, observation.dataOnly, observation.live === true, "visible", path2.length !== 0);
         }
       } catch {
         capture2?.poison();
@@ -11260,22 +11260,22 @@ var RecordFrame = class {
       capture2?.finish(ordinal);
     }
   }
-  readValue(path, key, observation) {
-    const at = this.at(path, key);
+  readValue(path2, key, observation) {
+    const at = this.at(path2, key);
     const fromSnapshot = this.buffer ? this.buffer.get(at, void 0, observation) : nativeGet(this.firstTouch(), at, void 0, observation);
     if (typeof fromSnapshot !== "undefined")
       return fromSnapshot;
     if (observation)
       observation.live = true;
-    const live = this.state.getValue(this._address, path, key, observation);
+    const live = this.state.getValue(this._address, path2, key, observation);
     if (this.buffer && live !== null && typeof live === "object")
       this.buffer.detachBase(at);
     return live;
   }
   /** Put a tracked read's user-level key on the readKeys list (law 5) — a no-op unless the frame keeps one. */
-  noteRead(path, key) {
+  noteRead(path2, key) {
     if (this.encoding?.writeProvenance === "reads-prefix") {
-      (this.readKeys ??= /* @__PURE__ */ new Set()).add(path.length > 0 ? [...path, key].join(".") : key);
+      (this.readKeys ??= /* @__PURE__ */ new Set()).add(path2.length > 0 ? [...path2, key].join(".") : key);
     }
   }
   /**
@@ -11290,19 +11290,19 @@ var RecordFrame = class {
     return this.state.getValue([], [], key);
   }
   /** Did a staged op touch `path` — on it, above it or below it? (A report's question; never the hot path.) */
-  wasStaged(path) {
-    return this.buffer !== void 0 && this.buffer.wasStaged(path);
+  wasStaged(path2) {
+    return this.buffer !== void 0 && this.buffer.wasStaged(path2);
   }
   /**
    * The value at `path` in what the stage has seen — its working copy once it wrote, else its
    * first-touch base — WITHOUT taking a private copy: for a report that only compares.
    */
-  peek(path) {
-    return this.buffer ? this.buffer.peek(path) : nativeGet(this.firstTouch(), path);
+  peek(path2) {
+    return this.buffer ? this.buffer.peek(path2) : nativeGet(this.firstTouch(), path2);
   }
   /** The value at `path` in the first-touch base — committed state as the frame first touched it. */
-  baseAt(path) {
-    return nativeGet(this.firstTouch(), path);
+  baseAt(path2) {
+    return nativeGet(this.firstTouch(), path2);
   }
   /**
    * Record what the frame staged (law 6): the buffer's payload first — none, the empty commit, when
@@ -11441,7 +11441,7 @@ var OriginIndex = class {
       this.put([...address, key], Object.hasOwn(slot, "value") ? { kind: "base", base: this.base } : unavailable("untracked-write"), 0);
     }
   }
-  write(path, source) {
+  write(path2, source) {
     if (this.tick >= Number.MAX_SAFE_INTEGER - 1) {
       this.fail("budget-exhausted");
       return;
@@ -11449,37 +11449,37 @@ var OriginIndex = class {
     this.tick++;
     if (this.lostAt !== Infinity)
       return;
-    if (path.length > 64) {
+    if (path2.length > 64) {
       this.fail("budget-exhausted");
       return;
     }
     try {
-      for (const part of path)
+      for (const part of path2)
         sourceKey(part);
     } catch {
       this.fail("budget-exhausted");
       return;
     }
-    for (let depth = 0; depth < path.length; depth++) {
-      if (!this.seeded.has(JSON.stringify(path.slice(0, depth))))
+    for (let depth = 0; depth < path2.length; depth++) {
+      if (!this.seeded.has(JSON.stringify(path2.slice(0, depth))))
         continue;
-      this.put(path.slice(0, depth + 1), depth + 1 === path.length ? source : unavailable("composite-unsupported"), this.tick, depth + 1 === path.length);
+      this.put(path2.slice(0, depth + 1), depth + 1 === path2.length ? source : unavailable("composite-unsupported"), this.tick, depth + 1 === path2.length);
     }
     for (const tuple of this.seeded) {
       const namespace = JSON.parse(tuple);
-      if (namespace.length >= path.length && path.every((part, index) => namespace[index] === part)) {
+      if (namespace.length >= path2.length && path2.every((part, index) => namespace[index] === part)) {
         this.put(namespace, source.kind === "unavailable" ? source : unavailable("composite-unsupported"), this.tick);
       }
     }
   }
-  put(path, source, at, shadowsDescendants = true) {
+  put(path2, source, at, shadowsDescendants = true) {
     if (this.lostAt !== Infinity)
       return;
     if (this.retained >= this.maximum) {
       this.fail("budget-exhausted");
       return;
     }
-    const key = JSON.stringify(path);
+    const key = JSON.stringify(path2);
     let versions = this.entries.get(key);
     if (at === 0 && versions?.[0]?.at === 0)
       return;
@@ -11516,12 +11516,12 @@ var OriginIndex = class {
         versions.splice(0, keep);
     }
   }
-  resolve(path, clock) {
+  resolve(path2, clock) {
     if (clock >= this.lostAt)
       return unavailable(this.loss);
     let latest;
-    for (let depth = 1; depth <= path.length; depth++) {
-      const versions = this.entries.get(JSON.stringify(path.slice(0, depth)));
+    for (let depth = 1; depth <= path2.length; depth++) {
+      const versions = this.entries.get(JSON.stringify(path2.slice(0, depth)));
       if (!versions)
         continue;
       let lo = 0, hi = versions.length;
@@ -11533,10 +11533,10 @@ var OriginIndex = class {
           hi = middle;
       }
       const version = versions[lo - 1];
-      const candidate = depth === path.length ? version : version?.barrier;
+      const candidate = depth === path2.length ? version : version?.barrier;
       if (candidate && (!latest || candidate.at > latest.at || candidate.at === latest.at && !(latest.at === 0 && latest.source.kind === "unavailable" && candidate.source.kind === "base")))
         latest = candidate;
-      if (depth === path.length && candidate && candidate === latest)
+      if (depth === path2.length && candidate && candidate === latest)
         return candidate.source;
     }
     return latest?.source.kind === "unavailable" ? latest.source : latest ? unavailable("composite-unsupported") : unavailable("untracked-write");
@@ -11573,19 +11573,19 @@ var SourceStaging = class {
     this.address = address;
     this.release = release;
   }
-  rootPath(path) {
-    const under = this.address.every((part, index) => path[index] === part);
-    return path.slice(0, under ? this.address.length + 1 : Math.min(path.length, 1));
+  rootPath(path2) {
+    const under = this.address.every((part, index) => path2[index] === part);
+    return path2.slice(0, under ? this.address.length + 1 : Math.min(path2.length, 1));
   }
-  write(path, verb, redacted) {
+  write(path2, verb, redacted) {
     if (this.closed)
       return;
-    if (path.length > 64 || path.some((part) => typeof part !== "string" && typeof part !== "number" || String(part).length > 1024)) {
+    if (path2.length > 64 || path2.some((part) => typeof part !== "string" && typeof part !== "number" || String(part).length > 1024)) {
       this.lost = "budget-exhausted";
       return;
     }
-    const root = this.rootPath(path);
-    const nested = root.length !== path.length;
+    const root = this.rootPath(path2);
+    const nested = root.length !== path2.length;
     const key = JSON.stringify(root.map(String));
     const bytes = sourceBytes(key) + 128;
     const generation = this.generation(bytes, this.entries.get(key)?.bytes);
@@ -11610,24 +11610,24 @@ var SourceStaging = class {
     this.release(this.entries.size, bytes);
     this.entries.clear();
   }
-  redact(path) {
-    const entry = this.entries.get(JSON.stringify(this.rootPath(path).map(String)));
+  redact(path2) {
+    const entry = this.entries.get(JSON.stringify(this.rootPath(path2).map(String)));
     if (entry)
       entry.source = { kind: "unavailable", reason: "redacted" };
   }
-  resolve(path) {
+  resolve(path2) {
     if (this.closed)
       return { kind: "unavailable", reason: "scope-retired" };
     if (this.lost || this.pending)
       return { kind: "unavailable", reason: this.lost ?? "capture-failed" };
     let latest;
-    for (let depth = 1; depth <= path.length; depth++) {
-      const entry = this.entries.get(JSON.stringify(path.slice(0, depth)));
+    for (let depth = 1; depth <= path2.length; depth++) {
+      const entry = this.entries.get(JSON.stringify(path2.slice(0, depth)));
       if (entry?.source.kind === "unavailable" && entry.source.reason === "redacted")
         return entry.source;
       if (entry && (!latest || entry.generation >= latest.generation))
         latest = entry;
-      if (depth === path.length && latest === entry && entry)
+      if (depth === path2.length && latest === entry && entry)
         return entry.source;
     }
     return latest ? { kind: "unavailable", reason: "composite-unsupported" } : void 0;
@@ -11635,14 +11635,14 @@ var SourceStaging = class {
 };
 
 // node_modules/foottrace/dist/esm/lib/read-sources/commitFacts.js
-function segments2(path) {
-  if (typeof path !== "string" || path.length > 64 * 1024)
+function segments2(path2) {
+  if (typeof path2 !== "string" || path2.length > 64 * 1024)
     throw new RangeError();
   let count3 = 1;
-  for (let index = 0; index < path.length; index++)
-    if (path[index] === DELIM && ++count3 > 64)
+  for (let index = 0; index < path2.length; index++)
+    if (path2[index] === DELIM && ++count3 > 64)
       throw new RangeError();
-  return pathSegments(path);
+  return pathSegments(path2);
 }
 function invalidateOrigins(index, trace, maximum) {
   if (index.lost)
@@ -11670,31 +11670,31 @@ function confirmOrigins(index, trace, redacted, commitIdx, maximum) {
   const ancestors = /* @__PURE__ */ new Set();
   try {
     for (const mark of redacted) {
-      const path = segments2(mark);
-      ancestors.add(JSON.stringify(path));
-      for (let depth = 1; depth <= path.length; depth++) {
+      const path2 = segments2(mark);
+      ancestors.add(JSON.stringify(path2));
+      for (let depth = 1; depth <= path2.length; depth++) {
         if (++work > maximum) {
           index.fail("budget-exhausted");
           return;
         }
-        hidden.add(JSON.stringify(path.slice(0, depth)));
+        hidden.add(JSON.stringify(path2.slice(0, depth)));
       }
     }
     for (const row of trace) {
-      const path = segments2(row.path);
-      let redacted2 = hidden.has(JSON.stringify(path));
+      const path2 = segments2(row.path);
+      let redacted2 = hidden.has(JSON.stringify(path2));
       if (ancestors.size && !redacted2)
-        for (let depth = 1; depth < path.length; depth++) {
+        for (let depth = 1; depth < path2.length; depth++) {
           if (++work > maximum) {
             index.fail("budget-exhausted");
             return;
           }
-          if (ancestors.has(JSON.stringify(path.slice(0, depth)))) {
+          if (ancestors.has(JSON.stringify(path2.slice(0, depth)))) {
             redacted2 = true;
             break;
           }
         }
-      index.write(path, redacted2 ? { kind: "unavailable", reason: "redacted" } : { kind: "committed", commitIdx });
+      index.write(path2, redacted2 ? { kind: "unavailable", reason: "redacted" } : { kind: "committed", commitIdx });
     }
   } catch {
     index.fail("capture-failed");
@@ -11802,17 +11802,17 @@ var ReadSourceCapture = class {
     this.index.fail("capture-failed");
     this.gap("capture-failed", false);
   }
-  invalidate(path) {
+  invalidate(path2) {
     try {
-      if (path.length > 64) {
+      if (path2.length > 64) {
         this.index.fail("budget-exhausted");
         return;
       }
-      if (path.some((part) => typeof part !== "string" && typeof part !== "number")) {
+      if (path2.some((part) => typeof part !== "string" && typeof part !== "number")) {
         this.poison();
         return;
       }
-      this.index.write(path.map(String), { kind: "unavailable", reason: "untracked-write" });
+      this.index.write(path2.map(String), { kind: "unavailable", reason: "untracked-write" });
     } catch {
       this.poison();
     }
@@ -11825,7 +11825,7 @@ var ReadSourceCapture = class {
       return;
     confirmOrigins(this.index, trace, redacted, commitIdx, this.limits.maxOrigins);
   }
-  select(frame, path, value, dataOnly, live, privacy, nested) {
+  select(frame, path2, value, dataOnly, live, privacy, nested) {
     if (this.stopped)
       return { kind: "unavailable", reason: "scope-retired" };
     if (privacy !== "visible" && privacy !== "redacted")
@@ -11834,13 +11834,13 @@ var ReadSourceCapture = class {
       return { kind: "unavailable", reason: "redacted" };
     if (!dataOnly)
       return { kind: "unavailable", reason: "untracked-write" };
-    if (nested || path.some((part) => part.includes(DELIM)) || value !== null && typeof value === "object" || typeof value === "function" || typeof value === "symbol")
+    if (nested || path2.some((part) => part.includes(DELIM)) || value !== null && typeof value === "object" || typeof value === "function" || typeof value === "symbol")
       return { kind: "unavailable", reason: "composite-unsupported" };
     if (value === void 0)
       return { kind: "unavailable", reason: "undefined-presence-unknown" };
     if (!frame)
       return { kind: "unavailable", reason: this.failed ? "capture-failed" : "budget-exhausted" };
-    return !live && frame.staging.resolve(path) || this.index.resolve(path, live ? this.clock : frame.clock);
+    return !live && frame.staging.resolve(path2) || this.index.resolve(path2, live ? this.clock : frame.clock);
   }
   /** Reserve before the actual read: accessors may start another read synchronously. */
   begin(clock = this.clock) {
@@ -12352,16 +12352,16 @@ var EngineReadSourceCapture = class {
     if (this.sealed && !redact)
       return this.sealed;
     const gaps = new Set(this.gaps);
-    const record = this.book?.snapshot();
-    const status = readSourceStatus(record, gaps.size);
+    const record2 = this.book?.snapshot();
+    const status = readSourceStatus(record2, gaps.size);
     return Object.freeze({
-      ...record && this.ownership ? { version: 2, ownership: this.ownership.snapshot(to, record.segment) } : { version: 1 },
+      ...record2 && this.ownership ? { version: 2, ownership: this.ownership.snapshot(to, record2.segment) } : { version: 1 },
       runId: this.runId,
       persistence: "memory-only",
       commits: Object.freeze({ from: this.from, to }),
       status,
       limitations: Object.freeze([...gaps]),
-      ...record && { record }
+      ...record2 && { record: record2 }
     });
   }
 };
@@ -12373,8 +12373,8 @@ function withReadSources(note, sources) {
     limitations: Object.freeze(note.limitations.filter((gap) => gap !== "read-sources-not-collected"))
   });
 }
-function readSourceStatus(record, limitations) {
-  return !record ? "unknown" : record.status === "failed" ? "failed" : record.status !== "captured" || limitations > 0 ? "partial" : "captured";
+function readSourceStatus(record2, limitations) {
+  return !record2 ? "unknown" : record2.status === "failed" ? "failed" : record2.status !== "captured" || limitations > 0 ? "partial" : "captured";
 }
 function redactReadSources(source) {
   return Object.freeze({
@@ -12571,8 +12571,8 @@ var SubflowExecutor = class {
     const mountRuntimeStageId = parentTraversalContext?.runtimeStageId;
     const parentLogAddress = this.deps.executionRuntime.executionHistory.address;
     const sourceAddress2 = policy.readSources ? childLogAddress(parentLogAddress, mountRuntimeStageId) : void 0;
-    const record = mountRuntimeStageId === void 0 ? void 0 : this.deps.executionRuntime.recordFor?.(mountRuntimeStageId, { subflowId });
-    const nestedRuntime = new ExecutionRuntimeClass(firstNode.name, firstNode.id, void 0, void 0, policy, record, parentTraversalContext?.runId ? {
+    const record2 = mountRuntimeStageId === void 0 ? void 0 : this.deps.executionRuntime.recordFor?.(mountRuntimeStageId, { subflowId });
+    const nestedRuntime = new ExecutionRuntimeClass(firstNode.name, firstNode.id, void 0, void 0, policy, record2, parentTraversalContext?.runId ? {
       runId: parentTraversalContext.runId,
       ...sourceAddress2 ? { address: sourceAddress2 } : { unavailable: "child-source-ownership" },
       ...isResumeForThisSubflow && { historyOmitted: true }
@@ -12898,13 +12898,13 @@ var FlowRecorderDispatcher = class {
     const event = { stageName, message: errorMessage, structuredError, traversalContext, channel: "flow" };
     fire(this.recorders, "onError", event, FLOW_FAILURE);
   }
-  onAttempt(stageName, stageId, record, structuredError, traversalContext) {
+  onAttempt(stageName, stageId, record2, structuredError, traversalContext) {
     if (this.recorders.length === 0)
       return;
     const event = {
       stageName,
       stageId,
-      record,
+      record: record2,
       ...structuredError !== void 0 && { structuredError },
       traversalContext,
       channel: "flow"
@@ -13017,8 +13017,8 @@ function resumeSentence(ctx) {
 }
 function validationDetails(issues) {
   return issues.map((issue) => {
-    const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
-    return `${path}: ${issue.message}`;
+    const path2 = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+    return `${path2}: ${issue.message}`;
   }).join("; ");
 }
 function errorSentence(ctx) {
@@ -13027,34 +13027,34 @@ function errorSentence(ctx) {
 function validationSentence(details) {
   return ` Validation issues: ${details}.`;
 }
-function isAttemptTold(record) {
-  return record.kind !== "stage" || record.of !== 1 || record.outcome !== "ok" && record.outcome !== "paused";
+function isAttemptTold(record2) {
+  return record2.kind !== "stage" || record2.of !== 1 || record2.outcome !== "ok" && record2.outcome !== "paused";
 }
-function attemptSentence(stageName, record) {
-  if (record.kind === "call")
-    return callSentence(record);
-  if (record.kind === "observed")
-    return observedSentence(record);
-  const ceiling = record.of !== void 0 ? ` of ${record.of}` : "";
-  return `Attempt ${record.attempt}${ceiling} at ${stageName} ${attemptOutcome(record)}${effectClause(record)}${attemptDecision(record)}.`;
+function attemptSentence(stageName, record2) {
+  if (record2.kind === "call")
+    return callSentence(record2);
+  if (record2.kind === "observed")
+    return observedSentence(record2);
+  const ceiling = record2.of !== void 0 ? ` of ${record2.of}` : "";
+  return `Attempt ${record2.attempt}${ceiling} at ${stageName} ${attemptOutcome(record2)}${effectClause(record2)}${attemptDecision(record2)}.`;
 }
-function callSentence(record) {
-  const target = record.target ?? "call";
-  if (record.of === 1) {
-    const decision = record.reason === "exhausted" ? "" : attemptDecision(record);
-    return `Call ${target} ${attemptOutcome(record)}${effectClause(record)}${decision}.`;
+function callSentence(record2) {
+  const target = record2.target ?? "call";
+  if (record2.of === 1) {
+    const decision = record2.reason === "exhausted" ? "" : attemptDecision(record2);
+    return `Call ${target} ${attemptOutcome(record2)}${effectClause(record2)}${decision}.`;
   }
-  const ceiling = record.of !== void 0 ? ` of ${record.of}` : "";
-  return `Call ${target}, attempt ${record.attempt}${ceiling}, ${attemptOutcome(record)}${effectClause(record)}${attemptDecision(record)}.`;
+  const ceiling = record2.of !== void 0 ? ` of ${record2.of}` : "";
+  return `Call ${target}, attempt ${record2.attempt}${ceiling}, ${attemptOutcome(record2)}${effectClause(record2)}${attemptDecision(record2)}.`;
 }
-function observedSentence(record) {
-  const who = record.source === void 0 || record.source === "sdk" ? `the ${record.target ?? "outside"} SDK` : `${record.target ?? "outside"} (${record.source})`;
-  const ceiling = record.of !== void 0 ? ` of ${record.of}` : "";
-  return `Observed: ${who} made attempt ${record.attempt}${ceiling}, ${attemptOutcome(record)}.`;
+function observedSentence(record2) {
+  const who = record2.source === void 0 || record2.source === "sdk" ? `the ${record2.target ?? "outside"} SDK` : `${record2.target ?? "outside"} (${record2.source})`;
+  const ceiling = record2.of !== void 0 ? ` of ${record2.of}` : "";
+  return `Observed: ${who} made attempt ${record2.attempt}${ceiling}, ${attemptOutcome(record2)}.`;
 }
-function attemptOutcome(record) {
-  const took = formatDuration(record.durationMs);
-  switch (record.outcome) {
+function attemptOutcome(record2) {
+  const took = formatDuration(record2.durationMs);
+  switch (record2.outcome) {
     case "ok":
       return `succeeded in ${took}`;
     case "timeout":
@@ -13062,45 +13062,45 @@ function attemptOutcome(record) {
     case "paused":
       return `paused after ${took}`;
     case "aborted":
-      return `was aborted after ${took}${record.error ? ` (${record.error.message})` : ""}`;
+      return `was aborted after ${took}${record2.error ? ` (${record2.error.message})` : ""}`;
     default:
-      return `failed in ${took}${attemptCause(record)}`;
+      return `failed in ${took}${attemptCause(record2)}`;
   }
 }
-function effectClause(record) {
-  return record.effect === "unknown" && record.system !== void 0 ? `, effect on ${record.system} unknown` : "";
+function effectClause(record2) {
+  return record2.effect === "unknown" && record2.system !== void 0 ? `, effect on ${record2.system} unknown` : "";
 }
-function attemptCause(record) {
-  if (!record.error)
+function attemptCause(record2) {
+  if (!record2.error)
     return "";
-  const category = record.category && record.category !== "unknown" ? `${record.category}: ` : "";
-  return ` (${category}${record.error.message})`;
+  const category = record2.category && record2.category !== "unknown" ? `${record2.category}: ` : "";
+  return ` (${category}${record2.error.message})`;
 }
-function attemptDecision(record) {
-  if (record.next === "retry") {
-    const left = record.timeLeftMs !== void 0 ? ` (${formatDuration(Math.max(0, record.timeLeftMs))} left)` : "";
-    return (record.delayMs ? `, retrying in ${formatDuration(record.delayMs)}` : ", retrying immediately") + left;
+function attemptDecision(record2) {
+  if (record2.next === "retry") {
+    const left = record2.timeLeftMs !== void 0 ? ` (${formatDuration(Math.max(0, record2.timeLeftMs))} left)` : "";
+    return (record2.delayMs ? `, retrying in ${formatDuration(record2.delayMs)}` : ", retrying immediately") + left;
   }
-  if (record.next === "done")
+  if (record2.next === "done")
     return "";
-  switch (record.reason) {
+  switch (record2.reason) {
     case "exhausted":
       return "; stopped: no attempts left";
     case "declined":
-      return record.retryOnThrew ? "; stopped: retryOn threw" : "; stopped: retryOn declined";
+      return record2.retryOnThrew ? "; stopped: retryOn threw" : "; stopped: retryOn declined";
     case "no-time-left": {
       const facts = [
-        ...record.timeLeftMs !== void 0 ? [`${formatDuration(Math.max(0, record.timeLeftMs))} left`] : [],
-        ...record.delayMs !== void 0 ? [`next wait ${formatDuration(record.delayMs)}`] : []
+        ...record2.timeLeftMs !== void 0 ? [`${formatDuration(Math.max(0, record2.timeLeftMs))} left`] : [],
+        ...record2.delayMs !== void 0 ? [`next wait ${formatDuration(record2.delayMs)}`] : []
       ];
       return `; stopped: no time left${facts.length > 0 ? ` (${facts.join(", ")})` : ""}`;
     }
     case "aborted":
-      return record.outcome === "aborted" ? "" : "; stopped: the run was aborted";
+      return record2.outcome === "aborted" ? "" : "; stopped: the run was aborted";
     case "paused":
       return "";
     default:
-      return `; stopped: ${record.reason}`;
+      return `; stopped: ${record2.reason}`;
   }
 }
 function formatDuration(ms) {
@@ -13719,8 +13719,8 @@ var FlowchartTraverser = class _FlowchartTraverser {
   getRuntime() {
     return this.executionRuntime;
   }
-  setRootObject(path, key, value) {
-    this.executionRuntime.setRootObject(path, key, value);
+  setRootObject(path2, key, value) {
+    this.executionRuntime.setRootObject(path2, key, value);
   }
   getBranchIds() {
     return this.executionRuntime.getPipelines();
@@ -13861,7 +13861,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
    *     same one await the 9.15 loop had.
    */
   executeStage(node, stageFunc, context, breakFn, traversalContext) {
-    context.useAttemptReporter((record, structuredError) => this.narrativeGenerator.onAttempt(node.name, node.id, record, structuredError, traversalContext));
+    context.useAttemptReporter((record2, structuredError) => this.narrativeGenerator.onAttempt(node.name, node.id, record2, structuredError, traversalContext));
     const policy = node.retry ?? SINGLE_ATTEMPT;
     let effect;
     if (node.touches) {
@@ -13889,9 +13889,9 @@ var FlowchartTraverser = class _FlowchartTraverser {
       // next one starts. Nothing was applied, so there is nothing to roll
       // back — see StageContext.discardStaged().
       between: () => context.discardStaged(),
-      onAttempt: (record, structuredError) => {
-        context.recordAttempt(record);
-        this.narrativeGenerator.onAttempt(node.name, node.id, record, structuredError, traversalContext);
+      onAttempt: (record2, structuredError) => {
+        context.recordAttempt(record2);
+        this.narrativeGenerator.onAttempt(node.name, node.id, record2, structuredError, traversalContext);
       },
       // Fired BEFORE the wait: a live monitor learns "retrying in 500ms" when
       // the decision is made, not once it has already elapsed.
@@ -14856,11 +14856,11 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       loopIteration: visitCount > 1 ? visitCount - 1 : void 0,
       ...this.consumeResumed(event.stageName) && { resumed: true }
     };
-    const text2 = this.renderer?.renderStage?.(ctx) ?? this.defaultRenderStage(ctx);
+    const text3 = this.renderer?.renderStage?.(ctx) ?? this.defaultRenderStage(ctx);
     const sfId = event.traversalContext?.subflowId;
     this.store.push({
       type: "stage",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.stageName,
       stageId,
@@ -14915,10 +14915,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   }
   onFork(event) {
     const ctx = { children: event.children };
-    const text2 = this.renderer?.renderFork?.(ctx) ?? this.defaultRenderFork(ctx);
+    const text3 = this.renderer?.renderFork?.(ctx) ?? this.defaultRenderFork(ctx);
     this.store.push({
       type: "fork",
-      text: text2,
+      text: text3,
       depth: 0,
       stageId: event.traversalContext?.stageId,
       runtimeStageId: event.traversalContext?.runtimeStageId,
@@ -14931,10 +14931,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       total: event.total,
       evidence: event.evidence
     };
-    const text2 = this.renderer?.renderSelected?.(ctx) ?? this.defaultRenderSelected(ctx);
+    const text3 = this.renderer?.renderSelected?.(ctx) ?? this.defaultRenderSelected(ctx);
     this.store.push({
       type: "selector",
-      text: text2,
+      text: text3,
       depth: 0,
       stageId: event.traversalContext?.stageId,
       runtimeStageId: event.traversalContext?.runtimeStageId,
@@ -14951,13 +14951,13 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       description: event.description,
       mappedInput: event.mappedInput
     };
-    const text2 = this.renderer?.renderSubflow?.(ctx) ?? this.defaultRenderSubflow(ctx);
+    const text3 = this.renderer?.renderSubflow?.(ctx) ?? this.defaultRenderSubflow(ctx);
     const rid = event.traversalContext?.runtimeStageId;
     const sid = event.traversalContext?.stageId;
     const sfId = event.traversalContext?.subflowId;
     this.store.push({
       type: "subflow",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.name,
       stageId: sid,
@@ -14977,12 +14977,12 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
           operation: "set",
           stepNumber: ++stepNumber
         };
-        const text3 = resolveText(this.renderer?.renderOp?.(opCtx), () => this.includeValues ? `Input: ${key} = ${valueSummary}` : `Input: ${key}`);
-        if (text3 === null)
+        const text4 = resolveText(this.renderer?.renderOp?.(opCtx), () => this.includeValues ? `Input: ${key} = ${valueSummary}` : `Input: ${key}`);
+        if (text4 === null)
           continue;
         this.store.push({
           type: "step",
-          text: text3,
+          text: text4,
           depth: 1,
           stageName: event.name,
           stageId: sid,
@@ -15003,10 +15003,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       direction: "exit",
       outputState: event.outputState
     };
-    const text2 = this.renderer?.renderSubflow?.(ctx) ?? this.defaultRenderSubflow(ctx);
+    const text3 = this.renderer?.renderSubflow?.(ctx) ?? this.defaultRenderSubflow(ctx);
     this.store.push({
       type: "subflow",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.name,
       stageId: sid,
@@ -15021,10 +15021,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       iteration: event.iteration,
       description: event.description
     };
-    const text2 = this.renderer?.renderLoop?.(ctx) ?? this.defaultRenderLoop(ctx);
+    const text3 = this.renderer?.renderLoop?.(ctx) ?? this.defaultRenderLoop(ctx);
     this.store.push({
       type: "loop",
-      text: text2,
+      text: text3,
       depth: 0,
       stageId: event.traversalContext?.stageId,
       runtimeStageId: event.traversalContext?.runtimeStageId,
@@ -15033,10 +15033,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   }
   onBreak(event) {
     const ctx = { stageName: event.stageName };
-    const text2 = this.renderer?.renderBreak?.(ctx) ?? this.defaultRenderBreak(ctx);
+    const text3 = this.renderer?.renderBreak?.(ctx) ?? this.defaultRenderBreak(ctx);
     this.store.push({
       type: "break",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.stageName,
       stageId: event.traversalContext?.stageId,
@@ -15076,10 +15076,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       return;
     if (!event.stageName || !event.stageId)
       return;
-    const text2 = pauseSentence(event);
+    const text3 = pauseSentence(event);
     this.store.push({
       type: "pause",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.stageName,
       stageId: event.traversalContext?.stageId ?? event.stageId,
@@ -15092,11 +15092,11 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       return;
     if (!event.stageName || !event.stageId)
       return;
-    const text2 = resumeSentence(event);
+    const text3 = resumeSentence(event);
     this.resumedStage = event.stageName;
     this.store.push({
       type: "resume",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.stageName,
       stageId: event.traversalContext?.stageId ?? event.stageId,
@@ -15118,10 +15118,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       message: event.message,
       validationIssues
     };
-    const text2 = this.renderer?.renderError?.(ctx) ?? this.defaultRenderError(ctx);
+    const text3 = this.renderer?.renderError?.(ctx) ?? this.defaultRenderError(ctx);
     this.store.push({
       type: "error",
-      text: text2,
+      text: text3,
       depth: 0,
       stageName: event.stageName,
       stageId: event.traversalContext?.stageId,
@@ -15159,12 +15159,12 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   }
   /** One attempt line — the consumer's `renderAttempt` first; `null` drops it, `undefined` falls back. */
   pushAttempt(ctx, stepNumber, at) {
-    const text2 = resolveText(this.renderer?.renderAttempt?.(ctx), () => attemptSentence(ctx.stageName, ctx.record));
-    if (text2 === null)
+    const text3 = resolveText(this.renderer?.renderAttempt?.(ctx), () => attemptSentence(ctx.stageName, ctx.record));
+    if (text3 === null)
       return;
     this.store.push({
       type: "attempt",
-      text: text2,
+      text: text3,
       depth: 1,
       stageName: at.stageName,
       stageId: at.stageId,
@@ -15357,12 +15357,12 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
         operation: op.operation,
         stepNumber: op.stepNumber
       };
-      const text2 = resolveText(this.renderer?.renderOp?.(opCtx), () => this.defaultRenderOp(opCtx));
-      if (text2 === null)
+      const text3 = resolveText(this.renderer?.renderOp?.(opCtx), () => this.defaultRenderOp(opCtx));
+      if (text3 === null)
         continue;
       this.store.push({
         type: "step",
-        text: text2,
+        text: text3,
         depth: 1,
         stageName,
         stageId,
@@ -15462,10 +15462,10 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
     return breakSentence(ctx);
   }
   defaultRenderError(ctx) {
-    let text2 = errorSentence(ctx);
+    let text3 = errorSentence(ctx);
     if (ctx.validationIssues)
-      text2 += validationSentence(ctx.validationIssues);
-    return `[Error]: ${text2}`;
+      text3 += validationSentence(ctx.validationIssues);
+    return `[Error]: ${text3}`;
   }
 };
 
@@ -16519,14 +16519,14 @@ function copyHistoryData(value, maxBytes, onOmitted) {
   let nodes = 0;
   const ancestors = /* @__PURE__ */ new Set();
   const encoder = new TextEncoder();
-  const charge = (text2) => {
-    if (text2.length > maxBytes - bytes)
+  const charge = (text3) => {
+    if (text3.length > maxBytes - bytes)
       throw new HistoryDataError("too-large");
-    bytes += encoder.encode(text2).length;
+    bytes += encoder.encode(text3).length;
     if (bytes > maxBytes)
       throw new HistoryDataError("too-large");
   };
-  const copy = (item, depth, path) => {
+  const copy = (item, depth, path2) => {
     if (++nodes > 1e5 || depth > 256)
       throw new HistoryDataError("invalid-data");
     if (item === null || typeof item === "string" || typeof item === "boolean" || typeof item === "number") {
@@ -16556,7 +16556,7 @@ function copyHistoryData(value, maxBytes, onOmitted) {
       if (array2 && key !== String(written))
         throw new HistoryDataError("invalid-data");
       if (property.value === void 0 && !array2) {
-        onOmitted?.([...path, key]);
+        onOmitted?.([...path2, key]);
         continue;
       }
       if (written++)
@@ -16564,7 +16564,7 @@ function copyHistoryData(value, maxBytes, onOmitted) {
       if (!array2)
         charge(JSON.stringify(key) + ":");
       Object.defineProperty(output, key, {
-        value: copy(property.value, depth + 1, [...path, key]),
+        value: copy(property.value, depth + 1, [...path2, key]),
         enumerable: true,
         writable: true,
         configurable: true
@@ -16590,19 +16590,19 @@ function historyEvidence(value) {
 // node_modules/footprintjs/dist/esm/lib/capture/absentEntries.js
 var MAX_ABSENT_ENTRIES = 4096;
 var MAX_PATH_SEGMENTS = 256;
-function trackedPath(path) {
-  if (path.length < 3 || path[0] !== "executionTree")
+function trackedPath(path2) {
+  if (path2.length < 3 || path2[0] !== "executionTree")
     return false;
   let index = 1;
-  while (index < path.length - 2) {
-    if (path[index] === "next")
+  while (index < path2.length - 2) {
+    if (path2[index] === "next")
       index++;
-    else if (path[index] === "children" && /^(0|[1-9][0-9]*)$/.test(path[index + 1] ?? ""))
+    else if (path2[index] === "children" && /^(0|[1-9][0-9]*)$/.test(path2[index + 1] ?? ""))
       index += 2;
     else
       return false;
   }
-  return index === path.length - 2 && (path[index] === "stageReads" || path[index] === "stageWrites");
+  return index === path2.length - 2 && (path2[index] === "stageReads" || path2[index] === "stageWrites");
 }
 function comparePaths(left, right) {
   for (let i = 0; i < Math.min(left.length, right.length); i++) {
@@ -16615,18 +16615,18 @@ function copyCaptureEvidence(value, maxBytes) {
   const absent = [];
   let bytes = 2;
   const encoder = new TextEncoder();
-  const payload = copyHistoryData(value, maxBytes, (path) => {
-    if (!trackedPath(path))
+  const payload = copyHistoryData(value, maxBytes, (path2) => {
+    if (!trackedPath(path2))
       return;
-    if (path.length > MAX_PATH_SEGMENTS || absent.length >= MAX_ABSENT_ENTRIES)
+    if (path2.length > MAX_PATH_SEGMENTS || absent.length >= MAX_ABSENT_ENTRIES)
       throw new HistoryDataError("too-large");
-    const encoded = JSON.stringify(path);
+    const encoded = JSON.stringify(path2);
     if (encoded.length > maxBytes - bytes)
       throw new HistoryDataError("too-large");
     bytes += encoder.encode(encoded).length + (absent.length ? 1 : 0);
     if (bytes > maxBytes)
       throw new HistoryDataError("too-large");
-    absent.push(Object.freeze(path));
+    absent.push(Object.freeze(path2));
   });
   if (!absent.length)
     return payload;
@@ -16640,18 +16640,18 @@ function validateAbsentEntries(payload) {
   if (!Array.isArray(absent) || !absent.length || absent.length > MAX_ABSENT_ENTRIES)
     return false;
   let previous;
-  for (const path of absent) {
-    if (!Array.isArray(path) || path.length > MAX_PATH_SEGMENTS || !path.every((segment) => typeof segment === "string") || !trackedPath(path))
+  for (const path2 of absent) {
+    if (!Array.isArray(path2) || path2.length > MAX_PATH_SEGMENTS || !path2.every((segment) => typeof segment === "string") || !trackedPath(path2))
       return false;
-    if (previous && comparePaths(previous, path) >= 0)
+    if (previous && comparePaths(previous, path2) >= 0)
       return false;
     let node = payload;
-    for (const segment of path.slice(0, -1)) {
+    for (const segment of path2.slice(0, -1)) {
       node = node && typeof node === "object" ? Object.getOwnPropertyDescriptor(node, segment)?.value : void 0;
     }
-    if (!node || typeof node !== "object" || Array.isArray(node) || Object.hasOwn(node, path.at(-1)))
+    if (!node || typeof node !== "object" || Array.isArray(node) || Object.hasOwn(node, path2.at(-1)))
       return false;
-    previous = path;
+    previous = path2;
   }
   return true;
 }
@@ -16792,7 +16792,7 @@ function countsOf(value) {
     return void 0;
   return counts;
 }
-function storedReadSourceCounts(record, executionTree, committedOwners) {
+function storedReadSourceCounts(record2, executionTree, committedOwners) {
   const owners = /* @__PURE__ */ new Map();
   const pending = [executionTree];
   let visited = 0;
@@ -16806,7 +16806,7 @@ function storedReadSourceCounts(record, executionTree, committedOwners) {
     const id2 = node.runtimeStageId;
     if (Object.hasOwn(node, "readSourceCounts")) {
       const counts = countsOf(node.readSourceCounts);
-      if (!counts || record.status === "captured" && counts.observed !== counts.retained)
+      if (!counts || record2.status === "captured" && counts.observed !== counts.retained)
         return void 0;
       if (typeof id2 !== "string" || !id2) {
         if (counts.observed || counts.retained)
@@ -16831,7 +16831,7 @@ function storedReadSourceCounts(record, executionTree, committedOwners) {
     }
   }
   const remaining = new Map([...owners].map(([id2, counts]) => [id2, { ...counts.kinds }]));
-  for (const row of record.occurrences) {
+  for (const row of record2.occurrences) {
     const counts = remaining.get(row.runtimeStageId);
     if (!counts || counts[row.source.kind] === 0)
       return void 0;
@@ -16868,11 +16868,11 @@ function execution(value, firstCommits) {
     return void 0;
   return value;
 }
-function storedSourceOwnership(value, record, runId, commits, firstCommits, counts) {
+function storedSourceOwnership(value, record2, runId, commits, firstCommits, counts) {
   if (!fields(value, ["version", "runId", "logAddress", "segment", "commits", "status", "limitations", "executions"]))
     return void 0;
   const witness = value;
-  if (witness.version !== 1 || witness.runId !== runId || witness.segment !== record.segment || !fields(witness.logAddress, ["logRunId", "drillPath"]) || witness.logAddress.logRunId !== record.address.logRunId || !samePath(witness.logAddress.drillPath, record.address.drillPath) || !fields(witness.commits, ["from", "to"]) || witness.commits.from !== commits.from || witness.commits.to !== commits.to || !Array.isArray(witness.limitations) || witness.limitations.length > SOURCE_OWNERSHIP_GAPS.length || new Set(witness.limitations).size !== witness.limitations.length || witness.limitations.some((gap) => !SOURCE_OWNERSHIP_GAPS.includes(gap)) || witness.status !== (witness.limitations.length ? "unknown" : "captured") || !Array.isArray(witness.executions) || witness.executions.length > SOURCE_OWNERSHIP_V1_LIMITS.executions || new TextEncoder().encode(JSON.stringify(witness)).length > SOURCE_OWNERSHIP_V1_LIMITS.bytes)
+  if (witness.version !== 1 || witness.runId !== runId || witness.segment !== record2.segment || !fields(witness.logAddress, ["logRunId", "drillPath"]) || witness.logAddress.logRunId !== record2.address.logRunId || !samePath(witness.logAddress.drillPath, record2.address.drillPath) || !fields(witness.commits, ["from", "to"]) || witness.commits.from !== commits.from || witness.commits.to !== commits.to || !Array.isArray(witness.limitations) || witness.limitations.length > SOURCE_OWNERSHIP_GAPS.length || new Set(witness.limitations).size !== witness.limitations.length || witness.limitations.some((gap) => !SOURCE_OWNERSHIP_GAPS.includes(gap)) || witness.status !== (witness.limitations.length ? "unknown" : "captured") || !Array.isArray(witness.executions) || witness.executions.length > SOURCE_OWNERSHIP_V1_LIMITS.executions || new TextEncoder().encode(JSON.stringify(witness)).length > SOURCE_OWNERSHIP_V1_LIMITS.bytes)
     return void 0;
   const owners = /* @__PURE__ */ new Map();
   const attemptIds = /* @__PURE__ */ new Map();
@@ -16893,7 +16893,7 @@ function storedSourceOwnership(value, record, runId, commits, firstCommits, coun
   if (witness.status === "captured") {
     if (owners.size !== counts.size || [...counts.keys()].some((id2) => !owners.has(id2)))
       return void 0;
-    for (const row of record.occurrences) {
+    for (const row of record2.occurrences) {
       const owner = owners.get(row.runtimeStageId);
       if (!owner || !samePath(row.stateAddress, owner.stateAddress) || row.attemptId === void 0 || !attemptIds.get(row.runtimeStageId).has(row.attemptId))
         return void 0;
@@ -16914,13 +16914,13 @@ function sameData(input, decoded) {
   const keys2 = Object.keys(input);
   return keys2.length === Object.keys(decoded).length && keys2.every((key) => Object.hasOwn(decoded, key) && sameData(Object.getOwnPropertyDescriptor(input, key)?.value, Object.getOwnPropertyDescriptor(decoded, key)?.value));
 }
-function referencesMatch(record, commits, firstCommits, initialState) {
+function referencesMatch(record2, commits, firstCommits, initialState) {
   const paths2 = /* @__PURE__ */ new Map();
   const scalarSources = /* @__PURE__ */ new Map();
   const budget = new SourceReferenceBudget(commits, initialState);
-  for (const row of record.occurrences) {
-    const path = [...row.stateAddress, row.key];
-    if (row.source.kind === "base" && (!initialState || !nativeHas(initialState, path) || !scalar(nativeGet(initialState, path))))
+  for (const row of record2.occurrences) {
+    const path2 = [...row.stateAddress, row.key];
+    if (row.source.kind === "base" && (!initialState || !nativeHas(initialState, path2) || !scalar(nativeGet(initialState, path2))))
       return false;
     if (row.source.kind !== "committed")
       continue;
@@ -16934,7 +16934,7 @@ function referencesMatch(record, commits, firstCommits, initialState) {
       written = new Set(bundle.trace.map((entry) => entry.path));
       paths2.set(index, written);
     }
-    const key = normaliseStateKey(path);
+    const key = normaliseStateKey(path2);
     if (!written.has(key))
       return false;
     let values = scalarSources.get(index);
@@ -16967,21 +16967,21 @@ function storedReadSources(value, capture2, commitLog, initialState, executionTr
     ...source.version === 2 ? ["ownership"] : []
   ].includes(key)))
     return void 0;
-  const record = source.record === void 0 ? void 0 : decodeReadSourceSnapshot(source.record);
-  if (source.record !== void 0 && (!record || !sameData(source.record, record)))
+  const record2 = source.record === void 0 ? void 0 : decodeReadSourceSnapshot(source.record);
+  if (source.record !== void 0 && (!record2 || !sameData(source.record, record2)))
     return void 0;
   const firstCommits = /* @__PURE__ */ new Map();
   commitLog.forEach((bundle, index) => {
     if (!firstCommits.has(bundle.runtimeStageId))
       firstCommits.set(bundle.runtimeStageId, index);
   });
-  const counts = record && storedReadSourceCounts(record, executionTree, firstCommits);
-  if (record && (!sameData(record.address, capture2.logAddress) || !counts || !referencesMatch(record, commitLog, firstCommits, initialState)))
+  const counts = record2 && storedReadSourceCounts(record2, executionTree, firstCommits);
+  if (record2 && (!sameData(record2.address, capture2.logAddress) || !counts || !referencesMatch(record2, commitLog, firstCommits, initialState)))
     return void 0;
-  const ownership = source.version === 2 && record && counts ? storedSourceOwnership(source.ownership, record, source.runId, capture2.commits, firstCommits, counts) : void 0;
+  const ownership = source.version === 2 && record2 && counts ? storedSourceOwnership(source.ownership, record2, source.runId, capture2.commits, firstCommits, counts) : void 0;
   if (source.version === 2 && !ownership)
     return void 0;
-  if (source.status !== readSourceStatus(record, source.limitations.length) || capture2.channels.readSources !== source.status)
+  if (source.status !== readSourceStatus(record2, source.limitations.length) || capture2.channels.readSources !== source.status)
     return void 0;
   return Object.freeze({
     ...ownership ? { version: 2, ownership } : { version: 1 },
@@ -16990,33 +16990,33 @@ function storedReadSources(value, capture2, commitLog, initialState, executionTr
     commits: capture2.commits,
     status: source.status,
     limitations: Object.freeze([...source.limitations]),
-    ...record && { record }
+    ...record2 && { record: record2 }
   });
 }
 
 // node_modules/footprintjs/dist/esm/lib/runner/captureHistory.js
-async function persistCaptureHistory(runtime, record, snapshot2, lease) {
-  const options = record.captureOptions;
+async function persistCaptureHistory(runtime, record2, snapshot2, lease) {
+  const options = record2.captureOptions;
   if (!options)
     return;
   if (lease.pending) {
-    record.captureResult({ status: "unknown", reason: "acknowledgement-pending" });
+    record2.captureResult({ status: "unknown", reason: "acknowledgement-pending" });
     return;
   }
   lease.pending = true;
   const controller = new AbortController();
   let active = true;
   let cancelTimer = () => void 0;
-  const unknown = (reason) => record.captureResult({ status: "unknown", reason });
+  const unknown = (reason) => record2.captureResult({ status: "unknown", reason });
   const work = async () => {
     try {
-      if (!runtime.capture || record.stats().failed > 0)
+      if (!runtime.capture || record2.stats().failed > 0)
         return unknown("prior-delivery-failed");
       const view = snapshot2();
       const note = view.capture;
       if (!note || note.boundary.status === "running")
         return unknown("capture-unavailable");
-      const payload = historyEvidence(copyCaptureEvidence(record.serve({
+      const payload = historyEvidence(copyCaptureEvidence(record2.serve({
         capture: note,
         executionTree: view.executionTree,
         ...view.recorders && { recorders: view.recorders },
@@ -17024,7 +17024,7 @@ async function persistCaptureHistory(runtime, record, snapshot2, lease) {
       }), options.maxBytes ?? 1024 * 1024));
       const basis = copyHistoryData({
         commitLog: view.commitLog,
-        ...view.initialState !== void 0 && { initialState: record.captureInitialState(view.initialState) }
+        ...view.initialState !== void 0 && { initialState: record2.captureInitialState(view.initialState) }
       }, options.maxBytes ?? 1024 * 1024);
       const target = copyHistoryTarget({
         version: 1,
@@ -17038,7 +17038,7 @@ async function persistCaptureHistory(runtime, record, snapshot2, lease) {
         return;
       if (!target)
         return unknown("capture-unavailable");
-      const evidence = copyHistoryData(record.serve({ target, ...payload }), options.maxBytes ?? 1024 * 1024);
+      const evidence = copyHistoryData(record2.serve({ target, ...payload }), options.maxBytes ?? 1024 * 1024);
       if (!validateAbsentEntries(evidence) || !copyHistoryTarget(evidence.target) || JSON.stringify(copyHistoryTarget(evidence.target)) !== JSON.stringify(target))
         return unknown("evidence-refused");
       if (view.readSources) {
@@ -17047,26 +17047,26 @@ async function persistCaptureHistory(runtime, record, snapshot2, lease) {
           return unknown("evidence-refused");
       }
       runtime.noteRecord(CAPTURE_HISTORY_NOTE, evidence);
-      const delivered = await record.flush(options.timeoutMs ?? 1e4);
+      const delivered = await record2.flush(options.timeoutMs ?? 1e4);
       if (!active)
         return;
-      if (!delivered.done || record.pendingCaptureDeliveries || record.stats().failed > 0)
+      if (!delivered.done || record2.pendingCaptureDeliveries || record2.stats().failed > 0)
         return unknown("evidence-delivery-unknown");
       const receipt = copyHistoryReceipt(await options.acknowledge(target, { signal: controller.signal }), target);
       if (!active)
         return;
       if (!receipt)
         return unknown("acknowledgement-refused");
-      const servedReceipt = record.serve({ ...receipt });
+      const servedReceipt = record2.serve({ ...receipt });
       if (!copyHistoryReceipt(servedReceipt, target))
         return unknown("acknowledgement-refused");
       runtime.noteRecord(CAPTURE_RECEIPT_NOTE, servedReceipt);
-      const persisted = await record.flush(options.timeoutMs ?? 1e4);
+      const persisted = await record2.flush(options.timeoutMs ?? 1e4);
       if (!active)
         return;
-      if (!persisted.done || record.pendingCaptureDeliveries || record.stats().failed > 0)
+      if (!persisted.done || record2.pendingCaptureDeliveries || record2.stats().failed > 0)
         return unknown("receipt-delivery-unknown");
-      record.captureResult({ status: "acknowledged" });
+      record2.captureResult({ status: "acknowledged" });
     } catch (error) {
       if (active)
         unknown(historyFailureReason(error, "evidence"));
@@ -17244,13 +17244,13 @@ function validReference(reference) {
   return typeof reference === "string" && reference.length > 0 && reference.length <= MAX_REFERENCE_LENGTH && // eslint-disable-next-line no-control-regex -- Match the shared Foottrace evidence-reference boundary.
   !/[\u0000-\u001f\u007f-\u009f]/.test(reference);
 }
-function attemptReference(record, owner) {
-  if (typeof record.series !== "string" || !Number.isSafeInteger(record.attempt) || record.attempt < 1 || record.series.length + String(record.attempt).length + 1 > MAX_REFERENCE_LENGTH)
+function attemptReference(record2, owner) {
+  if (typeof record2.series !== "string" || !Number.isSafeInteger(record2.attempt) || record2.attempt < 1 || record2.series.length + String(record2.attempt).length + 1 > MAX_REFERENCE_LENGTH)
     return void 0;
   try {
-    const candidate = record.series + "@" + record.attempt;
+    const candidate = record2.series + "@" + record2.attempt;
     const parts = parseAttemptId(candidate);
-    if (!parts || parts.runtimeStageId !== owner || (record.kind === "stage" ? parts.call !== void 0 : parts.call === void 0))
+    if (!parts || parts.runtimeStageId !== owner || (record2.kind === "stage" ? parts.call !== void 0 : parts.call === void 0))
       return void 0;
     const canonical = buildAttemptId(parts.runtimeStageId, parts.attempt, parts.call);
     return canonical === candidate && validReference(canonical) ? canonical : void 0;
@@ -17277,13 +17277,13 @@ var StageAttention = class {
     this.terminal = void 0;
   }
   /** Called only after the frame retained this attempt. Raw error, target and decision payloads are never read. */
-  recordAttempt(record, owner) {
-    const reference = attemptReference(record, owner);
-    if (record.kind === "stage" && record.series === owner) {
-      if (record.retryLoop === void 0 && (record.of ?? 1) > 1)
+  recordAttempt(record2, owner) {
+    const reference = attemptReference(record2, owner);
+    if (record2.kind === "stage" && record2.series === owner) {
+      if (record2.retryLoop === void 0 && (record2.of ?? 1) > 1)
         this.retryPossible = true;
-      if (reference && record.next !== "retry") {
-        this.terminal = { next: record.next, reason: record.reason, effect: record.effect, evidence: reference };
+      if (reference && record2.next !== "retry") {
+        this.terminal = { next: record2.next, reason: record2.reason, effect: record2.effect, evidence: reference };
       }
     }
     this.projectSummary();
@@ -17293,14 +17293,14 @@ var StageAttention = class {
       else
         this.missing();
     };
-    if (record.effect === "unknown")
+    if (record2.effect === "unknown")
       add2("unknown-effect", "UNKNOWN_EFFECT_RECORDED");
-    if (record.outcome === "timeout")
+    if (record2.outcome === "timeout")
       add2("timeout", "TIMEOUT_RECORDED");
-    const observed = record.kind === "observed";
-    if (!observed && record.next === "retry" || record.attempt > 1)
+    const observed = record2.kind === "observed";
+    if (!observed && record2.next === "retry" || record2.attempt > 1)
       add2("retried", "RETRY_RECORDED");
-    if (!observed && record.next === "stop" && STOPPED_REASONS.has(record.reason) && (record.of ?? 1) > 1 && record.retryLoop === void 0)
+    if (!observed && record2.next === "stop" && STOPPED_REASONS.has(record2.reason) && (record2.of ?? 1) > 1 && record2.retryLoop === void 0)
       add2("gave-up", "RETRY_STOP_RECORDED");
   }
   recordSummary(summary) {
@@ -17432,12 +17432,12 @@ function deadFrameMessage(stageName, runtimeStageId, key) {
 function lateAttemptMessage(stageName, series, attempt, key) {
   return `[footprint] Stage "${stageName}" (${series}): attempt ${attempt} has already ended, and \`${key}\` was touched through its scope afterwards \u2014 refused. The engine stopped waiting for this attempt (its cap, the run's deadline, a cancellation, or its own error); its work must not land beside a later attempt. Pass \`scope.$attempt().signal\` to the calls it makes, so they stop when the attempt does.`;
 }
-function committedMutationMessage(stageName, key, path) {
-  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
+function committedMutationMessage(stageName, key, path2) {
+  const where = path2 === "" ? key : `${key}.${path2}`.replace(/\.\[/g, "[");
   return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE on the committed value it read before its first write, then wrote the key. The commit compares the written value with committed state \u2014 which the in-place change also moved \u2014 so it records NO change: live state keeps the edit, the commit log and every reader that folds it do not. Reads are BORROWED. Build the next value instead (\`scope.$setValue('${key}', { ...value, \u2026 })\`), or read the key again after the stage's first write \u2014 that read is the stage's own copy.`;
 }
-function borrowedMutationMessage(stageName, key, path) {
-  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
+function borrowedMutationMessage(stageName, key, path2) {
+  const where = path2 === "" ? key : `${key}.${path2}`.replace(/\.\[/g, "[");
   return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE, on a value it only read. footprint never saw that write: there is no trace row for it, so the commit log, the causal chain and every reader that folds the log will disagree with final state \u2014 and under a different write order the change is dropped entirely. Reads are BORROWED. Write through the scope instead (\`scope.` + where + ` = \u2026\` \u2014 property and indexed access are both tracked), or hand back the whole value with \`scope.$setValue('${key}', next)\`. This usually comes from mutating an element reached by \`find\`/\`filter\`/\`for\u2026of\`/\`forEach\`, which the scope proxy cannot intercept.`;
 }
 
@@ -17460,41 +17460,41 @@ var DiagnosticCollector = class {
     this.readRule = readRule;
   }
   /** A named entry: the run's rule maps its name to a state key, then adds the diagnostic selectors. */
-  retain(channel, path, key, value) {
+  retain(channel, path2, key, value) {
     const rule = this.readRule?.();
-    return rule && !rule.isDiagnosticInert() ? rule.retainDiagnostic([channel, ...path, key], value) : value;
+    return rule && !rule.isDiagnosticInert() ? rule.retainDiagnostic([channel, ...path2, key], value) : value;
   }
-  write(channel, key, value, path, replace) {
-    const kept = this.retain(channel, path, key, value);
+  write(channel, key, value, path2, replace) {
+    const kept = this.retain(channel, path2, key, value);
     const write = replace ? setNestedValue : updateNestedValue;
-    write(this[BAG_FIELDS[channel]], [], path, key, kept);
+    write(this[BAG_FIELDS[channel]], [], path2, key, kept);
     return kept;
   }
   /** @internal Add once, returning the retained incoming value for emit.
    * Legacy writers stay void: their result may be returned by a stage. */
-  add(channel, key, value, path = []) {
-    return this.write(channel, key, value, path, false);
+  add(channel, key, value, path2 = []) {
+    return this.write(channel, key, value, path2, false);
   }
-  addLog(key, value, path = []) {
-    this.add("logs", key, value, path);
+  addLog(key, value, path2 = []) {
+    this.add("logs", key, value, path2);
   }
-  setLog(key, value, path = []) {
-    this.write("logs", key, value, path, true);
+  setLog(key, value, path2 = []) {
+    this.write("logs", key, value, path2, true);
   }
-  addError(key, value, path = []) {
-    this.add("errors", key, value, path);
+  addError(key, value, path2 = []) {
+    this.add("errors", key, value, path2);
   }
-  addMetric(key, value, path = []) {
-    this.add("metrics", key, value, path);
+  addMetric(key, value, path2 = []) {
+    this.add("metrics", key, value, path2);
   }
-  setMetric(key, value, path = []) {
-    this.write("metrics", key, value, path, true);
+  setMetric(key, value, path2 = []) {
+    this.write("metrics", key, value, path2, true);
   }
-  addEval(key, value, path = []) {
-    this.add("evals", key, value, path);
+  addEval(key, value, path2 = []) {
+    this.add("evals", key, value, path2);
   }
-  setEval(key, value, path = []) {
-    this.write("evals", key, value, path, true);
+  setEval(key, value, path2 = []) {
+    this.write("evals", key, value, path2, true);
   }
   addFlowMessage(flowMessage) {
     const rule = this.readRule?.();
@@ -17885,16 +17885,16 @@ var StageContext = class _StageContext {
    * funnel always did. Returns the verdict so the caller retains and reports
    * under the same decision.
    */
-  stageWrite(nsPath, path, key, value, explicit, verb) {
+  stageWrite(nsPath, path2, key, value, explicit, verb) {
     const active = this.activeRule();
     if (active === void 0 && !explicit) {
       this.record.write(nsPath, value, verb);
       return CLEAR;
     }
-    const asked = decideWrite(active, path, key, explicit);
-    const verdict = inheritByIdentity(active, asked, this._selectedObjects, path, key, value);
+    const asked = decideWrite(active, path2, key, explicit);
+    const verdict = inheritByIdentity(active, asked, this._selectedObjects, path2, key, value);
     this.record.write(nsPath, value, verb, scrubOf(verdict));
-    markStagedWrite(active, this.policy.redaction, verdict, path, key, verb);
+    markStagedWrite(active, this.policy.redaction, verdict, path2, key, verb);
     return verdict;
   }
   /**
@@ -17922,27 +17922,27 @@ var StageContext = class _StageContext {
     return this.addressRunId ?? this.runId;
   }
   // ── Write operations ───────────────────────────────────────────────────
-  patch(path, key, value, shouldRedact = false) {
-    return this.stageWrite(this.record.at(path, key), path, key, value, shouldRedact, "set");
+  patch(path2, key, value, shouldRedact = false) {
+    return this.stageWrite(this.record.at(path2, key), path2, key, value, shouldRedact, "set");
   }
-  set(path, key, value) {
-    this.patch(path, key, value);
+  set(path2, key, value) {
+    this.patch(path2, key, value);
   }
-  merge(path, key, value, shouldRedact) {
-    return this.stageWrite(this.record.at(path, key), path, key, value, shouldRedact, "merge");
+  merge(path2, key, value, shouldRedact) {
+    return this.stageWrite(this.record.at(path2, key), path2, key, value, shouldRedact, "merge");
   }
-  setObject(path, key, value, shouldRedact, description, operationOverride) {
-    const verdict = operationOverride === "delete" ? this.stageWrite(this.record.at(path, key), path, key, void 0, shouldRedact, "delete") : this.stageWrite(this.record.at(path, key), path, key, value, shouldRedact, "set");
-    this.trackWrite(userKeyOf(path, key), value, verdict, operationOverride ?? "set");
+  setObject(path2, key, value, shouldRedact, description, operationOverride) {
+    const verdict = operationOverride === "delete" ? this.stageWrite(this.record.at(path2, key), path2, key, void 0, shouldRedact, "delete") : this.stageWrite(this.record.at(path2, key), path2, key, value, shouldRedact, "set");
+    this.trackWrite(userKeyOf(path2, key), value, verdict, operationOverride ?? "set");
     if (description) {
       const tagged = description.startsWith("[") ? description : `[WRITE] ${description}`;
       this.debug.addLog("message", tagged);
     }
     return verdict;
   }
-  updateObject(path, key, value, description, shouldRedact) {
-    const verdict = this.merge(path, key, value, shouldRedact);
-    this.trackWrite(userKeyOf(path, key), value, verdict, "update");
+  updateObject(path2, key, value, description, shouldRedact) {
+    const verdict = this.merge(path2, key, value, shouldRedact);
+    this.trackWrite(userKeyOf(path2, key), value, verdict, "update");
     if (description) {
       this.debug.addLog("message", description);
     }
@@ -17961,15 +17961,15 @@ var StageContext = class _StageContext {
   updateGlobalContext(key, value) {
     this.stageWrite([key], [], key, value, void 0, "set");
   }
-  appendToArray(path, key, items, description) {
-    const existing = this.getValue(path, key);
+  appendToArray(path2, key, items, description) {
+    const existing = this.getValue(path2, key);
     const merged = Array.isArray(existing) ? [...existing, ...items] : [...items];
-    this.setObject(path, key, merged, false, description);
+    this.setObject(path2, key, merged, false, description);
   }
-  mergeObject(path, key, obj, description) {
-    const existing = this.getValue(path, key);
+  mergeObject(path2, key, obj, description) {
+    const existing = this.getValue(path2, key);
     const merged = existing && typeof existing === "object" && !Array.isArray(existing) ? { ...existing, ...obj } : { ...obj };
-    this.setObject(path, key, merged, false, description);
+    this.setObject(path2, key, merged, false, description);
   }
   // ── Read operations ────────────────────────────────────────────────────
   /**
@@ -17978,37 +17978,37 @@ var StageContext = class _StageContext {
    * `'full'` clones the value into `_stageReads` (historical default),
    * `'summary'` records a cheap marker, `'off'` records nothing.
    */
-  getValue(path, key, description) {
+  getValue(path2, key, description) {
     try {
-      return this.readRetainedValue(path, key, description);
+      return this.readRetainedValue(path2, key, description);
     } catch (error) {
       this.capture?.limit("read-retention-failed");
       throw error;
     }
   }
-  readRetainedValue(path, key, description) {
+  readRetainedValue(path2, key, description) {
     let verdict = CLEAR;
-    const value = this.policy.readSources && this.readSources ? this.readWithNativeSource(path, key, () => {
-      verdict = this.judgeRead(path, key);
+    const value = this.policy.readSources && this.readSources ? this.readWithNativeSource(path2, key, () => {
+      verdict = this.judgeRead(path2, key);
       return verdict.kind === "clear" ? "visible" : "redacted";
-    }) : this.record.read(path, key);
+    }) : this.record.read(path2, key);
     if (!this.policy.readSources || !this.readSources)
-      verdict = this.noteAndJudgeRead(path, key);
+      verdict = this.noteAndJudgeRead(path2, key);
     if (verdict.kind !== "clear" && value !== void 0) {
       this._selectedReads += 1;
       if (value !== null && typeof value === "object")
         (this._selectedObjects ??= /* @__PURE__ */ new WeakMap()).set(value, verdict);
     }
     if (key !== void 0 && this.policy.readTracking !== "off") {
-      if (path.length > 0)
-        (this._nestedReads ??= /* @__PURE__ */ new Set()).add(userKeyOf(path, key));
+      if (path2.length > 0)
+        (this._nestedReads ??= /* @__PURE__ */ new Set()).add(userKeyOf(path2, key));
       else if (this.policy.readTracking === "full" && isDevMode()) {
         if (this.record.hasStaged)
           this._viewReads?.delete(key);
         else
           (this._viewReads ??= /* @__PURE__ */ new Set()).add(key);
       }
-      this._stageReads[userKeyOf(path, key)] = value === void 0 ? void 0 : this.retainedForm(verdict, value, this.policy.readTracking, summarizeReadValue);
+      this._stageReads[userKeyOf(path2, key)] = value === void 0 ? void 0 : this.retainedForm(verdict, value, this.policy.readTracking, summarizeReadValue);
     }
     if (description) {
       this.debug.addLog("message", `[READ] ${description}`);
@@ -18025,16 +18025,16 @@ var StageContext = class _StageContext {
   get selectedReads() {
     return this._selectedReads;
   }
-  noteAndJudgeRead(path, key) {
+  noteAndJudgeRead(path2, key) {
     if (key !== void 0)
-      this.record.noteRead(path, key);
-    return this.judgeRead(path, key);
+      this.record.noteRead(path2, key);
+    return this.judgeRead(path2, key);
   }
-  judgeRead(path, key) {
+  judgeRead(path2, key) {
     const rule = key !== void 0 ? this.activeRule() : void 0;
-    return rule !== void 0 ? rule.verdictAt(path, key) : CLEAR;
+    return rule !== void 0 ? rule.verdictAt(path2, key) : CLEAR;
   }
-  readWithNativeSource(path, key, privacy) {
+  readWithNativeSource(path2, key, privacy) {
     const identity = this.#failureIdentity;
     const counts = this.readSources?.active && identity && key !== void 0 ? this.sourceReadCounter ??= new SourceReadCounter() : void 0;
     let judged = false;
@@ -18051,12 +18051,12 @@ var StageContext = class _StageContext {
     try {
       if (key === void 0 || !identity) {
         this.readSources?.limit(key === void 0 ? "untracked-read" : "identity-unavailable");
-        value = this.record.read(path, key);
+        value = this.record.read(path2, key);
         verdict();
       } else {
         if (!this.sourceAttempt)
           this.readSources?.ownership?.limit("attempt-unavailable");
-        const read = this.record.readWithSource(path, key, { runtimeStageId: identity.runtimeStageId, ...this.sourceAttempt && { attemptId: this.sourceAttempt } }, verdict);
+        const read = this.record.readWithSource(path2, key, { runtimeStageId: identity.runtimeStageId, ...this.sourceAttempt && { attemptId: this.sourceAttempt } }, verdict);
         value = read.value;
         if (read.occurrence && this.readSources?.active) {
           counts?.retain(read.occurrence.source.kind);
@@ -18065,17 +18065,17 @@ var StageContext = class _StageContext {
       }
     } catch (error) {
       if (judged)
-        this.noteSourceRead(path, key, hidden, false);
+        this.noteSourceRead(path2, key, hidden, false);
       throw error;
     }
     if (judged)
-      this.noteSourceRead(path, key, hidden, true);
+      this.noteSourceRead(path2, key, hidden, true);
     return value;
   }
-  noteSourceRead(path, key, hidden, propagateFailure) {
+  noteSourceRead(path2, key, hidden, propagateFailure) {
     try {
       if (key !== void 0)
-        this.record.noteRead(path, key);
+        this.record.noteRead(path2, key);
       if (hidden)
         this.readSources?.limit("privacy-active");
     } catch (error) {
@@ -18089,8 +18089,8 @@ var StageContext = class _StageContext {
   }
   /** Read state without tracking in _stageReads or paying structuredClone cost.
    *  Used by ScopeFacade.getValueSilent() for array proxy internal operations. */
-  getValueDirect(path, key) {
-    return this.record.read(path, key);
+  getValueDirect(path2, key) {
+    return this.record.read(path2, key);
   }
   getRoot(key) {
     return this.record.readLive(key);
@@ -18181,10 +18181,10 @@ var StageContext = class _StageContext {
       const current = this.record.peek(namespaced);
       if (current === void 0)
         continue;
-      const path = firstDifferingPath(retained, current);
-      if (path === void 0)
+      const path2 = firstDifferingPath(retained, current);
+      if (path2 === void 0)
         continue;
-      console.warn(borrowedMutationMessage(this.stageName, key, path));
+      console.warn(borrowedMutationMessage(this.stageName, key, path2));
     }
   }
   /** The staged-key half of {@link warnOnBorrowedMutation}: did committed state itself move under a read? */
@@ -18194,10 +18194,10 @@ var StageContext = class _StageContext {
     const committed = this.record.baseAt(namespaced);
     if (committed === void 0)
       return;
-    const path = firstDifferingPath(retained, committed);
-    if (path === void 0)
+    const path2 = firstDifferingPath(retained, committed);
+    if (path2 === void 0)
       return;
-    console.warn(committedMutationMessage(this.stageName, key, path));
+    console.warn(committedMutationMessage(this.stageName, key, path2));
   }
   /**
    * Flush staged writes to shared memory and RELEASE the per-stage staging
@@ -18320,11 +18320,11 @@ var StageContext = class _StageContext {
   }
   // ── Attempts (10.1) ────────────────────────────────────────────────────
   /** Append one attempt's record — the attempt runner calls this as each attempt ends. */
-  recordAttempt(record) {
-    (this._attempts ??= []).push(record);
-    (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).recordAttempt(record, this.runtimeStageId);
-    this.noteAttempt(record);
-    this.endCalls(record.attempt);
+  recordAttempt(record2) {
+    (this._attempts ??= []).push(record2);
+    (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).recordAttempt(record2, this.runtimeStageId);
+    this.noteAttempt(record2);
+    this.endCalls(record2.attempt);
   }
   /** Stamp the series' summary — once, when the runner ends the series. */
   endAttempts(summary) {
@@ -18345,8 +18345,8 @@ var StageContext = class _StageContext {
    * record is the one the tree keeps: frozen, `structuredClone`-safe, its error the SERVED form (no `raw`), so the
    * note needs no second redaction pass. Without a sink the log does nothing (`EventLog · note`).
    */
-  noteAttempt(record) {
-    this.record.log?.note("attempt", { record });
+  noteAttempt(record2) {
+    this.record.log?.note("attempt", { record: record2 });
   }
   /** The attempts of this execution so far, in order — its own and its calls'; `undefined` when there are none. */
   get attempts() {
@@ -18468,17 +18468,17 @@ var StageContext = class _StageContext {
    * {@link MAX_CALL_RECORDS}, the rest counted — and reported to the run's `onAttempt` either way. Like the stage's
    * records, NOT cleared by {@link discardStaged}: a failed attempt's calls are evidence too.
    */
-  reportCallAttempt(record, structuredError) {
+  reportCallAttempt(record2, structuredError) {
     if (this._callRecords < MAX_CALL_RECORDS) {
       this._callRecords += 1;
-      (this._attempts ??= []).push(record);
-      (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).recordAttempt(record, this.runtimeStageId);
-      this.noteAttempt(record);
+      (this._attempts ??= []).push(record2);
+      (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).recordAttempt(record2, this.runtimeStageId);
+      this.noteAttempt(record2);
     } else {
       this._attemptsDropped += 1;
       (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).attemptDropped();
     }
-    this._attemptReporter?.(record, structuredError);
+    this._attemptReporter?.(record2, structuredError);
   }
   // ── Tree navigation ────────────────────────────────────────────────────
   /**
@@ -18491,9 +18491,9 @@ var StageContext = class _StageContext {
    * the old one silently. Dev mode (`enableDevMode()`) warns on that
    * mismatch (backlog B4).
    */
-  createNext(path, stageName, stageId, isDecider = false) {
+  createNext(path2, stageName, stageId, isDecider = false) {
     if (!this.next) {
-      this.next = new _StageContext(path, stageName, stageId, this.record.state, "", this.record.log, isDecider);
+      this.next = new _StageContext(path2, stageName, stageId, this.record.state, "", this.record.log, isDecider);
       this.next.parent = this;
       this.next.inheritRun(this);
       this.next.failureState = this.failureState;
@@ -18512,8 +18512,8 @@ var StageContext = class _StageContext {
     this.children.push(child);
     return child;
   }
-  createDecider(path, stageName, stageId) {
-    return this.createNext(path, stageName, stageId, true);
+  createDecider(path2, stageName, stageId) {
+    return this.createNext(path2, stageName, stageId, true);
   }
   setAsDecider() {
     this.isDecider = true;
@@ -18525,29 +18525,29 @@ var StageContext = class _StageContext {
   }
   // ── Diagnostics delegation ─────────────────────────────────────────────
   /** @internal Retained incoming value for the facade's legacy emit channel. */
-  addDiagnostic(channel, key, value, path) {
-    return this.debug.add(channel, key, value, path);
+  addDiagnostic(channel, key, value, path2) {
+    return this.debug.add(channel, key, value, path2);
   }
-  addLog(key, value, path) {
-    this.debug.addLog(key, value, path);
+  addLog(key, value, path2) {
+    this.debug.addLog(key, value, path2);
   }
-  setLog(key, value, path) {
-    this.debug.setLog(key, value, path);
+  setLog(key, value, path2) {
+    this.debug.setLog(key, value, path2);
   }
-  addMetric(key, value, path) {
-    this.debug.addMetric(key, value, path);
+  addMetric(key, value, path2) {
+    this.debug.addMetric(key, value, path2);
   }
-  setMetric(key, value, path) {
-    this.debug.setMetric(key, value, path);
+  setMetric(key, value, path2) {
+    this.debug.setMetric(key, value, path2);
   }
-  addEval(key, value, path) {
-    this.debug.addEval(key, value, path);
+  addEval(key, value, path2) {
+    this.debug.addEval(key, value, path2);
   }
-  setEval(key, value, path) {
-    this.debug.setEval(key, value, path);
+  setEval(key, value, path2) {
+    this.debug.setEval(key, value, path2);
   }
-  addError(key, value, path) {
-    this.debug.addError(key, value, path);
+  addError(key, value, path2) {
+    this.debug.addError(key, value, path2);
   }
   addFlowDebugMessage(type, description, options) {
     const flowMessage = { type, description, timestamp: Date.now(), ...options };
@@ -18652,8 +18652,8 @@ var ExecutionRuntime = class {
     this.readSources = this.policy.readSources ? new EngineReadSourceCapture(runId, void 0, "resumed-source-ownership", this.executionHistory.length) : void 0;
     this.rootStageContext.readSources = this.readSources;
   }
-  captureSnapshot(to, control8 = "unknown", redact = false) {
-    const note = this.capture?.snapshot(to, control8, redact);
+  captureSnapshot(to, control9 = "unknown", redact = false) {
+    const note = this.capture?.snapshot(to, control9, redact);
     return note && this.readSources ? withReadSources(note, this.readSources.snapshot(to, redact)) : note;
   }
   globalStore;
@@ -18687,21 +18687,21 @@ var ExecutionRuntime = class {
    *   every frame after inherits the same reference. Default: every dial at
    *   its default, no rule, no mirror.
    */
-  constructor(rootName, rootId, defaultValues, initialState, policy = DEFAULT_RUN_POLICY, record, source) {
+  constructor(rootName, rootId, defaultValues, initialState, policy = DEFAULT_RUN_POLICY, record2, source) {
     this._initialState = initialState;
     this._defaultValues = defaultValues;
     this.globalStore = new SharedMemory(defaultValues, initialState);
     const sourceAddress2 = policy.readSources && source ? source.address ?? { logRunId: source.runId, drillPath: [] } : void 0;
     const unsupportedSourceAddress = policy.readSources && source?.address && !source.unavailable && !supportsNativeSourceAddress(source.address);
-    if (policy.readSources && source?.runId && sourceAddress2 && !source.unavailable && !unsupportedSourceAddress && (!record || record.address.logRunId === sourceAddress2.logRunId && record.address.drillPath.length === sourceAddress2.drillPath.length && record.address.drillPath.every((part, index) => part === sourceAddress2.drillPath[index]) && hasSourceSinkBase(this.globalStore))) {
+    if (policy.readSources && source?.runId && sourceAddress2 && !source.unavailable && !unsupportedSourceAddress && (!record2 || record2.address.logRunId === sourceAddress2.logRunId && record2.address.drillPath.length === sourceAddress2.drillPath.length && record2.address.drillPath.every((part, index) => part === sourceAddress2.drillPath[index]) && hasSourceSinkBase(this.globalStore))) {
       const book = createReadSourceRecord(this.globalStore, sourceAddress2, {
         ...typeof policy.readSources === "object" ? policy.readSources : {},
-        ...record && { sink: sourceSink(record) }
+        ...record2 && { sink: sourceSink(record2) }
       });
       this.executionHistory = book.log;
       this.readSources = new EngineReadSourceCapture(source.runId, book, source.historyOmitted ? "source-history-not-included" : void 0);
     } else {
-      this.executionHistory = openLog(this.globalStore.getState(), record);
+      this.executionHistory = openLog(this.globalStore.getState(), record2);
       if (unsupportedSourceAddress && sourceAddress2)
         this.executionHistory.bindAddress(sourceAddress2.logRunId, sourceAddress2.drillPath);
       if (policy.readSources && source?.runId) {
@@ -18710,8 +18710,8 @@ var ExecutionRuntime = class {
           this.readSources.limit("source-history-not-included");
       }
     }
-    if (record && this.executionHistory.address !== void 0)
-      this.recordSink = record.sink;
+    if (record2 && this.executionHistory.address !== void 0)
+      this.recordSink = record2.sink;
     this.policy = policy;
     this.rootStageContext = this.newRoot(rootName, rootId);
   }
@@ -18807,8 +18807,8 @@ var ExecutionRuntime = class {
     const state2 = this.globalStore.getState();
     return state2.pipelines ? Object.keys(state2.pipelines) : [];
   }
-  setRootObject(path, key, value) {
-    this.rootStageContext.setObject(path, key, value);
+  setRootObject(path2, key, value) {
+    this.rootStageContext.setObject(path2, key, value);
   }
   /**
    * Return the runtime snapshot.
@@ -18873,15 +18873,15 @@ var ExecutionRuntime = class {
     };
   }
 };
-function openLog(base, record) {
-  if (record === void 0)
+function openLog(base, record2) {
+  if (record2 === void 0)
     return new EventLog(base);
   try {
-    return new EventLog(base, record);
+    return new EventLog(base, record2);
   } catch (error) {
     try {
-      record.sink.onFailure?.({
-        entry: { kind: "opened", address: record.address, at: Date.now(), initialState: {} },
+      record2.sink.onFailure?.({
+        entry: { kind: "opened", address: record2.address, at: Date.now(), initialState: {} },
         error
       });
     } catch {
@@ -18889,24 +18889,24 @@ function openLog(base, record) {
     return new EventLog(base);
   }
 }
-function sourceSink(record) {
+function sourceSink(record2) {
   return {
     opened: (entry) => {
       let meta;
       try {
-        meta = record.meta === void 0 ? void 0 : structuredClone(record.meta);
+        meta = record2.meta === void 0 ? void 0 : structuredClone(record2.meta);
       } catch (error) {
         try {
-          settleOnce(record.sink.onFailure?.({ entry: { ...entry, kind: "opened" }, error }), () => void 0, () => void 0);
+          settleOnce(record2.sink.onFailure?.({ entry: { ...entry, kind: "opened" }, error }), () => void 0, () => void 0);
         } catch {
         }
       }
-      return record.sink.opened({ ...entry, ...meta !== void 0 && { meta } });
+      return record2.sink.opened({ ...entry, ...meta !== void 0 && { meta } });
     },
-    commit: (entry) => record.sink.commit(entry),
-    note: (entry) => record.sink.note(entry),
-    closed: (entry) => record.sink.closed(entry),
-    onFailure: (failure) => record.sink.onFailure?.(failure)
+    commit: (entry) => record2.sink.commit(entry),
+    note: (entry) => record2.sink.note(entry),
+    closed: (entry) => record2.sink.closed(entry),
+    onFailure: (failure) => record2.sink.onFailure?.(failure)
   };
 }
 function hasSourceSinkBase(state2) {
@@ -18974,9 +18974,9 @@ function runCall(target, fn, policy, host) {
       if (hostSignal?.aborted)
         cut.add(attempt);
     },
-    onAttempt: (record, structuredError) => {
-      if (host.admits(cut.has(record.attempt))) {
-        host.report(record, structuredError);
+    onAttempt: (record2, structuredError) => {
+      if (host.admits(cut.has(record2.attempt))) {
+        host.report(record2, structuredError);
         return;
       }
       host.refused();
@@ -19049,7 +19049,7 @@ function observedRecord(report, init) {
   const category = failed ? errorCategory(report.error, report.outcome) : void 0;
   const served = failed && report.error !== void 0 ? withoutRaw(init.serve(report.error)) : void 0;
   const decision = decideAttempt(retryRules({ attempts: report.of ?? report.attempt }), (key) => readInput(report, category, key));
-  const record = freezeDeep({
+  const record2 = freezeDeep({
     series: init.series,
     kind: "observed",
     target: report.target,
@@ -19065,7 +19065,7 @@ function observedRecord(report, init) {
     reason: decision.reason,
     ...served !== void 0 && { error: recordedError(served) }
   });
-  return { record, ...served !== void 0 && { structuredError: served } };
+  return { record: record2, ...served !== void 0 && { structuredError: served } };
 }
 function withoutRaw(served) {
   return { ...served, raw: void 0 };
@@ -19507,8 +19507,8 @@ var ScopeFacade = class _ScopeFacade {
       // The frame's own commit state (every attempt's facade reads the same), never a facade flag.
       admits: (cut) => !context.committed && (cut || !(ended.aborted || this.attemptHasEnded())),
       serve: (error) => this.rule.servedError(error),
-      report: (record, structuredError) => {
-        const served = loop ? Object.freeze({ ...record, retryLoop: loop.identity }) : record;
+      report: (record2, structuredError) => {
+        const served = loop ? Object.freeze({ ...record2, retryLoop: loop.identity }) : record2;
         context.reportCallAttempt(served, structuredError);
         loop?.record(served);
       },
@@ -19582,12 +19582,12 @@ var ScopeFacade = class _ScopeFacade {
       return;
     }
     const book = this._observedBook ??= new ObservedSeriesBook(() => callSeries(context.runtimeStageId, stageAttempt, context.nextCallOrdinal(stageAttempt)));
-    const { record, structuredError } = observedRecord(read, {
+    const { record: record2, structuredError } = observedRecord(read, {
       series: book.seriesFor(read),
       now: Date.now,
       serve: (error) => this.rule.servedError(error)
     });
-    context.reportCallAttempt(record, structuredError);
+    context.reportCallAttempt(record2, structuredError);
   }
   /** This facade's attempt has ended — the P1b fence is closed. */
   attemptHasEnded() {
@@ -19790,18 +19790,18 @@ var ScopeFacade = class _ScopeFacade {
    * the recorder event's `key` is only a dot-joined display label, so `['user','ssn']` and
    * a literal top-level `'user.ssn'` produce the same event key (same for the writes below).
    */
-  getValueAt(path, key) {
-    this.refuseIfAttemptEnded(key === void 0 ? path.join(".") || "*" : [...path, key].join("."));
-    const value = this._stageContext.getValue(path, key);
-    if (path.length === 0 && key !== void 0)
+  getValueAt(path2, key) {
+    this.refuseIfAttemptEnded(key === void 0 ? path2.join(".") || "*" : [...path2, key].join("."));
+    const value = this._stageContext.getValue(path2, key);
+    if (path2.length === 0 && key !== void 0)
       this._trackedReadKeys.add(key);
-    else if (path.length === 1 && key === void 0)
-      this._trackedReadKeys.add(path[0]);
+    else if (path2.length === 1 && key === void 0)
+      this._trackedReadKeys.add(path2[0]);
     if (this._recorders.length > 0) {
-      const wholeState = path.length === 0 && key === void 0;
-      const verdict = wholeState ? CLEAR : key === void 0 ? this.rule.verdict(path) : this.rule.verdictAt(path, key);
+      const wholeState = path2.length === 0 && key === void 0;
+      const verdict = wholeState ? CLEAR : key === void 0 ? this.rule.verdict(path2) : this.rule.verdictAt(path2, key);
       const recorderValue = wholeState ? this.rule.retainRecord(value) : RedactionRule.apply(verdict, value);
-      const eventKey = path.length === 0 ? key : (key === void 0 ? path : [...path, key]).join(".");
+      const eventKey = path2.length === 0 ? key : (key === void 0 ? path2 : [...path2, key]).join(".");
       this._invokeHook("onRead", {
         stageName: this._stageName,
         stageId: this._stageContext.stageId,
@@ -19819,16 +19819,16 @@ var ScopeFacade = class _ScopeFacade {
     return this.setValueAt([], key, value, shouldRedact, description);
   }
   /** Path-aware writes share recording, redaction and lifetime policy with flat writes. */
-  setValueAt(path, key, value, shouldRedact, description) {
-    const eventKey = path.length === 0 ? key : [...path, key].join(".");
-    assertNotReadonly(this._readOnlyValues, path[0] ?? key, "write");
+  setValueAt(path2, key, value, shouldRedact, description) {
+    const eventKey = path2.length === 0 ? key : [...path2, key].join(".");
+    assertNotReadonly(this._readOnlyValues, path2[0] ?? key, "write");
     this.assertLive(eventKey);
     if (isDevMode() && value !== null && typeof value === "object") {
       if (hasCircularReference(value)) {
         console.warn(`[footprint] Circular reference detected in setValue('${eventKey}'). Writes past the cycle depth will use terminal proxy tracking. Consider flattening the data structure.`);
       }
     }
-    const verdict = this._stageContext.setObject(path, key, value, shouldRedact, description);
+    const verdict = this._stageContext.setObject(path2, key, value, shouldRedact, description);
     if (this._recorders.length > 0) {
       this._invokeHook("onWrite", {
         stageName: this._stageName,
@@ -19847,16 +19847,16 @@ var ScopeFacade = class _ScopeFacade {
     return this.updateValueAt([], key, value, description);
   }
   /** Path-aware merges use the same write funnel as replacements. */
-  updateValueAt(path, key, value, description) {
-    const eventKey = path.length === 0 ? key : [...path, key].join(".");
-    assertNotReadonly(this._readOnlyValues, path[0] ?? key, "write");
+  updateValueAt(path2, key, value, description) {
+    const eventKey = path2.length === 0 ? key : [...path2, key].join(".");
+    assertNotReadonly(this._readOnlyValues, path2[0] ?? key, "write");
     this.assertLive(eventKey);
     if (isDevMode() && value !== null && typeof value === "object") {
       if (hasCircularReference(value)) {
         console.warn(`[footprint] Circular reference detected in updateValue('${eventKey}'). Consider flattening the data structure.`);
       }
     }
-    const verdict = this._stageContext.updateObject(path, key, value, description);
+    const verdict = this._stageContext.updateObject(path2, key, value, description);
     if (this._recorders.length > 0) {
       this._invokeHook("onWrite", {
         stageName: this._stageName,
@@ -20116,14 +20116,14 @@ var RunRecord = class {
   }
   /** A sink error is the diagnostic errors.recordSinkError; raw causes belong only to the caller's exception. */
   errorView(error, rule) {
-    const text2 = thrownText(error);
-    const retained = rule ? rule.retainStageError(error, text2, rule.retainDiagnostic(["errors", "recordSinkError"], text2)) : { message: text2, structuredError: extractErrorInfo(error) };
+    const text3 = thrownText(error);
+    const retained = rule ? rule.retainStageError(error, text3, rule.retainDiagnostic(["errors", "recordSinkError"], text3)) : { message: text3, structuredError: extractErrorInfo(error) };
     const served = { ...retained.structuredError };
     Reflect.deleteProperty(served, "raw");
     return {
       text: retained.message,
       error: served,
-      masked: retained.message !== text2 || retained.structuredError.raw !== error,
+      masked: retained.message !== text3 || retained.structuredError.raw !== error,
       rule
     };
   }
@@ -20226,14 +20226,14 @@ var RunRecord = class {
   /** One loss: counted, warned once per run, told with a safe dispatched entry when available, fatal under 'fail'. */
   lost(error, entry, view) {
     this.failed += 1;
-    const text2 = view.text;
-    this.lastError = text2;
+    const text3 = view.text;
+    this.lastError = text3;
     if (isDevMode() && !this.warned) {
       this.warned = true;
-      console.warn(`[footprint] record sink: an entry was not stored (${text2}). The run goes on; getSnapshot().sink counts every loss.`);
+      console.warn(`[footprint] record sink: an entry was not stored (${text3}). The run goes on; getSnapshot().sink counts every loss.`);
     }
     if (this.stopper !== void 0 && this.failure === void 0) {
-      this.failure = new RecordSinkError(`record sink: an entry was not stored \u2014 ${text2}`, error);
+      this.failure = new RecordSinkError(`record sink: an entry was not stored \u2014 ${text3}`, error);
       if (view.masked) {
         view.rule?.retainStageError(this.failure, this.failure.message, SCOPE_PLACEHOLDER);
         if (this.rule !== view.rule)
@@ -20521,12 +20521,12 @@ function servedSnapshot(traverser, observers, options, sink) {
   if (sink !== void 0)
     snapshot2.sink = sink;
   if (runtime.capture) {
-    const control8 = acknowledged.length === 0 ? "unknown" : acknowledged.every((ack) => ack.control === "captured") ? "captured" : acknowledged.some((ack) => ack.control === "partial") ? "partial" : "unknown";
+    const control9 = acknowledged.length === 0 ? "unknown" : acknowledged.every((ack) => ack.control === "captured") ? "captured" : acknowledged.some((ack) => ack.control === "partial") ? "partial" : "unknown";
     if (runtime.rootStageContext.getPolicy().redaction?.isInert() === false)
       runtime.capture.limit("redaction-active");
     return {
       ...snapshot2,
-      capture: runtime.captureSnapshot(snapshot2.commitLog.length, control8, options?.redact === true)
+      capture: runtime.captureSnapshot(snapshot2.commitLog.length, control9, options?.redact === true)
     };
   }
   return snapshot2;
@@ -20629,12 +20629,12 @@ function validateJsonSchema(schema, data2) {
       ])
     };
   }
-  const record = data2;
+  const record2 = data2;
   const issues = [];
   const required = schema.required;
   if (Array.isArray(required)) {
     for (const key of required) {
-      if (typeof key === "string" && !Object.prototype.hasOwnProperty.call(record, key)) {
+      if (typeof key === "string" && !Object.prototype.hasOwnProperty.call(record2, key)) {
         issues.push({ path: [key], message: `Missing required field "${key}"`, code: "missing_field" });
       }
     }
@@ -20642,9 +20642,9 @@ function validateJsonSchema(schema, data2) {
   const properties = schema.properties;
   if (properties && typeof properties === "object") {
     for (const [key, propSchema] of Object.entries(properties)) {
-      if (!Object.prototype.hasOwnProperty.call(record, key))
+      if (!Object.prototype.hasOwnProperty.call(record2, key))
         continue;
-      const value = record[key];
+      const value = record2[key];
       if (propSchema && typeof propSchema === "object") {
         const expectedType = propSchema.type;
         if (typeof expectedType === "string" && value !== null && value !== void 0) {
@@ -20768,7 +20768,7 @@ var FlowChartExecutor = class {
       runtime.usePolicy(policy);
       runtime.resumeReadSources(this._currentRunId);
     } else {
-      const record = overrides?.record;
+      const record2 = overrides?.record;
       runtime = new ExecutionRuntime(
         effectiveRoot.name,
         effectiveRoot.id,
@@ -20776,10 +20776,10 @@ var FlowChartExecutor = class {
         effectiveInitialContext,
         policy,
         // A root log that writes to the sink opens at `[runId]` — the address the engine binds it to anyway.
-        record && {
-          sink: record.link.sink,
+        record2 && {
+          sink: record2.link.sink,
           address: { logRunId: this._currentRunId, drillPath: [] },
-          ...record.meta && { meta: record.meta }
+          ...record2.meta && { meta: record2.meta }
         },
         this._currentRunId ? {
           runId: this._currentRunId,
@@ -20940,14 +20940,14 @@ var FlowChartExecutor = class {
       const sinkOption = this.flowChartArgs.sink;
       const reused = existingRuntime && this.record ? this.record : void 0;
       reused?.beginLeg();
-      const record = sinkOption && (reused ?? new RunRecord(sinkOption));
+      const record2 = sinkOption && (reused ?? new RunRecord(sinkOption));
       const resumedFrom = plan.checkpoint.pausedExecution?.runId;
       const armed = armRun({
         signal: options?.signal,
         timeoutMs: options?.timeoutMs,
         deadline: options?.deadline,
         env,
-        ...record?.stopSignal && { stop: record.stopSignal }
+        ...record2?.stopSignal && { stop: record2.stopSignal }
       });
       this.traverser = disposeOnThrow(armed, () => this.createTraverser(armed.signal, void 0, armed.env, options?.maxDepth, options?.maxIterations, {
         // Clone-in: `initialContext` seeds the fresh SharedMemory with a
@@ -20958,22 +20958,22 @@ var FlowChartExecutor = class {
         resume: plan.entry,
         ...plan.checkpoint.redactionMarks && { redactionMarks: plan.checkpoint.redactionMarks },
         ...correlation && { correlation },
-        ...record && {
+        ...record2 && {
           record: {
-            link: record,
+            link: record2,
             meta: this.openingMeta(correlation, armed.deadline, resumedFrom)
           }
         }
       }));
-      if (record && existingRuntime) {
-        existingRuntime.noteRecord("resume", record.serve({
+      if (record2 && existingRuntime) {
+        existingRuntime.noteRecord("resume", record2.serve({
           runId: this._currentRunId,
           ...resumedFrom !== void 0 && { resumedFrom },
           ...correlation && { correlation },
           ...armed.deadline !== void 0 && { deadline: armed.deadline }
         }));
       }
-      this.record = record;
+      this.record = record2;
       this.captureSignal = this.flowChartArgs.captureCoverage || this.flowChartArgs.dials.readSources ? armed.signal : void 0;
       this.traverser.getRuntime().capture?.limit("resumed-segment");
       disposeOnThrow(armed, () => announceResume(plan, resumeInput, {
@@ -20983,8 +20983,8 @@ var FlowChartExecutor = class {
         ...correlation && { correlation }
       }));
       this._isExecuting = true;
-      if (record)
-        return this.settleRecorded(armed, record);
+      if (record2)
+        return this.settleRecorded(armed, record2);
       try {
         const result = await this.traverser.execute();
         this.observers.deferredTier?.terminalFlush();
@@ -21040,15 +21040,15 @@ var FlowChartExecutor = class {
    * The leg's own error always wins. A run that finished but lost an entry under `onFailure: 'fail'` rejects with
    * the `RecordSinkError`.
    */
-  async settleRecorded(armed, record) {
+  async settleRecorded(armed, record2) {
     try {
-      return await this.settleRecordedLeg(armed, record);
+      return await this.settleRecordedLeg(armed, record2);
     } finally {
       this._isExecuting = false;
       armed.dispose();
     }
   }
-  async settleRecordedLeg(armed, record) {
+  async settleRecordedLeg(armed, record2) {
     const runtime = this.traverser.getRuntime();
     let outcome;
     let result;
@@ -21071,8 +21071,8 @@ var FlowChartExecutor = class {
         runId: this._currentRunId,
         ...failure && { error: this.closingError(failure.error) }
       });
-      if (record.flushMode === "auto")
-        await record.flush(autoFlushMs(armed.deadline), true);
+      if (record2.flushMode === "auto")
+        await record2.flush(autoFlushMs(armed.deadline), true);
     } catch (error) {
       this.failureState.finish(error);
       this.finishCapture("failed", error);
@@ -21081,29 +21081,29 @@ var FlowChartExecutor = class {
     if (failure) {
       this.failureState.finish(failure.error);
       this.finishCapture("failed", failure.error);
-      await this.saveCaptureHistory(runtime, record);
+      await this.saveCaptureHistory(runtime, record2);
       throw failure.error;
     }
-    if (record.fatal) {
-      this.failureState.finish(record.fatal);
-      this.finishCapture("failed", record.fatal);
-      await this.saveCaptureHistory(runtime, record);
-      throw record.fatal;
+    if (record2.fatal) {
+      this.failureState.finish(record2.fatal);
+      this.finishCapture("failed", record2.fatal);
+      await this.saveCaptureHistory(runtime, record2);
+      throw record2.fatal;
     }
     this.finishCapture(outcome === "paused" ? "paused" : "completed");
-    await this.saveCaptureHistory(runtime, record);
-    if (record.fatal) {
-      this.failureState.finish(record.fatal);
-      throw record.fatal;
+    await this.saveCaptureHistory(runtime, record2);
+    if (record2.fatal) {
+      this.failureState.finish(record2.fatal);
+      throw record2.fatal;
     }
     this.failureState.complete();
     return result;
   }
-  saveCaptureHistory(runtime, record) {
-    if (!record.captureOptions)
+  saveCaptureHistory(runtime, record2) {
+    if (!record2.captureOptions)
       return Promise.resolve();
     this.captureHistoryLease ??= { pending: false };
-    return persistCaptureHistory(runtime, record, () => this.getSnapshot(), this.captureHistoryLease);
+    return persistCaptureHistory(runtime, record2, () => this.getSnapshot(), this.captureHistoryLease);
   }
   finishCapture(status, error) {
     const signal = this.captureSignal;
@@ -21282,7 +21282,7 @@ var FlowChartExecutor = class {
       return this.observers.combinedRecorder.getEntries();
     }
     const flowSentences = this.traverser.getNarrative();
-    return flowSentences.map((text2) => ({ type: "stage", text: text2, depth: 0 }));
+    return flowSentences.map((text3) => ({ type: "stage", text: text3, depth: 0 }));
   }
   /**
    * Execute the chart. Resolves when the run finishes — or pauses, if a
@@ -21312,13 +21312,13 @@ var FlowChartExecutor = class {
       }
       const { env, correlation } = admitRunEnv(options?.env);
       const startedAt = Date.now();
-      const record = this.flowChartArgs.sink && new RunRecord(this.flowChartArgs.sink);
+      const record2 = this.flowChartArgs.sink && new RunRecord(this.flowChartArgs.sink);
       const armed = armRun({
         signal: options?.signal,
         timeoutMs: options?.timeoutMs,
         deadline: options?.deadline,
         env,
-        ...record?.stopSignal && { stop: record.stopSignal }
+        ...record2?.stopSignal && { stop: record2.stopSignal }
       });
       disposeOnThrow(armed, () => warnDeadlineUnderBudget(this.flowChartArgs.flowChart, armed.deadline, startedAt));
       this.observers.clearForRun();
@@ -21329,13 +21329,13 @@ var FlowChartExecutor = class {
       this._hasRunBefore = true;
       this.traverser = disposeOnThrow(armed, () => this.createTraverser(armed.signal, validatedInput, armed.env, options?.maxDepth, options?.maxIterations, {
         ...correlation && { correlation },
-        ...record && { record: { link: record, meta: this.openingMeta(correlation, armed.deadline) } }
+        ...record2 && { record: { link: record2, meta: this.openingMeta(correlation, armed.deadline) } }
       }));
-      this.record = record;
+      this.record = record2;
       this.captureSignal = this.flowChartArgs.captureCoverage || this.flowChartArgs.dials.readSources ? armed.signal : void 0;
       this._isExecuting = true;
-      if (record)
-        return this.settleRecorded(armed, record);
+      if (record2)
+        return this.settleRecorded(armed, record2);
       try {
         const result = await this.traverser.execute();
         this.observers.deferredTier?.terminalFlush();
@@ -21412,8 +21412,8 @@ var FlowChartExecutor = class {
     return this.traverser.getRuntime();
   }
   /** @internal */
-  setRootObject(path, key, value) {
-    this.traverser.setRootObject(path, key, value);
+  setRootObject(path2, key, value) {
+    this.traverser.setRootObject(path2, key, value);
   }
   /** @internal */
   getBranchIds() {
@@ -21530,12 +21530,12 @@ function makeRunnable(chart) {
     const title = options?.title ?? builderChart.description?.split("\n")[0] ?? "API";
     const version = options?.version ?? "1.0.0";
     const rawId = builderChart.root?.id ?? "execute";
-    const path = options?.path ?? `/${slugify(rawId)}`;
+    const path2 = options?.path ?? `/${slugify(rawId)}`;
     const spec = {
       openapi: "3.1.0",
       info: { title, version, description: options?.description ?? builderChart.description },
       paths: {
-        [path]: {
+        [path2]: {
           post: {
             summary: title,
             description: builderChart.description,
@@ -21668,21 +21668,21 @@ function appendRetryLoop(builder, id2, supplied, stamp) {
   const read = (host) => checked(host.getValue(into));
   const identity = (state2, phase) => Object.freeze({ id: id2, series: state2.series, attempt: state2.attempt, of: attempts, phase });
   const call = async (scope, host, state2, phase, fn) => {
-    let record;
+    let record2;
     const logical = identity(state2, phase);
     const clear = registerRetryLoopCall(host, {
       identity: logical,
       record: (entry) => {
-        record = entry;
+        record2 = entry;
       }
     });
     try {
       const value = await host.call(phase === "attempt" ? touches : `${touches}.reconcile`, (context) => fn(scope, Object.freeze({ ...context, idempotencyKey: state2.idempotencyKey, retryLoop: logical })), { attempts: 1, ...timeoutMs === void 0 ? {} : { timeoutMs } }, phase === "attempt" ? { touches, idempotencyKey: state2.idempotencyKey } : void 0);
-      return { value, record };
+      return { value, record: record2 };
     } catch (error) {
       if (isPauseSignal(error) || isInterruptSignal(error))
         throw error;
-      return { error, record };
+      return { error, record: record2 };
     } finally {
       clear();
     }
@@ -21704,7 +21704,7 @@ function appendRetryLoop(builder, id2, supplied, stamp) {
     };
     host.writeRetryLoopState(into, state2);
     const result = await call(scope, host, state2, "attempt", attempt);
-    const record = result.record;
+    const record2 = result.record;
     const failed = Object.hasOwn(result, "error");
     let allows = true;
     let threw = false;
@@ -21724,9 +21724,9 @@ function appendRetryLoop(builder, id2, supplied, stamp) {
     }
     state2 = {
       ...state2,
-      outcome: record?.outcome ?? (failed ? "failed" : "ok"),
-      effect: record?.effect ?? (failed ? "unknown" : "applied"),
-      category: record?.category,
+      outcome: record2?.outcome ?? (failed ? "failed" : "ok"),
+      effect: record2?.effect ?? (failed ? "unknown" : "applied"),
+      category: record2?.category,
       ...failed ? { error: host.serveRetryLoopError(result.error) } : { value: result.value },
       retryOn: allows,
       ...threw ? { retryOnThrew: true } : {},
@@ -22221,19 +22221,19 @@ var RootKeySink = class {
     this.cache = cache;
   }
   /** An empty path is the key's own value — `nativeGet(v, [])` would return it unchanged, so the walk is skipped. */
-  readAt(path) {
+  readAt(path2) {
     const root = this.readSilent(this.rootKey);
-    return path.length === 0 ? root : nativeGet(root, path);
+    return path2.length === 0 ? root : nativeGet(root, path2);
   }
-  put(path, value) {
+  put(path2, value) {
     if (!Array.isArray(value))
-      this.target.updateValue(this.rootKey, buildNestedPatch(path, value));
+      this.target.updateValue(this.rootKey, buildNestedPatch(path2, value));
     else
-      this.target.setValue(this.rootKey, path.length === 0 ? value : setInPath(this.readAt([]), path, value));
+      this.target.setValue(this.rootKey, path2.length === 0 ? value : setInPath(this.readAt([]), path2, value));
     this.cache.delete(this.rootKey);
   }
-  remove(path) {
-    this.target.setValue(this.rootKey, deleteInPath(this.readAt([]), path));
+  remove(path2) {
+    this.target.setValue(this.rootKey, deleteInPath(this.readAt([]), path2));
     this.cache.delete(this.rootKey);
   }
 };
@@ -22249,32 +22249,32 @@ var ElementSink = class {
     this.commit = commit;
     this.index = index;
   }
-  readAt(path) {
-    return readInElement(this.getCurrent, this.index, path);
+  readAt(path2) {
+    return readInElement(this.getCurrent, this.index, path2);
   }
-  put(path, value) {
-    replaceInElement(this.getCurrent, this.commit, this.index, path, value);
+  put(path2, value) {
+    replaceInElement(this.getCurrent, this.commit, this.index, path2, value);
   }
-  remove(path) {
-    removeInElement(this.getCurrent, this.commit, this.index, path);
+  remove(path2) {
+    removeInElement(this.getCurrent, this.commit, this.index, path2);
   }
 };
-function readInElement(getCurrent, index, path) {
+function readInElement(getCurrent, index, path2) {
   const element = getCurrent()[index];
-  return path.length === 0 ? element : nativeGet(element, path);
+  return path2.length === 0 ? element : nativeGet(element, path2);
 }
-function replaceInElement(getCurrent, commit, index, path, value) {
+function replaceInElement(getCurrent, commit, index, path2, value) {
   const next = [...getCurrent()];
   if (index >= next.length)
     return;
-  next[index] = path.length === 0 ? value : setInPath(next[index], path, value);
+  next[index] = path2.length === 0 ? value : setInPath(next[index], path2, value);
   commit(next);
 }
-function removeInElement(getCurrent, commit, index, path) {
+function removeInElement(getCurrent, commit, index, path2) {
   const next = [...getCurrent()];
   if (index >= next.length)
     return;
-  next[index] = deleteInPath(next[index], path);
+  next[index] = deleteInPath(next[index], path2);
   commit(next);
 }
 function sinkSetTrap(sink, segments3) {
@@ -22365,10 +22365,10 @@ function deleteSlot(read, write, prop) {
     delete clone[prop];
   write(clone);
 }
-function arrayProxyAt(sink, path) {
-  return createArrayProxy(() => sink.readAt(path) ?? [], (next) => sink.put(path, next));
+function arrayProxyAt(sink, path2) {
+  return createArrayProxy(() => sink.readAt(path2) ?? [], (next) => sink.put(path2, next));
 }
-function wrapElementMember(value, sink, path, visited) {
+function wrapElementMember(value, sink, path2, visited) {
   if (!shouldWrapWithProxy(value))
     return value;
   if (visited.has(value))
@@ -22376,14 +22376,14 @@ function wrapElementMember(value, sink, path, visited) {
   const branch = new Set(visited);
   branch.add(value);
   if (Array.isArray(value))
-    return arrayProxyAt(sink, path);
-  return createElementProxy(value, sink, path, branch);
+    return arrayProxyAt(sink, path2);
+  return createElementProxy(value, sink, path2, branch);
 }
 function createElementProxy(raw, sink, segments3, visited) {
   const members = new MemberCache();
   const live = () => liveObject(raw, sink.readAt(segments3));
   return rememberHandle(new Proxy(raw, {
-    get: liveGetTrap(live, segments3, (value, path) => wrapElementMember(value, sink, path, visited), members),
+    get: liveGetTrap(live, segments3, (value, path2) => wrapElementMember(value, sink, path2, visited), members),
     set: sinkSetTrap(sink, segments3),
     deleteProperty: sinkDeleteTrap(sink, segments3),
     ...liveInspectionTraps(live)
@@ -22521,14 +22521,14 @@ function createTerminalProxy(obj, sink, segments3, visited = /* @__PURE__ */ new
   visited.add(obj);
   const members = new MemberCache();
   const live = () => liveObject(obj, sink.readAt(segments3));
-  const child = (value, path) => {
+  const child = (value, path2) => {
     if (!shouldWrapWithProxy(value))
       return value;
     if (Array.isArray(value))
-      return arrayProxyAt(sink, path);
+      return arrayProxyAt(sink, path2);
     if (visited.has(value))
       return value;
-    return createTerminalProxy(value, sink, path, visited);
+    return createTerminalProxy(value, sink, path2, visited);
   };
   return rememberHandle(new Proxy(obj, {
     get: liveGetTrap(live, segments3, child, members),
@@ -22540,14 +22540,14 @@ function createTerminalProxy(obj, sink, segments3, visited = /* @__PURE__ */ new
 function createNestedProxy(obj, sink, segments3, ancestors = /* @__PURE__ */ new Set()) {
   const members = new MemberCache();
   const live = () => liveObject(obj, sink.readAt(segments3));
-  const child = (value, path) => {
+  const child = (value, path2) => {
     if (!shouldWrapWithProxy(value))
       return value;
     if (Array.isArray(value))
-      return arrayProxyAt(sink, path);
+      return arrayProxyAt(sink, path2);
     if (ancestors.has(value))
-      return createTerminalProxy(value, sink, path);
-    return createNestedProxy(value, sink, path, new Set(ancestors).add(value));
+      return createTerminalProxy(value, sink, path2);
+    return createNestedProxy(value, sink, path2, new Set(ancestors).add(value));
   };
   return rememberHandle(new Proxy(obj, {
     get: liveGetTrap(live, segments3, child, members),
@@ -23293,14 +23293,14 @@ var FlowChartBuilder = class {
   _fireSubflowMounted(subflowId, subflowName, rootStageId, isLazy, subflowSpec, subflowPath) {
     if (!this._structureDispatcher)
       return;
-    const path = subflowPath ?? subflowId;
+    const path2 = subflowPath ?? subflowId;
     this._structureDispatcher.fireSubflowMounted({
       subflowId,
       subflowName,
       rootStageId,
       ...isLazy === true && { isLazy },
       ...subflowSpec !== void 0 && { subflowSpec },
-      subflowPath: path
+      subflowPath: path2
     });
   }
   /** Sub-builder access (`.b._fireXxx`) is needed by DeciderList /
@@ -24846,26 +24846,26 @@ function snapshotSource(source) {
   const date = new Date(commit.committer.date).toISOString().slice(0, 10);
   const input = own4(source, "inventory"), inventory = /* @__PURE__ */ new Map();
   let total = 0;
-  for (const [path, entry] of Map.prototype.entries.call(input)) {
-    if (inventory.size >= 4096 || typeof path !== "string") refuseSource();
+  for (const [path2, entry] of Map.prototype.entries.call(input)) {
+    if (inventory.size >= 4096 || typeof path2 !== "string") refuseSource();
     keys(entry, ["sha", "mode", "bytes"]);
-    const sha3 = own4(entry, "sha"), mode = own4(entry, "mode"), raw = own4(entry, "bytes");
-    if (!import_release_control.default.validSha(sha3) || !["100644", "100755"].includes(mode)) refuseSource();
-    const row = { sha: sha3, mode };
+    const sha4 = own4(entry, "sha"), mode = own4(entry, "mode"), raw = own4(entry, "bytes");
+    if (!import_release_control.default.validSha(sha4) || !["100644", "100755"].includes(mode)) refuseSource();
+    const row = { sha: sha4, mode };
     if (raw !== void 0) {
       if (!Buffer.isBuffer(raw) || !ArrayBuffer.isView(raw) || raw.length > 2 * 1024 * 1024) refuseSource();
       const bytes = Buffer.from(raw);
       total += bytes.length;
-      if (total > 128 * 1024 * 1024 || import_release_prepare.default.gitObject("blob", bytes) !== sha3) refuseSource();
+      if (total > 128 * 1024 * 1024 || import_release_prepare.default.gitObject("blob", bytes) !== sha4) refuseSource();
       row.bytes = bytes;
     }
-    inventory.set(path, row);
+    inventory.set(path2, row);
   }
   if (import_release_prepare.default.treeOid(inventory) !== commit.tree.sha) refuseSource();
   return { sourceSha: commit.sha, sourceTree: commit.tree.sha, date, inventory };
 }
-function semanticText(inventory, path) {
-  const row = inventory.get(path);
+function semanticText(inventory, path2) {
+  const row = inventory.get(path2);
   if (!row || row.mode !== "100644") refuseSource();
   return import_release_prepare.default.decodeRaw(row.bytes);
 }
@@ -24893,10 +24893,116 @@ var fail3 = () => {
 function bindProposalMetadata(raw, desired = false) {
   const value = desired ? fields2(jsonData(raw, 128 * 1024), ["title", "body"]) : jsonData({ title: own4(raw, "title"), body: own4(raw, "body") === null ? "" : own4(raw, "body") }, 128 * 1024);
   for (const [key, limit] of [["title", 256], ["body", 65536]]) {
-    const text2 = value[key];
-    if (typeof text2 !== "string" || Buffer.byteLength(text2) > limit || Buffer.from(text2).toString("utf8") !== text2 || key === "title" && !text2.length) fail3();
+    const text3 = value[key];
+    if (typeof text3 !== "string" || Buffer.byteLength(text3) > limit || Buffer.from(text3).toString("utf8") !== text3 || key === "title" && !text3.length) fail3();
   }
   return value;
+}
+
+// src/propose/proposal-effect-request.mjs
+var import_release_control3 = __toESM(require_release_control(), 1);
+var import_release_prepare2 = __toESM(require_release_prepare(), 1);
+var MiB = 1024 * 1024;
+var fail4 = () => {
+  throw new Error("proposal-effect-unavailable");
+};
+var sha = (value) => {
+  if (!import_release_control3.default.validSha(value)) fail4();
+  return value;
+};
+function text2(value, maximum, empty = false) {
+  if (typeof value !== "string" || !empty && !value.length || Buffer.byteLength(value) > maximum || Buffer.from(value).toString("utf8") !== value) fail4();
+  return value;
+}
+function path(value) {
+  text2(value, 1024);
+  if (/[\u0000-\u001f\u007f\\]/.test(value) || value.split("/").some((part) => !part || part === "." || part === ".." || part.toLowerCase() === ".git")) fail4();
+  return value;
+}
+function record(raw, names2) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw) || ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) fail4();
+  const keys2 = Reflect.ownKeys(raw);
+  if (keys2.length !== names2.length || keys2.some((k) => typeof k !== "string" || !names2.includes(k))) fail4();
+  const result = /* @__PURE__ */ Object.create(null);
+  for (const key of names2) {
+    const d = Object.getOwnPropertyDescriptor(raw, key);
+    if (!d || !Object.hasOwn(d, "value")) fail4();
+    result[key] = d.value;
+  }
+  return result;
+}
+function bindProposalEffectRequest(repository, input) {
+  const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
+  id(repo2.id);
+  if (typeof repo2.full_name !== "string" || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo2.full_name)) fail4();
+  const v = record(input, input && Object.hasOwn(input, "limits") ? ["effect", "payload", "limits"] : ["effect", "payload"]);
+  const bound = Object.hasOwn(v, "limits") ? jsonData(v.limits, 1024) : void 0;
+  const prefix = "/repos/" + repo2.full_name;
+  let method = "POST", route, payload, key = v.effect;
+  switch (v.effect) {
+    case "create-blob": {
+      const p = record(v.payload, ["content", "encoding"]);
+      if (p.encoding !== "utf-8") fail4();
+      payload = { content: text2(p.content, 2 * MiB, true), encoding: "utf-8" };
+      route = prefix + "/git/blobs";
+      key += ":" + import_release_prepare2.default.gitObject("blob", Buffer.from(payload.content));
+      break;
+    }
+    case "create-tree": {
+      const p = fields2(jsonData(v.payload), ["base_tree", "tree"]);
+      array(p.tree, 4096);
+      if (!p.tree.length) fail4();
+      const seen = /* @__PURE__ */ new Set(), entries = p.tree.map((raw) => {
+        const row = fields2(raw, ["path", "mode", "type", "sha"]), name = path(row.path);
+        if (seen.has(name) || !["100644", "100755"].includes(row.mode) || row.type !== "blob") fail4();
+        seen.add(name);
+        return { path: name, mode: row.mode, type: "blob", sha: row.sha === null ? null : sha(row.sha) };
+      });
+      entries.sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)));
+      payload = { base_tree: sha(p.base_tree), tree: entries };
+      route = prefix + "/git/trees";
+      break;
+    }
+    case "create-commit": {
+      const p = fields2(jsonData(v.payload), ["message", "tree", "parents"]);
+      array(p.parents, 2);
+      if (p.parents.length !== 2 || new Set(p.parents).size !== 2) fail4();
+      payload = { message: text2(p.message, 4096), tree: sha(p.tree), parents: p.parents.map(sha) };
+      route = prefix + "/git/commits";
+      break;
+    }
+    case "move-ref": {
+      const p = fields2(jsonData(v.payload), ["sha", "force"]);
+      if (p.force !== false) fail4();
+      method = "PATCH";
+      payload = { sha: sha(p.sha), force: false };
+      route = prefix + "/git/refs/heads/release/next";
+      break;
+    }
+    case "create-pr": {
+      const p = fields2(jsonData(v.payload), ["title", "head", "base", "body"]);
+      if (p.head !== "release/next" || p.base !== "main") fail4();
+      const m = bindProposalMetadata({ title: p.title, body: p.body }, true);
+      payload = { title: m.title, head: "release/next", base: "main", body: m.body };
+      route = prefix + "/pulls";
+      break;
+    }
+    default:
+      fail4();
+  }
+  const body = JSON.stringify(payload);
+  if (Buffer.byteLength(body) > 4 * MiB) fail4();
+  return Object.freeze({
+    effect: v.effect,
+    key,
+    method,
+    route,
+    url: "https://api.github.com" + route,
+    payload,
+    body,
+    successStatus: v.effect === "move-ref" ? 200 : 201,
+    binding: { effect: v.effect, payload, ...bound === void 0 ? {} : { limits: bound } }
+  });
 }
 
 // src/propose/metadata-response-policy.mjs
@@ -24932,15 +25038,15 @@ function metadataFetchFailure(error, signal, budgetExhausted) {
 }
 
 // src/propose/github-transport.mjs
-var MiB = 1024 * 1024;
-var HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
-var fail4 = () => {
+var MiB2 = 1024 * 1024;
+var HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB2 });
+var fail5 = () => {
   throw new Error("github-transport-unavailable");
 };
 function limits(input = HARD) {
   const value = fields2(jsonData(input), ["requests", "totalBytes"]);
   for (const key of ["requests", "totalBytes"])
-    if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > HARD[key]) fail4();
+    if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > HARD[key]) fail5();
   return value;
 }
 var counters = () => ({ fetchAttempts: 0, admittedBytes: 0, exhausted: false });
@@ -24948,17 +25054,18 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
   text(repo2.full_name, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201);
-  if (typeof fetcher !== "function") fail4();
+  if (typeof fetcher !== "function") fail5();
   const globalLimit = limits(inputLimits), global = counters(), controller = new AbortController(), prefix = "/repos/" + repo2.full_name;
-  let patchAttempted = false;
+  const attemptedEffects = /* @__PURE__ */ new Set();
+  let writeHalted = false;
   const facts = (value) => Object.freeze({ ...value });
-  const makeView = (input, registry, patch = null) => {
+  const makeView = (input, registry, mutation = null) => {
     const bound = limits(input), local = counters();
-    let patchState = "not-attempted";
+    let mutationState = "not-attempted";
     const exhausted = () => {
       global.exhausted = local.exhausted = true;
       controller.abort(new Error("github-transport-budget"));
-      fail4();
+      fail5();
     };
     const takeRequest = () => {
       if (global.exhausted || local.exhausted || global.fetchAttempts >= globalLimit.requests || local.fetchAttempts >= bound.requests) exhausted();
@@ -24975,29 +25082,29 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
       options.signal.throwIfAborted();
       takeRequest();
       let response;
-      if (patch) patchState = "in-flight";
+      if (mutation) mutationState = "in-flight";
       try {
         response = await fetcher(url, options);
       } catch (error) {
-        if (patch) patchState = metadataFetchFailure(error, options.signal, global.exhausted || local.exhausted);
+        if (mutation) mutationState = metadataFetchFailure(error, options.signal, global.exhausted || local.exhausted);
         throw error;
       }
-      if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 || typeof response.ok !== "boolean" || response.ok !== (response.status >= 200 && response.status < 300)) fail4();
+      if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 || typeof response.ok !== "boolean" || response.ok !== (response.status >= 200 && response.status < 300)) fail5();
       return response;
     };
-    const bounded = async (response, maximum, artifact) => {
+    const bounded = async (response, maximum, artifact, expectedStatus = 200) => {
       if (!response.ok) {
         await response.body?.cancel();
         return new Response(null, { status: response.status });
       }
-      if (response.status !== 200) {
+      if (response.status !== expectedStatus) {
         await response.body?.cancel();
-        fail4();
+        fail5();
       }
       const contentType = response.headers.get("content-type");
       if (artifact && !["application/zip", "application/octet-stream"].includes(contentType?.split(";")[0].trim().toLowerCase())) {
         await response.body?.cancel();
-        fail4();
+        fail5();
       }
       const declared = response.headers.get("content-length");
       if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum || Number(declared) > globalLimit.totalBytes - global.admittedBytes || Number(declared) > bound.totalBytes - local.admittedBytes)) {
@@ -25012,7 +25119,7 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
           if (next.done) break;
           if (!(next.value instanceof Uint8Array)) {
             await reader.cancel();
-            fail4();
+            fail5();
           }
           size += next.value.byteLength;
           if (size > maximum || !admit(next.value.byteLength)) {
@@ -25024,45 +25131,47 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
       } finally {
         reader.releaseLock();
       }
-      return new Response(Buffer.concat(chunks), { status: 200, headers: { "content-type": contentType ?? "application/octet-stream" } });
+      return new Response(Buffer.concat(chunks), { status: expectedStatus, headers: { "content-type": contentType ?? "application/octet-stream" } });
     };
     const requestSignal = (signal) => {
-      if (signal !== void 0 && !(signal instanceof AbortSignal)) fail4();
+      if (signal !== void 0 && !(signal instanceof AbortSignal)) fail5();
       return AbortSignal.any([AbortSignal.timeout(3e4), controller.signal, ...signal === void 0 ? [] : [signal]]);
     };
     const fetchBounded = async (url, options = {}) => {
       try {
-        if (typeof url !== "string" || url.length > 8192) fail4();
-        if (patch) {
-          if (url !== patch.url || options.method !== "PATCH" || options.body !== patch.body || patchAttempted) fail4();
+        if (typeof url !== "string" || url.length > 8192) fail5();
+        if (mutation) {
+          if (url !== mutation.url || options.method !== mutation.method || options.body !== mutation.body || writeHalted || attemptedEffects.has(mutation.key)) fail5();
           const signal2 = requestSignal(options.signal);
           signal2.throwIfAborted();
-          patchAttempted = true;
+          attemptedEffects.add(mutation.key);
+          if (!admit(Buffer.byteLength(mutation.body))) exhausted();
           const response2 = await invoke(url, {
             ...options,
-            method: "PATCH",
-            body: patch.body,
+            method: mutation.method,
+            body: mutation.body,
             credentials: "omit",
             redirect: "error",
             signal: signal2
           });
           if (response2.status >= 300 && response2.status < 400) {
             await response2.body?.cancel();
-            fail4();
+            fail5();
           }
           if (response2.ok) {
             const type = response2.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
             if (!["application/json", "application/vnd.github+json"].includes(type)) {
               await response2.body?.cancel();
-              fail4();
+              fail5();
             }
           }
-          const result = await bounded(response2, 2 * MiB, false);
-          patchState = metadataHttpOutcome(response2.status);
+          const result = await bounded(response2, 2 * MiB2, false, mutation.successStatus);
+          mutationState = response2.status === mutation.successStatus ? "returned" : metadataHttpOutcome(response2.status);
+          if (mutationState === "uncertain") writeHalted = true;
           return result;
         }
         if (registry) {
-          if (!registry.urls.has(url) || (options.method ?? "GET") !== "GET" || options.body !== void 0) fail4();
+          if (!registry.urls.has(url) || (options.method ?? "GET") !== "GET" || options.body !== void 0) fail5();
           const signal2 = requestSignal(options.signal), tarball = url === registry.tarball;
           const response2 = await invoke(url, {
             method: "GET",
@@ -25073,47 +25182,51 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
           });
           if (response2.status >= 300 && response2.status < 400) {
             await response2.body?.cancel();
-            fail4();
+            fail5();
           }
           if (response2.ok) {
             const type = response2.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
             if (tarball ? !["application/octet-stream", "application/gzip", "application/x-gzip"].includes(type) : type !== "application/json") {
               await response2.body?.cancel();
-              fail4();
+              fail5();
             }
           }
-          return await bounded(response2, tarball ? 16 * MiB : 2 * MiB, false);
+          return await bounded(response2, tarball ? 16 * MiB2 : 2 * MiB2, false);
         }
-        const target = new URL(url), path = target.pathname;
-        if (target.origin !== "https://api.github.com" || target.username || target.password || target.hash || options.method !== "GET" || options.body !== void 0 || /%(?:2f|5c|25|00)/i.test(path) || path.split("/").some((part) => [".", ".."].includes(decodeURIComponent(part))) || !(path === prefix || path.startsWith(prefix + "/") || path === "/app" || path.startsWith("/users/"))) fail4();
-        const suffix = path.startsWith(prefix + "/") ? path.slice((prefix + "/").length) : "";
+        const target = new URL(url), path2 = target.pathname;
+        if (target.origin !== "https://api.github.com" || target.username || target.password || target.hash || options.method !== "GET" || options.body !== void 0 || /%(?:2f|5c|25|00)/i.test(path2) || path2.split("/").some((part) => [".", ".."].includes(decodeURIComponent(part))) || !(path2 === prefix || path2.startsWith(prefix + "/") || path2 === "/app" || path2.startsWith("/users/"))) fail5();
+        const suffix = path2.startsWith(prefix + "/") ? path2.slice((prefix + "/").length) : "";
         const artifact = /^actions\/artifacts\/[1-9]\d*\/zip$/.test(suffix);
         const signal = requestSignal(options.signal);
         let response = await invoke(target.href, { ...options, signal, redirect: artifact ? "manual" : "error" });
         if (response.status >= 300 && response.status < 400) {
           const location = response.headers.get("location");
           await response.body?.cancel();
-          if (!artifact || response.status !== 302 || typeof location !== "string" || location.length > 16384 || !location.startsWith("https://")) fail4();
+          if (!artifact || response.status !== 302 || typeof location !== "string" || location.length > 16384 || !location.startsWith("https://")) fail5();
           const next = new URL(location);
           const host = /^[a-z0-9-]+\.blob\.core\.windows\.net$/.test(next.hostname) || next.hostname === "results-receiver.actions.githubusercontent.com";
-          if (!host || next.protocol !== "https:" || next.username || next.password || next.port || next.hash) fail4();
+          if (!host || next.protocol !== "https:" || next.username || next.password || next.port || next.hash) fail5();
           response = await invoke(next.href, { method: "GET", headers: { accept: "application/zip" }, credentials: "omit", signal, redirect: "error" });
           if (response.status >= 300 && response.status < 400) {
             await response.body?.cancel();
-            fail4();
+            fail5();
           }
         }
-        const maximum = artifact ? 20 * MiB : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB : 2 * MiB;
+        const maximum = artifact ? 20 * MiB2 : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB2 : 2 * MiB2;
         return await bounded(response, maximum, artifact);
       } catch {
-        if (patch && patchState === "in-flight") patchState = "failed";
-        fail4();
+        if (mutation && mutationState === "in-flight") {
+          mutationState = "failed";
+          writeHalted = true;
+        }
+        if (mutation && mutationState === "uncertain") writeHalted = true;
+        fail5();
       }
     };
     return Object.freeze({
       fetch: fetchBounded,
       facts: () => facts(local),
-      ...patch ? { observation: () => Object.freeze({ state: patchState, authorized: false, reconciled: false }) } : {}
+      ...mutation ? { observation: () => Object.freeze({ state: mutationState, authorized: false, reconciled: false }) } : {}
     });
   };
   const createRegistryView = (input) => {
@@ -25131,17 +25244,33 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
       id(value.pullNumber);
       const desired = bindProposalMetadata(value.desired, true);
       return makeView(value.limits, null, {
+        effect: "set-pr-metadata",
+        key: "set-pr-metadata",
+        method: "PATCH",
+        successStatus: 200,
         url: "https://api.github.com" + prefix + "/pulls/" + value.pullNumber,
         body: JSON.stringify({ title: desired.title, body: desired.body })
       });
     } catch {
-      fail4();
+      fail5();
+    }
+  };
+  const createExactProposalEffectView = (input) => {
+    try {
+      const spec = bindProposalEffectRequest(repo2, input);
+      return makeView(spec.binding.limits, null, spec);
+    } catch {
+      fail5();
     }
   };
   return Object.freeze({
     createView: (input) => makeView(input, null),
     createRegistryView,
     createExactPatchView,
+    createExactProposalEffectView,
+    haltWrites: () => {
+      writeHalted = true;
+    },
     facts: () => facts(global)
   });
 }
@@ -25149,12 +25278,12 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
 // src/propose/app-identity-api.mjs
 var import_release_github = __toESM(require_release_github(), 1);
 function createAppIdentityApi({ token, facts, settings, fetchBounded }) {
-  const api = import_release_github.default.makeApi(token, fetchBounded), fail11 = () => {
+  const api = import_release_github.default.makeApi(token, fetchBounded), fail12 = () => {
     throw new Error("inspection-app-unavailable");
   };
   return async (method, route, body) => {
     if (typeof route === "string" && route.startsWith("/apps/")) {
-      if (method !== "GET" || route !== "/apps/" + settings.slug || body !== void 0) fail11();
+      if (method !== "GET" || route !== "/apps/" + settings.slug || body !== void 0) fail12();
       return { data: jsonData({
         id: facts.appId,
         slug: facts.appSlug,
@@ -25162,7 +25291,7 @@ function createAppIdentityApi({ token, facts, settings, fetchBounded }) {
         owner: { id: facts.ownerId, login: facts.ownerLogin, type: facts.ownerType }
       }) };
     }
-    if (typeof route === "string" && (route === "/app" || route.startsWith("/app/"))) fail11();
+    if (typeof route === "string" && (route === "/app" || route.startsWith("/app/"))) fail12();
     return api(method, route, body);
   };
 }
@@ -25182,42 +25311,42 @@ var names = [
   "runId",
   "runAttempt"
 ];
-var fail5 = () => {
+var fail6 = () => {
   throw new Error("app-identity-facts-unavailable");
 };
 function bindAppIdentityFacts(input, { repository, slug, clientId, context } = {}) {
   try {
     const v = fields2(jsonData(input, 4096), names);
-    if (repository?.full_name !== "footprintjs/foottrace") fail5();
+    if (repository?.full_name !== "footprintjs/foottrace") fail6();
     id(repository.id);
     text(clientId, /^[A-Za-z0-9_.-]+$/, 128);
-    if (slug !== "agentfootprint-release" || v.schemaVersion !== 1 || v.verified !== true || v.appId !== 5533048 || v.appSlug !== slug || v.clientId !== clientId || v.ownerId !== 266183199 || v.ownerLogin !== "footprintjs" || v.ownerType !== "Organization" || v.repositoryId !== repository.id || typeof v.sourceSha !== "string" || !/^[a-f0-9]{40}$/.test(v.sourceSha)) fail5();
+    if (slug !== "agentfootprint-release" || v.schemaVersion !== 1 || v.verified !== true || v.appId !== 5533048 || v.appSlug !== slug || v.clientId !== clientId || v.ownerId !== 266183199 || v.ownerLogin !== "footprintjs" || v.ownerType !== "Organization" || v.repositoryId !== repository.id || typeof v.sourceSha !== "string" || !/^[a-f0-9]{40}$/.test(v.sourceSha)) fail6();
     id(v.runId);
     id(v.runAttempt);
-    if (v.runAttempt > 8) fail5();
+    if (v.runAttempt > 8) fail6();
     if (context !== void 0) {
       const c = foottraceInvocationContext(context);
-      if (c.repository.id !== v.repositoryId || c.sha !== v.sourceSha || c.runId !== v.runId || c.runAttempt !== v.runAttempt) fail5();
+      if (c.repository.id !== v.repositoryId || c.sha !== v.sourceSha || c.runId !== v.runId || c.runAttempt !== v.runAttempt) fail6();
     }
     return Object.freeze(Object.fromEntries(names.map((name) => [name, v[name]])));
   } catch {
-    fail5();
+    fail6();
   }
 }
 function parseAppIdentityFacts(source, expected) {
   try {
-    if (typeof source !== "string" || Buffer.byteLength(source) > 4096) fail5();
+    if (typeof source !== "string" || Buffer.byteLength(source) > 4096) fail6();
     const value = bindAppIdentityFacts(JSON.parse(source), expected);
-    if (JSON.stringify(value) !== source) fail5();
+    if (JSON.stringify(value) !== source) fail6();
     return value;
   } catch {
-    fail5();
+    fail6();
   }
 }
 
 // src/propose/foottrace-transport.mjs
 var transports = /* @__PURE__ */ new WeakMap();
-var fail6 = () => {
+var fail7 = () => {
   throw new Error("foottrace-transport-unavailable");
 };
 function createFoottraceInspectionTransport(options = {}) {
@@ -25226,7 +25355,7 @@ function createFoottraceInspectionTransport(options = {}) {
 function createNativeOwner({ repository, token, appIdentity, fetcher, limits: limits2 }, inspectionReadOnly) {
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
-  if (repo2.full_name !== "footprintjs/foottrace" || !(0, import_http_credential.isOpaqueCredential)(token)) fail6();
+  if (repo2.full_name !== "footprintjs/foottrace" || !(0, import_http_credential.isOpaqueCredential)(token)) fail7();
   const identity = fields2(jsonData(appIdentity, 4096), ["slug", "clientId", "facts"]);
   const slug = text(identity.slug, /^[a-z0-9-]+$/, 100), clientId = text(identity.clientId, /^[A-Za-z0-9_.-]+$/, 128);
   const settings = jsonData({ slug, clientId }), facts = bindAppIdentityFacts(identity.facts, { repository: repo2, slug, clientId });
@@ -25248,7 +25377,7 @@ function registerOwner({ repository, settings, facts, fetcher, limits: limits2, 
 }
 function foottraceTransportPort(transport, limits2) {
   const value = transports.get(transport);
-  if (!value) fail6();
+  if (!value) fail7();
   const view = value.http.createView(limits2);
   return Object.freeze({
     api: value.makeApi(view.fetch),
@@ -25265,11 +25394,11 @@ function foottraceTransportPort(transport, limits2) {
 
 // src/propose/proposal-invocation.mjs
 var import_http_credential2 = __toESM(require_http_credential(), 1);
-var fail7 = () => {
+var fail8 = () => {
   throw new Error("proposal-invocation-unavailable");
 };
 function number(value) {
-  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail7();
+  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail8();
   return Number(value);
 }
 function captureFoottraceProposalInvocation(options = {}) {
@@ -25278,7 +25407,7 @@ function captureFoottraceProposalInvocation(options = {}) {
 function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
   try {
     const token = own4(env, "GH_TOKEN");
-    if (!(0, import_http_credential2.isOpaqueCredential)(token) || own4(env, "APP_JWT") !== void 0 || own4(env, "APP_PRIVATE_KEY") !== void 0) fail7();
+    if (!(0, import_http_credential2.isOpaqueCredential)(token) || own4(env, "APP_JWT") !== void 0 || own4(env, "APP_PRIVATE_KEY") !== void 0) fail8();
     const context = foottraceInvocationContext({
       repository: { id: number(own4(env, "REPO_ID")), full_name: own4(env, "REPO_NAME") },
       sha: own4(env, "SOURCE_SHA"),
@@ -25296,9 +25425,9 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
       ["GITHUB_EVENT_NAME", "EVENT_NAME"],
       ["GITHUB_RUN_ID", "RUN_ID"],
       ["GITHUB_RUN_ATTEMPT", "RUN_ATTEMPT"]
-    ]) if (own4(env, alias) !== own4(env, original)) fail7();
+    ]) if (own4(env, alias) !== own4(env, original)) fail8();
     const toolSha = own4(env, "TOOL_SHA"), workflowRef = own4(env, "GITHUB_WORKFLOW_REF");
-    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail7();
+    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail8();
     const artifactId = number(own4(env, "ARTIFACT_ID"));
     const slug = own4(env, "APP_SLUG"), clientId = own4(env, "APP_CLIENT_ID"), facts = parseAppIdentityFacts(own4(env, "APP_IDENTITY_FACTS"), { repository: context.repository, slug, clientId, context });
     const transport = createTransport({ repository: context.repository, token, appIdentity: { slug, clientId, facts }, fetcher, limits: limits2 });
@@ -25309,7 +25438,7 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
       toolSha
     }), ["job", "workflowRef", "workflowSha", "toolSha"]) });
   } catch {
-    fail7();
+    fail8();
   } finally {
     try {
       delete env.APP_PRIVATE_KEY;
@@ -25317,7 +25446,7 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
       delete env.APP_IDENTITY_FACTS;
       delete env.GH_TOKEN;
     } catch {
-      fail7();
+      fail8();
     }
   }
 }
@@ -25326,7 +25455,7 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
 var import_node_crypto = require("node:crypto");
 var import_node_util = require("node:util");
 var import_release_github2 = __toESM(require_release_github(), 1);
-var import_release_prepare2 = __toESM(require_release_prepare(), 1);
+var import_release_prepare3 = __toESM(require_release_prepare(), 1);
 
 // src/propose/local-host-source.mjs
 function snapshotLocalHostSource(raw) {
@@ -25345,27 +25474,27 @@ function snapshotLocalHostSource(raw) {
 }
 
 // src/propose/host-source-binding.mjs
-var fail8 = () => {
+var fail9 = () => {
   throw new Error("proposal-host-source-unavailable");
 };
-var sha = (b) => (0, import_node_crypto.createHash)("sha256").update(b).digest("hex");
-var digest = (v) => sha(JSON.stringify(v));
+var sha2 = (b) => (0, import_node_crypto.createHash)("sha256").update(b).digest("hex");
+var digest = (v) => sha2(JSON.stringify(v));
 var paths = { workflow: ".github/workflows/publish.yml", entry: "scripts/release-runner.cjs", profile: "scripts/propose-host-profile.cjs", identityHelper: "scripts/release-inspection-auth.cjs" };
 function createFoottraceHostSourceReader({ transport, context, invocation, host } = {}) {
   const pinned = foottraceInvocationContext(context), port = foottraceTransportPort(transport);
   keys(host, ["readProfile", "readSource", "requireClean"]);
   const readProfile = own4(host, "readProfile"), readSource = own4(host, "readSource"), requireClean = own4(host, "requireClean");
-  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail8();
+  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail9();
   const step = fields2(jsonData(invocation), ["job", "workflowRef", "workflowSha", "toolSha"]);
-  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail8();
+  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail9();
   return async (prepared) => {
     const observations = [];
     try {
-      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail8();
+      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail9();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail8();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail9();
         const boundary = { kind: "native-host-source", method: "GET", status: "unavailable" };
         observations.push(boundary);
         const result = await port.api(method, route);
@@ -25375,28 +25504,28 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
       const phase = async () => {
         await requireClean();
         const profile = fields2(jsonData(await readProfile()), ["id", "sourceSha", "sourceTree", "toolSha", "workflow", "entry", "profile", "identityHelper"]);
-        if (profile.id !== "foottrace-proposal-host-v2" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail8();
+        if (profile.id !== "foottrace-proposal-host-v2" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail9();
         const local = snapshotLocalHostSource(await readSource());
-        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail8();
+        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail9();
         await import_release_github2.default.assertCurrentMain(read, pinned);
         const view = import_release_github2.default.sourceView(read, pinned), commit = await view.commit(pinned.sha), inventory = await view.inventory(pinned.sha);
-        if (commit.tree.sha !== prepared.sourceTree) fail8();
+        if (commit.tree.sha !== prepared.sourceTree) fail9();
         const blobs = {};
         for (const kind of Object.keys(paths)) {
           const rule = fields2(profile[kind], ["path", "sha", "sha256", "bytes", "mode"]);
-          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || ["workflow", "identityHelper"].includes(kind) && rule.mode !== "100644") fail8();
+          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || ["workflow", "identityHelper"].includes(kind) && rule.mode !== "100644") fail9();
           const actual = inventory.get(rule.path), raw = own4(local.files, kind);
-          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail8();
+          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail9();
           const bytes = Buffer.from(raw);
-          if (import_release_prepare2.default.gitObject("blob", bytes) !== rule.sha || sha(bytes) !== rule.sha256) fail8();
+          if (import_release_prepare3.default.gitObject("blob", bytes) !== rule.sha || sha2(bytes) !== rule.sha256) fail9();
           let provider = actual.bytes;
           if (!provider) {
             const blob = own4(await read("GET", prefix + "blobs/" + rule.sha), "data");
             const content = own4(blob, "content");
-            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail8();
+            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail9();
             provider = Buffer.from(content, "base64");
           }
-          if (provider.length !== rule.bytes || import_release_prepare2.default.gitObject("blob", provider) !== rule.sha || sha(provider) !== rule.sha256 || !provider.equals(bytes)) fail8();
+          if (provider.length !== rule.bytes || import_release_prepare3.default.gitObject("blob", provider) !== rule.sha || sha2(provider) !== rule.sha256 || !provider.equals(bytes)) fail9();
           blobs[kind + "Blob"] = rule.sha;
         }
         await import_release_github2.default.assertCurrentMain(read, pinned);
@@ -25412,7 +25541,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail8();
+      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail9();
       return Object.freeze({
         valid: true,
         scope: "host-source-binding-only",
@@ -25440,16 +25569,16 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
 var import_node_crypto2 = require("node:crypto");
 var import_node_util3 = require("node:util");
 var import_release_github3 = __toESM(require_release_github(), 1);
-var import_release_control4 = __toESM(require_release_control(), 1);
+var import_release_control5 = __toESM(require_release_control(), 1);
 
 // src/propose/foottrace-profile.mjs
 var import_node_util2 = require("node:util");
 var import_release_archive = __toESM(require_release_archive(), 1);
-var import_release_prepare4 = __toESM(require_release_prepare(), 1);
+var import_release_prepare5 = __toESM(require_release_prepare(), 1);
 
 // src/propose/historical-producer.mjs
-var import_release_control3 = __toESM(require_release_control(), 1);
-var import_release_prepare3 = __toESM(require_release_prepare(), 1);
+var import_release_control4 = __toESM(require_release_control(), 1);
+var import_release_prepare4 = __toESM(require_release_prepare(), 1);
 var unavailable2 = () => Object.freeze({ valid: false, reason: "historical-preparation-unavailable" });
 function admitHistoricalPreparationProducer(input) {
   try {
@@ -25468,9 +25597,9 @@ function admitHistoricalPreparationProducer(input) {
       "version"
     ]);
     fields2(e.repository, ["id", "full_name"]);
-    if (!import_release_control3.default.sameRepo(e.repository, e.repository) || typeof e.repository.full_name !== "string" || e.repository.full_name.length > 200 || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(e.repository.full_name) || !import_release_control3.default.validSha(e.sourceSha) || !import_release_control3.default.validSha(e.tree) || typeof e.artifactName !== "string" || e.artifactName.length > 256 || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(e.artifactName) || typeof e.workflowPath !== "string" || e.workflowPath.length > 256 || !/^\.github\/workflows\/[A-Za-z0-9][A-Za-z0-9_.-]*\.ya?ml$/.test(e.workflowPath) || typeof e.package !== "string" || e.package.length > 214 || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(e.package)) return unavailable2();
-    import_release_prepare3.default.parseVersion(e.version);
-    if (run.id !== e.runId || run.run_attempt !== e.runAttempt || run.head_sha !== e.sourceSha || !import_release_control3.default.sameRepo(run.repository, e.repository) || !import_release_control3.default.sameRepo(run.head_repository, e.repository) || run.path !== e.workflowPath || run.head_branch !== "main" || !["push", "workflow_dispatch"].includes(run.event) || !import_release_control3.default.success(run) || job.head_sha !== e.sourceSha || artifact.workflow_run?.head_repository_id !== e.repository.id || artifact.workflow_run?.head_branch !== "main") return unavailable2();
+    if (!import_release_control4.default.sameRepo(e.repository, e.repository) || typeof e.repository.full_name !== "string" || e.repository.full_name.length > 200 || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(e.repository.full_name) || !import_release_control4.default.validSha(e.sourceSha) || !import_release_control4.default.validSha(e.tree) || typeof e.artifactName !== "string" || e.artifactName.length > 256 || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(e.artifactName) || typeof e.workflowPath !== "string" || e.workflowPath.length > 256 || !/^\.github\/workflows\/[A-Za-z0-9][A-Za-z0-9_.-]*\.ya?ml$/.test(e.workflowPath) || typeof e.package !== "string" || e.package.length > 214 || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(e.package)) return unavailable2();
+    import_release_prepare4.default.parseVersion(e.version);
+    if (run.id !== e.runId || run.run_attempt !== e.runAttempt || run.head_sha !== e.sourceSha || !import_release_control4.default.sameRepo(run.repository, e.repository) || !import_release_control4.default.sameRepo(run.head_repository, e.repository) || run.path !== e.workflowPath || run.head_branch !== "main" || !["push", "workflow_dispatch"].includes(run.event) || !import_release_control4.default.success(run) || job.head_sha !== e.sourceSha || artifact.workflow_run?.head_repository_id !== e.repository.id || artifact.workflow_run?.head_branch !== "main") return unavailable2();
     const expected = {
       repositoryId: e.repository.id,
       runId: e.runId,
@@ -25484,7 +25613,7 @@ function admitHistoricalPreparationProducer(input) {
       package: e.package,
       version: e.version
     };
-    if (!import_release_control3.default.validateArtifactBinding({
+    if (!import_release_control4.default.validateArtifactBinding({
       expected,
       artifact,
       producer: { ...job, uploadArtifactId: artifact.id },
@@ -25523,17 +25652,17 @@ function packageProfile(input) {
 // src/propose/foottrace-profile.mjs
 function artifactJson(bytes) {
   if (bytes.length > 1024 * 1024) throw new Error("artifact-json-budget");
-  const text2 = import_release_prepare4.default.decodeRaw(bytes), value = jsonData(JSON.parse(text2));
-  if (JSON.stringify(value) + "\n" !== text2) throw new Error("artifact-json-shape");
+  const text3 = import_release_prepare5.default.decodeRaw(bytes), value = jsonData(JSON.parse(text3));
+  if (JSON.stringify(value) + "\n" !== text3) throw new Error("artifact-json-shape");
   return value;
 }
 function prepareFromInventory({ inventory, date }) {
   const files = {}, fragments = {};
   for (const name of ["package.json", "package-lock.json", "CHANGELOG.md", "README.md", "docs/metadata.md"])
     files[name] = semanticText(inventory, name);
-  for (const row of import_release_prepare4.default.fragmentQueue(inventory))
+  for (const row of import_release_prepare5.default.fragmentQueue(inventory))
     fragments[row.path.slice(9)] = semanticText(inventory, row.path);
-  return import_release_prepare4.default.prepareRelease({ files, fragments, date });
+  return import_release_prepare5.default.prepareRelease({ files, fragments, date });
 }
 function readHistoricalEvidence(input) {
   try {
@@ -25555,7 +25684,7 @@ function readHistoricalEvidence(input) {
       valid: true,
       binding: producer.binding,
       prepared: proposal.prepared,
-      artifactDigest: import_release_prepare4.default.digest(archive2),
+      artifactDigest: import_release_prepare5.default.digest(archive2),
       preparationDate: null
     });
   } catch {
@@ -25574,7 +25703,7 @@ function createFoottracePreparationProfile() {
 }
 
 // src/propose/prepared-source.mjs
-var import_release_prepare5 = __toESM(require_release_prepare(), 1);
+var import_release_prepare6 = __toESM(require_release_prepare(), 1);
 var import_release_changes = __toESM(require_release_changes(), 1);
 var unavailable3 = () => Object.freeze({ valid: false, reason: "prepared-source-unavailable" });
 var FIELDS2 = ["package", "fromVersion", "version", "bump", "tag", "notes", "updates", "deletions"];
@@ -25593,21 +25722,21 @@ function createPreparedSourceReader({ packageName, prepare, dateLaw }) {
         const pkg = JSON.parse(semanticText(view, "package.json"));
         const lock = JSON.parse(semanticText(view, "package-lock.json"));
         const version = own4(pkg, "version"), root = own4(own4(lock, "packages"), "");
-        import_release_prepare5.default.parseVersion(version);
+        import_release_prepare6.default.parseVersion(version);
         if (own4(pkg, "name") !== packageName || own4(lock, "name") !== packageName || own4(lock, "version") !== version || own4(root, "name") !== packageName || own4(root, "version") !== version) refuseSource();
         return version;
       };
       const fromVersion = packageIdentity(inventory);
-      const queue = import_release_prepare5.default.fragmentQueue(inventory).map((row) => Object.freeze({ ...row }));
-      const adapterInventory = new Map([...inventory].map(([path, row]) => [
-        path,
+      const queue = import_release_prepare6.default.fragmentQueue(inventory).map((row) => Object.freeze({ ...row }));
+      const adapterInventory = new Map([...inventory].map(([path2, row]) => [
+        path2,
         { ...row, ...row.bytes ? { bytes: Buffer.from(row.bytes) } : {} }
       ]));
       const result = prepare({ inventory: adapterInventory, date });
       keys(result, FIELDS2);
       const value = Object.fromEntries(FIELDS2.map((key) => [key, own4(result, key)]));
-      import_release_prepare5.default.parseVersion(value.fromVersion);
-      import_release_prepare5.default.parseVersion(value.version);
+      import_release_prepare6.default.parseVersion(value.fromVersion);
+      import_release_prepare6.default.parseVersion(value.version);
       if (value.package !== packageName || value.fromVersion !== fromVersion || !["patch", "minor", "major"].includes(value.bump) || value.tag !== `v${value.version}` || typeof value.notes !== "string" || Buffer.byteLength(value.notes) > 128 * 1024 * 1024) refuseSource();
       const bump = import_release_changes.default.selectBump(queue.map((row) => import_release_changes.default.parseFragment(row.path.slice(9), semanticText(inventory, row.path))));
       if (value.bump !== bump || value.version !== import_release_changes.default.nextVersion(fromVersion, bump)) refuseSource();
@@ -25615,27 +25744,27 @@ function createPreparedSourceReader({ packageName, prepare, dateLaw }) {
       if (updateNames.length > 4096) refuseSource();
       let total = 0;
       const candidate = new Map(inventory);
-      for (const path of updateNames) {
-        if (typeof path !== "string") refuseSource();
-        const text2 = own4(value.updates, path);
-        if (typeof text2 !== "string" || Buffer.byteLength(text2) > 2 * 1024 * 1024) refuseSource();
-        const bytes = Buffer.from(text2);
+      for (const path2 of updateNames) {
+        if (typeof path2 !== "string") refuseSource();
+        const text3 = own4(value.updates, path2);
+        if (typeof text3 !== "string" || Buffer.byteLength(text3) > 2 * 1024 * 1024) refuseSource();
+        const bytes = Buffer.from(text3);
         total += bytes.length;
         if (total > 128 * 1024 * 1024) refuseSource();
-        updates[path] = text2;
-        candidate.set(path, { mode: "100644", sha: import_release_prepare5.default.gitObject("blob", bytes), bytes });
+        updates[path2] = text3;
+        candidate.set(path2, { mode: "100644", sha: import_release_prepare6.default.gitObject("blob", bytes), bytes });
       }
       const rawDeletions = jsonData(value.deletions);
       if (!Array.isArray(rawDeletions) || rawDeletions.length > 100) refuseSource();
       const deletions = [];
-      for (const path of rawDeletions) {
-        if (typeof path !== "string" || deletions.includes(path) || !candidate.has(path) || Object.hasOwn(updates, path)) refuseSource();
-        deletions.push(path);
-        candidate.delete(path);
+      for (const path2 of rawDeletions) {
+        if (typeof path2 !== "string" || deletions.includes(path2) || !candidate.has(path2) || Object.hasOwn(updates, path2)) refuseSource();
+        deletions.push(path2);
+        candidate.delete(path2);
       }
       if (JSON.stringify([...deletions].sort()) !== JSON.stringify(queue.map((row) => row.path).sort())) refuseSource();
       if (packageIdentity(candidate) !== value.version) refuseSource();
-      const tree = import_release_prepare5.default.treeOid(candidate);
+      const tree = import_release_prepare6.default.treeOid(candidate);
       return Object.freeze({
         valid: true,
         sourceSha: basis.sourceSha,
@@ -25687,7 +25816,7 @@ function createCurrentPreparedInputReader(inputProfile) {
 
 // src/propose/foottrace-current-inputs.mjs
 var digest2 = (v) => (0, import_node_crypto2.createHash)("sha256").update(JSON.stringify(v)).digest("hex");
-var fail9 = (reason) => {
+var fail10 = (reason) => {
   const e = new Error("current-prepared-inputs-unavailable");
   e.ordinaryReason = reason;
   throw e;
@@ -25697,7 +25826,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
   try {
     pinned = foottraceInvocationContext(context);
     port = foottraceTransportPort(transport);
-    if (!import_release_control4.default.sameRepo(port.repository, pinned.repository)) throw new Error();
+    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) throw new Error();
   } catch {
     port = null;
   }
@@ -25705,11 +25834,11 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
   return async () => {
     const observations = [];
     try {
-      if (!port) fail9();
+      if (!port) fail10();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail9();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail10();
         const row = { kind: "native-current-source", method: "GET", status: "unavailable" };
         observations.push(row);
         const value = await port.api(method, route);
@@ -25719,8 +25848,8 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
       const phase = async () => {
         await import_release_github3.default.assertCurrentMain(read, pinned);
         const view = import_release_github3.default.sourceView(read, pinned), source = await import_release_github3.default.sourceInput(read, pinned, view);
-        if (source.intents.active.length !== 0) fail9("ordinary-active-recovery");
-        if (!source.queue.length) fail9();
+        if (source.intents.active.length !== 0) fail10("ordinary-active-recovery");
+        if (!source.queue.length) fail10();
         const commit = jsonData({
           sha: source.commit.sha,
           tree: { sha: source.commit.tree.sha },
@@ -25728,8 +25857,8 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
           committer: { date: source.commit.committer.date }
         });
         const prepared = prepare({ source: { commit, inventory: source.inventory }, preparationDate: null });
-        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail9();
-        const inventory = [...source.inventory].map(([path, row]) => ({ path, mode: row.mode, sha: row.sha })).sort((a, b) => a.path.localeCompare(b.path));
+        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail10();
+        const inventory = [...source.inventory].map(([path2, row]) => ({ path: path2, mode: row.mode, sha: row.sha })).sort((a, b) => a.path.localeCompare(b.path));
         const reference = jsonData({
           repositoryId: pinned.repository.id,
           sourceSha: prepared.sourceSha,
@@ -25747,7 +25876,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
         return { prepared, reference };
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail9();
+      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail10();
       return Object.freeze({
         valid: true,
         scope: "native-current-prepared-inputs-only",
@@ -25779,8 +25908,8 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
 var import_node_crypto3 = require("node:crypto");
 var import_node_util4 = require("node:util");
 var import_release_github4 = __toESM(require_release_github(), 1);
-var import_release_control5 = __toESM(require_release_control(), 1);
-var fail10 = () => {
+var import_release_control6 = __toESM(require_release_control(), 1);
+var fail11 = () => {
   throw new Error("current-proposer-unavailable");
 };
 var digest3 = (value) => (0, import_node_crypto3.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
@@ -25788,15 +25917,15 @@ var repo = (value) => ({
   id: id(own4(value, "id")),
   full_name: text(own4(value, "full_name"), /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201)
 });
-var sha2 = (value) => {
-  if (!import_release_control5.default.validSha(value)) fail10();
+var sha3 = (value) => {
+  if (!import_release_control6.default.validSha(value)) fail11();
   return value;
 };
 var statuses = ["completed", "queued", "in_progress", "requested", "waiting", "pending", "action_required"];
 var conclusions = ["success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required", "stale", "startup_failure"];
 function state(raw) {
   const status = own4(raw, "status"), conclusion = own4(raw, "conclusion");
-  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail10();
+  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail11();
   return { status, conclusion };
 }
 function createFoottraceProposerReader({ transport, context }) {
@@ -25804,7 +25933,7 @@ function createFoottraceProposerReader({ transport, context }) {
   try {
     pinned = foottraceInvocationContext(context);
     port = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
-    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) fail10();
+    if (!import_release_control6.default.sameRepo(port.repository, pinned.repository)) fail11();
     bindAppIdentityFacts(port.identityFacts, { repository: pinned.repository, ...port.settings, context: pinned });
   } catch {
     port = null;
@@ -25812,7 +25941,7 @@ function createFoottraceProposerReader({ transport, context }) {
   return async (prepared) => {
     const observations = [];
     try {
-      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control5.default.validSha(own4(prepared, "sourceTree"))) fail10();
+      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control6.default.validSha(own4(prepared, "sourceTree"))) fail11();
       const active = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
       const prefix = "/repos/footprintjs/foottrace", { settings } = active, routes = /* @__PURE__ */ new Map();
       routes.set(prefix, (raw) => {
@@ -25822,23 +25951,23 @@ function createFoottraceProposerReader({ transport, context }) {
           defaultBranch: own4(raw, "default_branch"),
           push: own4(own4(raw, "permissions"), "push")
         };
-        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true && !(active.inspectionReadOnly && value.push === false)) fail10();
+        if (!import_release_control6.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true && !(active.inspectionReadOnly && value.push === false)) fail11();
         return value;
       });
-      routes.set(prefix + "/git/ref/heads/main", (raw) => ({ object: { sha: sha2(own4(own4(raw, "object"), "sha")) } }));
-      routes.set(prefix + "/git/commits/" + pinned.sha, (raw) => ({ sha: sha2(own4(raw, "sha")), tree: { sha: sha2(own4(own4(raw, "tree"), "sha")) } }));
+      routes.set(prefix + "/git/ref/heads/main", (raw) => ({ object: { sha: sha3(own4(own4(raw, "object"), "sha")) } }));
+      routes.set(prefix + "/git/commits/" + pinned.sha, (raw) => ({ sha: sha3(own4(raw, "sha")), tree: { sha: sha3(own4(own4(raw, "tree"), "sha")) } }));
       routes.set("/apps/" + settings.slug, (raw) => {
-        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail10();
+        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail11();
         return { id: id(own4(raw, "id")), settingsDigest: digest3(settings) };
       });
       routes.set("/users/" + encodeURIComponent(settings.slug + "[bot]"), (raw) => {
-        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail10();
+        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail11();
         return { id: id(own4(raw, "id")) };
       });
       routes.set(prefix + "/actions/runs/" + pinned.runId, (raw) => ({
         id: id(own4(raw, "id")),
         run_attempt: id(own4(raw, "run_attempt")),
-        head_sha: sha2(own4(raw, "head_sha")),
+        head_sha: sha3(own4(raw, "head_sha")),
         repository: repo(own4(raw, "repository")),
         head_repository: repo(own4(raw, "head_repository")),
         path: text(own4(raw, "path"), /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/, 256),
@@ -25849,7 +25978,7 @@ function createFoottraceProposerReader({ transport, context }) {
       const jobs = prefix + "/actions/runs/" + pinned.runId + "/attempts/" + pinned.runAttempt + "/jobs";
       for (let page = 1; page <= 8; page++) routes.set(jobs + "?per_page=100&page=" + page, (raw) => {
         const count3 = own4(raw, "total_count"), rows = array(own4(raw, "jobs"), 32);
-        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail10();
+        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail11();
         const values = [];
         for (let i = 0; i < rows.length; i++) {
           const row = own4(rows, String(i));
@@ -25858,14 +25987,14 @@ function createFoottraceProposerReader({ transport, context }) {
             name: text(own4(row, "name"), /^[A-Za-z0-9 _./()-]+$/, 128),
             run_id: id(own4(row, "run_id")),
             run_attempt: id(own4(row, "run_attempt")),
-            head_sha: sha2(own4(row, "head_sha")),
+            head_sha: sha3(own4(row, "head_sha")),
             ...state(row)
           });
         }
         return { total_count: count3, jobs: values };
       });
       const api = async (method, route, body) => {
-        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail10();
+        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail11();
         const item = { kind: route.startsWith("/apps/") ? "cached-key-holder-identity" : "native-current-identity", method: "GET", status: "unavailable" };
         observations.push(item);
         const value = jsonData(routes.get(route)(own4(await active.api(method, route), "data")));
@@ -25877,12 +26006,12 @@ function createFoottraceProposerReader({ transport, context }) {
         await import_release_github4.default.assertCurrentMain(api, pinned);
         await api("GET", prefix);
         const commit = (await api("GET", prefix + "/git/commits/" + pinned.sha)).data;
-        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail10();
+        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail11();
         const app = (await api("GET", "/apps/" + settings.slug)).data;
         const bot = (await api("GET", "/users/" + encodeURIComponent(settings.slug + "[bot]"))).data;
         const prepare = await import_release_github4.default.producerIdentity(api, pinned, "prepare", true);
         const proposal = await import_release_github4.default.producerIdentity(api, pinned, "proposal");
-        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail10();
+        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail11();
         await import_release_github4.default.assertCurrentMain(api, pinned);
         return jsonData({
           repositoryId: pinned.repository.id,
@@ -25898,7 +26027,7 @@ function createFoottraceProposerReader({ transport, context }) {
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail10();
+      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail11();
       return Object.freeze({
         valid: true,
         scope: "current-proposer-identity-only",
@@ -26085,16 +26214,16 @@ var ControlDepRecorder = class {
   }
   onAttempt(event) {
     const ctx = event.traversalContext;
-    const { record } = event;
-    if (!ctx || record.next !== "stop" || !isRetryEvidence(record))
+    const { record: record2 } = event;
+    if (!ctx || record2.next !== "stop" || !isRetryEvidence(record2))
       return;
     this.resetIfNewRun(ctx.runId);
-    this.decisions.set(record.series, {
+    this.decisions.set(record2.series, {
       kind: "attempt-stop",
-      deciderRuntimeStageId: record.series,
+      deciderRuntimeStageId: record2.series,
       chosen: "stop",
-      evidence: record.decision,
-      ruleLabel: record.reason
+      evidence: record2.decision,
+      ruleLabel: record2.reason
     });
   }
   onSelected(event) {
@@ -26163,10 +26292,10 @@ var ControlDepRecorder = class {
       seen.add(cur);
       const deciderId = this.branchEntryToDecision.get(cur);
       if (deciderId !== void 0) {
-        const record = this.decisions.get(deciderId);
+        const record2 = this.decisions.get(deciderId);
         return {
           deciderId,
-          ...record?.ruleLabel !== void 0 && { label: record.ruleLabel }
+          ...record2?.ruleLabel !== void 0 && { label: record2.ruleLabel }
         };
       }
       cur = this.parentOf.get(cur);
@@ -26179,8 +26308,8 @@ var ControlDepRecorder = class {
   }
   /** The attempt-stop decision of a stage execution whose retry series stopped, if it did. */
   getAttemptStop(runtimeStageId) {
-    const record = this.decisions.get(runtimeStageId);
-    return record?.kind === "attempt-stop" ? record : void 0;
+    const record2 = this.decisions.get(runtimeStageId);
+    return record2?.kind === "attempt-stop" ? record2 : void 0;
   }
   /** All decisions recorded for the current run, in event order — deciders, selectors and attempt stops. */
   getDecisions() {
@@ -26260,10 +26389,10 @@ function matchedRuleLabel(evidence) {
 }
 
 // src/guards/security-evidence.mjs
-var import_release_control6 = __toESM(require_release_control(), 1);
+var import_release_control7 = __toESM(require_release_control(), 1);
 
 // src/policy.mjs
-var import_release_control7 = __toESM(require_release_control(), 1);
+var import_release_control8 = __toESM(require_release_control(), 1);
 var import_release_archive2 = __toESM(require_release_archive(), 1);
 var import_release_github5 = __toESM(require_release_github(), 1);
 var REQUIRED_GATES = Object.freeze(["check (22)", "check (24)", "tested-tree", "Analyze (actions)", "Analyze (javascript-typescript)"]);
@@ -26318,8 +26447,8 @@ function captureRecord({ snapshot: snapshot2, structure, completed, recordLimitB
   const fallback = (why) => ({ format: "shared-release-native-v1", complete: false, reason: why });
   if (!completed) return fallback(reason === "NATIVE_FAILURE" ? reason : "RUN_INCOMPLETE");
   try {
-    const record = { format: "shared-release-native-v1", complete: true, snapshot: snapshot2, structure };
-    const serialized = JSON.stringify(record);
+    const record2 = { format: "shared-release-native-v1", complete: true, snapshot: snapshot2, structure };
+    const serialized = JSON.stringify(record2);
     if (Buffer.byteLength(serialized, "utf8") > limit) return fallback("RECORD_TOO_LARGE");
     return JSON.parse(serialized);
   } catch {
@@ -26339,18 +26468,18 @@ async function runNativeObservationRecord({ chart: builder, recordLimitBytes }) 
   } catch {
   }
   const snapshot2 = completed ? executor.getSnapshot() : void 0;
-  const record = captureRecord({ snapshot: snapshot2, structure: chart.buildTimeStructure, completed, recordLimitBytes, reason: "NATIVE_FAILURE" });
-  return { record, snapshot: snapshot2 };
+  const record2 = captureRecord({ snapshot: snapshot2, structure: chart.buildTimeStructure, completed, recordLimitBytes, reason: "NATIVE_FAILURE" });
+  return { record: record2, snapshot: snapshot2 };
 }
 
 // src/propose/proposal-bootstrap.mjs
 async function runFoottraceProposalBootstrapInspection({ recordLimitBytes, ...options } = {}) {
   const stage = createFoottraceProposalBootstrapInspection(options);
-  const { record, snapshot: snapshot2 } = await runNativeObservationRecord({ chart: stage.chart, recordLimitBytes });
-  const backend = stage.getBackend(), known = record.complete && backend !== null;
+  const { record: record2, snapshot: snapshot2 } = await runNativeObservationRecord({ chart: stage.chart, recordLimitBytes });
+  const backend = stage.getBackend(), known = record2.complete && backend !== null;
   return {
-    status: !record.complete ? "incomplete" : known ? "proposal-bootstrap-only" : "held",
-    record,
+    status: !record2.complete ? "incomplete" : known ? "proposal-bootstrap-only" : "held",
+    record: record2,
     report: {
       authorized: false,
       executedWrites: 0,

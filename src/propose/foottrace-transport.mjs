@@ -3,6 +3,7 @@ import { jsonData, fields, id, text } from '../eco/json-data.mjs';
 import { own } from './source-inventory.mjs';
 import { createGitHubTransport } from './github-transport.mjs';
 import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
+import {bindProposalEffectRequest} from './proposal-effect-request.mjs';
 import {createAppIdentityApi} from './app-identity-api.mjs';
 import {bindAppIdentityFacts} from './app-identity-facts.mjs';
 const transports = new WeakMap();
@@ -64,6 +65,28 @@ export function foottraceMetadataPatchPort(transport, input) {
       view = value.http.createExactPatchView(binding), api = value.makeApi(view.fetch),
       route = '/repos/' + value.repository.full_name + '/pulls/' + binding.pullNumber;
     return Object.freeze({ scope: 'exact-metadata-io-only', authorized: false,
-      setExact: () => api('PATCH', route, payload), observation:view.observation, facts: view.facts, transportFacts: value.http.facts });
+      setExact: () => submit(value,api,'PATCH',route,payload), observation:view.observation, facts: view.facts, transportFacts: value.http.facts });
   } catch { fail(); }
+}
+
+// A failed/uncertain submission never opens another mutation on this owner.
+// GET verification stays available; cross-invocation history is independently
+// admitted by the native flow, never remembered or granted here.
+async function submit(owner,api,method,route,payload){
+ try{return await api(method,route,payload);}
+ catch(error){owner.http.haltWrites();throw error;}
+}
+/** Closed nonforce native IO only, not a domain admission or effect grant.
+ * Exact singleton tree/commit/ref/PR and per-content blob attempts share the
+ * captured owner's budget and uncertainty stop. No raw API/fetch escapes.
+ */
+export function foottraceProposalEffectPort(transport,input){
+ const value=transports.get(transport);if(!value||value.inspectionReadOnly)fail();
+ try{
+  const spec=bindProposalEffectRequest(value.repository,input);
+  const view=value.http.createExactProposalEffectView(spec.binding),api=value.makeApi(view.fetch);
+  return Object.freeze({scope:'exact-proposal-effect-io-only',authorized:false,
+   submit:()=>submit(value,api,spec.method,spec.route,spec.payload),
+   observation:view.observation,facts:view.facts,transportFacts:value.http.facts});
+ }catch{fail();}
 }

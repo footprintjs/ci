@@ -573,3 +573,6 @@ Current exact Claude SC7 ruling rejects the seventh key holder, key-bearing gene
 
 See [the internal C1 metadata controller](./METADATA-C1.md) for its current
 same-writer, native terminal and fixed local output boundaries.
+
+See [closed native nonforce effect IO](./NONFORCE-IO.md) for exact request and
+same-owner uncertainty/budget boundaries; full native admission remains separate.

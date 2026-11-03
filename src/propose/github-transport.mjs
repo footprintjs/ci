@@ -1,5 +1,6 @@
 import { jsonData, fields, id, text } from '../eco/json-data.mjs';
 import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
+import {bindProposalEffectRequest} from './proposal-effect-request.mjs';
 import {metadataHttpOutcome,metadataFetchFailure} from './metadata-response-policy.mjs';
 const MiB = 1024 * 1024, HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
 const fail = () => { throw new Error('github-transport-unavailable'); };
@@ -12,7 +13,8 @@ function limits(input = HARD) {
 const counters = () => ({ fetchAttempts: 0, admittedBytes: 0, exhausted: false });
 /** Credential-bearing requests stay on the declared GitHub API repository.
  * Exactly one documented artifact302 may acquire anonymous bytes from fixed
- * artifact infrastructure. No redirect URL/header/body/error is a public fact.
+ * artifact infrastructure. No redirect URL/header/body/error is a public fact. Exact mutation request
+ * bodies and response bytes charge this SAME admitted-byte bank.
  * Bounds apply before buffering/JSON/archive admission; an overflowing stream
  * chunk is cancelled rather than copied. No absolute socket/heap guarantee is
  * inferred for a caller-supplied fetch implementation.
@@ -22,12 +24,13 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
   text(repo.full_name, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201);
   if (typeof fetcher !== 'function') fail();
   const globalLimit = limits(inputLimits), global = counters(), controller = new AbortController(), prefix = '/repos/' + repo.full_name;
-  // Ephemeral within this captured owner only; not a saved outcome or later-run grant.
-  let patchAttempted = false;
+  // Ephemeral within this captured owner only; not saved cross-run authority.
+  // Full native history must independently refuse uncertain non-idempotent replay.
+  const attemptedEffects=new Set();let writeHalted=false;
   const facts = value => Object.freeze({ ...value });
-  const makeView = (input, registry, patch = null) => {
+  const makeView = (input, registry, mutation = null) => {
     const bound = limits(input), local = counters();
-    let patchState='not-attempted';
+    let mutationState='not-attempted';
     const exhausted = () => { global.exhausted = local.exhausted = true; controller.abort(new Error('github-transport-budget')); fail(); };
     const takeRequest = () => {
       if (global.exhausted || local.exhausted || global.fetchAttempts >= globalLimit.requests || local.fetchAttempts >= bound.requests) exhausted();
@@ -41,19 +44,19 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
     const invoke = async (url, options) => {
       options.signal.throwIfAborted(); takeRequest();
       let response;
-      if(patch)patchState='in-flight';
+      if(mutation)mutationState='in-flight';
       try{response=await fetcher(url,options);}
       catch(error){
-        if(patch)patchState=metadataFetchFailure(error,options.signal,global.exhausted||local.exhausted);
+        if(mutation)mutationState=metadataFetchFailure(error,options.signal,global.exhausted||local.exhausted);
         throw error;
       }
       if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 ||
           typeof response.ok !== 'boolean' || response.ok !== (response.status >= 200 && response.status < 300)) fail();
       return response;
     };
-    const bounded = async (response, maximum, artifact) => {
+    const bounded = async (response, maximum, artifact, expectedStatus=200) => {
       if (!response.ok) { await response.body?.cancel(); return new Response(null, { status: response.status }); }
-      if (response.status !== 200) { await response.body?.cancel(); fail(); }
+      if (response.status !== expectedStatus) { await response.body?.cancel(); fail(); }
       const contentType = response.headers.get('content-type');
       if (artifact && !['application/zip', 'application/octet-stream'].includes(contentType?.split(';')[0].trim().toLowerCase())) {
         await response.body?.cancel(); fail();
@@ -75,7 +78,7 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
           chunks.push(Buffer.from(next.value));
         }
       } finally { reader.releaseLock(); }
-      return new Response(Buffer.concat(chunks), { status: 200, headers: { 'content-type': contentType ?? 'application/octet-stream' } });
+      return new Response(Buffer.concat(chunks), { status: expectedStatus, headers: { 'content-type': contentType ?? 'application/octet-stream' } });
     };
     const requestSignal = signal => {
       if (signal !== undefined && !(signal instanceof AbortSignal)) fail();
@@ -84,12 +87,13 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
     const fetchBounded = async (url, options = {}) => {
       try {
         if (typeof url !== 'string' || url.length > 8192) fail();
-        if (patch) {
-          if (url !== patch.url || options.method !== 'PATCH' || options.body !== patch.body || patchAttempted) fail();
+        if (mutation) {
+          if (url !== mutation.url || options.method !== mutation.method || options.body !== mutation.body || writeHalted || attemptedEffects.has(mutation.key)) fail();
           const signal = requestSignal(options.signal); signal.throwIfAborted();
           // Lock before awaiting fetch: another view cannot repeat an uncertain submission.
-          patchAttempted = true;
-          const response = await invoke(url, { ...options, method: 'PATCH', body: patch.body,
+          attemptedEffects.add(mutation.key);
+          if(!admit(Buffer.byteLength(mutation.body)))exhausted();
+          const response = await invoke(url, { ...options, method: mutation.method, body: mutation.body,
             credentials: 'omit', redirect: 'error', signal });
           if (response.status >= 300 && response.status < 400) { await response.body?.cancel(); fail(); }
           if (response.ok) {
@@ -98,8 +102,9 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
               await response.body?.cancel(); fail();
             }
           }
-          const result=await bounded(response,2 * MiB,false);
-          patchState=metadataHttpOutcome(response.status);
+          const result=await bounded(response,2 * MiB,false,mutation.successStatus);
+          mutationState=response.status===mutation.successStatus?'returned':metadataHttpOutcome(response.status);
+          if(mutationState==='uncertain')writeHalted=true;
           return result;
         }
         if (registry) {
@@ -137,12 +142,13 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
         const maximum = artifact ? 20 * MiB : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB : 2 * MiB;
         return await bounded(response, maximum, artifact);
       } catch {
-        if(patch&&patchState==='in-flight')patchState='failed';
+        if(mutation&&mutationState==='in-flight'){mutationState='failed';writeHalted=true;}
+        if(mutation&&mutationState==='uncertain')writeHalted=true;
         fail();
       }
     };
     return Object.freeze({fetch:fetchBounded,facts:()=>facts(local),
-      ...(patch?{observation:()=>Object.freeze({state:patchState,authorized:false,reconciled:false})}:{})});
+      ...(mutation?{observation:()=>Object.freeze({state:mutationState,authorized:false,reconciled:false})}:{})});
 
   };
   const createRegistryView = input => {
@@ -160,14 +166,19 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
       id(value.pullNumber);
       const desired = bindProposalMetadata(value.desired, true);
       return makeView(value.limits, null, {
+        effect:'set-pr-metadata',key:'set-pr-metadata',method:'PATCH',successStatus:200,
         url: 'https://api.github.com' + prefix + '/pulls/' + value.pullNumber,
         body: JSON.stringify({ title: desired.title, body: desired.body })
       });
     } catch { fail(); }
   };
+  const createExactProposalEffectView=input=>{
+    try{const spec=bindProposalEffectRequest(repo,input);return makeView(spec.binding.limits,null,spec);}
+    catch{fail();}
+  };
   // Trusted internal IO only. These route/byte limits do not grant domain eligibility.
   // Read-only bundle exports never return this owner or its exact-PATCH view.
   return Object.freeze({ createView: input => makeView(input, null), createRegistryView,
-    createExactPatchView, facts: () => facts(global) });
+    createExactPatchView, createExactProposalEffectView, haltWrites:()=>{writeHalted=true;}, facts: () => facts(global) });
 
 }

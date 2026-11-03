@@ -6,6 +6,7 @@ const base='https://api.github.com/repos/'+repository.full_name,route=base+'/pul
 const desired={title:'Release 1.11.1',body:'Exact computed notes\né'};
 const headers={authorization:'Bearer offline_patch_token','content-type':'application/json'};
 const options={method:'PATCH',headers,body:JSON.stringify(desired)};
+const requestBytes=Buffer.byteLength(options.body);
 function fixture(reply=()=>new Response('{"number":43}',{headers:{'content-type':'application/json'}}),limits){
  const calls=[],transport=createGitHubTransport({repository,limits,fetcher:async(url,init)=>{
   calls.push({url,init});return reply(url,init,calls.length);
@@ -80,9 +81,9 @@ test('PATCH and GET charge the same request bank and abort controller',async()=>
 test('GET and PATCH share byte admission; overflow cancels before copying and disables all views',async()=>{
  let cancelled=false;const f=fixture((u,o)=>o.method==='GET'?new Response('123',{headers:{'content-type':'application/json'}}):
   new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array([1,2,3]));c.enqueue(new Uint8Array([1]));c.close();},cancel(){cancelled=true;}}),
-   {headers:{'content-type':'application/json'}}),{requests:8,totalBytes:5});
+   {headers:{'content-type':'application/json'}}),{requests:8,totalBytes:requestBytes+5});
  await f.transport.createView().fetch(route,{method:'GET',headers});await assert.rejects(f.patch().fetch(route,options));
- assert.equal(f.transport.facts().exhausted,true);assert.equal(f.transport.facts().admittedBytes,3);
+ assert.equal(f.transport.facts().exhausted,true);assert.equal(f.transport.facts().admittedBytes,requestBytes+3);
  assert.equal(cancelled,true);await assert.rejects(f.transport.createView().fetch(route,{method:'GET',headers}));assert.equal(f.calls.length,2);
 });
 test('local PATCH limit cannot borrow the larger owner bank',async()=>{
@@ -119,5 +120,5 @@ test('PATCH fixed streamed response cap applies even with a larger owner budget'
   cancel(){cancelled=true;}
  }),{headers:{'content-type':'application/json'}}));
  await assert.rejects(f.patch().fetch(route,options));assert.equal(cancelled,true);
- assert.equal(f.transport.facts().exhausted,true);assert.equal(f.transport.facts().admittedBytes,0);
+ assert.equal(f.transport.facts().exhausted,true);assert.equal(f.transport.facts().admittedBytes,requestBytes);
 });
