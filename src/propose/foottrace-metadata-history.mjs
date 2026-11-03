@@ -17,7 +17,7 @@ const reasons=['retained-workflow-unavailable','retained-workflow-discovery-drif
  'candidate-effect-or-submission-uncertain','retained-attempts-unavailable','retained-native-nonterminal',
  'retained-native-effect-or-submission','current-native-stage-conflict','retained-native-history-incomplete',
  'retained-native-proposal-uncertain','candidate-reservation-or-publication','candidate-publication-unavailable',
- 'metadata-current-observation-drift','computed-metadata-unavailable','metadata-observation-drift'];
+ 'metadata-current-observation-drift','metadata-current-input-observation-drift','computed-metadata-unavailable','metadata-observation-drift'];
 const reason=v=>reasons.includes(v)?v:'metadata-history-unavailable';
 /** Native snapshot history for the independent current metadata branch. Same
  * workflow/source/version/conflict/attempt engines; no fake preparationRefs,
@@ -130,6 +130,19 @@ export function createFoottraceMetadataHistoryInspection(options={},predecessor)
   try{
    const fresh=await readWorkflows();
    if(!fresh.valid||fresh.digest!==workflows.digest)return;
+   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-current-input-observation-drift'};
+   if(!await input.reobserve())return;
+   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'retained-source-version-unavailable'};
+   const freshVersions=await readVersions(inputs.prepared,fresh);
+   if(!freshVersions.valid||freshVersions.digest!==versions.digest)return;
+   const l=inputs.lineage;
+   const freshAttempts=assess({prepared:inputs.prepared,collection:fresh,versions:freshVersions,current:inputs.current,archive:inputs.archive,
+    published:{predecessor:l.predecessor,version:l.version,tree:l.tree,archiveDigest:l.archiveDigest,producer:l.producer}});
+   if(!freshAttempts.valid||!freshAttempts.eligible||freshAttempts.digest!==attempts.digest)return;
+   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'candidate-publication-unavailable'};
+   const freshCandidate=await readCandidate(inputs.prepared);
+   if(!freshCandidate.valid){scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:reason(freshCandidate.reason)};return;}
+   if(freshCandidate.digest!==candidate.digest)return;
    scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-current-observation-drift'};
    const current=await input.readCommit(inputs.prepared,inputs.pending,inputs.current);
    if(!current.valid||current.digest!==observed.digest){

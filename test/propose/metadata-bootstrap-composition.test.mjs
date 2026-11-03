@@ -89,25 +89,27 @@ for(const kind of ['root-stage','history-stage','commit-count'])test('synthetic 
 });
 test('post-history current preparation is reacquired rather than borrowed from the earlier root',async()=>{
  const f=await proposalBootstrapFixture({retainedJobs:'full-native'}),invocation=f.makeInvocation(),fetch=invocation.fetcher;
- let historySeen=false,changed=false;
- // A package-blob substitution is also caught by the independent full host
- // inventory read, so it cannot prove this reconstruction check. Instead,
- // model inconsistent provider commit-day metadata on the same immutable ID:
- // host tree/blob facts remain equal while preparation must change or HOLD.
+ const snapshot=FlowChartExecutor.prototype.getSnapshot;let historyCompleted=false,changed=false;
+ // Explicit synthetic observation of the ACTUAL completed result row arms
+ // drift only after history's new earlier reacquisition has finished.
+ FlowChartExecutor.prototype.getSnapshot=function(){
+  const value=snapshot.call(this);
+  if(value.commitLog.some(row=>row.stageId==='metadata-history-result'))historyCompleted=true;
+  return value;
+ };
  invocation.fetcher=async(url,options)=>{
-  const pathname=new URL(url).pathname;
-  if(pathname.endsWith('/actions/workflows/publish.yml'))historySeen=true;
-  const response=await fetch(url,options);
-  if(historySeen&&pathname.endsWith('/git/commits/'+f.M)){
+  const pathname=new URL(url).pathname,response=await fetch(url,options);
+  if(historyCompleted&&pathname.endsWith('/git/commits/'+f.M)){
    const data=await response.json();data.committer.date='2026-11-04T00:00:00Z';changed=true;
    return Response.json(data);
   }
   return response;
  };
- assert.equal(typeof module.runFoottraceMetadataBootstrapInspection,'function');
- const r=await module.runFoottraceMetadataBootstrapInspection(invocation);
- assert.equal(changed,true);assert.equal(r.status,'held');assert.equal(r.backend,null);
- assert.equal(r.report.reason,'metadata-bootstrap-root-drift');
+ try{
+  const r=await module.runFoottraceMetadataBootstrapInspection(invocation);
+  assert.equal(historyCompleted,true);assert.equal(changed,true);assert.equal(r.status,'held');assert.equal(r.backend,null);
+  assert.equal(r.report.reason,'metadata-bootstrap-root-drift');
+ }finally{FlowChartExecutor.prototype.getSnapshot=snapshot;}
 });
 test('all native prefixes charge one captured request bank',async()=>{
  const f=await proposalBootstrapFixture({retainedJobs:'full-native'}),{r}=await run(f,{limits:{requests:1,totalBytes:128*1024*1024}});

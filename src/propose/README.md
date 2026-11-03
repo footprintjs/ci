@@ -507,3 +507,13 @@ CODE routing plus limited lifetime, not a claim that the JWT itself is scoped
 read-only. No key, raw credential or JWT is recorded. Wrong configured App/client
 identity and unknown or failed reads remain HOLD. A read-only repository may be
 observed without a push grant; the writer profile's push predicate stays strict.
+
+The final current-only history observation now reacquires every earlier native
+input on the same captured client: deterministic current source, running private
+producer, exact preparation archive, published lineage and immediate parent
+source/raw queue. It then reacquires source versions, reclassifies the retained
+attempts and rereads current candidate reservations/publication before the
+signed-reference/review and exact metadata checks. Drift discards input knowledge;
+a signature or earlier complete history is never a substitute for these fresh
+reads. This is read-only preparation for the C1 controller, not its completed
+pre-effect stage, writer admission, T1 terminal or permission to PATCH.

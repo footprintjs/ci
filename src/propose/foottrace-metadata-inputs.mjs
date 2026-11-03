@@ -156,7 +156,27 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
  .addFunction('Record current metadata input knowledge',scope=>{
   scope.metadataInputResult={...scope.metadataInputFacts,count:scope.metadataInputRefs.length,receiptRef:digest(scope.metadataInputRefs)};
  },'metadata-input-result');
- return {chart,readCommit,getBackend:()=>available?{prepared,current,archive,lineage,pending,parentSource,reviews}:null};
+ const lineageJoin=v=>({predecessor:v.predecessor,producer:v.producer,version:v.version,tree:v.tree,
+  archiveDigest:v.archiveDigest,sourceSha:v.sourceSha,sourceTree:v.sourceTree});
+ // Reacquire every earlier INPUT view on this same captured client. No saved
+ // snapshot, matching signature or completed stage becomes writer eligibility.
+ const reobserve=async()=>{
+  if(!available)return false;
+  try{
+   const freshInputs=await readInputs();
+   if(!freshInputs.valid||!isDeepStrictEqual(freshInputs.prepared,prepared))throw new Error();
+   const freshCurrent=await readCurrent(prepared);
+   if(!freshCurrent.valid||freshCurrent.digest!==current.digest)throw new Error();
+   const freshArchive=await readArchive(prepared,current);
+   if(!freshArchive.valid||freshArchive.digest!==archive.digest)throw new Error();
+   const freshLineage=await readLineage();
+   if(!freshLineage.valid||!isDeepStrictEqual(lineageJoin(freshLineage),lineageJoin(lineage)))throw new Error();
+   const freshParent=await readParentSource(prepared,pending,lineage);
+   if(!freshParent.valid||freshParent.digest!==parentSource.digest)throw new Error();
+   return true;
+  }catch{available=false;return false;}
+ };
+ return {chart,readCommit,reobserve,getBackend:()=>available?{prepared,current,archive,lineage,pending,parentSource,reviews}:null};
 }
 /** Production read-only entry. No saved witnesses/readers/model callbacks enter,
  * and a single executor records both current bootstrap and observed App commit.
