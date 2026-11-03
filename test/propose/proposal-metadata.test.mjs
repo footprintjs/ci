@@ -1,3 +1,4 @@
+import {containsRecordText} from './record-text-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 const readers=await import('../../src/propose/proposal-metadata.mjs').catch(()=>({}));
@@ -26,7 +27,7 @@ test('native exact title/body observations are input knowledge and zero writer a
  assert.equal(r.scope,'pending-metadata-observation-only');assert.equal(r.authorized,false);assert.equal(r.executedWrites,0);
  assert.equal(r.writerCredentialBindingAdmitted,false);assert.equal(r.retainedEligibilityAdmitted,false);
  assert.equal(r.desiredDigest,r.observedDigest);assert.equal(JSON.stringify(r).includes(PRIVATE),false);
- assert.equal(JSON.stringify(r).includes(desired.body),false);assert.ok(f.calls.every(x=>x.method==='GET'&&x.body===undefined));
+ assert.equal(containsRecordText(r,desired.body),false);assert.ok(f.calls.every(x=>x.method==='GET'&&x.body===undefined));
 });
 test('a stale title or exact-byte body is observed as stale, never silently normalized or patched',async()=>{
  for(const metadata of [{...desired,title:'Old release'},{...desired,body:desired.body+'\n'}]){

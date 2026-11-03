@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "4b25f3905597dbaba5e25769fdc195a8b6ad2e4cca72e4d95e548c1c978acdc8",
+  "sha256": "a90aa14cc2500722c67aa4a1855372e5e61d62f197e21cbc79354212e186fa44",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1026,7 +1026,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 69621
+      "bytes": 69883
     },
     {
       "path": "src/guards/release-prepare.cjs",

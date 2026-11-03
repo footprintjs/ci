@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "8b11edd9928ecf5a63d93607b4e5232c254d54365b75d3a79bcd48a8b601894a",
+  "sha256": "436f1b7b275457789da24593ccb0bf5d73ee0031b7249e3714530549224b0604",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -1038,7 +1038,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 69621
+      "bytes": 69883
     },
     {
       "path": "src/guards/release-prepare.cjs",

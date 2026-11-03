@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import preparation from '../../src/guards/release-prepare.cjs';
+import native from '../../src/guards/release-github.cjs';
 import {bootstrapFixture} from './bootstrap-provider-fixture.mjs';
 import {nativeHttpFixture} from './native-http-provider-fixture.mjs';
 export const PRIVATE='PRIVATE-CURRENT-METADATA-PROVIDER';
 /** Existing signed ref is a modelled provider observation; no original creator
  * is selected or current producer status rewritten to make this fixture work. */
-export async function metadataInputFixture({sameTree=true,useOriginalHead=false,pendingParent='current',changeCommit=()=>{},reviewStates=[],changeReview=()=>{},changeHttp=()=>{},...options}={}) {
+export async function metadataInputFixture({sameTree=true,useOriginalHead=false,pendingParent='current',changeCommit=()=>{},reviewStates=[],changeReview=()=>{},changeHttp=()=>{},metadata='exact',changeMetadata=()=>{},...options}={}) {
  const f=await bootstrapFixture({...options,changeHttp});let head=f.P;
  if(sameTree&&!useOriginalHead){
   const inventory=new Map(f.f.trees.get(f.current.commit.tree.sha));
@@ -15,7 +16,7 @@ export async function metadataInputFixture({sameTree=true,useOriginalHead=false,
   for(const path of f.currentPrepared.deletions)inventory.delete(path);
   head=f.f.addCommit(inventory,[pendingParent==='original'?f.B:f.M,f.P]);f.f.tip=head;f.pending.head.sha=head;
  }
- const calls=[],reviews=[];let commitReads=0,reviewReads=0,permissionReads=0;
+ const calls=[],reviews=[];let commitReads=0,reviewReads=0,permissionReads=0,metadataReads=0;
  const addReview=state=>reviews.push({id:100+reviews.length,state,commit_id:head,user:{id:42,type:'User',login:'reviewer42'},body:PRIVATE});
  for(const state of reviewStates)addReview(state);
  const api=async(method,route,body)=>{
@@ -33,6 +34,11 @@ export async function metadataInputFixture({sameTree=true,useOriginalHead=false,
   if(route.includes('/collaborators/')){
    permissionReads++;const data={permission:'write',user:{id:42,type:'User',login:'reviewer42'},private:PRIVATE};
    changeReview(data,route,{reviewReads,permissionReads});return {data};
+  }
+  if(route==='/repos/footprintjs/foottrace/pulls/101'){
+   const response=await f.api(method,route,body),expected=native.proposalMetadata(f.currentPrepared.version,f.currentPrepared.notes);
+   const actual=metadata==='exact'?expected:metadata==='stale'?{title:'Stale release',body:'Stale notes'}:metadata;
+   response.data.title=actual.title;response.data.body=actual.body;changeMetadata(response.data,++metadataReads);return response;
   }
   return f.api(method,route,body);
  };

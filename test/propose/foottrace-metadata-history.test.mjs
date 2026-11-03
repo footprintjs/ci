@@ -1,3 +1,4 @@
+import {containsRecordText} from './record-text-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {metadataInputFixture,PRIVATE} from './metadata-input-provider-fixture.mjs';
@@ -73,4 +74,33 @@ test('final pending state cannot drift after history and candidate observations'
   if(n===3){f.f.tip=f.P;f.pending.head.sha=f.P;}
  }});
  const r=await run(f);assert.equal(r.status,'held');assert.equal(r.report.reason,'metadata-current-observation-drift');assert.equal(r.backend===null,true);
+});
+
+test('actual native current preparation supplies desired metadata in the SAME history chart',async()=>{
+ const f=await metadataInputFixture({retainedJobs:'full-native'}),r=await run(f);
+ assert.equal(r.status,'metadata-history-only');assert.equal(r.backend.metadata?.valid,true);
+ assert.equal(r.backend.metadata.observation.matches,true);
+ assert.equal(r.record.snapshot.sharedState.metadataHistoryResult.metadata,true);
+ assert.match(JSON.stringify(r.record),/metadata-history-read-metadata/);
+ assert.equal(containsRecordText(r.record,r.backend.metadata.payload.body),false);
+ assert.equal(r.report.authorized,false);assert.equal(r.report.executedWrites,0);
+});
+test('stale native metadata is known input, not a held read or a PATCH grant',async()=>{
+ const f=await metadataInputFixture({retainedJobs:'full-native',metadata:'stale'}),r=await run(f);
+ assert.equal(r.status,'metadata-history-only');assert.equal(r.backend.metadata?.valid,true);
+ assert.equal(r.backend.metadata.observation.matches,false);assert.equal(r.record.snapshot.sharedState.metadataHistoryResult.metadataMatches,false);assert.equal(r.report.authorized,false);
+ assert.equal(r.report.executedWrites,0);
+});
+
+test('malformed actual PR metadata holds after native history without erasing its attempt classification',async()=>{
+ const f=await metadataInputFixture({retainedJobs:'full-native',metadata:{title:null,body:'unknown'}}),r=await run(f);
+ assert.equal(r.status,'held');assert.equal(r.report.reason,'computed-metadata-unavailable');
+ assert.equal(r.report.retainedAttemptsEligible,true);assert.equal(r.backend,null);assert.equal(r.report.authorized,false);
+});
+test('later metadata drift after native history and signed-state recheck invalidates the computed join',async()=>{
+ let f;f=await metadataInputFixture({retainedJobs:'full-native',changeMetadata:d=>{
+  if(f.calls.filter(x=>x.includes('/actions/workflows/11/runs')).length>=4)d.body+='later drift';
+ }});
+ const r=await run(f);assert.equal(r.status,'held');assert.equal(r.report.reason,'metadata-observation-drift');
+ assert.equal(r.backend,null);assert.equal(r.report.authorized,false);
 });

@@ -1579,6 +1579,12 @@ var require_release_github = __commonJS({
       await assertCurrentMain(api, context);
       return { rebuilt, expectedTree, predecessor, retained, state: state2, bot };
     }
+    function proposalMetadata(version, notes) {
+      return { title: `Release ${version}`, body: `Release App proposal for foottrace ${version}.
+
+${notes}
+After Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.` };
+    }
     async function writeProposal(api, context, payload, pinned, options = {}) {
       const before = await proposalPreflight(api, context, payload, pinned, options), { rebuilt, expectedTree, predecessor, bot } = before, base = prefix(context);
       if (before.state.action === "no-op") return { action: "no-op", pr: before.retained.open.number };
@@ -1607,14 +1613,12 @@ var require_release_github = __commonJS({
       await assertCurrentMain(api, context);
       const current = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
       if (current.object?.sha !== commit.sha) fail10("proposal-existing");
+      const metadata = proposalMetadata(pinned.version, rebuilt.prepared.notes);
       const pr = (await api("POST", `${base}/pulls`, {
-        title: `Release ${pinned.version}`,
+        title: metadata.title,
         head: "release/next",
         base: "main",
-        body: `Release App proposal for foottrace ${pinned.version}.
-
-${rebuilt.prepared.notes}
-After Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`
+        body: metadata.body
       })).data;
       const requireCreated = (value) => {
         if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail10("proposal-pr");
@@ -2147,6 +2151,7 @@ After Claude's independent merge verdict for this exact head is recorded publicl
       runStage,
       optional,
       writeProposal,
+      proposalMetadata,
       producerIdentity,
       readArtifact,
       peeledTag,

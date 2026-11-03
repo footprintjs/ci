@@ -49,5 +49,15 @@ test('every source port and fixture snapshot matches complete provenance hashes'
  const manifest=JSON.parse(readFileSync(new URL('../../provenance/upstream.json',import.meta.url)));
  assert.equal(manifest.commit,'f55250adcbe9bbfdde75b6bc2c889bac791ca131');
  for(const row of manifest.files){const bytes=readFileSync(new URL('../../'+row.destination,import.meta.url));assert.equal(createHash('sha256').update(bytes).digest('hex'),row.sha256,row.destination);if(row.adaptation==='exact')assert.equal(row.sha256,row.sourceSha256);}
- assert.equal(manifest.files.filter(r=>r.destination.startsWith('src/guards/')&&r.adaptation==='exact').length,6);
+ assert.equal(manifest.files.filter(r=>r.destination.startsWith('src/guards/')&&r.adaptation==='exact').length,5);
+ const derived=manifest.files.filter(r=>r.destination.startsWith('src/guards/')&&r.adaptation!=='exact'&&r.dataPatch);
+ assert.equal(derived.length,1);assert.equal(derived[0].destination,'src/guards/release-github.cjs');
+ const row=derived[0],bytes=readFileSync(new URL('../../'+row.dataPatch.path,import.meta.url));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),row.dataPatch.sha256);
+ const patch=JSON.parse(bytes),source=readFileSync(new URL('../../'+patch.source,import.meta.url));
+ assert.equal(createHash('sha256').update(source).digest('hex'),row.sourceSha256);
+ assert.equal(patch.destination,row.destination);assert.equal(patch.sourceSha256,row.sourceSha256);assert.equal(patch.outputSha256,row.sha256);
+ let transformed=source.toString('utf8');assert.equal(patch.replacements.length,5);
+ for(const replacement of patch.replacements){assert.equal(transformed.split(replacement.before).length-1,1);transformed=transformed.replace(replacement.before,replacement.after);}
+ assert.equal(transformed,readFileSync(new URL('../../'+row.destination,import.meta.url),'utf8'));
 });

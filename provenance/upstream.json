@@ -2,7 +2,7 @@
   "repository": "https://github.com/footprintjs/foottrace",
   "commit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
   "license": "MIT",
-  "scope": "Six production guard modules exact. Complete native release test corpus; only three test helper imports adapted to exercise production guards. Snapshot runner/workflows are test-only historical compatibility fixtures, never entrypoints.",
+  "scope": "Five production guard modules exact; release-github has one explicit data-only metadata-formatter extraction, reproducible from its preserved original. Complete native corpus retained; snapshot runner/workflows remain test-only historical compatibility DATA, never production entrypoints.",
   "files": [
     {
       "source": ".github/workflows/ci.yml",
@@ -295,8 +295,12 @@
       "source": "scripts/release-github.cjs",
       "destination": "src/guards/release-github.cjs",
       "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
-      "sha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
-      "adaptation": "exact"
+      "sha256": "c8d627acb5a8de63789d91634f3005775a8f861d917bf2b400e8ccfabbab03fc",
+      "adaptation": "Extract shared proposalMetadata text factory only; preserve native predicates and exact creation request bytes.",
+      "dataPatch": {
+        "path": "provenance/adaptations/release-github-metadata-policy.json",
+        "sha256": "73f16862d89a5ce7eaeb1870cebc97b4c703d0c2ae51475cacf4155cbde77e33"
+      }
     },
     {
       "source": "scripts/release-prepare.cjs",
