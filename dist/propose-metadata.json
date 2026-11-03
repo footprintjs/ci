@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "a90aa14cc2500722c67aa4a1855372e5e61d62f197e21cbc79354212e186fa44",
+  "sha256": "bef8713b42fcf8d2d5d7c262a73c08acd55212c37a0dcdec648d5d672f51d05a",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1097,8 +1097,12 @@
       "bytes": 5069
     },
     {
+      "path": "src/propose/proposal-bootstrap-flow.mjs",
+      "bytes": 7104
+    },
+    {
       "path": "src/propose/proposal-bootstrap.mjs",
-      "bytes": 6736
+      "bytes": 1009
     },
     {
       "path": "src/propose/proposal-invocation.mjs",

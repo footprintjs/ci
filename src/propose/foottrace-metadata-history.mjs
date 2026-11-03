@@ -24,14 +24,19 @@ const reason=v=>reasons.includes(v)?v:'metadata-history-unavailable';
  * historical creator or publication ledger. Input knowledge never grants effects.
  * Production accepts only actual invocation facts and an opaque runtime client.
  */
-export function createFoottraceMetadataHistoryInspection(options={}) {
+export function createFoottraceMetadataHistoryInspection(options={},predecessor) {
  let started=false,backend=null;
  const resultStageId='metadata-history-result';
- const start=flowChart('Capture one native metadata-history invocation',scope=>{
+ const initialize=scope=>{
   backend=null;
   if(started)throw new Error('metadata-history-already-executed');
   started=true;scope.metadataHistoryInvocation={readOnly:true,authorized:false};
- },'metadata-history-invocation');
+ };
+ // Only a separate trusted CODE builder may precede this source factory.
+ // Public facade DATA start/executor fields are never forwarded here.
+ const start=predecessor
+  ?predecessor.addFunction('Capture one native metadata-history invocation',initialize,'metadata-history-invocation')
+  :flowChart('Capture one native metadata-history invocation',initialize,'metadata-history-invocation');
  const input=createFoottraceMetadataInputBootstrap(options,start);
  const signed=createObservedAppCommitInspection({start:input.chart,readCommit:input.readCommit,readInputs:()=>{
   const b=input.getBackend();return b?{prepared:b.prepared,pending:b.pending,current:b.current}:null;

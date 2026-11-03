@@ -451,3 +451,21 @@ buffer cannot retarget an earlier observation. Cleanliness and identity/source
 are rechecked, but adjacent snapshots do not prove uninterrupted continuity.
 
 The input bootstrap is also emitted as dist/propose.cjs, with its own exact metadata and Node-only runtime imports. It is a read-only native observation bundle; a target control needs no dependency install. It does not expose a writer or complete Propose API.
+
+
+The source-only metadata bootstrap composes the existing captured entry/host
+prefix and current metadata history in one native executor, using the same
+opaque runtime owner. Actual completed native result rows and the native commit
+count are observed before crossing each input boundary. Current preparation,
+local/native host source and private running identity are reobserved after the
+history prefix. A failed root stops dependent acquisition; incomplete capture
+discards all private joined input. A factory refuses replay before provider I/O.
+Public inspection DATA cannot supply an executor, predecessor chart or completed
+flag. Only trusted source CODE can compose a predecessor builder.
+
+These observations remain input knowledge. They do not select a writer,
+authenticate an arbitrary process, establish exact historical creator or
+continuous history, admit a reservation/grant, or implement the accepted C1
+terminal design/T1 business-outcome gates. Native records remain diagnostic.
+The committed inspection program continues to export only its existing
+read-only facade; this richer joined source entry is not adopted by a caller.
