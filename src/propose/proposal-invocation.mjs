@@ -1,7 +1,7 @@
 import {fields,jsonData} from '../eco/json-data.mjs';
 import {own} from './source-inventory.mjs';
 import {foottraceInvocationContext} from './foottrace-context.mjs';
-import {createFoottraceInspectionTransport} from './foottrace-transport.mjs';
+import {createFoottraceInspectionTransport,createFoottraceTransport} from './foottrace-transport.mjs';
 import {isOpaqueCredential} from '../http-credential.cjs';
 const fail=()=>{throw new Error('proposal-invocation-unavailable');};
 function number(value){
@@ -13,7 +13,18 @@ function number(value){
  * and removed before any CODE host I/O or provider await. No key/token returns.
  * The independently trusted actual bridge and bounded writer are still separate.
  */
-export function captureFoottraceProposalInvocation({env,fetcher,limits}={}){
+export function captureFoottraceProposalInvocation(options={}){
+ return captureInvocation(options,createFoottraceInspectionTransport);
+}
+/** Private source-CODE entry for the closed metadata controller. This captures
+ * the separate existing writer token, not a read-owner promotion or grant.
+ * Actual reviewed host/profile/output-to-client admission and every native
+ * effect predicate remain required; DATA cannot select this constructor.
+ */
+export function captureFoottraceMetadataWriterInvocation(options={}){
+ return captureInvocation(options,createFoottraceTransport);
+}
+function captureInvocation({env,fetcher,limits},createTransport){
  try{
   const token=own(env,'GH_TOKEN'),jwt=own(env,'APP_JWT');
   if(!isOpaqueCredential(token)||!isOpaqueCredential(jwt)||own(env,'APP_PRIVATE_KEY')!==undefined)fail();
@@ -28,7 +39,7 @@ export function captureFoottraceProposalInvocation({env,fetcher,limits}={}){
    workflowRef!=='footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main'||
    typeof toolSha!=='string'||! /^[a-f0-9]{40}$/.test(toolSha))fail();
   const artifactId=number(own(env,'ARTIFACT_ID'));
-  const transport=createFoottraceInspectionTransport({repository:context.repository,token,appIdentity:{
+  const transport=createTransport({repository:context.repository,token,appIdentity:{
    slug:own(env,'APP_SLUG'),clientId:own(env,'APP_CLIENT_ID'),jwt},fetcher,limits});
   return Object.freeze({transport,context,artifactId,invocation:fields(jsonData({job:'proposal',workflowRef,
    workflowSha:context.sha,toolSha}),['job','workflowRef','workflowSha','toolSha'])});

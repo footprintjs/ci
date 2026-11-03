@@ -25231,7 +25231,10 @@ function number(value) {
   if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail6();
   return Number(value);
 }
-function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = {}) {
+function captureFoottraceProposalInvocation(options = {}) {
+  return captureInvocation(options, createFoottraceInspectionTransport);
+}
+function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
   try {
     const token = own4(env, "GH_TOKEN"), jwt = own4(env, "APP_JWT");
     if (!(0, import_http_credential3.isOpaqueCredential)(token) || !(0, import_http_credential3.isOpaqueCredential)(jwt) || own4(env, "APP_PRIVATE_KEY") !== void 0) fail6();
@@ -25256,7 +25259,7 @@ function captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 } = 
     const toolSha = own4(env, "TOOL_SHA"), workflowRef = own4(env, "GITHUB_WORKFLOW_REF");
     if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail6();
     const artifactId = number(own4(env, "ARTIFACT_ID"));
-    const transport = createFoottraceInspectionTransport({ repository: context.repository, token, appIdentity: {
+    const transport = createTransport({ repository: context.repository, token, appIdentity: {
       slug: own4(env, "APP_SLUG"),
       clientId: own4(env, "APP_CLIENT_ID"),
       jwt

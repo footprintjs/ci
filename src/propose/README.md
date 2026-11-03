@@ -517,3 +517,14 @@ signed-reference/review and exact metadata checks. Drift discards input knowledg
 a signature or earlier complete history is never a substitute for these fresh
 reads. This is read-only preparation for the C1 controller, not its completed
 pre-effect stage, writer admission, T1 terminal or permission to PATCH.
+
+The private closed-controller source can now capture a distinct writer
+invocation through a CODE-selected entry. It reuses the same strict Actions
+alias/run/attempt/job/ref/source and artifact validation as the public read-only
+capture. It never widens a captured read owner or accepts a caller-selected
+constructor. Both paths capture their token/JWT once and remove credential
+fields before host/provider I/O; neither accepts a private key. The writer
+profile still requires native push permission and a genuinely running producer.
+This is source/client capture only: exact reviewed workflow/action-output
+handoff, profile authority, all effect eligibility and the C1/T1 controller
+remain unadmitted. The public inspection program still chooses read-only.

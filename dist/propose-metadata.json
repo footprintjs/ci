@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "3bb9d0376cb559f13c7ffe9eeb8c6d3c713e846a7a4606ab27c4913dfa9e73b2",
+  "sha256": "34f03975abe4e6dd93bb0eea238f49d7fdc351f61f2a93a60d9b2cde320216a8",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1118,7 +1118,7 @@
     },
     {
       "path": "src/propose/proposal-invocation.mjs",
-      "bytes": 2611
+      "bytes": 3186
     },
     {
       "path": "src/propose/proposal-metadata-payload.mjs",
