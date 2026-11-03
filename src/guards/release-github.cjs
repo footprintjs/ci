@@ -1,5 +1,6 @@
 'use strict';
 const preparation = require('./release-prepare.cjs');
+const { proposalCreation } = require('./proposal-metadata.cjs');
 const { prepareRelease } = preparation;
 const control = require('./release-control.cjs');
 const { appRequest } = require('./release-app-auth.cjs');
@@ -811,10 +812,6 @@ async function proposalPreflight(api, context, payload, pinned, options) {
   await assertCurrentMain(api, context);
   return { rebuilt, expectedTree, predecessor, retained, state, bot };
 }
-/** One native proposal text policy shared by creation and exact metadata reconciliation. */
-function proposalMetadata(version, notes) {
-  return { title: `Release ${version}`, body: `Release App proposal for foottrace ${version}.\n\n${notes}\nAfter Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.` };
-}
 async function writeProposal(api, context, payload, pinned, options = {}) {
   // The App writer's readable role repeats ALL publication/lineage/closure reads
   // before the FIRST blob/tree mutation. A planning-token 404 grants no write.
@@ -847,11 +844,7 @@ async function writeProposal(api, context, payload, pinned, options = {}) {
   await assertCurrentMain(api, context);
   const current = (await api('GET', `${base}/git/ref/heads/release/next`)).data;
   if (current.object?.sha !== commit.sha) fail('proposal-existing');
-  const metadata = proposalMetadata(pinned.version, rebuilt.prepared.notes);
-  const pr = (await api('POST', `${base}/pulls`, {
-      title: metadata.title, head: 'release/next', base: 'main',
-      body: metadata.body,
-    })).data;
+  const pr = (await api('POST', `${base}/pulls`, proposalCreation(pinned.version, rebuilt.prepared.notes))).data;
   const requireCreated = (value) => {
     if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== 'open' ||
       value.head?.sha !== commit.sha || value.base?.sha !== context.sha ||
@@ -1462,7 +1455,6 @@ module.exports = {
   runStage,
   optional,
   writeProposal,
-  proposalMetadata,
   producerIdentity,
   readArtifact,
   peeledTag,

@@ -1,5 +1,5 @@
 import {bindProposalMetadata} from './proposal-metadata-payload.mjs';
-import native from '../guards/release-github.cjs';
+import metadataPolicy from '../guards/proposal-metadata.cjs';
 import {own} from './source-inventory.mjs';
 import {foottraceInvocationContext} from './foottrace-context.mjs';
 import {foottraceTransportPort} from './foottrace-transport.mjs';
@@ -14,7 +14,7 @@ export function computeFoottraceProposalMetadata(prepared){
  if(typeof version!=='string'||! /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)||
   version.length>128||own(actual,'version')!==version||typeof notes!=='string'||
   Buffer.byteLength(notes)>65536||Buffer.from(notes).toString('utf8')!==notes)fail();
- return bindProposalMetadata(native.proposalMetadata(version,notes),true);
+ return bindProposalMetadata(metadataPolicy.proposalMetadata(version,notes),true);
 }
 /** Current actual GET observations against the ONE native policy formatter.
  * The payload remains in trusted runtime backend data; only exact digests/match

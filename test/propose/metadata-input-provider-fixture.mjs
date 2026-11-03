@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import preparation from '../../src/guards/release-prepare.cjs';
-import native from '../../src/guards/release-github.cjs';
+import metadataPolicy from '../../src/guards/proposal-metadata.cjs';
 import {bootstrapFixture} from './bootstrap-provider-fixture.mjs';
 import {nativeHttpFixture} from './native-http-provider-fixture.mjs';
 export const PRIVATE='PRIVATE-CURRENT-METADATA-PROVIDER';
@@ -36,7 +36,7 @@ export async function metadataInputFixture({sameTree=true,useOriginalHead=false,
    changeReview(data,route,{reviewReads,permissionReads});return {data};
   }
   if(route==='/repos/footprintjs/foottrace/pulls/101'){
-   const response=await f.api(method,route,body),expected=native.proposalMetadata(f.currentPrepared.version,f.currentPrepared.notes);
+   const response=await f.api(method,route,body),expected=metadataPolicy.proposalMetadata(f.currentPrepared.version,f.currentPrepared.notes);
    const actual=metadata==='exact'?expected:metadata==='stale'?{title:'Stale release',body:'Stale notes'}:metadata;
    response.data.title=actual.title;response.data.body=actual.body;changeMetadata(response.data,++metadataReads);return response;
   }

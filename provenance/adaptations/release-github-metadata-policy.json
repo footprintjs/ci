@@ -3,28 +3,33 @@
   "source": "test/upstream/scripts/release-github.cjs",
   "destination": "src/guards/release-github.cjs",
   "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
-  "outputSha256": "c8d627acb5a8de63789d91634f3005775a8f861d917bf2b400e8ccfabbab03fc",
-  "purpose": "Extract one native proposal title/body formatter; existing writer request bytes and all native predicates remain unchanged. Data-only replacements, never evaluated.",
+  "outputSha256": "949ac023e1b14cfbc5ccb24c178465d1dc29f62e176b7b9d8ed6090cb1d4d0f2",
+  "purpose": "Extract ONE small native text-policy owner and creation field ordering; native guard shrinks below its immutable original, all predicates and exact original request bytes preserved. Exact data-only replacements, no evaluation.",
   "replacements": [
     {
-      "before": "async function writeProposal(api, context, payload, pinned, options = {}) {",
-      "after": "/** One native proposal text policy shared by creation and exact metadata reconciliation. */\nfunction proposalMetadata(version, notes) {\n  return { title: `Release ${version}`, body: `Release App proposal for foottrace ${version}.\\n\\n${notes}\\nAfter Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.` };\n}\nasync function writeProposal(api, context, payload, pinned, options = {}) {"
+      "before": "const preparation = require('./release-prepare.cjs');",
+      "after": "const preparation = require('./release-prepare.cjs');\nconst { proposalCreation } = require('./proposal-metadata.cjs');"
     },
     {
-      "before": "  const pr = (await api('POST', `${base}/pulls`, {",
-      "after": "  const metadata = proposalMetadata(pinned.version, rebuilt.prepared.notes);\n  const pr = (await api('POST', `${base}/pulls`, {"
-    },
-    {
-      "before": "      title: `Release ${pinned.version}`, head: 'release/next', base: 'main',",
-      "after": "      title: metadata.title, head: 'release/next', base: 'main',"
-    },
-    {
-      "before": "      body: `Release App proposal for foottrace ${pinned.version}.\\n\\n${rebuilt.prepared.notes}\\nAfter Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`,",
-      "after": "      body: metadata.body,"
-    },
-    {
-      "before": "  writeProposal,\n",
-      "after": "  writeProposal,\n  proposalMetadata,\n"
+      "before": "  const pr = (await api('POST', `${base}/pulls`, {\n      title: `Release ${pinned.version}`, head: 'release/next', base: 'main',\n      body: `Release App proposal for foottrace ${pinned.version}.\\n\\n${rebuilt.prepared.notes}\\nAfter Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`,\n    })).data;",
+      "after": "  const pr = (await api('POST', `${base}/pulls`, proposalCreation(pinned.version, rebuilt.prepared.notes))).data;"
     }
-  ]
+  ],
+  "extractedPolicy": {
+    "destination": "src/guards/proposal-metadata.cjs",
+    "sha256": "f1abbfb4a125b5b2abedd6c094de53df92f7c3f0fedd32a1235e43c1b9038827",
+    "sourceTitle": "`Release ${pinned.version}`",
+    "sourceBody": "`Release App proposal for foottrace ${pinned.version}.\\n\\n${rebuilt.prepared.notes}\\nAfter Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`",
+    "rewrites": [
+      {
+        "before": "pinned.version",
+        "after": "version"
+      },
+      {
+        "before": "rebuilt.prepared.notes",
+        "after": "notes"
+      }
+    ],
+    "moduleTemplate": "'use strict';\n// One native text-policy owner for creation and exact metadata reconciliation.\nfunction proposalMetadata(version, notes) {\n  return { title: __TITLE__, body: __BODY__ };\n}\nfunction proposalCreation(version, notes) {\n  const metadata = proposalMetadata(version, notes);\n  return { title: metadata.title, head: 'release/next', base: 'main', body: metadata.body };\n}\nmodule.exports = { proposalMetadata, proposalCreation };\n"
+  }
 }

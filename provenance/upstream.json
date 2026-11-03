@@ -2,7 +2,7 @@
   "repository": "https://github.com/footprintjs/foottrace",
   "commit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
   "license": "MIT",
-  "scope": "Five production guard modules exact; release-github has one explicit data-only metadata-formatter extraction, reproducible from its preserved original. Complete native corpus retained; snapshot runner/workflows remain test-only historical compatibility DATA, never production entrypoints.",
+  "scope": "Five production guard modules exact; release-github structurally shrinks through TWO exact data-only replacements into one small native metadata policy. Both policy and guard reproducible from preserved original; native request bytes/order and all predicates preserved. Complete native corpus retained; snapshot runner/workflows remain historical compatibility DATA.",
   "files": [
     {
       "source": ".github/workflows/ci.yml",
@@ -295,11 +295,11 @@
       "source": "scripts/release-github.cjs",
       "destination": "src/guards/release-github.cjs",
       "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
-      "sha256": "c8d627acb5a8de63789d91634f3005775a8f861d917bf2b400e8ccfabbab03fc",
-      "adaptation": "Extract shared proposalMetadata text factory only; preserve native predicates and exact creation request bytes.",
+      "sha256": "949ac023e1b14cfbc5ccb24c178465d1dc29f62e176b7b9d8ed6090cb1d4d0f2",
+      "adaptation": "Extract shared proposalCreation call to one small policy owner; preserve all native guard predicates and exact original request bytes/order.",
       "dataPatch": {
         "path": "provenance/adaptations/release-github-metadata-policy.json",
-        "sha256": "73f16862d89a5ce7eaeb1870cebc97b4c703d0c2ae51475cacf4155cbde77e33"
+        "sha256": "53ce1538b85ad59379b7580cfb2c1849051916830ceac0c9623dc568422d1df5"
       }
     },
     {
@@ -316,6 +316,17 @@
       "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
       "sha256": "9974d80c81ff09db40a4459f91f85ac7cbe8137c7eb73ac9d90ec33dc440e217",
       "adaptation": "Pure synchronous requireSecurity witness adapter, retaining exact native run/job predicates plus explicit page completion. No native source changed."
+    },
+    {
+      "source": "scripts/release-github.cjs",
+      "destination": "src/guards/proposal-metadata.cjs",
+      "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
+      "sha256": "f1abbfb4a125b5b2abedd6c094de53df92f7c3f0fedd32a1235e43c1b9038827",
+      "adaptation": "One native proposal text policy and creation field order, reconstructed from exact original title/body chunks via the declared data-only extraction.",
+      "extraction": {
+        "path": "provenance/adaptations/release-github-metadata-policy.json",
+        "field": "extractedPolicy"
+      }
     }
   ],
   "testExecution": {

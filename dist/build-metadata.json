@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "436f1b7b275457789da24593ccb0bf5d73ee0031b7249e3714530549224b0604",
+  "sha256": "5377a6ce26f888d619845bb672a38766a49c08ad1962505e45e5fa48d6886582",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -1021,6 +1021,10 @@
       "bytes": 6728
     },
     {
+      "path": "src/guards/proposal-metadata.cjs",
+      "bytes": 1520
+    },
+    {
       "path": "src/guards/release-app-auth.cjs",
       "bytes": 1608
     },
@@ -1038,7 +1042,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 69883
+      "bytes": 68538
     },
     {
       "path": "src/guards/release-prepare.cjs",

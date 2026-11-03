@@ -57,7 +57,26 @@ test('every source port and fixture snapshot matches complete provenance hashes'
  const patch=JSON.parse(bytes),source=readFileSync(new URL('../../'+patch.source,import.meta.url));
  assert.equal(createHash('sha256').update(source).digest('hex'),row.sourceSha256);
  assert.equal(patch.destination,row.destination);assert.equal(patch.sourceSha256,row.sourceSha256);assert.equal(patch.outputSha256,row.sha256);
- let transformed=source.toString('utf8');assert.equal(patch.replacements.length,5);
+ const currentLines=readFileSync(new URL('../../'+row.destination,import.meta.url),'utf8').trimEnd().split('\n').length;
+ const originalLines=source.toString('utf8').trimEnd().split('\n').length;
+ assert.ok(currentLines<=originalLines,'src/guards/release-github.cjs grew beyond its immutable native source: '+currentLines+' > '+originalLines);
+
+ let transformed=source.toString('utf8');assert.equal(patch.replacements.length,2);
  for(const replacement of patch.replacements){assert.equal(transformed.split(replacement.before).length-1,1);transformed=transformed.replace(replacement.before,replacement.after);}
  assert.equal(transformed,readFileSync(new URL('../../'+row.destination,import.meta.url),'utf8'));
+ const policy=patch.extractedPolicy,policyRow=manifest.files.find(r=>r.destination===policy.destination);
+ assert.equal(policy.destination,'src/guards/proposal-metadata.cjs');assert.ok(policyRow);
+ assert.equal(policyRow.sha256,policy.sha256);assert.equal(policyRow.sourceSha256,row.sourceSha256);
+ assert.equal(policyRow.extraction.path,row.dataPatch.path);assert.equal(policyRow.extraction.field,'extractedPolicy');
+ let policySource=policy.moduleTemplate;
+ for(const [marker,chunk] of [['__TITLE__',policy.sourceTitle],['__BODY__',policy.sourceBody]]){
+  assert.equal(source.toString('utf8').split(chunk).length-1,1);
+  assert.equal(policySource.split(marker).length-1,1);let value=chunk;
+  for(const replacement of policy.rewrites)value=value.split(replacement.before).join(replacement.after);
+  policySource=policySource.replace(marker,value);
+ }
+ const policyBytes=readFileSync(new URL('../../'+policy.destination,import.meta.url));
+ assert.equal(policySource,policyBytes.toString('utf8'));
+ assert.equal(createHash('sha256').update(policyBytes).digest('hex'),policy.sha256);
+
 });

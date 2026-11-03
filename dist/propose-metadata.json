@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "3264d0f743f1bf4d26b5dafa7bc5f199461a491dbe2109aae05403e32966b716",
+  "sha256": "3bb9d0376cb559f13c7ffe9eeb8c6d3c713e846a7a4606ab27c4913dfa9e73b2",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1009,6 +1009,10 @@
       "bytes": 4105
     },
     {
+      "path": "src/guards/proposal-metadata.cjs",
+      "bytes": 1520
+    },
+    {
       "path": "src/guards/release-app-auth.cjs",
       "bytes": 1608
     },
@@ -1026,7 +1030,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 69883
+      "bytes": 68538
     },
     {
       "path": "src/guards/release-prepare.cjs",
