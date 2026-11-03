@@ -174,7 +174,7 @@ export function retainedWitnessBinding(result, prepared, workflows) {
 export function proposerBinding(result, prepared, reviews) {
   if (own(result, 'valid') !== true || own(result, 'scope') !== 'current-proposer-identity-only' ||
       own(result, 'authorized') !== false || own(result, 'retainedEligibilityAdmitted') !== false ||
-      own(result, 'writerCredentialBindingAdmitted') !== false || own(result, 'privateAppIdentityAdmitted') !== true)
+      own(result, 'writerCredentialBindingAdmitted') !== false || own(result, 'privateAppIdentityAdmitted') !== false || own(result,'keyHolderIdentityFactsObserved')!==true || own(result,'appIdentityObservation')!=='cached-key-holder-facts')
     throw new Error('inspection-current-proposer');
   const value = fields(jsonData(own(result, 'identity')), ['repositoryId', 'sourceSha', 'sourceTree',
     'runId', 'runAttempt', 'prepareJobId', 'proposalJobId', 'appId', 'botId', 'appSettingsDigest']);

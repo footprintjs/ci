@@ -50,7 +50,7 @@ test('private signature/message/payload changes do not enter owned references or
 });
 test('saved JSON cannot replace a current native identity or independently bound pending reference',async()=>{
  const f=await observedCommitFixture(),reader=createObservedAppCommitReader({api:f.api,repository:f.f.repository,settings:f.port.settings,readCurrentProposer:f.readCurrentProposer});
- for(const current of [{...f.current,privateAppIdentityAdmitted:false},{...f.current,writerCredentialBindingAdmitted:true},{...f.current,retainedEligibilityAdmitted:true},{...f.current,authorized:true},{...f.current,scope:'saved'},null]){
+ for(const current of [{...f.current,privateAppIdentityAdmitted:true},{...f.current,keyHolderIdentityFactsObserved:false},{...f.current,appIdentityObservation:'fresh-private-app-get'},{...f.current,writerCredentialBindingAdmitted:true},{...f.current,retainedEligibilityAdmitted:true},{...f.current,authorized:true},{...f.current,scope:'saved'},null]){
   const r=await reader(f.prepared,f.pending,current);assert.equal(r.valid,false);assert.equal(f.commitCalls.length,0);
  }
 });

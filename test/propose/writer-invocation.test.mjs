@@ -16,9 +16,9 @@ async function current(c){
 test('writer capture binds one real-shaped running native identity but no writer permission or grant',async()=>{
  const f=await proposalBootstrapFixture({retainedJobs:'full-native'}),i=f.makeInvocation(),c=capture(i);
  assert.equal(c.transport.scope,'captured-native-http-owner');assert.equal(f.calls.length,0);
- for(const key of ['GH_TOKEN','APP_JWT','APP_PRIVATE_KEY'])assert.equal(Object.hasOwn(i.env,key),false);
+ for(const key of ['GH_TOKEN','APP_IDENTITY_FACTS','APP_JWT','APP_PRIVATE_KEY'])assert.equal(Object.hasOwn(i.env,key),false);
  const value=await current(c);assert.equal(value.valid,true);assert.equal(value.identity.runId,500);
- assert.equal(value.privateAppIdentityAdmitted,true);assert.equal(value.writerCredentialBindingAdmitted,false);
+ assert.equal(value.privateAppIdentityAdmitted,false);assert.equal(value.keyHolderIdentityFactsObserved,true);assert.equal(value.appIdentityObservation,'cached-key-holder-facts');assert.equal(value.writerCredentialBindingAdmitted,false);
  assert.equal(value.retainedEligibilityAdmitted,false);assert.equal(value.authorized,false);
  assert.equal(JSON.stringify(value).includes(PRIVATE),false);
 });
@@ -41,7 +41,7 @@ for(const [key,value] of [
 ])test('writer capture refuses '+key+' substitution before provider acquisition and sanitizes',async()=>{
  const f=await proposalBootstrapFixture(),i=f.makeInvocation();i.env[key]=value;
  assert.throws(()=>capture(i));assert.equal(f.calls.length,0);
- for(const k of ['GH_TOKEN','APP_JWT','APP_PRIVATE_KEY'])assert.equal(Object.hasOwn(i.env,k),false);
+ for(const k of ['GH_TOKEN','APP_IDENTITY_FACTS','APP_JWT','APP_PRIVATE_KEY'])assert.equal(Object.hasOwn(i.env,k),false);
 });
 test('captured writer client cannot be replaced by later mutable environment credentials',async()=>{
  const f=await proposalBootstrapFixture(),i=f.makeInvocation(),c=capture(i);

@@ -4,6 +4,7 @@ import { own } from './source-inventory.mjs';
 import { createGitHubTransport } from './github-transport.mjs';
 import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
 import {createAppIdentityApi} from './app-identity-api.mjs';
+import {bindAppIdentityFacts} from './app-identity-facts.mjs';
 const transports = new WeakMap();
 const fail = () => { throw new Error('foottrace-transport-unavailable'); };
 /** Runtime-only private native API closure. Its read facet remains GET-only;
@@ -20,19 +21,18 @@ export function createFoottraceInspectionTransport(options={}){
 function createNativeOwner({repository,token,appIdentity,fetcher,limits},inspectionReadOnly){
  const repo=fields(jsonData(repository),['id','full_name']);id(repo.id);
  if(repo.full_name!=='footprintjs/foottrace'||!isOpaqueCredential(token))fail();
- // Long-lived keys are never accepted by either shared Propose profile.
- const identity=fields(jsonData(appIdentity,16384),['slug','clientId','jwt']);
- const slug=text(identity.slug,/^[a-z0-9-]+$/,100),clientId=text(identity.clientId,/^[A-Za-z0-9_.-]+$/,128),jwt=identity.jwt;
- if(!isOpaqueCredential(jwt))fail();
- const settings=jsonData({slug,clientId});
- return registerOwner({repository:repo,settings,fetcher,limits,inspectionReadOnly,
-  makeApi:fetchBounded=>createAppIdentityApi({token,jwt,settings,fetchBounded})});
+ // Both profiles accept only the isolated key holder's public facts.
+ const identity=fields(jsonData(appIdentity,4096),['slug','clientId','facts']);
+ const slug=text(identity.slug,/^[a-z0-9-]+$/,100),clientId=text(identity.clientId,/^[A-Za-z0-9_.-]+$/,128);
+ const settings=jsonData({slug,clientId}),facts=bindAppIdentityFacts(identity.facts,{repository:repo,slug,clientId});
+ return registerOwner({repository:repo,settings,facts,fetcher,limits,inspectionReadOnly,
+  makeApi:fetchBounded=>createAppIdentityApi({token,facts,settings,fetchBounded})});
 }
 
-function registerOwner({repository,settings,fetcher,limits,inspectionReadOnly,makeApi}){
+function registerOwner({repository,settings,facts,fetcher,limits,inspectionReadOnly,makeApi}){
  const http=createGitHubTransport({repository,fetcher,limits});
  const value=Object.freeze({scope:inspectionReadOnly?'captured-native-read-owner':'captured-native-http-owner'});
- transports.set(value,{http,repository,settings,inspectionReadOnly,makeApi});
+ transports.set(value,{http,repository,settings,facts,inspectionReadOnly,makeApi});
  return value;
 }
 
@@ -44,7 +44,8 @@ export function foottraceTransportPort(transport, limits) {
   const view = value.http.createView(limits);
   return Object.freeze({ api: value.makeApi(view.fetch), repository: value.repository, settings: value.settings,
     registry: version => value.http.createRegistryView({ packageName: 'foottrace', version, ...(limits === undefined ? {} : { limits }) }).fetch,
-    facts: view.facts, transportFacts: value.http.facts, inspectionReadOnly:value.inspectionReadOnly });
+    facts: view.facts, transportFacts: value.http.facts, inspectionReadOnly:value.inspectionReadOnly,
+    identityFacts:value.facts,identityObservation:'cached-key-holder-facts' });
 }
 
 /** Trusted CODE-only exact metadata IO from the SAME captured credential owner.

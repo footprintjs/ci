@@ -31,7 +31,7 @@ export function createObservedAppCommitReader({api,repository,settings,readCurre
    if(ref.source!==source||ref.head===source)fail();
    const admitIdentity=raw=>{
     if(own(raw,'valid')!==true||own(raw,'scope')!=='current-proposer-identity-only'||
-     own(raw,'privateAppIdentityAdmitted')!==true||own(raw,'authorized')!==false||
+     own(raw,'privateAppIdentityAdmitted')!==false||own(raw,'keyHolderIdentityFactsObserved')!==true||own(raw,'appIdentityObservation')!=='cached-key-holder-facts'||own(raw,'authorized')!==false||
      own(raw,'writerCredentialBindingAdmitted')!==false||own(raw,'retainedEligibilityAdmitted')!==false)fail();
     const v=fields(jsonData(own(raw,'identity')),identityFields);
     for(const key of ['repositoryId','runId','runAttempt','prepareJobId','proposalJobId','appId','botId'])id(v[key]);

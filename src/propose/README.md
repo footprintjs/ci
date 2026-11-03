@@ -217,8 +217,9 @@ producer/archive reference through a recorded decide() stage before later reads.
 
 Current proposer identity uses an opaque runtime-only transport constructed over
 the native makeApi repository adapter and one bounded App identity read. The
-App metadata request uses a preissued short-lived JWT only for GET /app;
-repository calls retain their separately scoped installation token.
+App facts are a cached observation from the isolated key-holder helper. The
+shared process holds no App JWT or private key and performs no private GET /app.
+Repository calls retain their separately scoped installation token.
 No saved object, scope or JSON config can substitute that adapter. Secrets remain
 in the native API closure and never enter observations, errors or recordings.
 Every request is GET-only, redirect:error, at most2MiB per response/8MiB total/
@@ -228,14 +229,14 @@ admission, preserving the actual content-type instead of relabelling bodies.
 The reader reuses unchanged producerIdentity for the real current running run and
 successful prepare job, separately requiring the proposal job to be in progress.
 It compares two complete current identity observations and binds main/source tree,
-private App settings, public Bot and exact run/attempt/job IDs. The native flow
+cached configured App facts, public Bot and exact run/attempt/job IDs. The native flow
 also joins that Bot to the actual pending PR Bot. Completed historical producers
 stay refused with their native reason recorded. These are identity observations:
 writer credential-to-job handoff, complete eligibility and all write/publication
 permissions remain unadmitted. No real App credential/account or live HTTP call
 is used by the synthetic fixture corpus.
 
-The Foottrace current-preparation reader reuses unchanged native readArtifact and running producer guards, and independently joins the entire actual proposal JSON to reconstructed preparation. Both actual ZIP acquisitions must match their declared size, optional provider digest, exact current run/attempt/prepare-job manifest, source tree and proposal bytes. Private App/current producer identity is checked before and after each acquisition; coherent adjacent archive drift holds. The native inspection records current archive references and finite native refusal causes via decide(). No raw ZIP, manifest, proposal or private body enters scope. The reviewed host GET port must bound bytes/time BEFORE acquisition; this layer bounds admitted ZIPs to20MiB each/two40MiB total/24 boundaries. No claim of a finished HTTP archive-download driver, ordinary/recovery-kind admission, writer token/job binding or full eligibility follows from this stage.
+The Foottrace current-preparation reader reuses unchanged native readArtifact and running producer guards, and independently joins the entire actual proposal JSON to reconstructed preparation. Both actual ZIP acquisitions must match their declared size, optional provider digest, exact current run/attempt/prepare-job manifest, source tree and proposal bytes. Cached App facts are joined to live current producer checks before and after each acquisition; coherent adjacent archive drift holds. The native inspection records current archive references and finite native refusal causes via decide(). No raw ZIP, manifest, proposal or private body enters scope. The reviewed host GET port must bound bytes/time BEFORE acquisition; this layer bounds admitted ZIPs to20MiB each/two40MiB total/24 boundaries. No claim of a finished HTTP archive-download driver, ordinary/recovery-kind admission, writer token/job binding or full eligibility follows from this stage.
 
 The Foottrace ordinary preparation adapter now acquires each pending witness source and current M through the unchanged native sourceView/sourceInput Git/blob reader, then reconstructs every target with the pinned native pure preparer. It joins full source/target trees, source-day, base/target versions, raw-queue subset across all hops and the entire current proposal payload. Structurally valid active recovery intents hold this ordinary path; admitted old-version intents remain historical data. Two acquisitions use a new native view per phase, adjacent main checks, at most eight witness sources plus M and4096 total GET boundaries; unchanged native4096-entry/2MiB-blob/128MiB-phase limits apply. The host still owns pre-acquisition byte/time limits. Native inspection records kind/source/queue/preparation digest refs via decide(), preserving earlier evidence and finite refusal causes without raw inventories, fragments or provider bodies. Pure evidence joins are separated in inspection-bindings.mjs from native flow orchestration. This admits ordinary source knowledge only; retained eligibility, writer handoff, effects and the AF native adapter remain required.
 
@@ -243,7 +244,7 @@ The shared retained-attempt assessor classifies actual native run/attempt/job/ar
 
 Native inspection now records this classification and finite hold causes with decide(). Its original read-only input-knowledge status remains separate: an inspection-only result can carry retainedAttemptsEligible:false; a full Propose caller must refuse effects in that case. Missing retainedProfile always yields an unavailable assessment, with no package default. Even a true retainedAttemptsEligible admits only this finite attempt classification; report.eligibilityAdmitted, authority and all effect counts remain false/zero. Review/refusal, candidate conflict, complete native eligibility and current writer handoff still belong to the surrounding effectful flow. No Eco continuity, erased-history proof or ledger seed is created.
 
-The concrete shared GitHub GET transport now enforces repository/API routes, GET/no-body, bounded URL parsing, response headers/streams, per-view and shared quotas, and shared cancellation. The native Foottrace adapter reuses unchanged makeApi/App JWT signing and exposes only an opaque runtime read client. Current identity gets a fresh128-request/8MiB view per acquisition; shared4096-fetch/128MiB admitted-byte limits cannot be reset by making another view. JSON responses are capped at2MiB, exact immutable Git blob envelopes at4MiB, preparation ZIPs at20MiB. Limits are explicit source policy, not unlimited response or absolute socket/heap guarantees for a caller-supplied fetcher. Facts count fetch invocations and admitted decoded stream bytes, not proven server deliveries or compressed wire bytes.
+The concrete shared GitHub GET transport now enforces repository/API routes, GET/no-body, bounded URL parsing, response headers/streams, per-view and shared quotas, and shared cancellation. The native Foottrace adapter reuses unchanged repository makeApi and cached key-holder facts and exposes only an opaque runtime read client. Current identity gets a fresh128-request/8MiB view per acquisition; shared4096-fetch/128MiB admitted-byte limits cannot be reset by making another view. JSON responses are capped at2MiB, exact immutable Git blob envelopes at4MiB, preparation ZIPs at20MiB. Limits are explicit source policy, not unlimited response or absolute socket/heap guarantees for a caller-supplied fetcher. Facts count fetch invocations and admitted decoded stream bytes, not proven server deliveries or compressed wire bytes.
 
 Only an artifact ZIP API route may accept one302 to an HTTPS Azure blob subdomain or exact results-receiver.actions.githubusercontent.com. The anonymous request carries fresh accept-only headers, credentials:omit, no cookie/token/App JWT/API headers, and the same bounded signal; another redirect is refused. Signed locations, headers, bodies and errors never enter facts. All native archive/manifest/whole-proposal admission still follows these bytes. Other API/App redirects are refused. These endpoint facts were checked against [GitHub artifact REST documentation](https://docs.github.com/en/rest/actions/artifacts#download-an-artifact) and [runner artifact communication requirements](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#communication-requirements-for-github-hosted-runners); the host restriction is this library's conservative policy, not a guarantee that every future GitHub redirect host is supported.
 
@@ -269,8 +270,8 @@ Only compact owned facts enter tracked state; source bytes stay backend-local.
 
 The bootstrap rechecks the pending observation before issuing another workflow
 read. Inspection then requires its complete workflow collection to match the
-discovery collection. Actual current private App/producer identity is acquired
-again before the current archive join; the compact prior binding is compared
+discovery collection. Live current producer identity is acquired
+again against the same cached key-holder App observation before the current archive join; the compact prior binding is compared
 with the fresh real native observation, never given fabricated admission flags.
 The current archive reader retains its own adjacent identity checks.
 Invalid full invocation facts stop before discovery HTTP reads. Backend results
@@ -294,7 +295,7 @@ input boundary. It uses the repository commits endpoint's resolved author and
 committer, requiring exact configured Bot numeric IDs/login/type and
 verification.verified === true with reason === valid. Raw Git display names
 cannot substitute. Exact response SHA/tree/ordered parents join the separately
-observed native reference. The actual current private App/producer identity is
+observed native reference. Live current producer identity joined to the cached App facts is
 reacquired before and after each of two commit observations. Only owned compact
 references survive; signatures, payloads, messages and private fields do not.
 The sameTargetTree fact is explicitly separate from original-creator attribution,
@@ -333,7 +334,7 @@ thin Foottrace bridge and real AF/R0 adapter remain separate implementation work
 runFoottraceMetadataInputInspection is now the production read-only current-only
 metadata input path. It reconstructs actual ordinary M using the SAME generic
 prepared-source engine and explicit package/date profile, joins the actual
-current private App/producer and complete current prepare archive, discovers
+live current producer with cached App facts and complete current prepare archive, discovers
 published L and the single pending P, and extends the SAME native chart with the
 resolved signed App commit stage. No historical run or creator is selected.
 
@@ -422,8 +423,9 @@ submission retry implementation or completed C1 effect flow. Actual writer
 source/client admission and native capture-before-effect remain pending.
 
 Current proposal bootstrap observation now captures the supplied Actions aliases
-and one opaque read-only credential owner, rejects any private-key input, then
-removes APP_JWT/GH_TOKEN and defensively clears APP_PRIVATE_KEY before host I/O
+and one opaque read-only credential owner, rejects JWT/private-key input, binds
+APP_IDENTITY_FACTS to the configured App and exact current tuple, then removes
+APP_IDENTITY_FACTS/GH_TOKEN and defensively clears APP_JWT/APP_PRIVATE_KEY before host I/O
 or provider acquisition. Platform source/workflow
 SHA and repository/run/attempt/ref/event/job must agree. The declared tool pin
 in the environment and CODE profile must agree; actual executing-tool identity
@@ -434,10 +436,11 @@ a hostile process or its environment.
 
 Trusted CODE host ports read the independent profile, current local source and
 cleanliness. They are not saved/model callbacks or PROFILE_JSON. The actual
-immutable native M/tree/inventory, workflow/entry/profile path/mode/blob/bytes and
+immutable native M/tree/inventory, workflow/entry/profile/identity-helper path/mode/blob/bytes and
 SHA256 values must match those local CODE facts through adjacent source reads.
 No target source is imported or executed. The same sealed GET client then reads
-the private configured App/current producer and rechecks source plus identity.
+the live current producer and rechecks source plus identity. The mandatory
+helper source pin uses host profile v2; v1 and missing-helper profiles are refused.
 
 This is a native recorded bootstrap INPUT prefix. Its profile-code authority,
 writer credential admission and all effect authority remain FALSE. A supplied
@@ -492,25 +495,27 @@ eligibility/recheck controller, exact GET comparison, C1 terminal mapping and
 T1 visible/business-outcome/downstream gates remain separately required.
 
 
-Migration (unshipped shared transport API): both native profiles require a
-preissued short-lived App identity JWT in appIdentity.jwt; privateKey input is
-removed and rejected. The protected caller signs it in an isolated step. The
-inspection profile receives a separately minted repository-scoped read token
-and cannot derive the exact PATCH facet. The writer-capable IO profile is
-separate and still requires actual native writer eligibility before any effect.
+Migration (unshipped shared transport API): both native profiles now require
+credential-free appIdentity.facts and reject jwt/privateKey or unknown fields.
+The isolated protected helper alone signs and consumes its JWT for one bounded
+GET /app, checks the fixed configured App/client/org identity, and emits one
+closed compact JSON value. Capture binds its repository/source/run/attempt to
+the current Actions aliases and erases the input before host/provider I/O.
+There is no old JWT fallback.
 
-GET /app uses only the short-lived JWT through one bounded identity adapter;
-repository requests use only their installation token. Both route through the
-same request/byte/cancellation bank. A JWT remains an App-level credential and
-can authenticate sensitive App endpoints if stolen. This is cooperative exact
-CODE routing plus limited lifetime, not a claim that the JWT itself is scoped
-read-only. No key, raw credential or JWT is recorded. Wrong configured App/client
-identity and unknown or failed reads remain HOLD. A read-only repository may be
-observed without a push grant; the writer profile's push predicate stays strict.
+These are cached key-holder facts from ONE observation, never a fresh private
+App GET, self-authenticating JSON, authenticated arbitrary process or saved grant.
+The independent reviewed workflow/action-output/helper/source bridge remains
+required. Both profiles reject unknown or substituted facts before HTTP.
+Repository requests use their installation token and the same bounded bank.
+The read-only profile cannot derive the writer facet; writer push permission and
+all native eligibility predicates remain required. Later effect-time requirements
+for fresh private App authority need a separately reviewed key-holder route;
+cached facts cannot satisfy them.
 
 The final current-only history observation now reacquires every earlier native
-input on the same captured client: deterministic current source, running private
-producer, exact preparation archive, published lineage and immediate parent
+input on the same captured client: deterministic current source, live running
+producer with cached App facts, exact preparation archive, published lineage and immediate parent
 source/raw queue. It then reacquires source versions, reclassifies the retained
 attempts and rereads current candidate reservations/publication before the
 signed-reference/review and exact metadata checks. Drift discards input knowledge;
@@ -522,7 +527,7 @@ The private closed-controller source can now capture a distinct writer
 invocation through a CODE-selected entry. It reuses the same strict Actions
 alias/run/attempt/job/ref/source and artifact validation as the public read-only
 capture. It never widens a captured read owner or accepts a caller-selected
-constructor. Both paths capture their token/JWT once and remove credential
+constructor. Both paths capture their token and cached identity facts once and remove input
 fields before host/provider I/O; neither accepts a private key. The writer
 profile still requires native push permission and a genuinely running producer.
 This is source/client capture only: exact reviewed workflow/action-output

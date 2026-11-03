@@ -46,46 +46,46 @@ var require_release_changes = __commonJS({
     });
     var BUMPS = Object.freeze({ patch: 0, minor: 1, major: 2 });
     var own5 = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-    var fail10 = (code) => {
+    var fail11 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
     };
     function parseFragment(name, text2) {
       if (typeof name !== "string" || !/^[a-z0-9][a-z0-9-]*\.md$/.test(name) || typeof text2 !== "string" || Buffer.byteLength(text2) > 65536 || text2.includes("\r"))
-        fail10("invalid-fragment");
+        fail11("invalid-fragment");
       const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text2);
-      if (!match) fail10("invalid-fragment");
+      if (!match) fail11("invalid-fragment");
       const fields3 = /* @__PURE__ */ Object.create(null);
       for (const line of match[1].split("\n")) {
         const field = /^(type|bump): ([a-z]+)$/.exec(line);
-        if (!field || own5(fields3, field[1])) fail10("invalid-fragment");
+        if (!field || own5(fields3, field[1])) fail11("invalid-fragment");
         fields3[field[1]] = field[2];
       }
       const body = match[2].trim();
       if (!own5(TYPES, fields3.type) || !own5(BUMPS, fields3.bump) || !body || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(body))
-        fail10("invalid-fragment");
+        fail11("invalid-fragment");
       return { name, type: fields3.type, bump: fields3.bump, body };
     }
     function selectBump(fragments) {
-      if (!Array.isArray(fragments)) fail10("invalid-fragment");
+      if (!Array.isArray(fragments)) fail11("invalid-fragment");
       let result = null;
       for (const fragment of fragments) {
-        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail10("invalid-fragment");
+        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail11("invalid-fragment");
         if (result === null || BUMPS[fragment.bump] > BUMPS[result]) result = fragment.bump;
       }
       return result;
     }
     function parseVersion(version) {
       if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
-        fail10("invalid-version");
+        fail11("invalid-version");
       const parts = version.split(".").map(Number);
-      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail10("invalid-version");
+      if (parts.some((n) => !Number.isSafeInteger(n) || n >= Number.MAX_SAFE_INTEGER)) fail11("invalid-version");
       return parts;
     }
     function nextVersion(version, bump) {
       const p = parseVersion(version);
-      if (!own5(BUMPS, bump)) fail10("invalid-version");
+      if (!own5(BUMPS, bump)) fail11("invalid-version");
       const i = 2 - BUMPS[bump];
       p[i] += 1;
       for (let j = i + 1; j < 3; j++) p[j] = 0;
@@ -94,7 +94,7 @@ var require_release_changes = __commonJS({
     function readFragments(directory) {
       return fs.readdirSync(directory).filter((n) => n !== "README.md").sort().map((name) => {
         const file = path.join(directory, name);
-        if (!fs.lstatSync(file).isFile()) fail10("invalid-fragment");
+        if (!fs.lstatSync(file).isFile()) fail11("invalid-fragment");
         return parseFragment(name, fs.readFileSync(file, "utf8"));
       });
     }
@@ -111,7 +111,7 @@ var require_release_prepare = __commonJS({
   "src/guards/release-prepare.cjs"(exports2, module2) {
     "use strict";
     var { TYPES, parseFragment, parseVersion, selectBump, nextVersion } = require_release_changes();
-    var fail10 = (code) => {
+    var fail11 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
@@ -119,12 +119,12 @@ var require_release_prepare = __commonJS({
     var heading = "## Value-free trace metadata \u2014 unreleased";
     var paragraph = "This is an unreleased additive entry point. The package version and existing\nrecord fixtures remain unchanged until a separately reviewed release.";
     function replaceOnce(text2, before, after) {
-      if (typeof text2 !== "string" || text2.split(before).length !== 2) fail10("invalid-release-docs");
+      if (typeof text2 !== "string" || text2.split(before).length !== 2) fail11("invalid-release-docs");
       return text2.replace(before, after);
     }
     function prepareReleaseDocs({ documents, version, selectedFragments }) {
       parseVersion(version);
-      if (!documents || !Array.isArray(selectedFragments)) fail10("invalid-release-docs");
+      if (!documents || !Array.isArray(selectedFragments)) fail11("invalid-release-docs");
       const result = { ...documents };
       if (selectedFragments.includes("metadata-query.md")) {
         result["README.md"] = replaceOnce(
@@ -142,7 +142,7 @@ var require_release_prepare = __commonJS({
     }
     function prepareRelease({ files, fragments, date }) {
       if (!files || !fragments || !/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail10("invalid-release-input");
+        fail11("invalid-release-input");
       const parsed = Object.keys(fragments).sort().map((name) => parseFragment(name, fragments[name]));
       if (!parsed.length) return null;
       let pkg, lock;
@@ -150,13 +150,13 @@ var require_release_prepare = __commonJS({
         pkg = JSON.parse(files["package.json"]);
         lock = JSON.parse(files["package-lock.json"]);
       } catch {
-        fail10("invalid-release-input");
+        fail11("invalid-release-input");
       }
       if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version)
-        fail10("invalid-release-input");
+        fail11("invalid-release-input");
       const fromVersion = pkg.version, bump = selectBump(parsed), version = nextVersion(pkg.version, bump);
       if (typeof files["CHANGELOG.md"] !== "string" || !files["CHANGELOG.md"].startsWith("# Changelog\n\n"))
-        fail10("invalid-release-input");
+        fail11("invalid-release-input");
       const groups = Object.keys(TYPES).flatMap((type) => {
         const notes2 = parsed.filter((f) => f.type === type).map((f) => f.body);
         return notes2.length ? [`### ${TYPES[type]}
@@ -210,100 +210,100 @@ ${suffix}`
       return 0;
     }
     function fields3(value, keys2) {
-      if (!value || typeof value !== "object" || Array.isArray(value)) fail10("recovery-intent");
+      if (!value || typeof value !== "object" || Array.isArray(value)) fail11("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
       if (Reflect.ownKeys(descriptors2).length !== keys2.length || keys2.some((key) => !Object.hasOwn(descriptors2, key)))
-        fail10("recovery-intent");
+        fail11("recovery-intent");
       return keys2.map((key) => {
         const d = descriptors2[key];
-        if (!Object.hasOwn(d, "value")) fail10("recovery-intent");
+        if (!Object.hasOwn(d, "value")) fail11("recovery-intent");
         return d.value;
       });
     }
     function dataArray(value, max) {
-      if (!Array.isArray(value) || value.length > max) fail10("recovery-intent");
+      if (!Array.isArray(value) || value.length > max) fail11("recovery-intent");
       const descriptors2 = Object.getOwnPropertyDescriptors(value);
-      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail10("recovery-intent");
+      if (Reflect.ownKeys(descriptors2).length !== value.length + 1) fail11("recovery-intent");
       return Array.from({ length: value.length }, (_, i) => {
-        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail10("recovery-intent");
+        if (!Object.hasOwn(descriptors2, i) || !Object.hasOwn(descriptors2[i], "value")) fail11("recovery-intent");
         return descriptors2[i].value;
       });
     }
     function lineageData(value) {
       const [pr, head, tree, merge] = fields3(value, ["pr", "head", "tree", "merge"]);
-      if (!positive(pr) || ![head, tree, merge].every(sha3)) fail10("recovery-intent");
+      if (!positive(pr) || ![head, tree, merge].every(sha3)) fail11("recovery-intent");
       return { pr, head, tree, merge };
     }
     function intentPath(version, sequence) {
       parseVersion(version);
-      if (!positive(sequence) || sequence > 100) fail10("recovery-intent");
+      if (!positive(sequence) || sequence > 100) fail11("recovery-intent");
       return `${intentPrefix}${version}/${String(sequence).padStart(3, "0")}.json`;
     }
     function admitIntent(value, repository) {
       const [schema, kind, pkg, version, sequence, repo2, baseValue, originValue, predecessorValue, prior, queue] = fields3(value, ["schema", "kind", "package", "version", "sequence", "repository", "base", "origin", "predecessor", "previous", "queuedFragments"]);
-      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail10("recovery-intent");
+      if (schema !== 1 || kind !== "unpublished-recovery" || pkg !== "foottrace") fail11("recovery-intent");
       intentPath(version, sequence);
       const [id2, full_name] = fields3(repo2, ["id", "full_name"]);
-      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail10("recovery-intent");
+      if (!positive(id2) || id2 !== repository.id || full_name !== repository.full_name) fail11("recovery-intent");
       const [baseSha, tree] = fields3(baseValue, ["sha", "tree"]);
-      if (![baseSha, tree].every(sha3)) fail10("recovery-intent");
+      if (![baseSha, tree].every(sha3)) fail11("recovery-intent");
       const origin = lineageData(originValue), predecessor = lineageData(predecessorValue);
       let previous = null;
       if (sequence === 1) {
-        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail10("recovery-intent");
+        if (prior !== null || JSON.stringify(origin) !== JSON.stringify(predecessor)) fail11("recovery-intent");
       } else {
         const [path, sha256] = fields3(prior, ["path", "sha256"]);
-        if (path !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail10("recovery-intent");
+        if (path !== intentPath(version, sequence - 1) || !hexDigest(sha256)) fail11("recovery-intent");
         previous = { path, sha256 };
       }
       let last = "";
       const queuedFragments = dataArray(queue, 100).map((entry) => {
         const [path, sha256, bytes, mode] = fields3(entry, ["path", "sha256", "bytes", "mode"]);
         if (!fragmentPath(path) || path <= last || !hexDigest(sha256) || !positive(bytes) || bytes > 65536 || mode !== "100644")
-          fail10("recovery-intent");
+          fail11("recovery-intent");
         last = path;
         return { path, sha256, bytes, mode };
       });
-      if (!queuedFragments.length) fail10("recovery-intent");
+      if (!queuedFragments.length) fail11("recovery-intent");
       return { schema, kind, package: pkg, version, sequence, repository: { id: id2, full_name }, base: { sha: baseSha, tree }, origin, predecessor, previous, queuedFragments };
     }
     function intentBytes(value, repository) {
       const data2 = admitIntent(value, repository), raw = Buffer.from(JSON.stringify(data2) + "\n");
-      if (raw.length > 65536) fail10("recovery-intent");
+      if (raw.length > 65536) fail11("recovery-intent");
       return raw;
     }
     function decodeRaw(bytes) {
-      if (!Buffer.isBuffer(bytes)) fail10("recovery-source");
+      if (!Buffer.isBuffer(bytes)) fail11("recovery-source");
       let text2;
       try {
         text2 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
       } catch {
-        fail10("recovery-source");
+        fail11("recovery-source");
       }
-      if (!Buffer.from(text2).equals(bytes)) fail10("recovery-source");
+      if (!Buffer.from(text2).equals(bytes)) fail11("recovery-source");
       return text2;
     }
     function admitIntentNamespace(inventory, version, repository) {
       const records = [];
       for (const [path, row] of inventory) {
         if (!path.startsWith(".release/")) continue;
-        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail10("recovery-intent");
+        if (records.length >= 100 || row.mode !== "100644" || row.bytes.length > 65536) fail11("recovery-intent");
         let value;
         try {
           value = JSON.parse(decodeRaw(row.bytes));
         } catch {
-          fail10("recovery-intent");
+          fail11("recovery-intent");
         }
         const data2 = admitIntent(value, repository);
         if (path !== intentPath(data2.version, data2.sequence) || versionOrder(data2.version, version) > 0 || !intentBytes(data2, repository).equals(row.bytes))
-          fail10("recovery-intent");
+          fail11("recovery-intent");
         records.push({ path, sha256: digest4(row.bytes), data: data2 });
       }
       records.sort((a, b) => versionOrder(a.data.version, b.data.version) || a.data.sequence - b.data.sequence);
       const chains = /* @__PURE__ */ new Map();
       for (const record of records) {
         const chain = chains.get(record.data.version) ?? [], prior = chain.at(-1);
-        if (record.data.sequence !== chain.length + 1 || prior && (record.data.previous.sha256 !== prior.sha256 || JSON.stringify(record.data.origin) !== JSON.stringify(prior.data.origin))) fail10("recovery-intent");
+        if (record.data.sequence !== chain.length + 1 || prior && (record.data.previous.sha256 !== prior.sha256 || JSON.stringify(record.data.origin) !== JSON.stringify(prior.data.origin))) fail11("recovery-intent");
         chain.push(record);
         chains.set(record.data.version, chain);
       }
@@ -313,29 +313,29 @@ ${suffix}`
       const result = [];
       for (const [path, row] of [...inventory].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
         if (!path.startsWith(".changes/") || path === ".changes/README.md") continue;
-        if (!fragmentPath(path) || row.mode !== "100644" || result.length >= 100) fail10("fragment-path");
+        if (!fragmentPath(path) || row.mode !== "100644" || result.length >= 100) fail11("fragment-path");
         parseFragment(path.slice(9), decodeRaw(row.bytes));
         result.push({ path, sha256: digest4(row.bytes), bytes: row.bytes.length, mode: row.mode });
       }
       return result;
     }
     function requireQueueSubset(prior, current) {
-      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail10("recovery-queue");
+      for (const row of prior) if (!current.some((item) => JSON.stringify(item) === JSON.stringify(row))) fail11("recovery-queue");
     }
     function treeOid(inventory) {
       const root = /* @__PURE__ */ new Map();
       for (const [path, row] of inventory) {
         if (typeof path !== "string" || Buffer.byteLength(path) > 1024 || /[\x00-\x1f\x7f\\]/.test(path) || path.split("/").some((x) => !x || x === "." || x === "..") || !sha3(row.sha) || !["100644", "100755"].includes(row.mode))
-          fail10("recovery-source");
+          fail11("recovery-source");
         const parts = path.split("/");
         let directory = root;
         for (const name of parts.slice(0, -1)) {
           if (!directory.has(name)) directory.set(name, /* @__PURE__ */ new Map());
           directory = directory.get(name);
-          if (!(directory instanceof Map)) fail10("recovery-source");
+          if (!(directory instanceof Map)) fail11("recovery-source");
         }
         const leaf = parts.at(-1);
-        if (directory.has(leaf)) fail10("recovery-source");
+        if (directory.has(leaf)) fail11("recovery-source");
         directory.set(leaf, row);
       }
       const encode = (directory) => {
@@ -373,11 +373,11 @@ ${suffix}`
         if (a && b && a.mode === b.mode && a.sha === b.sha) continue;
         if (path.startsWith(".release/")) {
           if (!a && b && admittedHistory.has(path)) continue;
-          fail10("recovery-payload");
+          fail11("recovery-payload");
         }
-        if (a && !b) fail10("recovery-payload");
-        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail10("recovery-payload");
-        if (a && fragmentPath(path)) fail10("recovery-payload");
+        if (a && !b) fail11("recovery-payload");
+        if (!b || b.mode !== "100644" || a && a.mode !== "100644") fail11("recovery-payload");
+        if (a && fragmentPath(path)) fail11("recovery-payload");
         if (processPaths.has(path) || !a && fragmentPath(path)) continue;
         if (a && fixtureTransitions.has(path)) {
           const [before, after] = fixtureTransitions.get(path);
@@ -389,7 +389,7 @@ ${suffix}`
           const text2 = decodeRaw(b.bytes);
           if (digest4(b.bytes) === "403863a0512ba92a5e29295b73e5991bfdc78cd1bd131fe4866cdb1107236c73" && text2.split(line).length === 4 && Buffer.from(text2.split(line).join("")).equals(a.bytes)) continue;
         }
-        fail10("recovery-payload");
+        fail11("recovery-payload");
       }
     }
     function prepareRecovery({ repository, sha: baseSha, tree, version, origin, predecessor, previous, queue, notes }) {
@@ -581,10 +581,10 @@ var require_release_control = __commonJS({
 var require_http_credential = __commonJS({
   "src/http-credential.cjs"(exports2, module2) {
     "use strict";
-    function isOpaqueCredential4(value) {
+    function isOpaqueCredential3(value) {
       return typeof value === "string" && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
     }
-    module2.exports = { isOpaqueCredential: isOpaqueCredential4 };
+    module2.exports = { isOpaqueCredential: isOpaqueCredential3 };
   }
 });
 
@@ -653,7 +653,7 @@ var require_release_archive = __commonJS({
     "use strict";
     var { gunzipSync, inflateRawSync } = require("node:zlib");
     var { createHash: createHash4 } = require("node:crypto");
-    var fail10 = () => {
+    var fail11 = () => {
       const e = new Error("invalid-archive");
       e.code = "invalid-archive";
       throw e;
@@ -663,7 +663,7 @@ var require_release_archive = __commonJS({
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail10();
+        fail11();
       }
     }
     function field(bytes) {
@@ -672,9 +672,9 @@ var require_release_archive = __commonJS({
     }
     function octal(bytes) {
       const value = field(bytes).trim();
-      if (!/^[0-7]+$/.test(value)) fail10();
+      if (!/^[0-7]+$/.test(value)) fail11();
       const n = Number.parseInt(value, 8);
-      if (!Number.isSafeInteger(n)) fail10();
+      if (!Number.isSafeInteger(n)) fail11();
       return n;
     }
     function pax(bytes) {
@@ -682,15 +682,15 @@ var require_release_archive = __commonJS({
       let at = 0;
       while (at < bytes.length) {
         const space = bytes.indexOf(32, at);
-        if (space < 0 || space - at > 9) fail10();
+        if (space < 0 || space - at > 9) fail11();
         const sizeText = text2(bytes.subarray(at, space));
-        if (!/^[1-9]\d*$/.test(sizeText)) fail10();
+        if (!/^[1-9]\d*$/.test(sizeText)) fail11();
         const size = Number(sizeText), end = at + size;
-        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail10();
+        if (!Number.isSafeInteger(size) || end > bytes.length || size <= space - at + 2 || bytes[end - 1] !== 10) fail11();
         const entry = text2(bytes.subarray(space + 1, end - 1)), eq = entry.indexOf("=");
-        if (eq <= 0) fail10();
+        if (eq <= 0) fail11();
         const key = entry.slice(0, eq), value = entry.slice(eq + 1);
-        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail10();
+        if (key !== "path" || Object.prototype.hasOwnProperty.call(result, key)) fail11();
         result[key] = value;
         at = end;
       }
@@ -702,50 +702,50 @@ var require_release_archive = __commonJS({
         const maxExpanded = expected.maxExpandedBytes ?? 64 * 1024 * 1024;
         const maxFiles = expected.maxFiles ?? 1e4;
         if (![maxArchive, maxExpanded, maxFiles].every((n) => Number.isSafeInteger(n) && n > 0) || !Buffer.isBuffer(bytes) || bytes.length > maxArchive)
-          fail10();
+          fail11();
         const tar = gunzipSync(bytes, { maxOutputLength: maxExpanded });
-        if (tar.length % 512 !== 0) fail10();
-        const names = /* @__PURE__ */ new Set(), files = [];
+        if (tar.length % 512 !== 0) fail11();
+        const names2 = /* @__PURE__ */ new Set(), files = [];
         let at = 0, pending = null, identity = null, ended = false;
         while (at + 512 <= tar.length) {
           const header = tar.subarray(at, at + 512);
           at += 512;
           if (header.every((n) => n === 0)) {
-            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail10();
+            if (pending || at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail11();
             ended = true;
             break;
           }
           let sum = 0;
           for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : header[i];
-          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail10();
+          if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail11();
           const size = octal(header.subarray(124, 136));
-          if (at + size > tar.length) fail10();
+          if (at + size > tar.length) fail11();
           const data2 = tar.subarray(at, at + size);
           at += Math.ceil(size / 512) * 512;
           const type = field(header.subarray(156, 157)) || "0";
           if (type === "x") {
-            if (pending || size > 65536) fail10();
+            if (pending || size > 65536) fail11();
             pending = pax(data2);
             continue;
           }
-          if (type !== "0" || field(header.subarray(157, 257))) fail10();
+          if (type !== "0" || field(header.subarray(157, 257))) fail11();
           const prefix = field(header.subarray(345, 500));
           const name = pending?.path ?? `${prefix ? prefix + "/" : ""}${field(header.subarray(0, 100))}`;
           pending = null;
-          if (!name.startsWith("package/") || /[\\\x00-\x1f]/.test(name) || name.split("/").some((p) => p === ".." || p === "." || p === "") || names.has(name))
-            fail10();
+          if (!name.startsWith("package/") || /[\\\x00-\x1f]/.test(name) || name.split("/").some((p) => p === ".." || p === "." || p === "") || names2.has(name))
+            fail11();
           if (!["package/package.json", "package/README.md", "package/LICENSE"].includes(name) && !name.startsWith("package/dist/"))
-            fail10();
-          names.add(name);
-          if (names.size > maxFiles) fail10();
+            fail11();
+          names2.add(name);
+          if (names2.size > maxFiles) fail11();
           files.push({ path: name, size, sha256: hash(data2, "sha256") });
           if (name === "package/package.json") {
-            if (size > 1024 * 1024) fail10();
+            if (size > 1024 * 1024) fail11();
             identity = JSON.parse(text2(data2));
           }
         }
         if (!ended || !identity || identity.name !== expected.package || identity.version !== expected.version || !files.some((f) => f.path.startsWith("package/dist/")))
-          fail10();
+          fail11();
         return {
           package: identity.name,
           version: identity.version,
@@ -757,7 +757,7 @@ var require_release_archive = __commonJS({
         };
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail10();
+        fail11();
       }
     }
     function crc32(bytes) {
@@ -771,41 +771,41 @@ var require_release_archive = __commonJS({
     function readArtifactZip(bytes, allowedNames) {
       try {
         if (!Buffer.isBuffer(bytes) || bytes.length > 20 * 1024 * 1024 || bytes.length < 22 || !Array.isArray(allowedNames))
-          fail10();
+          fail11();
         let end = -1;
         for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--)
           if (bytes.readUInt32LE(i) === 101010256 && i + 22 + bytes.readUInt16LE(i + 20) === bytes.length) {
             end = i;
             break;
           }
-        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail10();
+        if (end < 0 || bytes.readUInt16LE(end + 4) !== 0 || bytes.readUInt16LE(end + 6) !== 0) fail11();
         const count3 = bytes.readUInt16LE(end + 10), size = bytes.readUInt32LE(end + 12), start = bytes.readUInt32LE(end + 16);
-        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail10();
+        if (count3 !== allowedNames.length || bytes.readUInt16LE(end + 8) !== count3 || start + size !== end) fail11();
         const result = /* @__PURE__ */ Object.create(null), ranges = [];
         let at = start, total = 0;
         for (let i = 0; i < count3; i++) {
-          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail10();
+          if (at + 46 > end || bytes.readUInt32LE(at) !== 33639248) fail11();
           const flags = bytes.readUInt16LE(at + 8), method = bytes.readUInt16LE(at + 10), crc = bytes.readUInt32LE(at + 16), packed = bytes.readUInt32LE(at + 20), expanded = bytes.readUInt32LE(at + 24), nl = bytes.readUInt16LE(at + 28), extra = bytes.readUInt16LE(at + 30), comment = bytes.readUInt16LE(at + 32), external = bytes.readUInt32LE(at + 38), local = bytes.readUInt32LE(at + 42);
           if (flags & ~2056 || ![0, 8].includes(method) || bytes.readUInt16LE(at + 34) !== 0 || at + 46 + nl + extra + comment > end || expanded > 16 * 1024 * 1024 || (external >>> 16 & 61440) === 40960)
-            fail10();
+            fail11();
           const name = text2(bytes.subarray(at + 46, at + 46 + nl));
           at += 46 + nl + extra + comment;
           if (!allowedNames.includes(name) || Object.prototype.hasOwnProperty.call(result, name) || local + 30 > start || bytes.readUInt32LE(local) !== 67324752)
-            fail10();
+            fail11();
           const localNameSize = bytes.readUInt16LE(local + 26), localExtra = bytes.readUInt16LE(local + 28), dataStart = local + 30 + localNameSize + localExtra, dataEnd = dataStart + packed;
           if (dataEnd > start || bytes.readUInt16LE(local + 6) !== flags || bytes.readUInt16LE(local + 8) !== method || text2(bytes.subarray(local + 30, local + 30 + localNameSize)) !== name)
-            fail10();
-          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail10();
+            fail11();
+          if (ranges.some(([a, b]) => local < b && dataEnd > a)) fail11();
           ranges.push([local, dataEnd]);
           const input = bytes.subarray(dataStart, dataEnd), output = method === 0 ? input : inflateRawSync(input, { maxOutputLength: 16 * 1024 * 1024 });
-          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail10();
+          if (output.length !== expanded || crc32(output) !== crc || (total += expanded) > 18 * 1024 * 1024) fail11();
           result[name] = output;
         }
-        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail10();
+        if (at !== end || allowedNames.some((n) => !Object.prototype.hasOwnProperty.call(result, n))) fail11();
         return result;
       } catch (e) {
         if (e?.code === "invalid-archive") throw e;
-        fail10();
+        fail11();
       }
     }
     module2.exports = { inspectArchive, readArtifactZip };
@@ -821,7 +821,7 @@ var require_release_github = __commonJS({
     var { prepareRelease } = preparation6;
     var control8 = require_release_control();
     var { appRequest } = require_release_app_auth();
-    var fail10 = (code) => {
+    var fail11 = (code) => {
       const e = new Error(code);
       e.code = code;
       throw e;
@@ -1058,7 +1058,7 @@ var require_release_github = __commonJS({
     var enc = encodeURIComponent;
     var prefix = (context) => {
       if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
-        fail10("repository");
+        fail11("repository");
       return `/repos/${context.repository.full_name}`;
     };
     async function pages(api, route, key) {
@@ -1066,35 +1066,35 @@ var require_release_github = __commonJS({
       for (let page = 1; page <= 50; page++) {
         const response = await api("GET", `${route}${route.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
         const rows = key ? response.data?.[key] : response.data;
-        if (!Array.isArray(rows) || rows.length > 100) fail10("incomplete-pages");
+        if (!Array.isArray(rows) || rows.length > 100) fail11("incomplete-pages");
         for (const row of rows) {
-          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail10("incomplete-pages");
+          if (!Number.isSafeInteger(row.id) || seen.has(row.id)) fail11("incomplete-pages");
           seen.add(row.id);
           result.push(row);
         }
         if (rows.length < 100) {
           if (key && response.data.total_count !== void 0 && response.data.total_count !== result.length)
-            fail10("incomplete-pages");
+            fail11("incomplete-pages");
           return result;
         }
       }
-      fail10("incomplete-pages");
+      fail11("incomplete-pages");
     }
     async function assertCurrentMain(api, context) {
       const current = (await api("GET", `${prefix(context)}/git/ref/heads/main`)).data;
-      if (current.object?.sha !== context.sha) fail10("main-moved");
+      if (current.object?.sha !== context.sha) fail11("main-moved");
     }
     async function content(api, context, path) {
-      if (!control8.validSha(context.sha)) fail10("source-sha");
+      if (!control8.validSha(context.sha)) fail11("source-sha");
       const data2 = (await api("GET", `${prefix(context)}/contents/${path}?ref=${context.sha}`)).data;
       if (data2.type !== "file" || data2.encoding !== "base64" || typeof data2.content !== "string" || data2.size > 2 * 1024 * 1024)
-        fail10("source-content");
+        fail11("source-content");
       const bytes = Buffer.from(data2.content, "base64");
-      if (bytes.length !== data2.size) fail10("source-content");
+      if (bytes.length !== data2.size) fail11("source-content");
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
-        fail10("source-content");
+        fail11("source-content");
       }
     }
     function sourceView(api, context) {
@@ -1114,11 +1114,11 @@ var require_release_github = __commonJS({
       ]);
       let totalBytes = 0;
       const commit = async (id2) => {
-        if (!control8.validSha(id2)) fail10("source-sha");
+        if (!control8.validSha(id2)) fail11("source-sha");
         if (!commits.has(id2)) {
-          if (commits.size >= 512) fail10("recovery-source");
+          if (commits.size >= 512) fail11("recovery-source");
           const value = (await api("GET", `${prefix(context)}/git/commits/${id2}`)).data;
-          if (value.sha !== id2 || !control8.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control8.validSha(p.sha))) fail10("source-commit");
+          if (value.sha !== id2 || !control8.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control8.validSha(p.sha))) fail11("source-commit");
           commits.set(id2, value);
         }
         return commits.get(id2);
@@ -1128,25 +1128,25 @@ var require_release_github = __commonJS({
         const c = await commit(id2), result = /* @__PURE__ */ new Map();
         const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
         if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail10("source-tree");
+          fail11("source-tree");
         const seen = /* @__PURE__ */ new Set();
         for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control8.validSha(row.sha)) fail10("source-tree");
+          if (typeof row.path !== "string" || seen.has(row.path) || !control8.validSha(row.sha)) fail11("source-tree");
           seen.add(row.path);
           if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail10("source-tree");
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail11("source-tree");
           const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
           if (needsBytes && !blobs.has(row.sha)) {
             const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail10("source-content");
+            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail11("source-content");
             const bytes = Buffer.from(value.content, "base64");
             totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation6.gitObject("blob", bytes) !== row.sha) fail10("source-content");
+            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation6.gitObject("blob", bytes) !== row.sha) fail11("source-content");
             blobs.set(row.sha, bytes);
           }
           result.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
         }
-        if (preparation6.treeOid(result) !== c.tree.sha) fail10("source-tree");
+        if (preparation6.treeOid(result) !== c.tree.sha) fail11("source-tree");
         inventories.set(id2, result);
         return result;
       };
@@ -1155,19 +1155,19 @@ var require_release_github = __commonJS({
     function packageIdentity(inventory, version) {
       const raw = (name) => {
         const row = inventory.get(name);
-        if (!row || row.mode !== "100644") fail10("package-version");
+        if (!row || row.mode !== "100644") fail11("package-version");
         return preparation6.decodeRaw(row.bytes);
       };
       const pkg = parseJson("package-json", raw("package.json")), lock = parseJson("lock-json", raw("package-lock.json"));
       preparation6.parseVersion(pkg.version);
-      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail10("package-version");
+      if (pkg.name !== "foottrace" || lock.name !== pkg.name || lock.version !== pkg.version || lock.packages?.[""]?.name !== pkg.name || lock.packages[""].version !== pkg.version || version !== void 0 && pkg.version !== version) fail11("package-version");
       return pkg;
     }
     async function sourceInput(api, context, view = sourceView(api, context)) {
       const commit = await view.commit(context.sha), inventory = await view.inventory(context.sha), files = {}, fragments = {};
       for (const path of ["package.json", "package-lock.json", "CHANGELOG.md", "README.md", "docs/metadata.md"]) {
         const row = inventory.get(path);
-        if (!row || row.mode !== "100644") fail10("source-content");
+        if (!row || row.mode !== "100644") fail11("source-content");
         files[path] = preparation6.decodeRaw(row.bytes);
       }
       const pkg = packageIdentity(inventory), queue = preparation6.fragmentQueue(inventory);
@@ -1177,45 +1177,45 @@ var require_release_github = __commonJS({
       return { commit, inventory, files, fragments, queue, intents, date, pkg, view };
     }
     async function requireAncestor(api, context, from, to) {
-      if (![from, to].every(control8.validSha)) fail10("recovery-ancestry");
+      if (![from, to].every(control8.validSha)) fail11("recovery-ancestry");
       const seen = /* @__PURE__ */ new Set();
       let counts;
       for (let page = 1; page <= 10; page++) {
         const value = (await api("GET", `${prefix(context)}/compare/${from}...${to}?per_page=100&page=${page}`)).data;
         const tuple = [value.status, value.ahead_by, value.behind_by, value.total_commits];
-        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail10("recovery-ancestry");
+        if (value.base_commit?.sha !== from || value.merge_base_commit?.sha !== from || value.behind_by !== 0 || !Number.isSafeInteger(value.ahead_by) || value.ahead_by < 0 || value.ahead_by > 1e3 || value.total_commits !== value.ahead_by || !Array.isArray(value.commits) || value.commits.length > 100 || counts && JSON.stringify(counts) !== JSON.stringify(tuple)) fail11("recovery-ancestry");
         counts = tuple;
         if (from === to) {
-          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail10("recovery-ancestry");
+          if (page !== 1 || value.status !== "identical" || value.ahead_by !== 0 || value.commits.length) fail11("recovery-ancestry");
           return;
         }
-        if (value.status !== "ahead" || value.ahead_by === 0) fail10("recovery-ancestry");
+        if (value.status !== "ahead" || value.ahead_by === 0) fail11("recovery-ancestry");
         for (const c of value.commits) {
-          if (!control8.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail10("recovery-ancestry");
+          if (!control8.validSha(c.sha) || c.sha === from || seen.has(c.sha)) fail11("recovery-ancestry");
           seen.add(c.sha);
         }
-        if (seen.size > value.total_commits) fail10("recovery-ancestry");
+        if (seen.size > value.total_commits) fail11("recovery-ancestry");
         if (seen.size === value.total_commits) {
-          if (value.commits.at(-1)?.sha !== to) fail10("recovery-ancestry");
+          if (value.commits.at(-1)?.sha !== to) fail11("recovery-ancestry");
           return;
         }
-        if (value.commits.length !== 100) fail10("recovery-ancestry");
+        if (value.commits.length !== 100) fail11("recovery-ancestry");
       }
-      fail10("recovery-ancestry");
+      fail11("recovery-ancestry");
     }
     async function publicBot(api, settings) {
-      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail10("app-settings");
+      if (!/^[a-z0-9-]+$/.test(settings?.slug ?? "")) fail11("app-settings");
       const bot = (await api("GET", `/users/${enc(settings.slug + "[bot]")}`)).data;
       if (bot.login !== settings.slug + "[bot]" || bot.type !== "Bot" || !Number.isSafeInteger(bot.id) || bot.id <= 0)
-        fail10("recovery-lineage");
+        fail11("recovery-lineage");
       return bot;
     }
     async function mergedLineage(api, context, view, bot, prNumber, version) {
-      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail10("recovery-lineage");
+      if (!Number.isSafeInteger(prNumber) || prNumber <= 0) fail11("recovery-lineage");
       const p = (await api("GET", `${prefix(context)}/pulls/${prNumber}`)).data;
-      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control8.sameRepo(p.base?.repo, context.repository) || !control8.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.validSha(p.merge_commit_sha) || !control8.validSha(p.head.sha) || !control8.validSha(p.base.sha)) fail10("recovery-lineage");
+      if (p.number !== prNumber || p.state !== "closed" || !p.merged_at || p.merged !== true || !control8.sameRepo(p.base?.repo, context.repository) || !control8.sameRepo(p.head?.repo, context.repository) || p.base.ref !== "main" || p.head.ref !== "release/next" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.validSha(p.merge_commit_sha) || !control8.validSha(p.head.sha) || !control8.validSha(p.base.sha)) fail11("recovery-lineage");
       const h = await view.commit(p.head.sha), s = await view.commit(p.merge_commit_sha);
-      if (h.tree.sha !== s.tree.sha) fail10("recovery-lineage");
+      if (h.tree.sha !== s.tree.sha) fail11("recovery-lineage");
       packageIdentity(await view.inventory(p.head.sha), version);
       packageIdentity(await view.inventory(p.merge_commit_sha), version);
       return { pr: p.number, head: h.sha, tree: h.tree.sha, merge: s.sha };
@@ -1223,25 +1223,25 @@ var require_release_github = __commonJS({
     async function linkedLineage(api, context, view, bot, source, version) {
       const rows = await pages(api, `${prefix(context)}/commits/${source}/pulls`);
       const matches = rows.filter((p) => p.merge_commit_sha === source && p.head?.ref === "release/next");
-      if (matches.length !== 1) fail10("recovery-lineage");
+      if (matches.length !== 1) fail11("recovery-lineage");
       return mergedLineage(api, context, view, bot, matches[0].number, version);
     }
     function exactData(a, b, code = "recovery-intent") {
-      if (JSON.stringify(a) !== JSON.stringify(b)) fail10(code);
+      if (JSON.stringify(a) !== JSON.stringify(b)) fail11(code);
     }
     function addedInventory(base, path, bytes) {
-      if (base.has(path)) fail10("recovery-intent");
+      if (base.has(path)) fail11("recovery-intent");
       return new Map([...base, [path, { mode: "100644", sha: preparation6.gitObject("blob", bytes), bytes }]]);
     }
     async function activeHistory(api, context, input, bot) {
       const chain = input.intents.active;
       for (let i = 0; i < chain.length; i++) {
         const record = chain[i], d = record.data, base = await input.view.inventory(d.base.sha), c = await input.view.commit(d.base.sha);
-        if (c.tree.sha !== d.base.tree) fail10("recovery-intent");
+        if (c.tree.sha !== d.base.tree) fail11("recovery-intent");
         const baseRecords = preparation6.admitIntentNamespace(base, d.version, context.repository);
-        if (baseRecords.active.length !== i) fail10("recovery-intent");
+        if (baseRecords.active.length !== i) fail11("recovery-intent");
         for (let j = 0; j < i; j++) {
-          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail10("recovery-intent");
+          if (baseRecords.active[j].path !== chain[j].path || baseRecords.active[j].sha256 !== chain[j].sha256) fail11("recovery-intent");
         }
         exactData(preparation6.fragmentQueue(base), d.queuedFragments, "recovery-queue");
         const predecessor = await mergedLineage(api, context, input.view, bot, d.predecessor.pr, d.version);
@@ -1261,26 +1261,26 @@ var require_release_github = __commonJS({
       const d = record.data, head = await view.commit(lineage.head), merged = await view.commit(lineage.merge), base = await view.inventory(d.base.sha), candidate = await view.inventory(head.sha);
       exactData(head.parents.map((p) => p.sha), [d.base.sha, d.predecessor.head]);
       const expected = addedInventory(base, record.path, preparation6.intentBytes(d, context.repository));
-      if (preparation6.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation6.treeOid(candidate) !== head.tree.sha) fail10("recovery-intent");
+      if (preparation6.treeOid(expected) !== head.tree.sha || merged.tree.sha !== head.tree.sha || preparation6.treeOid(candidate) !== head.tree.sha) fail11("recovery-intent");
       const pr = (await api("GET", `${prefix(context)}/pulls/${lineage.pr}`)).data;
-      if (pr.base.sha !== d.base.sha) fail10("recovery-lineage");
+      if (pr.base.sha !== d.base.sha) fail11("recovery-lineage");
       await requireAncestor(api, context, d.base.sha, lineage.merge);
     }
     async function retainedProposal(api, context, view, bot, version) {
       const base = prefix(context), ref = await optional(api, `${base}/git/ref/heads/release/next`);
       const pulls = await pages(api, `${base}/pulls?state=open&head=footprintjs:release/next&base=main`);
-      if (!ref || ref.object?.type !== "commit" || !control8.validSha(ref.object.sha) || pulls.length > 1) fail10("proposal-existing");
+      if (!ref || ref.object?.type !== "commit" || !control8.validSha(ref.object.sha) || pulls.length > 1) fail11("proposal-existing");
       const head = await view.commit(ref.object.sha);
       if (pulls.length) {
         const p = pulls[0];
-        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.sameRepo(p.head.repo, context.repository) || !control8.sameRepo(p.base.repo, context.repository)) fail10("proposal-existing");
+        if (p.state !== "open" || p.head?.sha !== head.sha || p.base?.sha !== context.sha || p.head.ref !== "release/next" || p.base.ref !== "main" || p.user?.id !== bot.id || p.user.type !== "Bot" || p.user.login !== bot.login || !control8.sameRepo(p.head.repo, context.repository) || !control8.sameRepo(p.base.repo, context.repository)) fail11("proposal-existing");
         return { head, open: p };
       }
       const closed = await pages(api, `${base}/pulls?state=closed&head=footprintjs:release/next&base=main`);
       const matches = closed.filter((p) => p.head?.sha === head.sha && p.merged_at);
-      if (matches.length !== 1) fail10("proposal-existing");
+      if (matches.length !== 1) fail11("proposal-existing");
       const predecessor = await mergedLineage(api, context, view, bot, matches[0].number, version);
-      if (predecessor.head !== head.sha) fail10("proposal-existing");
+      if (predecessor.head !== head.sha) fail11("proposal-existing");
       await requireAncestor(api, context, predecessor.merge, context.sha);
       return { head, predecessor };
     }
@@ -1291,7 +1291,7 @@ var require_release_github = __commonJS({
       if (retained.open) {
         const candidate = await input.view.inventory(retained.head.sha), records = preparation6.admitIntentNamespace(candidate, input.pkg.version, context.repository);
         const record = records.active.at(-1);
-        if (!record || record.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail10("proposal-existing");
+        if (!record || record.data.sequence !== (prior?.data.sequence ?? 0) + 1) fail11("proposal-existing");
         predecessor = await mergedLineage(api, context, input.view, bot, record.data.predecessor.pr, input.pkg.version);
       }
       const origin = prior?.data.origin ?? predecessor;
@@ -1301,7 +1301,7 @@ var require_release_github = __commonJS({
       }
       const original = await input.view.inventory(origin.head);
       preparation6.requirePublicationClosure(original, input.inventory, new Set(input.intents.records.map((x) => x.path)));
-      if (!input.queue.length) fail10("recovery-queue");
+      if (!input.queue.length) fail11("recovery-queue");
       const prepared = preparation6.prepareRecovery({
         repository: context.repository,
         sha: context.sha,
@@ -1316,7 +1316,7 @@ var require_release_github = __commonJS({
       const [[path, text2]] = Object.entries(prepared.updates), expectedTree = preparation6.treeOid(addedInventory(input.inventory, path, Buffer.from(text2)));
       if (retained.open) {
         exactData(retained.head.parents.map((p) => p.sha), [context.sha, predecessor.head], "proposal-existing");
-        if (retained.head.tree.sha !== expectedTree) fail10("proposal-existing");
+        if (retained.head.tree.sha !== expectedTree) fail11("proposal-existing");
       }
       return { prepared, expectedTree, predecessor, retained };
     }
@@ -1337,23 +1337,23 @@ var require_release_github = __commonJS({
     async function requireRecoverySource(api, context, identity, options) {
       const tree = (await api("GET", `${prefix(context)}/git/trees/${identity.tree}?recursive=1`)).data;
       if (tree.sha !== identity.tree || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-        fail10("source-tree");
+        fail11("source-tree");
       const paths2 = /* @__PURE__ */ new Set();
       for (const row of tree.tree) {
-        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control8.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail10("source-tree");
+        if (typeof row.path !== "string" || Buffer.byteLength(row.path) > 1024 || /[\x00-\x1f\x7f\\]/.test(row.path) || row.path.split("/").some((part) => !part || part === "." || part === "..") || paths2.has(row.path) || !control8.validSha(row.sha) || !(row.type === "blob" && ["100644", "100755"].includes(row.mode) || row.type === "tree" && row.mode === "040000")) fail11("source-tree");
         paths2.add(row.path);
       }
       if (![...paths2].some((path) => path.startsWith(".release/"))) return false;
       const input = await sourceInput(api, context);
-      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail10("identity-changed");
+      if (input.commit.tree.sha !== identity.tree || input.pkg.version !== identity.version) fail11("identity-changed");
       if (input.intents.active.length) await currentRecovery(api, context, input, await publicBot(api, options.settings));
       await assertCurrentMain(api, context);
       return input.intents.active.length > 0;
     }
     async function plan(api, context, options = {}) {
-      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control8.validSha(context.sha)) fail10("event");
+      if (!["push", "workflow_dispatch"].includes(context.eventName) || context.ref !== "refs/heads/main" || !control8.validSha(context.sha)) fail11("event");
       const repo2 = (await api("GET", prefix(context))).data;
-      if (!control8.sameRepo(repo2, context.repository)) fail10("repository");
+      if (!control8.sameRepo(repo2, context.repository)) fail11("repository");
       await assertCurrentMain(api, context);
       const input = await sourceInput(api, context);
       if (input.intents.active.length) await activeHistory(api, context, input, await publicBot(api, options.settings));
@@ -1370,13 +1370,13 @@ var require_release_github = __commonJS({
           const last = input.intents.active.at(-1);
           const linked = await pages(api, `${prefix(context)}/commits/${context.sha}/pulls`);
           const current = linked.filter((p) => p.merge_commit_sha === context.sha && p.head?.ref === "release/next");
-          if (current.length > 1) fail10("recovery-lineage");
+          if (current.length > 1) fail11("recovery-lineage");
           if (current.length === 1) {
             const bot = await publicBot(api, options.settings);
             await currentRecovery(api, context, input, bot);
             mode = "publish";
           } else {
-            if (last.data.base.sha === context.sha) fail10("recovery-intent");
+            if (last.data.base.sha === context.sha) fail11("recovery-intent");
             await recoveryPreparation(api, context, input, await publicBot(api, options.settings));
             mode = "prepare";
             preparationKind = "recovery";
@@ -1386,7 +1386,7 @@ var require_release_github = __commonJS({
           mode = "prepare";
           preparationKind = "recovery";
         } else mode = "publish";
-      } else fail10("recovery-state");
+      } else fail11("recovery-state");
       const prepared = preparationKind === "next" ? prepareRelease({ files: input.files, fragments: input.fragments, date: input.date }) : null;
       await assertCurrentMain(api, context);
       return {
@@ -1403,12 +1403,12 @@ var require_release_github = __commonJS({
     async function prepareProposal(api, context, pinned, options = {}) {
       const fresh = await plan(api, context, options);
       exactData(fresh, pinned, "proposal-plan");
-      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail10("proposal-plan");
+      if (pinned.mode !== "prepare" || !["next", "recovery"].includes(pinned.preparationKind)) fail11("proposal-plan");
       const input = await sourceInput(api, context);
       let prepared;
       if (pinned.preparationKind === "next") prepared = prepareRelease({ files: input.files, fragments: input.fragments, date: input.date });
       else prepared = (await recoveryPreparation(api, context, input, await publicBot(api, options.settings))).prepared;
-      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail10("proposal-plan");
+      if (!prepared || prepared.version !== pinned.version || input.commit.tree.sha !== pinned.tree || input.date !== pinned.date) fail11("proposal-plan");
       await assertCurrentMain(api, context);
       return { base: context.sha, tree: pinned.tree, repository: context.repository, prepared };
     }
@@ -1420,7 +1420,7 @@ var require_release_github = __commonJS({
       );
       const linked = await withRefusal("authority-linked-prs", () => pages(api, `${base}/commits/${context.sha}/pulls`));
       const candidates = linked.filter((p2) => p2.head?.ref === "release/next" && p2.merge_commit_sha === context.sha);
-      if (candidates.length !== 1) fail10("release-pr");
+      if (candidates.length !== 1) fail11("release-pr");
       const p = await withRefusal(
         "authority-pr",
         async () => (await api("GET", `${base}/pulls/${candidates[0].number}`)).data
@@ -1438,7 +1438,7 @@ var require_release_github = __commonJS({
         reviewerPermissions.push(permission);
       }
       if (!/^[a-z0-9-]+$/.test(settings.slug ?? "") || typeof settings.clientId !== "string" || !settings.clientId)
-        fail10("app-settings");
+        fail11("app-settings");
       const metadata = await withRefusal(
         "authority-app",
         async () => (await api("GET", `/apps/${enc(settings.slug)}`)).data
@@ -1477,12 +1477,12 @@ var require_release_github = __commonJS({
         reviewerPermissions
       };
       const result = control8.decideAuthority(world);
-      if (!result.authorized) fail10(`authority-${result.reason}`);
+      if (!result.authorized) fail11(`authority-${result.reason}`);
       const fresh = await withRefusal(
         "authority-recheck",
         async () => (await api("GET", `${base}/pulls/${p.number}`)).data
       );
-      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail10("pr-moved");
+      if (fresh.head?.sha !== p.head.sha || fresh.merge_commit_sha !== context.sha || !fresh.merged_at) fail11("pr-moved");
       return expected;
     }
     async function workflowEvidence(api, identity, file) {
@@ -1511,11 +1511,11 @@ var require_release_github = __commonJS({
       return withRefusal("security-evidence", async () => {
         const w = await workflowEvidence(api, identity, "codeql.yml"), r = [...w.runs].sort((a, b) => b.id - a.id)[0];
         if (w.workflow.path !== ".github/workflows/codeql.yml" || !r || r.head_sha !== identity.headSha || r.event !== "pull_request" || !control8.sameRepo(r.head_repository, identity.repository) || r.workflow_id !== w.workflow.id || r.path !== w.workflow.path || !control8.success(r) || !control8.success(w.attempt) || w.attempt.id !== r.id || w.attempt.run_attempt !== r.run_attempt)
-          fail10("security-run");
+          fail11("security-run");
         for (const name of ["Analyze (javascript-typescript)", "Analyze (actions)"]) {
           const jobs = w.jobs.filter((j) => j.name === name);
           if (jobs.length !== 1 || !control8.success(jobs[0]) || jobs[0].run_id !== r.id || jobs[0].run_attempt !== r.run_attempt)
-            fail10("security-job");
+            fail11("security-job");
         }
         return { runId: r.id, attempt: r.run_attempt };
       });
@@ -1524,12 +1524,12 @@ var require_release_github = __commonJS({
       if (!/^https:\/\/uploads\.github\.com\/repos\/footprintjs\/foottrace\/releases\/\d+\/assets\{\?name,label\}$/.test(
         release.upload_url ?? ""
       ))
-        fail10("release-upload-url");
+        fail11("release-upload-url");
       const url = release.upload_url.replace("{?name,label}", `?name=${enc(`publish-attempt-${marker.version}.json`)}`);
       const bytes = Buffer.from(JSON.stringify(marker) + "\n");
       const r = await api("POST", url, { raw: bytes, contentType: "application/json" });
       if (r.data?.state !== "uploaded" || r.data.size !== bytes.length || !Number.isSafeInteger(r.data.id))
-        fail10("reservation-ambiguous");
+        fail11("reservation-ambiguous");
       return { assetId: r.data.id, fresh: true };
     }
     async function optional(api, route) {
@@ -1541,7 +1541,7 @@ var require_release_github = __commonJS({
       }
     }
     async function proposalPreflight(api, context, payload, pinned, options) {
-      if (payload?.base !== context.sha || !control8.sameRepo(payload.repository, context.repository)) fail10("proposal-base");
+      if (payload?.base !== context.sha || !control8.sameRepo(payload.repository, context.repository)) fail11("proposal-base");
       const rebuilt = await prepareProposal(api, context, pinned, options);
       exactData(payload, rebuilt, "proposal-substitution");
       const input = await sourceInput(api, context), bot = await publicBot(api, options.settings);
@@ -1557,7 +1557,7 @@ var require_release_github = __commonJS({
         const recovery = await recoveryPreparation(api, context, input, bot);
         retained = recovery.retained;
         predecessor = recovery.predecessor;
-        if (expectedTree !== recovery.expectedTree) fail10("proposal-tree");
+        if (expectedTree !== recovery.expectedTree) fail11("proposal-tree");
       } else {
         retained = await retainedProposal(api, context, input.view, bot, input.pkg.version);
         predecessor = retained.predecessor;
@@ -1572,19 +1572,19 @@ var require_release_github = __commonJS({
               pulls: [retained.open],
               complete: true
             });
-            if (state3.action !== "no-op") fail10("proposal-existing");
+            if (state3.action !== "no-op") fail11("proposal-existing");
             await assertCurrentMain(api, context);
             return { rebuilt, expectedTree, predecessor: null, retained, state: state3, bot };
           }
-          if (parents.length !== 2 || parents[0].sha !== context.sha) fail10("proposal-existing");
+          if (parents.length !== 2 || parents[0].sha !== context.sha) fail11("proposal-existing");
           const closed = await pages(api, `${prefix(context)}/pulls?state=closed&head=footprintjs:release/next&base=main`);
           const previous = closed.filter((p) => p.head?.sha === parents[1].sha && p.merged_at);
-          if (previous.length !== 1) fail10("proposal-existing");
+          if (previous.length !== 1) fail11("proposal-existing");
           predecessor = await mergedLineage(api, context, input.view, bot, previous[0].number, input.pkg.version);
           await requireAncestor(api, context, predecessor.merge, context.sha);
         }
       }
-      if (predecessor.head === context.sha) fail10("proposal-existing");
+      if (predecessor.head === context.sha) fail11("proposal-existing");
       const state2 = control8.decideProposalState({
         base: context.sha,
         currentMain: context.sha,
@@ -1594,7 +1594,7 @@ var require_release_github = __commonJS({
         complete: true,
         predecessor: { head: predecessor.head, closedMerged: true }
       });
-      if (!["rollover", "no-op"].includes(state2.action)) fail10("proposal-existing");
+      if (!["rollover", "no-op"].includes(state2.action)) fail11("proposal-existing");
       await assertCurrentMain(api, context);
       return { rebuilt, expectedTree, predecessor, retained, state: state2, bot };
     }
@@ -1604,70 +1604,70 @@ var require_release_github = __commonJS({
       const entries = [];
       for (const [path, content2] of Object.entries(rebuilt.prepared.updates)) {
         const blob = (await api("POST", `${base}/git/blobs`, { content: content2, encoding: "utf-8" })).data;
-        if (blob.sha !== preparation6.gitObject("blob", Buffer.from(content2))) fail10("blob");
+        if (blob.sha !== preparation6.gitObject("blob", Buffer.from(content2))) fail11("blob");
         entries.push({ path, mode: "100644", type: "blob", sha: blob.sha });
       }
       for (const path of rebuilt.prepared.deletions) entries.push({ path, mode: "100644", type: "blob", sha: null });
       const tree = (await api("POST", `${base}/git/trees`, { base_tree: pinned.tree, tree: entries })).data;
-      if (tree.sha !== expectedTree) fail10("proposal-tree");
+      if (tree.sha !== expectedTree) fail11("proposal-tree");
       const commit = (await api("POST", `${base}/git/commits`, {
         message: `chore: release ${pinned.version}`,
         tree: expectedTree,
         parents: [context.sha, predecessor.head]
       })).data;
-      if (!control8.validSha(commit.sha)) fail10("proposal-commit");
+      if (!control8.validSha(commit.sha)) fail11("proposal-commit");
       const actual = (await api("GET", `${base}/git/commits/${commit.sha}`)).data;
-      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail10("proposal-commit");
+      if (actual.sha !== commit.sha || actual.tree?.sha !== expectedTree) fail11("proposal-commit");
       exactData(actual.parents?.map((p) => p.sha), [context.sha, predecessor.head], "proposal-commit");
       const fresh = await proposalPreflight(api, context, payload, pinned, options);
-      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail10("proposal-existing");
+      if (fresh.state.action !== "rollover" || fresh.retained.head.sha !== before.retained.head.sha || fresh.expectedTree !== expectedTree) fail11("proposal-existing");
       const updated = (await api("PATCH", `${base}/git/refs/heads/release/next`, { sha: commit.sha, force: false })).data;
-      if (updated.object?.sha !== commit.sha) fail10("proposal-existing");
+      if (updated.object?.sha !== commit.sha) fail11("proposal-existing");
       await assertCurrentMain(api, context);
       const current = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (current.object?.sha !== commit.sha) fail10("proposal-existing");
+      if (current.object?.sha !== commit.sha) fail11("proposal-existing");
       const pr = (await api("POST", `${base}/pulls`, proposalCreation(pinned.version, rebuilt.prepared.notes))).data;
       const requireCreated = (value) => {
-        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail10("proposal-pr");
+        if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control8.sameRepo(value.head?.repo, context.repository) || !control8.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail11("proposal-pr");
       };
       requireCreated(pr);
       const created = (await api("GET", `${base}/pulls/${pr.number}`)).data;
       requireCreated(created);
       await assertCurrentMain(api, context);
       const finalRef = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
-      if (finalRef.object?.sha !== commit.sha) fail10("proposal-existing");
+      if (finalRef.object?.sha !== commit.sha) fail11("proposal-existing");
       await assertCurrentMain(api, context);
       return { action: "created", pr: pr.number, head: commit.sha, tree: expectedTree };
     }
     async function producerIdentity(api, context, name, completed = false) {
       const run = (await api("GET", `${prefix(context)}/actions/runs/${context.runId}`)).data;
-      if (run.id !== context.runId) fail10("current-run-id");
-      if (run.run_attempt !== context.runAttempt) fail10("current-run-attempt");
-      if (run.head_sha !== context.sha) fail10("current-run-sha");
-      if (!control8.sameRepo(run.repository, context.repository)) fail10("current-run-repository");
-      if (!control8.sameRepo(run.head_repository, context.repository)) fail10("current-run-head-repository");
-      if (run.path !== ".github/workflows/publish.yml") fail10("current-run-workflow");
-      if (run.head_branch !== "main") fail10("current-run-branch");
-      if (run.event !== context.eventName) fail10("current-run-event");
-      if (context.ref !== "refs/heads/main") fail10("current-run-ref");
-      if (!["push", "workflow_dispatch"].includes(run.event)) fail10("current-run-trigger");
-      if (run.status !== "in_progress") fail10("current-run-status");
-      if (run.conclusion !== null) fail10("current-run-conclusion");
+      if (run.id !== context.runId) fail11("current-run-id");
+      if (run.run_attempt !== context.runAttempt) fail11("current-run-attempt");
+      if (run.head_sha !== context.sha) fail11("current-run-sha");
+      if (!control8.sameRepo(run.repository, context.repository)) fail11("current-run-repository");
+      if (!control8.sameRepo(run.head_repository, context.repository)) fail11("current-run-head-repository");
+      if (run.path !== ".github/workflows/publish.yml") fail11("current-run-workflow");
+      if (run.head_branch !== "main") fail11("current-run-branch");
+      if (run.event !== context.eventName) fail11("current-run-event");
+      if (context.ref !== "refs/heads/main") fail11("current-run-ref");
+      if (!["push", "workflow_dispatch"].includes(run.event)) fail11("current-run-trigger");
+      if (run.status !== "in_progress") fail11("current-run-status");
+      if (run.conclusion !== null) fail11("current-run-conclusion");
       const jobs = await pages(
         api,
         `${prefix(context)}/actions/runs/${context.runId}/attempts/${context.runAttempt}/jobs`,
         "jobs"
       );
       const chosen = jobs.filter((j) => j.name === name);
-      if (chosen.length !== 1) fail10("producer-job");
+      if (chosen.length !== 1) fail11("producer-job");
       const job = chosen[0];
       if (job.run_id !== context.runId || job.run_attempt !== context.runAttempt || job.head_sha !== context.sha || completed && !control8.success(job))
-        fail10("producer-attempt");
+        fail11("producer-attempt");
       return job;
     }
     async function readArtifact(api, context, pinned, artifactId, role) {
       const { readArtifactZip } = require_release_archive();
-      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail10("artifact-id");
+      if (!Number.isSafeInteger(artifactId) || artifactId <= 0) fail11("artifact-id");
       const artifact = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}`)).data;
       const producer = await producerIdentity(api, context, role, true);
       const expected = {
@@ -1690,7 +1690,7 @@ var require_release_github = __commonJS({
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest: preflight
       }).valid)
-        fail10("artifact-source");
+        fail11("artifact-source");
       const downloaded = (await api("GET", `${prefix(context)}/actions/artifacts/${artifactId}/zip`)).data;
       const members = readArtifactZip(
         Buffer.from(downloaded),
@@ -1703,7 +1703,7 @@ var require_release_github = __commonJS({
         producer: { ...producer, uploadArtifactId: artifactId },
         manifest
       }).valid)
-        fail10("artifact-manifest");
+        fail11("artifact-manifest");
       return { manifest, members };
     }
     async function peeledTag(api, context, tag) {
@@ -1712,10 +1712,10 @@ var require_release_github = __commonJS({
       let object = ref.object;
       for (let i = 0; i < 5; i++) {
         if (object?.type === "commit" && control8.validSha(object.sha)) return object.sha;
-        if (object?.type !== "tag" || !control8.validSha(object.sha)) fail10("tag-shape");
+        if (object?.type !== "tag" || !control8.validSha(object.sha)) fail11("tag-shape");
         object = (await api("GET", `${prefix(context)}/git/tags/${object.sha}`)).data.object;
       }
-      fail10("tag-depth");
+      fail11("tag-depth");
     }
     async function sourceReleaseNotes(api, context, version) {
       const changelog = await content(api, context, "CHANGELOG.md");
@@ -1724,18 +1724,18 @@ var require_release_github = __commonJS({
       const prefix2 = `## ${version} \u2014 `;
       const matching = sections.filter((row) => row.line.startsWith(prefix2));
       if (!changelog.startsWith("# Changelog\n\n") || matching.length !== 1 || sections[0] !== matching[0])
-        fail10("release-notes");
+        fail11("release-notes");
       const date = matching[0].line.slice(prefix2.length);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(new Date(date).getTime()) || new Date(date).toISOString().slice(0, 10) !== date)
-        fail10("release-notes");
+        fail11("release-notes");
       const end = sections[1]?.index ?? lines.length;
       const body = lines.slice(matching[0].index + 1, end).join("\n").trim();
-      if (!body) fail10("release-notes");
+      if (!body) fail11("release-notes");
       return body + "\n";
     }
     function requireReleaseNotes(release, context, tag, notes) {
       if (release.tag_name !== tag || release.target_commitish !== context.sha || release.body !== notes || release.draft !== false || release.prerelease !== false)
-        fail10("release-conflict");
+        fail11("release-conflict");
     }
     async function releaseState(api, context, identity, archive2, registry) {
       await assertCurrentMain(api, context);
@@ -1748,15 +1748,15 @@ var require_release_github = __commonJS({
         integrity: archive2.integrity
       };
       const existingTag = await peeledTag(api, context, identity.tag);
-      if (existingTag && existingTag !== context.sha) fail10("tag-conflict");
+      if (existingTag && existingTag !== context.sha) fail11("tag-conflict");
       let release = await optional(api, `${base}/releases/tags/${enc(identity.tag)}`);
       const notes = await sourceReleaseNotes(api, context, identity.version);
       if (release) requireReleaseNotes(release, context, identity.tag, notes);
       const assets = release ? await pages(api, `${base}/releases/${release.id}/assets`) : [];
       const matching = assets.filter((a) => a.name === name);
-      if (matching.length > 1) fail10("journal-conflict");
+      if (matching.length > 1) fail11("journal-conflict");
       const decision = control8.decideSubmission({ journal: matching[0] ?? null, registry, expected: marker });
-      if (decision.action === "hold") fail10("registry-conflict");
+      if (decision.action === "hold") fail11("registry-conflict");
       if (decision.action === "verify-only")
         return { fresh: false, assetId: matching[0]?.id ?? null, runId: context.runId, runAttempt: context.runAttempt };
       await assertCurrentMain(api, context);
@@ -1775,10 +1775,10 @@ var require_release_github = __commonJS({
     }
     async function publishGrant(api, context, identity, archive2, grant) {
       await assertCurrentMain(api, context);
-      if (!Number.isSafeInteger(grant.assetId)) fail10("journal-asset");
+      if (!Number.isSafeInteger(grant.assetId)) fail11("journal-asset");
       const asset = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`)).data;
       if (asset.name !== `publish-attempt-${identity.version}.json` || asset.state !== "uploaded" || asset.size > 4096)
-        fail10("journal-asset");
+        fail11("journal-asset");
       const raw = (await api("GET", `${prefix(context)}/releases/assets/${grant.assetId}`, { accept: "application/octet-stream" })).data;
       const marker = parseJson("journal-json", Buffer.from(raw).toString("utf8"));
       const expected = {
@@ -1788,18 +1788,18 @@ var require_release_github = __commonJS({
         sha: context.sha,
         integrity: archive2.integrity
       };
-      if (!control8.validatePublishGrant({ expected, marker, grant }).mayPublish) fail10("journal-grant");
-      if (await peeledTag(api, context, identity.tag) !== context.sha) fail10("tag-conflict");
+      if (!control8.validatePublishGrant({ expected, marker, grant }).mayPublish) fail11("journal-grant");
+      if (await peeledTag(api, context, identity.tag) !== context.sha) fail11("tag-conflict");
       return true;
     }
     async function responseBytes(response, max = 24 * 1024 * 1024, failure = "github-body") {
       try {
-        if (Number(response.headers.get("content-length") ?? 0) > max) fail10("response-limit");
+        if (Number(response.headers.get("content-length") ?? 0) > max) fail11("response-limit");
         const chunks = [];
         let size = 0;
         for await (const chunk of response.body) {
           size += chunk.length;
-          if (size > max) fail10("response-limit");
+          if (size > max) fail11("response-limit");
           chunks.push(Buffer.from(chunk));
         }
         return Buffer.concat(chunks);
@@ -1812,7 +1812,7 @@ var require_release_github = __commonJS({
       return async (method, route, body) => {
         try {
           if (!(route.startsWith("/repos/footprintjs/foottrace/") || route === "/repos/footprintjs/foottrace" || route.startsWith("/apps/") || route.startsWith("/users/") || route.startsWith("https://uploads.github.com/repos/footprintjs/foottrace/releases/")))
-            fail10("api-route");
+            fail11("api-route");
           const headers = {
             authorization: `Bearer ${token}`,
             accept: body?.accept ?? "application/vnd.github+json",
@@ -1871,57 +1871,57 @@ var require_release_github = __commonJS({
       };
     }
     async function registryVersion(version, fetcher = fetch) {
-      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail10("version");
+      if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) fail11("version");
       const response = await registryFetch(`https://registry.npmjs.org/foottrace/${version}`, fetcher);
       if (response.status === 404) return null;
-      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
       const value = parseJson(
         "registry-json",
         (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8")
       );
       if (value.name !== "foottrace" || value.version !== version || typeof value.dist?.integrity !== "string")
-        fail10("registry-shape");
+        fail11("registry-shape");
       return { ...value.dist, version: value.version };
     }
     function markerData(bytes, expectedVersion, source, size) {
-      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail10("journal-conflict");
+      if (!Buffer.isBuffer(bytes) || bytes.length !== size || bytes.length > 4096) fail11("journal-conflict");
       const value = parseJson("journal-json", preparation6.decodeRaw(bytes));
-      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail10("journal-conflict");
+      if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).sort().join(",") !== "integrity,runAttempt,runId,sha,version" || value.version !== expectedVersion || value.sha !== source || !Number.isSafeInteger(value.runId) || value.runId <= 0 || !Number.isSafeInteger(value.runAttempt) || value.runAttempt <= 0 || typeof value.integrity !== "string" || !/^sha512-[A-Za-z0-9+/]{86}==$/.test(value.integrity)) fail11("journal-conflict");
       return value;
     }
     async function publicationState(api, context, input, { fetcher = fetch, settings } = {}) {
       const version = input.pkg.version, tag = `v${version}`, base = prefix(context), registry = await registryVersion(version, fetcher), source = await peeledTag(api, context, tag), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!source && !release) {
-        if (registry) fail10("recovery-state");
+        if (registry) fail11("recovery-state");
         await requireUnpublishedLatest(version, fetcher);
         return { state: "absent", version };
       }
-      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail10("recovery-state");
+      if (!source || !release || !Number.isSafeInteger(release.id) || release.id <= 0) fail11("recovery-state");
       const historical = { ...context, sha: source }, sourceInventory = await input.view.inventory(source);
       packageIdentity(sourceInventory, version);
       const bot = await publicBot(api, settings), lineage = await linkedLineage(api, context, input.view, bot, source, version);
-      if (lineage.merge !== source) fail10("recovery-lineage");
+      if (lineage.merge !== source) fail11("recovery-lineage");
       await requireAncestor(api, context, source, context.sha);
       const notes = await sourceReleaseNotes(api, historical, version);
       requireReleaseNotes(release, historical, tag, notes);
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail10("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || !Number.isSafeInteger(markers[0].size) || markers[0].size < 1 || markers[0].size > 4096) fail11("journal-conflict");
       const raw = Buffer.from((await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data), marker = markerData(raw, version, source, markers[0].size);
       if (!registry) return { state: "pending", reason: "pending-registry", version, sha: source };
-      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail10("registry-conflict");
+      if (registry.integrity !== marker.integrity || !/^[a-f0-9]{40}$/.test(registry.shasum ?? "") || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${version}.tgz`) fail11("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         { package: "foottrace", version }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail10("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail11("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok || latestResponse.status !== 200) fail10("registry-unavailable");
+      if (!latestResponse.ok || latestResponse.status !== 200) fail11("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace") fail10("registry-shape");
+      if (latest.name !== "foottrace") fail11("registry-shape");
       const order = preparation6.versionOrder(latest.version, version);
-      if (order > 0) fail10("recovery-state");
+      if (order > 0) fail11("recovery-state");
       return {
         state: order < 0 ? "pending" : "published",
         reason: order < 0 ? "pending-latest" : "verified",
@@ -1939,31 +1939,31 @@ var require_release_github = __commonJS({
     }
     async function requireUnpublishedLatest(version, fetcher) {
       const response = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!response.ok || response.status !== 200) fail10("registry-unavailable");
+      if (!response.ok || response.status !== 200) fail11("registry-unavailable");
       const latest = parseJson("registry-latest-json", (await responseBytes(response, 2 * 1024 * 1024, "registry-body")).toString("utf8"));
-      if (latest.name !== "foottrace" || preparation6.versionOrder(latest.version, version) >= 0) fail10("recovery-state");
+      if (latest.name !== "foottrace" || preparation6.versionOrder(latest.version, version) >= 0) fail11("recovery-state");
     }
     async function verifyPublished(api, context, pinned, fetcher = fetch) {
       const tag = `v${pinned.version}`, base = prefix(context), release = await optional(api, `${base}/releases/tags/${enc(tag)}`);
       if (!release) return { state: "pending-release" };
       const notes = await sourceReleaseNotes(api, context, pinned.version);
       requireReleaseNotes(release, context, tag, notes);
-      if (await peeledTag(api, context, tag) !== context.sha) fail10("release-conflict");
+      if (await peeledTag(api, context, tag) !== context.sha) fail11("release-conflict");
       const assets = await pages(api, `${base}/releases/${release.id}/assets`), markers = assets.filter((a) => a.name === `publish-attempt-${pinned.version}.json`);
-      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail10("journal-conflict");
+      if (markers.length !== 1 || markers[0].state !== "uploaded" || markers[0].size > 4096) fail11("journal-conflict");
       const marker = parseJson(
         "journal-json",
         Buffer.from(
           (await api("GET", `${base}/releases/assets/${markers[0].id}`, { accept: "application/octet-stream" })).data
         ).toString("utf8")
       );
-      if (marker.sha !== context.sha || marker.version !== pinned.version) fail10("journal-conflict");
+      if (marker.sha !== context.sha || marker.version !== pinned.version) fail11("journal-conflict");
       const registry = await registryVersion(pinned.version, fetcher);
       if (!registry) return { state: "pending-registry" };
       if (registry.integrity !== marker.integrity || registry.tarball !== `https://registry.npmjs.org/foottrace/-/foottrace-${pinned.version}.tgz`)
-        fail10("registry-conflict");
+        fail11("registry-conflict");
       const response = await registryFetch(registry.tarball, fetcher);
-      if (!response.ok) fail10("registry-unavailable");
+      if (!response.ok) fail11("registry-unavailable");
       const archive2 = require_release_archive().inspectArchive(
         await responseBytes(response, 16 * 1024 * 1024, "registry-body"),
         {
@@ -1971,9 +1971,9 @@ var require_release_github = __commonJS({
           version: pinned.version
         }
       );
-      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail10("registry-bytes");
+      if (archive2.integrity !== marker.integrity || archive2.shasum !== registry.shasum) fail11("registry-bytes");
       const latestResponse = await registryFetch("https://registry.npmjs.org/foottrace/latest", fetcher);
-      if (!latestResponse.ok) fail10("registry-unavailable");
+      if (!latestResponse.ok) fail11("registry-unavailable");
       const latest = parseJson(
         "registry-latest-json",
         (await responseBytes(latestResponse, 2 * 1024 * 1024, "registry-body")).toString("utf8")
@@ -2003,7 +2003,7 @@ var require_release_github = __commonJS({
       };
       prefix(context);
       if (!control8.validSha(context.sha) || !Number.isSafeInteger(context.runId) || context.runId <= 0 || !Number.isSafeInteger(context.runAttempt) || context.runAttempt <= 0)
-        fail10("context");
+        fail11("context");
       return context;
     }
     async function runStage(stage, { api, context, env, io, fetcher = fetch }) {
@@ -2013,11 +2013,11 @@ var require_release_github = __commonJS({
       const phaseOptions = { settings, fetcher };
       const bound = () => {
         if (!pinned || pinned.sha !== context.sha || !control8.sameRepo(pinned.repository, context.repository))
-          fail10("plan-substitution");
+          fail11("plan-substitution");
       };
       const freshAuthority = async () => {
         const fresh = await collectAuthority(api, context, settings);
-        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail10("identity-changed");
+        if (JSON.stringify(fresh) !== JSON.stringify(identity)) fail11("identity-changed");
         await requireSecurity(api, fresh);
       };
       if (stage === "plan") {
@@ -2061,24 +2061,24 @@ var require_release_github = __commonJS({
       }
       if (stage === "authority") {
         const id2 = await collectAuthority(api, context, settings);
-        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail10("authority-plan");
+        if (id2.tree !== pinned.tree || id2.version !== pinned.version) fail11("authority-plan");
         await requireSecurity(api, id2);
         await requireRecoverySource(api, context, id2, phaseOptions);
         return { identity: JSON.stringify(id2), authorized: "true" };
       }
       if (stage === "verdict") {
-        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail10("identity");
+        if (!identity || identity.mergeSha !== context.sha || identity.tree !== pinned.tree) fail11("identity");
         return { tested: String((await ciVerdict(api, identity)).tested) };
       }
       if (stage === "build-manifest") {
-        if (io.gitTree() !== pinned.tree) fail10("build-tree");
+        if (io.gitTree() !== pinned.tree) fail11("build-tree");
         io.requireClean();
         const pkg = parseJson("package-json", io.read("package.json")), lock = parseJson("lock-json", io.read("package-lock.json"));
         if (pkg.name !== pinned.package || pkg.version !== pinned.version || lock.version !== pkg.version || lock.packages?.[""].version !== pkg.version)
-          fail10("package-version");
+          fail11("package-version");
         const pack = parseJson("pack-json", io.read("pack.json"));
         if (!Array.isArray(pack) || pack.length !== 1 || pack[0].filename !== `foottrace-${pinned.version}.tgz`)
-          fail10("pack-identity");
+          fail11("pack-identity");
         const bytes = io.read(pack[0].filename), archive2 = require_release_archive().inspectArchive(bytes, {
           package: pinned.package,
           version: pinned.version
@@ -2111,7 +2111,7 @@ var require_release_github = __commonJS({
           version: pinned.version
         });
         if (artifact.manifest.integrity !== archive2.integrity || artifact.manifest.sha256 !== archive2.sha256 || artifact.manifest.shasum !== archive2.shasum)
-          fail10("archive-manifest");
+          fail11("archive-manifest");
         const registry = await registryVersion(pinned.version, fetcher);
         if (stage === "release") {
           if (await requireRecoverySource(api, context, identity, phaseOptions)) {
@@ -2126,7 +2126,7 @@ var require_release_github = __commonJS({
         }
         await publishGrant(api, context, identity, archive2, grant);
         if (registry) {
-          if (registry.integrity !== archive2.integrity) fail10("registry-conflict");
+          if (registry.integrity !== archive2.integrity) fail11("registry-conflict");
           return { submit: "false" };
         }
         const file = io.publishFile(context.runId, context.runAttempt);
@@ -2136,14 +2136,14 @@ var require_release_github = __commonJS({
       if (stage === "verify") {
         if (pinned.mode === "publish")
           return { verification: JSON.stringify(await verifyPublished(api, context, pinned, fetcher)) };
-        if (pinned.mode !== "verify") fail10("recovery-phase");
+        if (pinned.mode !== "verify") fail11("recovery-phase");
         const input = await sourceInput(api, context);
-        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail10("plan-substitution");
+        if (input.commit.tree.sha !== pinned.tree || input.pkg.version !== pinned.version) fail11("plan-substitution");
         const result = await publicationState(api, context, input, phaseOptions);
         await assertCurrentMain(api, context);
         return { verification: JSON.stringify({ ...result, state: result.reason ?? "pending-release" }) };
       }
-      fail10("stage");
+      fail11("stage");
     }
     module2.exports = {
       refusalCode,
@@ -3514,12 +3514,12 @@ function walkAndFreeze(root, indices, record) {
         stack.push(compacting && ArrayBuffer.isView(child) ? compact(node, i, child) : child);
       }
     } else {
-      const names = Object.getOwnPropertyNames(node);
-      for (let i = 0; i < names.length; i++) {
-        const child = node[names[i]];
+      const names2 = Object.getOwnPropertyNames(node);
+      for (let i = 0; i < names2.length; i++) {
+        const child = node[names2[i]];
         if (child === null || typeof child !== "object")
           continue;
-        stack.push(compacting && ArrayBuffer.isView(child) ? compact(node, names[i], child) : child);
+        stack.push(compacting && ArrayBuffer.isView(child) ? compact(node, names2[i], child) : child);
       }
     }
     if (!frozenBefore)
@@ -3557,9 +3557,9 @@ function mapOpenPaths(root) {
       leaves.push(node);
       continue;
     }
-    const names = Object.keys(node);
-    for (let i = 0; i < names.length; i++) {
-      const child = node[names[i]];
+    const names2 = Object.keys(node);
+    for (let i = 0; i < names2.length; i++) {
+      const child = node[names2[i]];
       if (child === null || typeof child !== "object")
         continue;
       if (child !== root && !holder.has(child)) {
@@ -5367,10 +5367,10 @@ function decideEdge(key, dotted, targets, walk2, depth) {
     else
       below.push(target.slice(1));
   }
-  const names = walk2.rootDecided && depth === 0 ? void 0 : walk2.names;
-  if (names !== void 0 && !masked) {
-    masked = names.masks(key) || names.pathMasks !== void 0 && dotted !== void 0 && names.pathMasks(`${dotted}.${key}`);
-    below.push(...targetsOf(names.fields(key)));
+  const names2 = walk2.rootDecided && depth === 0 ? void 0 : walk2.names;
+  if (names2 !== void 0 && !masked) {
+    masked = names2.masks(key) || names2.pathMasks !== void 0 && dotted !== void 0 && names2.pathMasks(`${dotted}.${key}`);
+    below.push(...targetsOf(names2.fields(key)));
   }
   return { masked, below };
 }
@@ -9947,7 +9947,7 @@ function recordCommit(payload, stamp, into) {
     into.log?.record(bundleOf({}, {}, [], [], namesOf(stamp)));
     return;
   }
-  const names = namesOf(stamp);
+  const names2 = namesOf(stamp);
   const { redactedPaths, trace } = payload;
   into.state.applyPatch(payload.overwrite, payload.updates, trace);
   const capture2 = captureFor(into.state);
@@ -9957,14 +9957,14 @@ function recordCommit(payload, stamp, into) {
   into.mirror?.applyPatch(overwrite, updates, trace);
   if (!into.log)
     return;
-  const bundle = bundleOf(overwrite, updates, [...redactedPaths], trace, names);
+  const bundle = bundleOf(overwrite, updates, [...redactedPaths], trace, names2);
   into.log.record(bundle);
   if (capture2 && capture2 === captureFor(into.log) && sourceClock !== void 0 && bundle.idx !== void 0) {
     capture2.confirm(sourceClock, bundle.idx, trace, redactedPaths);
   }
 }
-function bundleOf(overwrite, updates, redactedPaths, trace, names) {
-  const { stage, stageId, runtimeStageId, untrackedSources, tags, phase } = names;
+function bundleOf(overwrite, updates, redactedPaths, trace, names2) {
+  const { stage, stageId, runtimeStageId, untrackedSources, tags, phase } = names2;
   const bundle = { overwrite, updates, redactedPaths, trace, stage, stageId, runtimeStageId };
   if (untrackedSources)
     bundle.untrackedSources = untrackedSources;
@@ -12999,8 +12999,8 @@ function decisionSentence(ctx) {
   return `A decision was made, and the path taken was ${branchName}.`;
 }
 function forkSentence(ctx) {
-  const names = ctx.children.join(", ");
-  return `Forking into ${ctx.children.length} parallel paths: ${names}.`;
+  const names2 = ctx.children.join(", ");
+  return `Forking into ${ctx.children.length} parallel paths: ${names2}.`;
 }
 function loopSentence(ctx) {
   return ctx.description ? `On pass ${ctx.iteration}: ${ctx.description} again.` : `On pass ${ctx.iteration} through ${ctx.target}.`;
@@ -13157,8 +13157,8 @@ var NarrativeFlowRecorder = class {
   }
   onSelected(event) {
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
-    const names = event.selected.join(", ");
-    this.sentences.push(`${event.selected.length} of ${event.total} paths were selected: ${names}.`);
+    const names2 = event.selected.join(", ");
+    this.sentences.push(`${event.selected.length} of ${event.total} paths were selected: ${names2}.`);
     this.stageNames.push(void 0);
   }
   onSubflowEntry(event) {
@@ -15446,8 +15446,8 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       });
       return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected: ${parts.join("; ")}.`;
     }
-    const names = ctx.selected.join(", ");
-    return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected for execution: ${names}.`;
+    const names2 = ctx.selected.join(", ");
+    return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected for execution: ${names2}.`;
   }
   defaultRenderSubflow(ctx) {
     if (ctx.direction === "exit") {
@@ -24211,7 +24211,7 @@ var FlowChartBuilder = class {
    * branch-segment marker `~` inside a name, a name declared twice, and a
    * second declaration on the same stage.
    */
-  tag(...names) {
+  tag(...names2) {
     const cur = this._needCursor();
     const curSpec = this._needCursorSpec();
     if (this._cursorTail) {
@@ -24219,9 +24219,9 @@ var FlowChartBuilder = class {
     }
     if (cur.isLoopRef)
       fail2(`tag() cannot be applied to the loop reference '${cur.name}'`);
-    if (names.length === 0)
+    if (names2.length === 0)
       fail2(`tag() at '${cur.name}': at least one name is required`);
-    applyTags(cur, curSpec, names, `tag() at '${cur.name}'`);
+    applyTags(cur, curSpec, names2, `tag() at '${cur.name}'`);
     this._fireStageTagged(curSpec);
     return this;
   }
@@ -24802,10 +24802,10 @@ function jsonData(input, maxBytes = 1024 * 1024) {
     invalid();
   }
 }
-function fields2(value, names) {
+function fields2(value, names2) {
   if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
   const keys2 = Object.keys(value);
-  if (keys2.length !== names.length || keys2.some((k) => !names.includes(k))) invalid();
+  if (keys2.length !== names2.length || keys2.some((k) => !names2.includes(k))) invalid();
   return value;
 }
 function text(value, pattern, max = 200) {
@@ -24835,9 +24835,9 @@ function own4(value, key) {
   return descriptor.value;
 }
 function keys(value, allowed, maximum = allowed.length) {
-  const names = Reflect.ownKeys(value);
-  if (names.length > maximum || names.some((key) => typeof key !== "string" || !allowed.includes(key))) refuseSource();
-  return names;
+  const names2 = Reflect.ownKeys(value);
+  if (names2.length > maximum || names2.some((key) => typeof key !== "string" || !allowed.includes(key))) refuseSource();
+  return names2;
 }
 function snapshotSource(source) {
   keys(source, ["commit", "inventory"]);
@@ -24884,7 +24884,7 @@ function foottraceInvocationContext(context) {
 }
 
 // src/propose/foottrace-transport.mjs
-var import_http_credential2 = __toESM(require_http_credential(), 1);
+var import_http_credential = __toESM(require_http_credential(), 1);
 
 // src/propose/proposal-metadata-payload.mjs
 var fail3 = () => {
@@ -25148,37 +25148,76 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
 
 // src/propose/app-identity-api.mjs
 var import_release_github = __toESM(require_release_github(), 1);
-var import_http_credential = __toESM(require_http_credential(), 1);
-function createAppIdentityApi({ token, jwt, settings, fetchBounded }) {
-  if (!(0, import_http_credential.isOpaqueCredential)(jwt)) throw new Error("inspection-app-unavailable");
-  const api = import_release_github.default.makeApi(token, fetchBounded), fail10 = () => {
+function createAppIdentityApi({ token, facts, settings, fetchBounded }) {
+  const api = import_release_github.default.makeApi(token, fetchBounded), fail11 = () => {
     throw new Error("inspection-app-unavailable");
   };
   return async (method, route, body) => {
     if (typeof route === "string" && route.startsWith("/apps/")) {
-      try {
-        if (method !== "GET" || route !== "/apps/" + settings.slug || body !== void 0) fail10();
-        const response = await fetchBounded("https://api.github.com/app", {
-          method: "GET",
-          redirect: "error",
-          headers: { authorization: "Bearer " + jwt, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" }
-        });
-        if (response.status !== 200 || !response.ok || !response.headers.get("content-type")?.includes("json")) fail10();
-        const value = jsonData(JSON.parse(Buffer.from(await response.arrayBuffer()).toString("utf8")));
-        if (value.slug !== settings.slug || value.client_id !== settings.clientId) fail10();
-        id(value.id);
-        return { data: { id: value.id, slug: value.slug, client_id: value.client_id } };
-      } catch {
-        fail10();
-      }
+      if (method !== "GET" || route !== "/apps/" + settings.slug || body !== void 0) fail11();
+      return { data: jsonData({
+        id: facts.appId,
+        slug: facts.appSlug,
+        client_id: facts.clientId,
+        owner: { id: facts.ownerId, login: facts.ownerLogin, type: facts.ownerType }
+      }) };
     }
+    if (typeof route === "string" && (route === "/app" || route.startsWith("/app/"))) fail11();
     return api(method, route, body);
   };
 }
 
+// src/propose/app-identity-facts.mjs
+var names = [
+  "schemaVersion",
+  "verified",
+  "appId",
+  "appSlug",
+  "clientId",
+  "ownerId",
+  "ownerLogin",
+  "ownerType",
+  "repositoryId",
+  "sourceSha",
+  "runId",
+  "runAttempt"
+];
+var fail5 = () => {
+  throw new Error("app-identity-facts-unavailable");
+};
+function bindAppIdentityFacts(input, { repository, slug, clientId, context } = {}) {
+  try {
+    const v = fields2(jsonData(input, 4096), names);
+    if (repository?.full_name !== "footprintjs/foottrace") fail5();
+    id(repository.id);
+    text(clientId, /^[A-Za-z0-9_.-]+$/, 128);
+    if (slug !== "agentfootprint-release" || v.schemaVersion !== 1 || v.verified !== true || v.appId !== 5533048 || v.appSlug !== slug || v.clientId !== clientId || v.ownerId !== 266183199 || v.ownerLogin !== "footprintjs" || v.ownerType !== "Organization" || v.repositoryId !== repository.id || typeof v.sourceSha !== "string" || !/^[a-f0-9]{40}$/.test(v.sourceSha)) fail5();
+    id(v.runId);
+    id(v.runAttempt);
+    if (v.runAttempt > 8) fail5();
+    if (context !== void 0) {
+      const c = foottraceInvocationContext(context);
+      if (c.repository.id !== v.repositoryId || c.sha !== v.sourceSha || c.runId !== v.runId || c.runAttempt !== v.runAttempt) fail5();
+    }
+    return Object.freeze(Object.fromEntries(names.map((name) => [name, v[name]])));
+  } catch {
+    fail5();
+  }
+}
+function parseAppIdentityFacts(source, expected) {
+  try {
+    if (typeof source !== "string" || Buffer.byteLength(source) > 4096) fail5();
+    const value = bindAppIdentityFacts(JSON.parse(source), expected);
+    if (JSON.stringify(value) !== source) fail5();
+    return value;
+  } catch {
+    fail5();
+  }
+}
+
 // src/propose/foottrace-transport.mjs
 var transports = /* @__PURE__ */ new WeakMap();
-var fail5 = () => {
+var fail6 = () => {
   throw new Error("foottrace-transport-unavailable");
 };
 function createFoottraceInspectionTransport(options = {}) {
@@ -25187,29 +25226,29 @@ function createFoottraceInspectionTransport(options = {}) {
 function createNativeOwner({ repository, token, appIdentity, fetcher, limits: limits2 }, inspectionReadOnly) {
   const repo2 = fields2(jsonData(repository), ["id", "full_name"]);
   id(repo2.id);
-  if (repo2.full_name !== "footprintjs/foottrace" || !(0, import_http_credential2.isOpaqueCredential)(token)) fail5();
-  const identity = fields2(jsonData(appIdentity, 16384), ["slug", "clientId", "jwt"]);
-  const slug = text(identity.slug, /^[a-z0-9-]+$/, 100), clientId = text(identity.clientId, /^[A-Za-z0-9_.-]+$/, 128), jwt = identity.jwt;
-  if (!(0, import_http_credential2.isOpaqueCredential)(jwt)) fail5();
-  const settings = jsonData({ slug, clientId });
+  if (repo2.full_name !== "footprintjs/foottrace" || !(0, import_http_credential.isOpaqueCredential)(token)) fail6();
+  const identity = fields2(jsonData(appIdentity, 4096), ["slug", "clientId", "facts"]);
+  const slug = text(identity.slug, /^[a-z0-9-]+$/, 100), clientId = text(identity.clientId, /^[A-Za-z0-9_.-]+$/, 128);
+  const settings = jsonData({ slug, clientId }), facts = bindAppIdentityFacts(identity.facts, { repository: repo2, slug, clientId });
   return registerOwner({
     repository: repo2,
     settings,
+    facts,
     fetcher,
     limits: limits2,
     inspectionReadOnly,
-    makeApi: (fetchBounded) => createAppIdentityApi({ token, jwt, settings, fetchBounded })
+    makeApi: (fetchBounded) => createAppIdentityApi({ token, facts, settings, fetchBounded })
   });
 }
-function registerOwner({ repository, settings, fetcher, limits: limits2, inspectionReadOnly, makeApi }) {
+function registerOwner({ repository, settings, facts, fetcher, limits: limits2, inspectionReadOnly, makeApi }) {
   const http = createGitHubTransport({ repository, fetcher, limits: limits2 });
   const value = Object.freeze({ scope: inspectionReadOnly ? "captured-native-read-owner" : "captured-native-http-owner" });
-  transports.set(value, { http, repository, settings, inspectionReadOnly, makeApi });
+  transports.set(value, { http, repository, settings, facts, inspectionReadOnly, makeApi });
   return value;
 }
 function foottraceTransportPort(transport, limits2) {
   const value = transports.get(transport);
-  if (!value) fail5();
+  if (!value) fail6();
   const view = value.http.createView(limits2);
   return Object.freeze({
     api: value.makeApi(view.fetch),
@@ -25218,17 +25257,19 @@ function foottraceTransportPort(transport, limits2) {
     registry: (version) => value.http.createRegistryView({ packageName: "foottrace", version, ...limits2 === void 0 ? {} : { limits: limits2 } }).fetch,
     facts: view.facts,
     transportFacts: value.http.facts,
-    inspectionReadOnly: value.inspectionReadOnly
+    inspectionReadOnly: value.inspectionReadOnly,
+    identityFacts: value.facts,
+    identityObservation: "cached-key-holder-facts"
   });
 }
 
 // src/propose/proposal-invocation.mjs
-var import_http_credential3 = __toESM(require_http_credential(), 1);
-var fail6 = () => {
+var import_http_credential2 = __toESM(require_http_credential(), 1);
+var fail7 = () => {
   throw new Error("proposal-invocation-unavailable");
 };
 function number(value) {
-  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail6();
+  if (typeof value !== "string" || !/^[1-9][0-9]{0,15}$/.test(value) || !Number.isSafeInteger(Number(value))) fail7();
   return Number(value);
 }
 function captureFoottraceProposalInvocation(options = {}) {
@@ -25236,8 +25277,8 @@ function captureFoottraceProposalInvocation(options = {}) {
 }
 function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
   try {
-    const token = own4(env, "GH_TOKEN"), jwt = own4(env, "APP_JWT");
-    if (!(0, import_http_credential3.isOpaqueCredential)(token) || !(0, import_http_credential3.isOpaqueCredential)(jwt) || own4(env, "APP_PRIVATE_KEY") !== void 0) fail6();
+    const token = own4(env, "GH_TOKEN");
+    if (!(0, import_http_credential2.isOpaqueCredential)(token) || own4(env, "APP_JWT") !== void 0 || own4(env, "APP_PRIVATE_KEY") !== void 0) fail7();
     const context = foottraceInvocationContext({
       repository: { id: number(own4(env, "REPO_ID")), full_name: own4(env, "REPO_NAME") },
       sha: own4(env, "SOURCE_SHA"),
@@ -25255,15 +25296,12 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
       ["GITHUB_EVENT_NAME", "EVENT_NAME"],
       ["GITHUB_RUN_ID", "RUN_ID"],
       ["GITHUB_RUN_ATTEMPT", "RUN_ATTEMPT"]
-    ]) if (own4(env, alias) !== own4(env, original)) fail6();
+    ]) if (own4(env, alias) !== own4(env, original)) fail7();
     const toolSha = own4(env, "TOOL_SHA"), workflowRef = own4(env, "GITHUB_WORKFLOW_REF");
-    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail6();
+    if (own4(env, "GITHUB_ACTIONS") !== "true" || own4(env, "GITHUB_JOB") !== "proposal" || workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main" || typeof toolSha !== "string" || !/^[a-f0-9]{40}$/.test(toolSha)) fail7();
     const artifactId = number(own4(env, "ARTIFACT_ID"));
-    const transport = createTransport({ repository: context.repository, token, appIdentity: {
-      slug: own4(env, "APP_SLUG"),
-      clientId: own4(env, "APP_CLIENT_ID"),
-      jwt
-    }, fetcher, limits: limits2 });
+    const slug = own4(env, "APP_SLUG"), clientId = own4(env, "APP_CLIENT_ID"), facts = parseAppIdentityFacts(own4(env, "APP_IDENTITY_FACTS"), { repository: context.repository, slug, clientId, context });
+    const transport = createTransport({ repository: context.repository, token, appIdentity: { slug, clientId, facts }, fetcher, limits: limits2 });
     return Object.freeze({ transport, context, artifactId, invocation: fields2(jsonData({
       job: "proposal",
       workflowRef,
@@ -25271,14 +25309,15 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
       toolSha
     }), ["job", "workflowRef", "workflowSha", "toolSha"]) });
   } catch {
-    fail6();
+    fail7();
   } finally {
     try {
       delete env.APP_PRIVATE_KEY;
       delete env.APP_JWT;
+      delete env.APP_IDENTITY_FACTS;
       delete env.GH_TOKEN;
     } catch {
-      fail6();
+      fail7();
     }
   }
 }
@@ -25295,9 +25334,9 @@ function snapshotLocalHostSource(raw) {
   const identity = fields2(jsonData({ sourceSha: own4(raw, "sourceSha"), sourceTree: own4(raw, "sourceTree") }), ["sourceSha", "sourceTree"]);
   if (!Object.values(identity).every((value) => typeof value === "string" && /^[a-f0-9]{40}$/.test(value))) throw new Error("proposal-local-source-unavailable");
   const input = own4(raw, "files");
-  keys(input, ["workflow", "entry", "profile"]);
+  keys(input, ["workflow", "entry", "profile", "identityHelper"]);
   const files = /* @__PURE__ */ Object.create(null);
-  for (const kind of ["workflow", "entry", "profile"]) {
+  for (const kind of ["workflow", "entry", "profile", "identityHelper"]) {
     const bytes = own4(input, kind);
     if (!Buffer.isBuffer(bytes) || bytes.length < 1 || bytes.length > 512 * 1024) throw new Error("proposal-local-source-unavailable");
     files[kind] = Buffer.from(bytes);
@@ -25306,27 +25345,27 @@ function snapshotLocalHostSource(raw) {
 }
 
 // src/propose/host-source-binding.mjs
-var fail7 = () => {
+var fail8 = () => {
   throw new Error("proposal-host-source-unavailable");
 };
 var sha = (b) => (0, import_node_crypto.createHash)("sha256").update(b).digest("hex");
 var digest = (v) => sha(JSON.stringify(v));
-var paths = { workflow: ".github/workflows/publish.yml", entry: "scripts/release-runner.cjs", profile: "scripts/propose-host-profile.cjs" };
+var paths = { workflow: ".github/workflows/publish.yml", entry: "scripts/release-runner.cjs", profile: "scripts/propose-host-profile.cjs", identityHelper: "scripts/release-inspection-auth.cjs" };
 function createFoottraceHostSourceReader({ transport, context, invocation, host } = {}) {
   const pinned = foottraceInvocationContext(context), port = foottraceTransportPort(transport);
   keys(host, ["readProfile", "readSource", "requireClean"]);
   const readProfile = own4(host, "readProfile"), readSource = own4(host, "readSource"), requireClean = own4(host, "requireClean");
-  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail7();
+  if ([readProfile, readSource, requireClean].some((f) => typeof f !== "function") || port.repository.id !== pinned.repository.id) fail8();
   const step = fields2(jsonData(invocation), ["job", "workflowRef", "workflowSha", "toolSha"]);
-  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail7();
+  if (step.job !== "proposal" || step.workflowSha !== pinned.sha || step.workflowRef !== "footprintjs/foottrace/.github/workflows/publish.yml@refs/heads/main") fail8();
   return async (prepared) => {
     const observations = [];
     try {
-      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail7();
+      if (own4(prepared, "valid") !== true || own4(prepared, "scope") !== "current-prepared-inputs-only" || own4(prepared, "sourceSha") !== pinned.sha) fail8();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail7();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail8();
         const boundary = { kind: "native-host-source", method: "GET", status: "unavailable" };
         observations.push(boundary);
         const result = await port.api(method, route);
@@ -25335,29 +25374,29 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
       };
       const phase = async () => {
         await requireClean();
-        const profile = fields2(jsonData(await readProfile()), ["id", "sourceSha", "sourceTree", "toolSha", "workflow", "entry", "profile"]);
-        if (profile.id !== "foottrace-proposal-host-v1" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail7();
+        const profile = fields2(jsonData(await readProfile()), ["id", "sourceSha", "sourceTree", "toolSha", "workflow", "entry", "profile", "identityHelper"]);
+        if (profile.id !== "foottrace-proposal-host-v2" || profile.sourceSha !== pinned.sha || profile.sourceTree !== prepared.sourceTree || profile.toolSha !== step.toolSha) fail8();
         const local = snapshotLocalHostSource(await readSource());
-        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail7();
+        if (local.sourceSha !== pinned.sha || local.sourceTree !== prepared.sourceTree) fail8();
         await import_release_github2.default.assertCurrentMain(read, pinned);
         const view = import_release_github2.default.sourceView(read, pinned), commit = await view.commit(pinned.sha), inventory = await view.inventory(pinned.sha);
-        if (commit.tree.sha !== prepared.sourceTree) fail7();
+        if (commit.tree.sha !== prepared.sourceTree) fail8();
         const blobs = {};
         for (const kind of Object.keys(paths)) {
           const rule = fields2(profile[kind], ["path", "sha", "sha256", "bytes", "mode"]);
-          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || kind === "workflow" && rule.mode !== "100644") fail7();
+          if (rule.path !== paths[kind] || !/^[a-f0-9]{40}$/.test(rule.sha) || !/^[a-f0-9]{64}$/.test(rule.sha256) || !Number.isSafeInteger(rule.bytes) || rule.bytes < 1 || rule.bytes > 512 * 1024 || !["100644", "100755"].includes(rule.mode) || ["workflow", "identityHelper"].includes(kind) && rule.mode !== "100644") fail8();
           const actual = inventory.get(rule.path), raw = own4(local.files, kind);
-          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail7();
+          if (!actual || actual.sha !== rule.sha || actual.mode !== rule.mode || !Buffer.isBuffer(raw) || raw.length !== rule.bytes) fail8();
           const bytes = Buffer.from(raw);
-          if (import_release_prepare2.default.gitObject("blob", bytes) !== rule.sha || sha(bytes) !== rule.sha256) fail7();
+          if (import_release_prepare2.default.gitObject("blob", bytes) !== rule.sha || sha(bytes) !== rule.sha256) fail8();
           let provider = actual.bytes;
           if (!provider) {
             const blob = own4(await read("GET", prefix + "blobs/" + rule.sha), "data");
             const content = own4(blob, "content");
-            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail7();
+            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail8();
             provider = Buffer.from(content, "base64");
           }
-          if (provider.length !== rule.bytes || import_release_prepare2.default.gitObject("blob", provider) !== rule.sha || sha(provider) !== rule.sha256 || !provider.equals(bytes)) fail7();
+          if (provider.length !== rule.bytes || import_release_prepare2.default.gitObject("blob", provider) !== rule.sha || sha(provider) !== rule.sha256 || !provider.equals(bytes)) fail8();
           blobs[kind + "Blob"] = rule.sha;
         }
         await import_release_github2.default.assertCurrentMain(read, pinned);
@@ -25373,7 +25412,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail7();
+      if (!(0, import_node_util.isDeepStrictEqual)(before, after)) fail8();
       return Object.freeze({
         valid: true,
         scope: "host-source-binding-only",
@@ -25648,7 +25687,7 @@ function createCurrentPreparedInputReader(inputProfile) {
 
 // src/propose/foottrace-current-inputs.mjs
 var digest2 = (v) => (0, import_node_crypto2.createHash)("sha256").update(JSON.stringify(v)).digest("hex");
-var fail8 = (reason) => {
+var fail9 = (reason) => {
   const e = new Error("current-prepared-inputs-unavailable");
   e.ordinaryReason = reason;
   throw e;
@@ -25666,11 +25705,11 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
   return async () => {
     const observations = [];
     try {
-      if (!port) fail8();
+      if (!port) fail9();
       const prefix = "/repos/footprintjs/foottrace/git/";
       const read = async (method, route, body) => {
         const suffix = typeof route === "string" && route.startsWith(prefix) ? route.slice(prefix.length) : "";
-        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail8();
+        if (method !== "GET" || body !== void 0 || observations.length >= 4096 || !(suffix === "ref/heads/main" || suffix === "commits/" + pinned.sha || /^trees\/[a-f0-9]{40}\?recursive=1$/.test(suffix) || /^blobs\/[a-f0-9]{40}$/.test(suffix))) fail9();
         const row = { kind: "native-current-source", method: "GET", status: "unavailable" };
         observations.push(row);
         const value = await port.api(method, route);
@@ -25680,8 +25719,8 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
       const phase = async () => {
         await import_release_github3.default.assertCurrentMain(read, pinned);
         const view = import_release_github3.default.sourceView(read, pinned), source = await import_release_github3.default.sourceInput(read, pinned, view);
-        if (source.intents.active.length !== 0) fail8("ordinary-active-recovery");
-        if (!source.queue.length) fail8();
+        if (source.intents.active.length !== 0) fail9("ordinary-active-recovery");
+        if (!source.queue.length) fail9();
         const commit = jsonData({
           sha: source.commit.sha,
           tree: { sha: source.commit.tree.sha },
@@ -25689,7 +25728,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
           committer: { date: source.commit.committer.date }
         });
         const prepared = prepare({ source: { commit, inventory: source.inventory }, preparationDate: null });
-        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail8();
+        if (!prepared.valid || prepared.sourceSha !== pinned.sha || prepared.sourceTree !== source.commit.tree.sha || prepared.fromVersion !== source.pkg.version) fail9();
         const inventory = [...source.inventory].map(([path, row]) => ({ path, mode: row.mode, sha: row.sha })).sort((a, b) => a.path.localeCompare(b.path));
         const reference = jsonData({
           repositoryId: pinned.repository.id,
@@ -25708,7 +25747,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
         return { prepared, reference };
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail8();
+      if (!(0, import_node_util3.isDeepStrictEqual)(before.reference, after.reference) || !(0, import_node_util3.isDeepStrictEqual)(before.prepared, after.prepared)) fail9();
       return Object.freeze({
         valid: true,
         scope: "native-current-prepared-inputs-only",
@@ -25741,7 +25780,7 @@ var import_node_crypto3 = require("node:crypto");
 var import_node_util4 = require("node:util");
 var import_release_github4 = __toESM(require_release_github(), 1);
 var import_release_control5 = __toESM(require_release_control(), 1);
-var fail9 = () => {
+var fail10 = () => {
   throw new Error("current-proposer-unavailable");
 };
 var digest3 = (value) => (0, import_node_crypto3.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
@@ -25750,14 +25789,14 @@ var repo = (value) => ({
   full_name: text(own4(value, "full_name"), /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 201)
 });
 var sha2 = (value) => {
-  if (!import_release_control5.default.validSha(value)) fail9();
+  if (!import_release_control5.default.validSha(value)) fail10();
   return value;
 };
 var statuses = ["completed", "queued", "in_progress", "requested", "waiting", "pending", "action_required"];
 var conclusions = ["success", "failure", "neutral", "cancelled", "skipped", "timed_out", "action_required", "stale", "startup_failure"];
 function state(raw) {
   const status = own4(raw, "status"), conclusion = own4(raw, "conclusion");
-  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail9();
+  if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail10();
   return { status, conclusion };
 }
 function createFoottraceProposerReader({ transport, context }) {
@@ -25765,14 +25804,15 @@ function createFoottraceProposerReader({ transport, context }) {
   try {
     pinned = foottraceInvocationContext(context);
     port = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
-    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) fail9();
+    if (!import_release_control5.default.sameRepo(port.repository, pinned.repository)) fail10();
+    bindAppIdentityFacts(port.identityFacts, { repository: pinned.repository, ...port.settings, context: pinned });
   } catch {
     port = null;
   }
   return async (prepared) => {
     const observations = [];
     try {
-      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control5.default.validSha(own4(prepared, "sourceTree"))) fail9();
+      if (!port || own4(prepared, "valid") !== true || own4(prepared, "sourceSha") !== pinned.sha || !import_release_control5.default.validSha(own4(prepared, "sourceTree"))) fail10();
       const active = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
       const prefix = "/repos/footprintjs/foottrace", { settings } = active, routes = /* @__PURE__ */ new Map();
       routes.set(prefix, (raw) => {
@@ -25782,17 +25822,17 @@ function createFoottraceProposerReader({ transport, context }) {
           defaultBranch: own4(raw, "default_branch"),
           push: own4(own4(raw, "permissions"), "push")
         };
-        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true && !(active.inspectionReadOnly && value.push === false)) fail9();
+        if (!import_release_control5.default.sameRepo(value, pinned.repository) || value.archived !== false || value.defaultBranch !== "main" || value.push !== true && !(active.inspectionReadOnly && value.push === false)) fail10();
         return value;
       });
       routes.set(prefix + "/git/ref/heads/main", (raw) => ({ object: { sha: sha2(own4(own4(raw, "object"), "sha")) } }));
       routes.set(prefix + "/git/commits/" + pinned.sha, (raw) => ({ sha: sha2(own4(raw, "sha")), tree: { sha: sha2(own4(own4(raw, "tree"), "sha")) } }));
       routes.set("/apps/" + settings.slug, (raw) => {
-        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail9();
+        if (own4(raw, "slug") !== settings.slug || own4(raw, "client_id") !== settings.clientId) fail10();
         return { id: id(own4(raw, "id")), settingsDigest: digest3(settings) };
       });
       routes.set("/users/" + encodeURIComponent(settings.slug + "[bot]"), (raw) => {
-        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail9();
+        if (own4(raw, "type") !== "Bot" || own4(raw, "login") !== settings.slug + "[bot]") fail10();
         return { id: id(own4(raw, "id")) };
       });
       routes.set(prefix + "/actions/runs/" + pinned.runId, (raw) => ({
@@ -25809,7 +25849,7 @@ function createFoottraceProposerReader({ transport, context }) {
       const jobs = prefix + "/actions/runs/" + pinned.runId + "/attempts/" + pinned.runAttempt + "/jobs";
       for (let page = 1; page <= 8; page++) routes.set(jobs + "?per_page=100&page=" + page, (raw) => {
         const count3 = own4(raw, "total_count"), rows = array(own4(raw, "jobs"), 32);
-        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail9();
+        if (!Number.isSafeInteger(count3) || count3 < 0 || count3 > 32) fail10();
         const values = [];
         for (let i = 0; i < rows.length; i++) {
           const row = own4(rows, String(i));
@@ -25825,8 +25865,8 @@ function createFoottraceProposerReader({ transport, context }) {
         return { total_count: count3, jobs: values };
       });
       const api = async (method, route, body) => {
-        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail9();
-        const item = { kind: "native-current-identity", method: "GET", status: "unavailable" };
+        if (method !== "GET" || body !== void 0 || !routes.has(route) || observations.length >= 32) fail10();
+        const item = { kind: route.startsWith("/apps/") ? "cached-key-holder-identity" : "native-current-identity", method: "GET", status: "unavailable" };
         observations.push(item);
         const value = jsonData(routes.get(route)(own4(await active.api(method, route), "data")));
         item.status = "projected";
@@ -25837,12 +25877,12 @@ function createFoottraceProposerReader({ transport, context }) {
         await import_release_github4.default.assertCurrentMain(api, pinned);
         await api("GET", prefix);
         const commit = (await api("GET", prefix + "/git/commits/" + pinned.sha)).data;
-        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail9();
+        if (commit.sha !== pinned.sha || commit.tree.sha !== own4(prepared, "sourceTree")) fail10();
         const app = (await api("GET", "/apps/" + settings.slug)).data;
         const bot = (await api("GET", "/users/" + encodeURIComponent(settings.slug + "[bot]"))).data;
         const prepare = await import_release_github4.default.producerIdentity(api, pinned, "prepare", true);
         const proposal = await import_release_github4.default.producerIdentity(api, pinned, "proposal");
-        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail9();
+        if (proposal.status !== "in_progress" || proposal.conclusion !== null) fail10();
         await import_release_github4.default.assertCurrentMain(api, pinned);
         return jsonData({
           repositoryId: pinned.repository.id,
@@ -25858,13 +25898,15 @@ function createFoottraceProposerReader({ transport, context }) {
         });
       };
       const before = await phase(), after = await phase();
-      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail9();
+      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail10();
       return Object.freeze({
         valid: true,
         scope: "current-proposer-identity-only",
         identity: before,
         digest: digest3(before),
-        privateAppIdentityAdmitted: true,
+        keyHolderIdentityFactsObserved: true,
+        appIdentityObservation: "cached-key-holder-facts",
+        privateAppIdentityAdmitted: false,
         writerCredentialBindingAdmitted: false,
         retainedEligibilityAdmitted: false,
         authorized: false,
@@ -25944,16 +25986,16 @@ function createFoottraceProposalBootstrapInspection({ env, host, fetcher, limits
     scope.proposalBootstrapFacts = { ...scope.proposalBootstrapFacts, source: true, reason: "current-proposer-unavailable" };
   }).addFunctionBranch("proposal-bootstrap-hold-host", "CODE host source unavailable", () => {
   }).setDefault("proposal-bootstrap-hold-host").end().addDeciderFunction("Host source bytes joined", (scope) => decide(scope, [
-    { when: (s) => s.proposalBootstrapFacts.source, then: "proposal-bootstrap-read-current", label: "Read private configured App and exact current running producer using same captured owner" }
-  ], "proposal-bootstrap-hold-current"), "proposal-bootstrap-current-decision").addFunctionBranch("proposal-bootstrap-read-current", "Read actual current private identity", async (scope) => {
+    { when: (s) => s.proposalBootstrapFacts.source, then: "proposal-bootstrap-read-current", label: "Join cached key-holder facts with live exact current running producer" }
+  ], "proposal-bootstrap-hold-current"), "proposal-bootstrap-current-decision").addFunctionBranch("proposal-bootstrap-read-current", "Read live current producer with cached App facts", async (scope) => {
     const value = await readCurrent(prepared);
     if (!value.valid) return;
     current = value;
     scope.proposalBootstrapRefs = [...scope.proposalBootstrapRefs, { kind: "current-proposer", receiptRef: value.digest }];
     scope.proposalBootstrapFacts = { ...scope.proposalBootstrapFacts, current: true, reason: "proposal-bootstrap-drift" };
-  }).addFunctionBranch("proposal-bootstrap-hold-current", "Current private identity unavailable", () => {
-  }).setDefault("proposal-bootstrap-hold-current").end().addDeciderFunction("Current private producer observed", (scope) => decide(scope, [
-    { when: (s) => s.proposalBootstrapFacts.current, then: "proposal-bootstrap-recheck", label: "Reacquire local/native source and private current identity" }
+  }).addFunctionBranch("proposal-bootstrap-hold-current", "Current producer or cached App facts unavailable", () => {
+  }).setDefault("proposal-bootstrap-hold-current").end().addDeciderFunction("Current native producer observed", (scope) => decide(scope, [
+    { when: (s) => s.proposalBootstrapFacts.current, then: "proposal-bootstrap-recheck", label: "Reacquire local/native source and live current producer" }
   ], "proposal-bootstrap-hold-recheck"), "proposal-bootstrap-recheck-decision").addFunctionBranch("proposal-bootstrap-recheck", "Recheck host source and captured runtime identity", async (scope) => {
     if (!await fresh()) return;
     scope.proposalBootstrapFacts = { ...scope.proposalBootstrapFacts, fresh: true, reason: "proposal-bootstrap-observed" };

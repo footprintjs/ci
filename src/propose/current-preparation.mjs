@@ -28,7 +28,7 @@ export function createFoottraceCurrentPreparationReader({ api, context, artifact
           !control.validSha(own(prepared, 'sourceTree')) || !control.validSha(own(prepared, 'targetTree'))) fail();
       const identity = raw => {
         if (own(raw, 'valid') !== true || own(raw, 'scope') !== 'current-proposer-identity-only' ||
-            own(raw, 'privateAppIdentityAdmitted') !== true || own(raw, 'authorized') !== false ||
+            own(raw, 'privateAppIdentityAdmitted') !== false || own(raw,'keyHolderIdentityFactsObserved')!==true || own(raw,'appIdentityObservation')!=='cached-key-holder-facts' || own(raw, 'authorized') !== false ||
             own(raw, 'writerCredentialBindingAdmitted') !== false || own(raw, 'retainedEligibilityAdmitted') !== false) fail();
         const value = jsonData(own(raw, 'identity'));
         if (value.repositoryId !== pinned.repository.id || value.sourceSha !== pinned.sha ||

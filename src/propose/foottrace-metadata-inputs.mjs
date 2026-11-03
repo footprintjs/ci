@@ -70,10 +70,10 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
  .addDeciderFunction('Current ordinary inputs independently bound',scope=>decide(scope,[
   {when:s=>s.metadataInputFacts.currentInputs===true,then:'metadata-read-current',label:'Actual current invocation, never a historical creator'}
  ],'metadata-hold-current'),'metadata-current-input-decision')
- .addFunctionBranch('metadata-read-current','Read actual current private App and producer',async scope=>{
+ .addFunctionBranch('metadata-read-current','Join cached key-holder App facts and live current producer',async scope=>{
   try{
    const value=await readCurrent(prepared);
-   if(!value.valid||value.scope!=='current-proposer-identity-only'||value.privateAppIdentityAdmitted!==true||value.authorized!==false)throw new Error();
+   if(!value.valid||value.scope!=='current-proposer-identity-only'||value.privateAppIdentityAdmitted!==false||value.keyHolderIdentityFactsObserved!==true||value.appIdentityObservation!=='cached-key-holder-facts'||value.authorized!==false)throw new Error();
    current=value;scope.metadataInputRefs=[...scope.metadataInputRefs,{kind:'current-proposer',receiptRef:value.digest,sourceSha:prepared.sourceSha}];
    scope.metadataInputFacts={...scope.metadataInputFacts,currentIdentity:true,reason:'current-preparation-unavailable'};
   }catch{/* Current identity unavailable. */}

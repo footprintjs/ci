@@ -175,9 +175,9 @@ export async function runProposeInspection({ profile, inputs, readers, recordLim
     })
     .addFunctionBranch('hold-candidate', 'Candidate publication evidence blocked', () => {}).setDefault('hold-candidate').end()
     .addDeciderFunction('Candidate publication observations joined', scope => decide(scope, [
-      { when: s => s.proposeInspectionFacts.candidatePublication === true, then: 'read-current-proposer', label: 'Observe actual private App/current running producer; writer handoff still unadmitted' },
+      { when: s => s.proposeInspectionFacts.candidatePublication === true, then: 'read-current-proposer', label: 'Join cached App facts and live current running producer; writer handoff unadmitted' },
     ], 'hold-current-proposer'), 'propose-inspection-current-proposer-entry-decision')
-    .addFunctionBranch('read-current-proposer', 'Inspect native private App and current running producer', async scope => {
+    .addFunctionBranch('read-current-proposer', 'Inspect cached App facts and live current running producer', async scope => {
       try {
         const raw = await ports.readCurrentProposer(prepared);
         scope.proposeInspectionFacts = { ...scope.proposeInspectionFacts, proposerReason: 'current-proposer-unavailable',

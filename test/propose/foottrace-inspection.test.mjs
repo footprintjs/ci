@@ -48,11 +48,10 @@ test('workflow collection drift after bootstrap holds before current identity or
  assert.equal(f.calls.some(p=>p.endsWith('/actions/runs/500')),false);
  assert.equal(f.calls.some(p=>p.endsWith('/actions/artifacts/800/zip')),false);
 });
-test('a different but internally stable App identity cannot replace the immediately prior native identity',async()=>{
- let appReads=0;
- const f=await bootstrapFixture({changeHttp:(response,url)=>{
-  if(new URL(url).pathname==='/app'&&++appReads>=3)
-   return Response.json({id:701,slug:'release-app',client_id:'public-client-id'});
+test('a later changed running producer cannot replace the immediately prior native identity',async()=>{
+ let runReads=0;
+ const f=await bootstrapFixture({change:(value,route)=>{
+  if(route.endsWith('/actions/runs/500')&&++runReads>=5)value.id=501;
  }}),r=await run(f);
  assert.equal(r.status,'held');assert.equal(facts(r).proposerIdentity,true);assert.equal(facts(r).currentPreparation,false);
  assert.equal(f.calls.some(p=>p.endsWith('/actions/artifacts/800/zip')),false);

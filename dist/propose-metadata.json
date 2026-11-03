@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "34f03975abe4e6dd93bb0eea238f49d7fdc351f61f2a93a60d9b2cde320216a8",
+  "sha256": "ff520233125cf8988a17652c3058bdece300247cefd92c78268e6050dbe231cd",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1050,7 +1050,11 @@
     },
     {
       "path": "src/propose/app-identity-api.mjs",
-      "bytes": 1821
+      "bytes": 1060
+    },
+    {
+      "path": "src/propose/app-identity-facts.mjs",
+      "bytes": 1982
     },
     {
       "path": "src/propose/current-prepared-inputs.mjs",
@@ -1058,7 +1062,7 @@
     },
     {
       "path": "src/propose/current-proposer.mjs",
-      "bytes": 7160
+      "bytes": 7490
     },
     {
       "path": "src/propose/foottrace-context.mjs",
@@ -1074,7 +1078,7 @@
     },
     {
       "path": "src/propose/foottrace-transport.mjs",
-      "bytes": 4030
+      "bytes": 4209
     },
     {
       "path": "src/propose/github-transport.mjs",
@@ -1086,11 +1090,11 @@
     },
     {
       "path": "src/propose/host-source-binding.mjs",
-      "bytes": 5548
+      "bytes": 5645
     },
     {
       "path": "src/propose/local-host-source.mjs",
-      "bytes": 1052
+      "bytes": 1086
     },
     {
       "path": "src/propose/metadata-response-policy.mjs",
@@ -1110,7 +1114,7 @@
     },
     {
       "path": "src/propose/proposal-bootstrap-flow.mjs",
-      "bytes": 7104
+      "bytes": 7105
     },
     {
       "path": "src/propose/proposal-bootstrap.mjs",
@@ -1118,7 +1122,7 @@
     },
     {
       "path": "src/propose/proposal-invocation.mjs",
-      "bytes": 3186
+      "bytes": 3401
     },
     {
       "path": "src/propose/proposal-metadata-payload.mjs",

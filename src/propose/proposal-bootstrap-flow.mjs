@@ -53,16 +53,16 @@ export function createFoottraceProposalBootstrapInspection({env,host,fetcher,lim
  })
  .addFunctionBranch('proposal-bootstrap-hold-host','CODE host source unavailable',()=>{}).setDefault('proposal-bootstrap-hold-host').end()
  .addDeciderFunction('Host source bytes joined',scope=>decide(scope,[
-  {when:s=>s.proposalBootstrapFacts.source,then:'proposal-bootstrap-read-current',label:'Read private configured App and exact current running producer using same captured owner'}
+  {when:s=>s.proposalBootstrapFacts.source,then:'proposal-bootstrap-read-current',label:'Join cached key-holder facts with live exact current running producer'}
  ],'proposal-bootstrap-hold-current'),'proposal-bootstrap-current-decision')
- .addFunctionBranch('proposal-bootstrap-read-current','Read actual current private identity',async scope=>{
+ .addFunctionBranch('proposal-bootstrap-read-current','Read live current producer with cached App facts',async scope=>{
   const value=await readCurrent(prepared);if(!value.valid)return;
   current=value;scope.proposalBootstrapRefs=[...scope.proposalBootstrapRefs,{kind:'current-proposer',receiptRef:value.digest}];
   scope.proposalBootstrapFacts={...scope.proposalBootstrapFacts,current:true,reason:'proposal-bootstrap-drift'};
  })
- .addFunctionBranch('proposal-bootstrap-hold-current','Current private identity unavailable',()=>{}).setDefault('proposal-bootstrap-hold-current').end()
- .addDeciderFunction('Current private producer observed',scope=>decide(scope,[
-  {when:s=>s.proposalBootstrapFacts.current,then:'proposal-bootstrap-recheck',label:'Reacquire local/native source and private current identity'}
+ .addFunctionBranch('proposal-bootstrap-hold-current','Current producer or cached App facts unavailable',()=>{}).setDefault('proposal-bootstrap-hold-current').end()
+ .addDeciderFunction('Current native producer observed',scope=>decide(scope,[
+  {when:s=>s.proposalBootstrapFacts.current,then:'proposal-bootstrap-recheck',label:'Reacquire local/native source and live current producer'}
  ],'proposal-bootstrap-hold-recheck'),'proposal-bootstrap-recheck-decision')
  .addFunctionBranch('proposal-bootstrap-recheck','Recheck host source and captured runtime identity',async scope=>{
   if(!await fresh())return;

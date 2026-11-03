@@ -79,10 +79,9 @@ test('the captured repository credential cannot be replaced through a later envi
  const r=await module.runFoottraceProposalBootstrapInspection({...invocation,fetcher});
  assert.equal(r.status,'proposal-bootstrap-only');assert.equal(r.report.authorized,false);delete invocation.env.GH_TOKEN;
 });
-test('a later stable configured-App identity cannot replace the immediately prior identity',async()=>{
- let appReads=0,f;f=await proposalBootstrapFixture({changeHttp:(response,url)=>{
-  if(new URL(url).pathname==='/app'&&++appReads>=3)
-   return Response.json({id:701,slug:f.f.options.settings.slug,client_id:f.f.options.settings.clientId});
+test('a later changed running producer cannot replace the immediately prior identity',async()=>{
+ let runReads=0,f;f=await proposalBootstrapFixture({change:(value,route)=>{
+  if(route.endsWith('/actions/runs/500')&&++runReads>=5)value.id=501;
  }});
  const {r}=await run(f);assert.equal(r.status,'held');assert.equal(r.report.reason,'proposal-bootstrap-drift');assert.equal(r.backend===null,true);
 });
@@ -120,15 +119,15 @@ test('local CODE source bytes are detached before any provider await can retarge
  assert.equal(r.status,'held');assert.equal(r.backend===null,true);
 });
 
-test('inspection can observe a non-writable repository without admitting writer authority or retaining JWT bytes',async()=>{
+test('inspection can observe a non-writable repository without admitting writer authority or retaining raw identity input',async()=>{
  const f=await proposalBootstrapFixture({change:(d,p)=>{if(p==='/repos/footprintjs/foottrace')d.permissions.push=false;}});
- const invocation=f.makeInvocation(),jwt=invocation.env.APP_JWT;
+ const invocation=f.makeInvocation(),facts=invocation.env.APP_IDENTITY_FACTS;
  const r=await module.runFoottraceProposalBootstrapInspection(invocation);
  assert.equal(r.status,'proposal-bootstrap-only');assert.equal(r.report.writerCredentialBindingAdmitted,false);assert.equal(r.report.authorized,false);
- assert.equal(Object.hasOwn(invocation.env,'APP_JWT'),false);assert.equal(JSON.stringify(r.record).includes(jwt),false);
+ assert.equal(typeof facts,'string');assert.equal(Object.hasOwn(invocation.env,'APP_IDENTITY_FACTS'),false);assert.equal(JSON.stringify(r.record).includes(facts),false);
 });
 test('accidental private-key input to inspection is refused and all credential fields are erased before IO',async()=>{
  const f=await proposalBootstrapFixture({changeEnv:e=>{e.APP_PRIVATE_KEY='PRIVATE-FORBIDDEN';}});
  const {r,invocation}=await run(f);assert.equal(r.status,'held');assert.equal(f.calls.length,0);
- for(const key of ['APP_PRIVATE_KEY','APP_JWT','GH_TOKEN'])assert.equal(Object.hasOwn(invocation.env,key),false);
+ for(const key of ['APP_IDENTITY_FACTS','APP_PRIVATE_KEY','APP_JWT','GH_TOKEN'])assert.equal(Object.hasOwn(invocation.env,key),false);
 });

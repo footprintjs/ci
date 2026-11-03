@@ -1,3 +1,4 @@
+import {identityFactsFixture} from './identity-facts-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as nativeTransport from '../../src/propose/foottrace-transport.mjs';
@@ -5,7 +6,7 @@ const repository={id:123,full_name:'footprintjs/foottrace'},route='/repos/footpr
 const desired={title:'Release 1.11.1',body:'Exact computed notes'};
 function fixture({uncertain=false,limits}={}){
  const calls=[],transport=nativeTransport.createFoottraceTransport({repository,token:'offline_sealed_owner_token',
-  appIdentity:{slug:'offline-release',clientId:'offline-client',jwt:'offline_unused_identity_jwt'},limits,
+  appIdentity:{slug:'agentfootprint-release',clientId:'offline-client',facts:identityFactsFixture()},limits,
   fetcher:async(url,options)=>{calls.push({url,options});if(uncertain&&options.method==='PATCH')throw new Error('PRIVATE-UNCERTAINTY');
    return new Response('{"number":43}',{headers:{'content-type':'application/json'}});}});
  assert.equal(typeof nativeTransport.foottraceMetadataPatchPort,'function','same sealed owner has no closed metadata PATCH facet');

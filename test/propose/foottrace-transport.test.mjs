@@ -29,14 +29,14 @@ async function acquire(f) {
   return await createFoottraceCurrentPreparationReader({api:port.api,context:f.context,artifactId:800,readCurrentProposer})(f.prepared,current);
  } catch {return {valid:false};}
 }
-test('the unchanged native producer/archive guards compose through actual private-App HTTP and anonymous ZIP redirects',async()=>{
+test('the unchanged native producer/archive guards compose with cached key-holder facts and live repository HTTP and anonymous ZIP redirects',async()=>{
  const f=fixture(),r=await acquire(f);assert.equal(r.valid,true);assert.equal(r.reference.archiveDigest,hash(f.archive()));assert.equal(f.downloads.length,2);
  assert.ok(f.downloads.every(call=>call.hasAuth===false&&call.redirect==='error'&&call.method==='GET'));assert.equal(r.authorized,false);
  assert.equal(JSON.stringify(r).includes('PRIVATE-SIGNED-URL'),false);assert.equal(JSON.stringify(r).includes('PRIVATE KEY'),false);
  const facts=foottraceTransportPort(f.transport).transportFacts();assert.ok(facts.fetchAttempts>2);assert.equal(facts.exhausted,false);
 });
-test('native App metadata still uses the private signed GET, without forwarding that credential to an archive host',async()=>{
- const f=fixture(),r=await acquire(f);assert.equal(r.valid,true);assert.ok(f.seen.some(call=>call.authKind==='verified-synthetic-app-jwt'));
+test('cached App facts require no private GET and no repository credential reaches an archive host',async()=>{
+ const f=fixture(),r=await acquire(f);assert.equal(r.valid,true);assert.equal(f.seen.some(call=>call.path==='/app'),false);
  assert.ok(f.downloads.every(call=>call.hasAuth===false));
 });
 test('bad redirected archive bytes remain refused by the unchanged native ZIP and whole-proposal guards',async()=>{

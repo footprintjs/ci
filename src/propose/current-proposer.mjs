@@ -6,6 +6,7 @@ import { jsonData, id, text, array } from '../eco/json-data.mjs';
 import { own } from './source-inventory.mjs';
 import { foottraceInvocationContext } from './foottrace-context.mjs';
 import { foottraceTransportPort } from './foottrace-transport.mjs';
+import {bindAppIdentityFacts} from './app-identity-facts.mjs';
 const fail = () => { throw new Error('current-proposer-unavailable'); };
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const repo = value => ({ id: id(own(value, 'id')),
@@ -18,7 +19,7 @@ function state(raw) {
   if (!statuses.includes(status) || (conclusion !== null && !conclusions.includes(conclusion))) fail();
   return { status, conclusion };
 }
-/** Current producer/private App identity observations only. This deliberately
+/** Cached key-holder App facts and live current producer observations only. This deliberately
  * leaves writer credential-to-job binding and complete retained eligibility
  * unadmitted; it never grants a ref write, archive approval or publication.
  */
@@ -28,6 +29,7 @@ export function createFoottraceProposerReader({ transport, context }) {
     pinned = foottraceInvocationContext(context);
     port = foottraceTransportPort(transport, { requests: 128, totalBytes: 8 * 1024 * 1024 });
     if (!control.sameRepo(port.repository, pinned.repository)) fail();
+    bindAppIdentityFacts(port.identityFacts,{repository:pinned.repository,...port.settings,context:pinned});
   } catch { port = null; }
   return async prepared => {
     const observations = [];
@@ -72,7 +74,7 @@ export function createFoottraceProposerReader({ transport, context }) {
       });
       const api = async (method, route, body) => {
         if (method !== 'GET' || body !== undefined || !routes.has(route) || observations.length >= 32) fail();
-        const item = { kind: 'native-current-identity', method: 'GET', status: 'unavailable' }; observations.push(item);
+        const item = { kind: route.startsWith('/apps/')?'cached-key-holder-identity':'native-current-identity', method: 'GET', status: 'unavailable' }; observations.push(item);
         const value = jsonData(routes.get(route)(own(await active.api(method, route), 'data')));
         item.status = 'projected'; item.digest = digest(value); return { data: value };
       };
@@ -94,7 +96,7 @@ export function createFoottraceProposerReader({ transport, context }) {
       const before = await phase(), after = await phase();
       if (!isDeepStrictEqual(before, after)) fail();
       return Object.freeze({ valid: true, scope: 'current-proposer-identity-only', identity: before, digest: digest(before),
-        privateAppIdentityAdmitted: true, writerCredentialBindingAdmitted: false, retainedEligibilityAdmitted: false, authorized: false,
+        keyHolderIdentityFactsObserved:true,appIdentityObservation:'cached-key-holder-facts',privateAppIdentityAdmitted: false, writerCredentialBindingAdmitted: false, retainedEligibilityAdmitted: false, authorized: false,
         observations: Object.freeze(observations.map(Object.freeze)) });
     } catch (error) {
       return Object.freeze({ valid: false, reason: 'current-proposer-unavailable', nativeReason: native.refusalCode(error),

@@ -5,7 +5,7 @@ import {captureRecord} from '../record.mjs';
 import {createFoottraceProposalBootstrapInspection} from './proposal-bootstrap-flow.mjs';
 import {createFoottraceMetadataHistoryInspection} from './foottrace-metadata-history.mjs';
 /** Production INPUT composition: capture one opaque runtime owner, observe its
- * actual local/native host source and running private App producer, then reuse
+ * actual local/native host source and live running producer with cached App facts, then reuse
  * that SAME owner for current preparation/retained history. One executor owns
  * both prefixes and observes its own actual native completed result stages.
  * Matching diagnostic inputs admit no writer, terminal result or live effect.

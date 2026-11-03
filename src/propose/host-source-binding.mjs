@@ -9,7 +9,7 @@ import {foottraceInvocationContext} from './foottrace-context.mjs';
 import {foottraceTransportPort} from './foottrace-transport.mjs';
 const fail=()=>{throw new Error('proposal-host-source-unavailable');};
 const sha=b=>createHash('sha256').update(b).digest('hex'),digest=v=>sha(JSON.stringify(v));
-const paths={workflow:'.github/workflows/publish.yml',entry:'scripts/release-runner.cjs',profile:'scripts/propose-host-profile.cjs'};
+const paths={workflow:'.github/workflows/publish.yml',entry:'scripts/release-runner.cjs',profile:'scripts/propose-host-profile.cjs',identityHelper:'scripts/release-inspection-auth.cjs'};
 /** Trusted HOST CODE I/O, never saved/model profile data. A match alone is not
  * the missing independent production bridge authority. No source is evaluated.
  * Native complete Git inventory and actual local source bytes bind the inputs.
@@ -37,8 +37,8 @@ export function createFoottraceHostSourceReader({transport,context,invocation,ho
    };
    const phase=async()=>{
     await requireClean();
-    const profile=fields(jsonData(await readProfile()),['id','sourceSha','sourceTree','toolSha','workflow','entry','profile']);
-    if(profile.id!=='foottrace-proposal-host-v1'||profile.sourceSha!==pinned.sha||
+    const profile=fields(jsonData(await readProfile()),['id','sourceSha','sourceTree','toolSha','workflow','entry','profile','identityHelper']);
+    if(profile.id!=='foottrace-proposal-host-v2'||profile.sourceSha!==pinned.sha||
      profile.sourceTree!==prepared.sourceTree||profile.toolSha!==step.toolSha)fail();
     const local=snapshotLocalHostSource(await readSource());
     if(local.sourceSha!==pinned.sha||local.sourceTree!==prepared.sourceTree)fail();
@@ -50,7 +50,7 @@ export function createFoottraceHostSourceReader({transport,context,invocation,ho
      const rule=fields(profile[kind],['path','sha','sha256','bytes','mode']);
      if(rule.path!==paths[kind]||! /^[a-f0-9]{40}$/.test(rule.sha)||! /^[a-f0-9]{64}$/.test(rule.sha256)||
       !Number.isSafeInteger(rule.bytes)||rule.bytes<1||rule.bytes>512*1024||
-      !['100644','100755'].includes(rule.mode)||(kind==='workflow'&&rule.mode!=='100644'))fail();
+      !['100644','100755'].includes(rule.mode)||(['workflow','identityHelper'].includes(kind)&&rule.mode!=='100644'))fail();
      const actual=inventory.get(rule.path),raw=own(local.files,kind);
      if(!actual||actual.sha!==rule.sha||actual.mode!==rule.mode||!Buffer.isBuffer(raw)||raw.length!==rule.bytes)fail();
      const bytes=Buffer.from(raw);
