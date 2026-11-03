@@ -6,6 +6,7 @@ try {
   const args = process.argv.slice(2);
   if (args.length !== 4 || args[0] !== '--repo' || args[2] !== '--base')
     throw new Error('usage: node scripts/file-size.mjs --repo <checkout> --base <full-commit-SHA>');
+  if (!/^[a-f0-9]{40}$/.test(args[3])) throw new Error('file-size base must be a full commit SHA');
   const repo = resolve(args[1]);
   const current = readTree(repo, 'HEAD');
   const base = readTree(repo, args[3]);

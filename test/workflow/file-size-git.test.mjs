@@ -93,3 +93,13 @@ test('reusable workflow checks the real release plan lineage and installs no can
   assert.match(workflow, /persist-credentials: false/);
   assert.doesNotMatch(workflow, /npm (?:ci|install)|secrets: inherit|contents: write/);
 });
+
+test('CLI does not accept HEAD as its comparison base', (t) => {
+  const f = fixture(t);
+  f.write('src/a.ts', 'line\n');
+  f.write('.file-size-baseline.json', baseline({}));
+  f.commit();
+  const result = f.check('HEAD');
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /full commit SHA/);
+});
