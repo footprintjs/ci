@@ -1,10 +1,11 @@
+import {createInspectionReobserver} from './inspection-reobservation.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {id} from '../eco/json-data.mjs';
 import {foottraceInvocationContext} from './foottrace-context.mjs';
 import {createFoottraceInputBootstrap} from './foottrace-input-bootstrap.mjs';
 import {foottraceTransportPort} from './foottrace-transport.mjs';
 import {createFoottraceRetainedAttemptProfile,createFoottracePendingWitnessProfile,createFoottraceWorkflowProfile} from './foottrace-profile.mjs';
-import {runProposeInspection} from './inspection-flow.mjs';
+import {createProposeInspection,runProposeInspectionStage} from './inspection-flow.mjs';
 import {createFoottraceLineageReader} from './foottrace-lineage.mjs';
 import {createFoottraceAncestryReader} from './foottrace-ancestry.mjs';
 import {createFoottraceReviewReader} from './foottrace-reviews.mjs';
@@ -22,13 +23,13 @@ import {createFoottraceOrdinaryPreparationReader} from './foottrace-ordinary-pre
  * recipe extends the SAME native chart built by discovery; one executor/record.
  * Writer-token handoff, full effect eligibility and effects remain unadmitted.
  */
-export async function runFoottraceProposeInspection({transport,context,artifactId,recordLimitBytes}={}) {
+export function createFoottraceProposeInspection({transport,context,artifactId}={},predecessor) {
  let pinned,sourceContext,port,valid=false;
  try{
   pinned=foottraceInvocationContext(context);id(artifactId);
   port=foottraceTransportPort(transport);sourceContext={repository:pinned.repository,sha:pinned.sha};valid=true;
  }catch{/* The native bootstrap records invalid input without service reads. */}
- const bootstrap=createFoottraceInputBootstrap({transport:valid?transport:null,context:valid?sourceContext:undefined});
+ const bootstrap=createFoottraceInputBootstrap({transport:valid?transport:null,context:valid?sourceContext:undefined},predecessor);
  let readers={};
  try{
   if(!valid)throw new Error();
@@ -61,5 +62,12 @@ export async function runFoottraceProposeInspection({transport,context,artifactI
    }
   };
  }catch{readers={};}
- return runProposeInspection({profile:bootstrap.profile,readers,inputBootstrap:bootstrap,retainedProfile:createFoottraceRetainedAttemptProfile(),recordLimitBytes});
+ const retainedProfile=createFoottraceRetainedAttemptProfile();
+ const stage=createProposeInspection({profile:bootstrap.profile,readers,inputBootstrap:bootstrap,retainedProfile});
+ return createInspectionReobserver({stage,bootstrap,readers,profile:bootstrap.profile,retainedProfile});
+}
+
+/** The public facade never forwards DATA composition or reader/executor ports. */
+export async function runFoottraceProposeInspection({transport,context,artifactId,recordLimitBytes}={}){
+ return runProposeInspectionStage(createFoottraceProposeInspection({transport,context,artifactId}),recordLimitBytes);
 }

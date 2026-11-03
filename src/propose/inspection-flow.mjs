@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
-import { flowChart, FlowChartExecutor, decide } from 'footprintjs';
-import { controlDepRecorder } from 'footprintjs/trace';
-import { captureRecord } from '../record.mjs';
+import { flowChart, decide } from 'footprintjs';
+import { runNativeObservationRecord } from './native-observation-record.mjs';
 import native from '../guards/release-github.cjs';
 import { packageProfile } from './package-profile.mjs';
 import { createRetainedAttemptAssessor } from './retained-attempts.mjs';
@@ -14,7 +13,9 @@ import { lineageBinding, ancestryBinding, reviewBinding, workflowBinding, candid
  * retained eligibility, fresh current-run/App approval or permission to mutate.
  * Reader bodies/errors stay outside scope; only owned bindings/digest refs enter.
  */
-export async function runProposeInspection({ profile, inputs, readers, recordLimitBytes, retainedProfile, inputBootstrap } = {}) {
+export function createProposeInspection({ profile, inputs, readers, retainedProfile, inputBootstrap } = {}) {
+  let started=false,invalidated=false,backend=null;
+  const resultStageId='propose-inspection-report';
   const assessRetainedAttempts = createRetainedAttemptAssessor(retainedProfile);
   let retainedAttempts = null;
   let prepared = null, ordinaryPreparation = null, lineage = null, ancestry = null, reviews = null, workflows = null, candidate = null, sourceVersions = null, retainedWitnesses = null, currentProposer = null, currentPreparation = null, workflowCollection = null, recipe = null, ports = null;
@@ -24,6 +25,9 @@ export async function runProposeInspection({ profile, inputs, readers, recordLim
     if ([readLineage, readAncestry, readReviews, readWorkflows, readRetainedWitnesses, readRetainedVersions, readCandidatePublication, readCurrentProposer, readCurrentPreparation, readOrdinaryPreparation].every(port => typeof port === 'function')) ports = { readLineage, readAncestry, readReviews, readWorkflows, readRetainedWitnesses, readRetainedVersions, readCandidatePublication, readCurrentProposer, readCurrentPreparation, readOrdinaryPreparation };
   } catch { /* An unavailable trusted port takes the native hold branch. */ }
   const prepareInputStage = scope => {
+    backend=null;
+    if(started){invalidated=true;throw new Error('propose-inspection-already-executed');}
+    started=true;
     try { recipe = packageProfile(profile); const actualInputs = inputBootstrap ? (scope.proposeBootstrapResult.available === true ? inputBootstrap.getBackend()?.inputs : null) : inputs; const value = createRefreshInputReader(recipe)(actualInputs); if (value.valid === true) prepared = value; } catch { prepared = null; }
     scope.proposePreparationRefs = prepared?.preparationRefs ?? [];
     scope.proposeEvidenceRefs = [];
@@ -245,18 +249,29 @@ export async function runProposeInspection({ profile, inputs, readers, recordLim
       scope.proposeOutcome = 'hold'; scope.proposeReason = 'PROPOSAL_EVIDENCE_UNAVAILABLE';
     }).setDefault('inspection-held').end()
     .addFunction('Record inspection result', scope => {
+      if(invalidated)throw new Error('propose-inspection-already-executed');
       scope.proposeResult = { outcome: scope.proposeOutcome, reason: scope.proposeReason,
         facts: { ...scope.proposeInspectionFacts, count: scope.proposeEvidenceRefs.length, approved: false, executedWrites: 0 } };
-    }, 'propose-inspection-report').build();
-  const executor = new FlowChartExecutor(chart, { initialContext: { readOnly: true }, commitValues: 'delta',
-    captureCoverage: true, readSources: true, writeProvenance: 'reads-prefix' });
-  executor.attachFlowRecorder(controlDepRecorder({ id: 'control', captureCoverage: true }));
-  let completed = false;
-  try { await executor.run(); completed = true; } catch { prepared = ordinaryPreparation = lineage = ancestry = reviews = workflows = candidate = sourceVersions = retainedWitnesses = currentProposer = currentPreparation = workflowCollection = null; }
-  const snapshot = completed ? executor.getSnapshot() : undefined;
-  const record = captureRecord({ snapshot, structure: chart.buildTimeStructure, completed, recordLimitBytes, reason: 'NATIVE_FAILURE' });
-  const passed = snapshot?.sharedState?.proposeOutcome === 'pass';
-  return { status: !record.complete ? 'incomplete' : passed ? 'inspection-only' : 'held',
-    report: { authorized: false, executedWrites: 0, eligibilityAdmitted: false, retainedAttemptsEligible: record.complete && passed && retainedAttempts?.eligible === true }, record,
-    backend: record.complete && passed ? Object.freeze({ prepared, ordinaryPreparation, lineage, ancestry, reviews, workflows, retainedWitnesses, sourceVersions, candidate, currentProposer, currentPreparation, retainedAttempts }) : null };
+      if(scope.proposeOutcome==='pass')backend=Object.freeze({prepared,ordinaryPreparation,lineage,ancestry,reviews,workflows,
+        retainedWitnesses,sourceVersions,candidate,currentProposer,currentPreparation,retainedAttempts});
+    }, resultStageId);
+  // Runtime INPUT facts only. An owning controller must independently check its
+  // actual committed native prefix, eligibility and every immediate predicate.
+  // No DATA executor, saved record or declared stage ID grants completion.
+  return Object.freeze({chart,resultStageId,getBackend:()=>invalidated||(inputBootstrap&&inputBootstrap.getBackend()===null)?null:backend});
+}
+/** Both stand-alone and composed production facades execute this SAME recipe.
+ * A truncated/failed whole native run returns no usable backend even if an
+ * earlier input stage completed. Factory backends are never effect grants.
+ */
+export async function runProposeInspectionStage(stage,recordLimitBytes){
+  const {record,snapshot}=await runNativeObservationRecord({chart:stage.chart,recordLimitBytes});
+  const backend=stage.getBackend(),passed=snapshot?.sharedState?.proposeOutcome==='pass';
+  return {status:!record.complete?'incomplete':passed?'inspection-only':'held',record,
+    report:{authorized:false,executedWrites:0,eligibilityAdmitted:false,
+      retainedAttemptsEligible:record.complete&&passed&&backend?.retainedAttempts?.eligible===true},
+    backend:record.complete&&passed?backend:null};
+}
+export async function runProposeInspection({recordLimitBytes,...options}={}){
+  return runProposeInspectionStage(createProposeInspection(options),recordLimitBytes);
 }

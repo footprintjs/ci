@@ -22,7 +22,7 @@ const discoveryReasons=new Set(['pending-discovery-unavailable','preparation-can
  * produced; ordinary kind, current App/producer, writer and eligibility remain
  * separately required, even when a complete native record is available.
  */
-export function createFoottraceInputBootstrap({transport,context}={}) {
+export function createFoottraceInputBootstrap({transport,context}={},predecessor) {
  const profile=createFoottracePreparationProfile();let pinned,port,readLineage,readPending,readWorkflows,sources,discover;
  try{
   pinned=fields(jsonData(context),['repository','sha']);fields(pinned.repository,['id','full_name']);
@@ -34,8 +34,28 @@ export function createFoottraceInputBootstrap({transport,context}={}) {
   sources=createFoottraceDiscoveryPorts({api:port.api,repository:port.repository});
   discover=createPendingWitnessDiscovery({profile,nativeProfile:createFoottracePendingWitnessProfile(),repository:port.repository,...sources});
  }catch{port=null;}
- let lineage=null,pending=null,collection=null,discovery=null,inputs=null,prepared=null,complete=false;
- const chart=flowChart('Discover actual published predecessor',async scope=>{
+ let lineage=null,pending=null,collection=null,discovery=null,inputs=null,prepared=null,complete=false,started=false,invalidated=false;
+ const recheckDiscovery=async()=>{
+  const freshPending=await readPending();
+  if(!freshPending.valid||!isDeepStrictEqual(freshPending.reference,pending.reference))throw new Error('bootstrap-observation-drift');
+  const freshCollection=await readWorkflows();
+  if(!freshCollection.valid||freshCollection.digest!==collection.digest)throw new Error('bootstrap-observation-drift');
+ };
+ const reobserve=async()=>{
+  if(!complete)return false;
+  try{
+   const freshLineage=await readLineage();
+   if(!freshLineage.valid||!isDeepStrictEqual(freshLineage,lineage))throw new Error('bootstrap-lineage-drift');
+   const freshInputs={pending:discovery.backend.pending,currentSource:await sources.readSource(pinned.sha),currentPreparationDate:null};
+   const freshPrepared=createRefreshInputReader(profile)(freshInputs);
+   if(!freshPrepared.valid||!isDeepStrictEqual(freshPrepared,prepared))throw new Error('bootstrap-preparation-drift');
+   await recheckDiscovery();return true;
+  }catch{complete=false;return false;}
+ };
+ const initialize=async scope=>{
+  complete=false;
+  if(started){invalidated=true;throw new Error('propose-bootstrap-already-executed');}
+  started=true;
   scope.proposeBootstrapFacts={lineage:false,pending:false,workflows:false,discovery:false,prepared:false,fresh:false,reason:'bootstrap-context-unavailable',
    authorized:false,executedWrites:0,privateAppIdentityAdmitted:false};
   scope.proposeBootstrapRefs=[];
@@ -48,7 +68,11 @@ export function createFoottraceInputBootstrap({transport,context}={}) {
     sourceTree:lineage.sourceTree,version:lineage.version,archiveDigest:lineage.archiveDigest})}];
    scope.proposeBootstrapFacts={...scope.proposeBootstrapFacts,lineage:true,reason:'bootstrap-pending-unavailable'};
   }catch{scope.proposeBootstrapFacts={...scope.proposeBootstrapFacts,reason:'bootstrap-lineage-unavailable'};}
- },'propose-bootstrap-lineage')
+ };
+ // Trusted CODE composition only; no predecessor/executor fields from public DATA.
+ const start=predecessor?predecessor.addFunction('Discover actual published predecessor',initialize,'propose-bootstrap-lineage')
+  :flowChart('Discover actual published predecessor',initialize,'propose-bootstrap-lineage');
+ const chart=start
  .addDeciderFunction('Published predecessor discovered',scope=>decide(scope,[
   {when:s=>s.proposeBootstrapFacts.lineage===true,then:'bootstrap-read-pending',label:'Actual native published L only'}],'bootstrap-hold-pending'),'propose-bootstrap-lineage-decision')
  .addFunctionBranch('bootstrap-read-pending','Discover actual pending reference',async scope=>{
@@ -100,19 +124,17 @@ export function createFoottraceInputBootstrap({transport,context}={}) {
   {when:s=>s.proposeBootstrapFacts.prepared===true,then:'bootstrap-recheck-inputs',label:'Reobserve pending reference and complete workflow collection'}],'bootstrap-hold-fresh'),'propose-bootstrap-preparation-decision')
  .addFunctionBranch('bootstrap-recheck-inputs','Recheck native discovery inputs',async scope=>{
   try{
-   const freshPending=await readPending();
-   if(!freshPending.valid||!isDeepStrictEqual(freshPending.reference,pending.reference))throw new Error();
-   const freshCollection=await readWorkflows();
-   if(!freshCollection.valid||freshCollection.digest!==collection.digest)throw new Error();
+   await recheckDiscovery();
    complete=true;scope.proposeBootstrapFacts={...scope.proposeBootstrapFacts,fresh:true,reason:'bootstrap-inputs-bound'};
   }catch{/* Adjacent snapshots do not imply global continuity or authority. */}
  })
  .addFunctionBranch('bootstrap-hold-fresh','Fresh discovery observation blocked',()=>{}).setDefault('bootstrap-hold-fresh').end()
  .addFunction('Record native bootstrap facts',scope=>{
+  if(invalidated)throw new Error('propose-bootstrap-already-executed');
   scope.proposeBootstrapResult={...scope.proposeBootstrapFacts,available:scope.proposeBootstrapFacts.fresh===true,
    count:scope.proposeBootstrapRefs.length,receiptRef:digest(scope.proposeBootstrapRefs)};
  },'propose-bootstrap-result');
- return {chart,profile,getBackend:()=>complete?{inputs,prepared,lineage,pending,collection,discovery}:null};
+ return {chart,profile,reobserve,getBackend:()=>complete&&!invalidated?{inputs,prepared,lineage,pending,collection,discovery}:null};
 }
 
 export async function runFoottraceInputBootstrap({recordLimitBytes,...options}={}) {

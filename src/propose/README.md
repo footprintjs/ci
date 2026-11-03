@@ -576,3 +576,5 @@ same-writer, native terminal and fixed local output boundaries.
 
 See [closed native nonforce effect IO](./NONFORCE-IO.md) for exact request and
 same-owner uncertainty/budget boundaries; full native admission remains separate.
+See [native inspection composition](./INSPECTION-COMPOSITION.md) for the SAME
+recipe, one-executor and reobservation boundaries before owning nonforce effects.
