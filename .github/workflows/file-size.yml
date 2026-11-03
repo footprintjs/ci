@@ -1,0 +1,57 @@
+name: File-size ratchet
+on:
+  workflow_call:
+    inputs:
+      tool_sha:
+        description: Reviewed full footprintjs/ci commit; pin the caller uses to the same SHA
+        required: true
+        type: string
+      source_sha:
+        description: Optional exact release plan commit; its first parent is the comparison base
+        required: false
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  file-size:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate exact tool and comparison base
+        env:
+          TOOL_SHA: ${{ inputs.tool_sha }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$TOOL_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ -z "$SOURCE_SHA" || "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+      - name: Checkout candidate merge tree
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: source
+      - name: Checkout reviewed check
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: footprintjs/ci
+          ref: ${{ inputs.tool_sha }}
+          persist-credentials: false
+          path: file-size-tool
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Enforce source and baseline ratchet
+        env:
+          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if [[ -n "$SOURCE_SHA" ]]; then
+            test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
+            BASE_SHA=$(git -C source rev-parse HEAD^)
+          else
+            BASE_SHA=$EVENT_BASE
+          fi
+          [[ "$BASE_SHA" =~ ^[a-f0-9]{40}$ && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]]
+          node file-size-tool/scripts/file-size.mjs --repo source --base "$BASE_SHA"
