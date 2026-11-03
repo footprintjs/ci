@@ -1,5 +1,6 @@
 import { jsonData, fields, id, text } from '../eco/json-data.mjs';
 import { bindProposalMetadata } from './proposal-metadata-payload.mjs';
+import {metadataHttpOutcome,metadataFetchFailure} from './metadata-response-policy.mjs';
 const MiB = 1024 * 1024, HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
 const fail = () => { throw new Error('github-transport-unavailable'); };
 function limits(input = HARD) {
@@ -26,6 +27,7 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
   const facts = value => Object.freeze({ ...value });
   const makeView = (input, registry, patch = null) => {
     const bound = limits(input), local = counters();
+    let patchState='not-attempted';
     const exhausted = () => { global.exhausted = local.exhausted = true; controller.abort(new Error('github-transport-budget')); fail(); };
     const takeRequest = () => {
       if (global.exhausted || local.exhausted || global.fetchAttempts >= globalLimit.requests || local.fetchAttempts >= bound.requests) exhausted();
@@ -38,7 +40,13 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
     };
     const invoke = async (url, options) => {
       options.signal.throwIfAborted(); takeRequest();
-      const response = await fetcher(url, options);
+      let response;
+      if(patch)patchState='in-flight';
+      try{response=await fetcher(url,options);}
+      catch(error){
+        if(patch)patchState=metadataFetchFailure(error,options.signal,global.exhausted||local.exhausted);
+        throw error;
+      }
       if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 ||
           typeof response.ok !== 'boolean' || response.ok !== (response.status >= 200 && response.status < 300)) fail();
       return response;
@@ -90,7 +98,9 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
               await response.body?.cancel(); fail();
             }
           }
-          return await bounded(response, 2 * MiB, false);
+          const result=await bounded(response,2 * MiB,false);
+          patchState=metadataHttpOutcome(response.status);
+          return result;
         }
         if (registry) {
           if (!registry.urls.has(url) || (options.method ?? 'GET') !== 'GET' || options.body !== undefined) fail();
@@ -126,9 +136,14 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
         }
         const maximum = artifact ? 20 * MiB : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB : 2 * MiB;
         return await bounded(response, maximum, artifact);
-      } catch { fail(); }
+      } catch {
+        if(patch&&patchState==='in-flight')patchState='failed';
+        fail();
+      }
     };
-    return Object.freeze({ fetch: fetchBounded, facts: () => facts(local) });
+    return Object.freeze({fetch:fetchBounded,facts:()=>facts(local),
+      ...(patch?{observation:()=>Object.freeze({state:patchState,authorized:false,reconciled:false})}:{})});
+
   };
   const createRegistryView = input => {
     const value = jsonData(input); fields(value, Object.hasOwn(value, 'limits') ? ['packageName', 'version', 'limits'] : ['packageName', 'version']);

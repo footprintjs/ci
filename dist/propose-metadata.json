@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "bef8713b42fcf8d2d5d7c262a73c08acd55212c37a0dcdec648d5d672f51d05a",
+  "sha256": "e378e158ae94c2743b42676abe0bccc130d6c4506bdc0ce1e0388471e07f29b9",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1066,11 +1066,11 @@
     },
     {
       "path": "src/propose/foottrace-transport.mjs",
-      "bytes": 3489
+      "bytes": 3519
     },
     {
       "path": "src/propose/github-transport.mjs",
-      "bytes": 10262
+      "bytes": 10864
     },
     {
       "path": "src/propose/historical-producer.mjs",
@@ -1083,6 +1083,10 @@
     {
       "path": "src/propose/local-host-source.mjs",
       "bytes": 1052
+    },
+    {
+      "path": "src/propose/metadata-response-policy.mjs",
+      "bytes": 1662
     },
     {
       "path": "src/propose/native-observation-record.mjs",

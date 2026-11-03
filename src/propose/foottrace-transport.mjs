@@ -51,6 +51,6 @@ export function foottraceMetadataPatchPort(transport, input) {
       view = value.http.createExactPatchView(binding), api = value.makeApi(view.fetch),
       route = '/repos/' + value.repository.full_name + '/pulls/' + binding.pullNumber;
     return Object.freeze({ scope: 'exact-metadata-io-only', authorized: false,
-      setExact: () => api('PATCH', route, payload), facts: view.facts, transportFacts: value.http.facts });
+      setExact: () => api('PATCH', route, payload), observation:view.observation, facts: view.facts, transportFacts: value.http.facts });
   } catch { fail(); }
 }

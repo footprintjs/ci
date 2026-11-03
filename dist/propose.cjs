@@ -268,7 +268,7 @@ ${suffix}`
       return { schema, kind, package: pkg, version, sequence, repository: { id: id2, full_name }, base: { sha: baseSha, tree }, origin, predecessor, previous, queuedFragments };
     }
     function intentBytes(value, repository) {
-      const data = admitIntent(value, repository), raw = Buffer.from(JSON.stringify(data) + "\n");
+      const data2 = admitIntent(value, repository), raw = Buffer.from(JSON.stringify(data2) + "\n");
       if (raw.length > 65536) fail10("recovery-intent");
       return raw;
     }
@@ -294,10 +294,10 @@ ${suffix}`
         } catch {
           fail10("recovery-intent");
         }
-        const data = admitIntent(value, repository);
-        if (path !== intentPath(data.version, data.sequence) || versionOrder(data.version, version) > 0 || !intentBytes(data, repository).equals(row.bytes))
+        const data2 = admitIntent(value, repository);
+        if (path !== intentPath(data2.version, data2.sequence) || versionOrder(data2.version, version) > 0 || !intentBytes(data2, repository).equals(row.bytes))
           fail10("recovery-intent");
-        records.push({ path, sha256: digest4(row.bytes), data });
+        records.push({ path, sha256: digest4(row.bytes), data: data2 });
       }
       records.sort((a, b) => versionOrder(a.data.version, b.data.version) || a.data.sequence - b.data.sequence);
       const chains = /* @__PURE__ */ new Map();
@@ -393,7 +393,7 @@ ${suffix}`
       }
     }
     function prepareRecovery({ repository, sha: baseSha, tree, version, origin, predecessor, previous, queue, notes }) {
-      const data = {
+      const data2 = {
         schema: 1,
         kind: "unpublished-recovery",
         package: "foottrace",
@@ -406,7 +406,7 @@ ${suffix}`
         previous: previous ? { path: previous.path, sha256: previous.sha256 } : null,
         queuedFragments: queue
       };
-      const raw = intentBytes(data, repository), path = intentPath(version, data.sequence);
+      const raw = intentBytes(data2, repository), path = intentPath(version, data2.sequence);
       return {
         package: "foottrace",
         fromVersion: version,
@@ -702,12 +702,12 @@ var require_release_archive = __commonJS({
           if (sum !== octal(header.subarray(148, 156)) || field(header.subarray(257, 263)) !== "ustar") fail10();
           const size = octal(header.subarray(124, 136));
           if (at + size > tar.length) fail10();
-          const data = tar.subarray(at, at + size);
+          const data2 = tar.subarray(at, at + size);
           at += Math.ceil(size / 512) * 512;
           const type = field(header.subarray(156, 157)) || "0";
           if (type === "x") {
             if (pending || size > 65536) fail10();
-            pending = pax(data);
+            pending = pax(data2);
             continue;
           }
           if (type !== "0" || field(header.subarray(157, 257))) fail10();
@@ -720,10 +720,10 @@ var require_release_archive = __commonJS({
             fail10();
           names.add(name);
           if (names.size > maxFiles) fail10();
-          files.push({ path: name, size, sha256: hash(data, "sha256") });
+          files.push({ path: name, size, sha256: hash(data2, "sha256") });
           if (name === "package/package.json") {
             if (size > 1024 * 1024) fail10();
-            identity = JSON.parse(text2(data));
+            identity = JSON.parse(text2(data2));
           }
         }
         if (!ended || !identity || identity.name !== expected.package || identity.version !== expected.version || !files.some((f) => f.path.startsWith("package/dist/")))
@@ -1067,11 +1067,11 @@ var require_release_github = __commonJS({
     }
     async function content(api, context, path) {
       if (!control8.validSha(context.sha)) fail10("source-sha");
-      const data = (await api("GET", `${prefix(context)}/contents/${path}?ref=${context.sha}`)).data;
-      if (data.type !== "file" || data.encoding !== "base64" || typeof data.content !== "string" || data.size > 2 * 1024 * 1024)
+      const data2 = (await api("GET", `${prefix(context)}/contents/${path}?ref=${context.sha}`)).data;
+      if (data2.type !== "file" || data2.encoding !== "base64" || typeof data2.content !== "string" || data2.size > 2 * 1024 * 1024)
         fail10("source-content");
-      const bytes = Buffer.from(data.content, "base64");
-      if (bytes.length !== data.size) fail10("source-content");
+      const bytes = Buffer.from(data2.content, "base64");
+      if (bytes.length !== data2.size) fail10("source-content");
       try {
         return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
@@ -4205,10 +4205,10 @@ var PauseSignal = class extends Error {
   _pausedExecution;
   /** The paused execution's idempotency key (P3) — a touching stage's, stamped once at the stage boundary. */
   _idempotencyKey;
-  constructor(data, stageId, pausedBy) {
+  constructor(data2, stageId, pausedBy) {
     super("Execution paused");
     this.name = "PauseSignal";
-    this.pauseData = data;
+    this.pauseData = data2;
     this.stageId = stageId;
     if (pausedBy)
       this.pausedBy = pausedBy;
@@ -8450,10 +8450,10 @@ function copyCaptureAcknowledgement(value) {
   try {
     if (!value || typeof value !== "object" || Object.getPrototypeOf(value) !== Object.prototype)
       return void 0;
-    const data = (key) => Object.getOwnPropertyDescriptor(value, key)?.value;
-    const version = data("version");
-    const runId = data("runId");
-    const control8 = data("control");
+    const data2 = (key) => Object.getOwnPropertyDescriptor(value, key)?.value;
+    const version = data2("version");
+    const runId = data2("runId");
+    const control8 = data2("control");
     if (version !== 1 || typeof runId !== "string" || runId.length === 0 || runId.length > 2048 || !isCaptureValue(control8, RECORDER_CONTROL_STATUSES))
       return void 0;
     return Object.freeze({ version, runId, control: control8 });
@@ -9564,10 +9564,10 @@ var EventLog = class {
    * `structuredClone`, or a sink that fails is counted in {@link sinkFailures} and reported to
    * `sink.onFailure`. The sink keeps its own copy of `data`.
    */
-  note(kind, data) {
+  note(kind, data2) {
     if (this.sink === void 0)
       return;
-    this.send({ kind: "note", address: this.sourceAddress, at: Date.now(), note: kind, data });
+    this.send({ kind: "note", address: this.sourceAddress, at: Date.now(), note: kind, data: data2 });
   }
   /**
    * Tell the sink this log ended — `outcome` and, for the reader's check that the stored log is
@@ -18794,8 +18794,8 @@ var ExecutionRuntime = class {
     this.executionHistory.close(outcome, meta);
   }
   /** Note something beside this runtime's log, in its sink (a resumed leg). Nothing without a sink; never throws. */
-  noteRecord(kind, data) {
-    this.executionHistory.note(kind, data);
+  noteRecord(kind, data2) {
+    this.executionHistory.note(kind, data2);
   }
   getPipelines() {
     const state2 = this.globalStore.getState();
@@ -20558,30 +20558,30 @@ function collectRecorderSnapshots(observers, collected, includeCapture = false) 
 }
 
 // node_modules/footprintjs/dist/esm/lib/schema/validate.js
-function validateAgainstSchema(schema, data) {
+function validateAgainstSchema(schema, data2) {
   const kind = detectSchema(schema);
   switch (kind) {
     case "zod":
     case "parseable":
-      return validateParseable(schema, data);
+      return validateParseable(schema, data2);
     case "json-schema":
-      return validateJsonSchema(schema, data);
+      return validateJsonSchema(schema, data2);
     case "none":
-      return { success: true, data };
+      return { success: true, data: data2 };
   }
 }
-function validateOrThrow(schema, data) {
-  const result = validateAgainstSchema(schema, data);
+function validateOrThrow(schema, data2) {
+  const result = validateAgainstSchema(schema, data2);
   if (!result.success)
     throw result.error;
   return result.data;
 }
-function validateParseable(schema, data) {
+function validateParseable(schema, data2) {
   if (typeof schema.safeParse === "function") {
     try {
-      const result = schema.safeParse(data);
+      const result = schema.safeParse(data2);
       if (result.success) {
-        return { success: true, data: result.data ?? data };
+        return { success: true, data: result.data ?? data2 };
       }
       const issues = extractIssuesFromZodError(result.error);
       const message = formatIssues(issues);
@@ -20594,8 +20594,8 @@ function validateParseable(schema, data) {
   }
   if (typeof schema.parse === "function") {
     try {
-      const parsed = schema.parse(data);
-      return { success: true, data: parsed ?? data };
+      const parsed = schema.parse(data2);
+      return { success: true, data: parsed ?? data2 };
     } catch (err) {
       const issues = extractIssuesFromZodError(err);
       if (issues.length > 0) {
@@ -20612,10 +20612,10 @@ function validateParseable(schema, data) {
       };
     }
   }
-  return { success: true, data };
+  return { success: true, data: data2 };
 }
-function validateJsonSchema(schema, data) {
-  if (!data || typeof data !== "object") {
+function validateJsonSchema(schema, data2) {
+  if (!data2 || typeof data2 !== "object") {
     return {
       success: false,
       error: new InputValidationError("Expected an object", [
@@ -20623,7 +20623,7 @@ function validateJsonSchema(schema, data) {
       ])
     };
   }
-  const record = data;
+  const record = data2;
   const issues = [];
   const required = schema.required;
   if (Array.isArray(required)) {
@@ -20662,7 +20662,7 @@ function validateJsonSchema(schema, data) {
       error: new InputValidationError(formatIssues(issues), issues)
     };
   }
-  return { success: true, data };
+  return { success: true, data: data2 };
 }
 function formatIssues(issues) {
   if (issues.length === 0)
@@ -24894,6 +24894,38 @@ function bindProposalMetadata(raw, desired = false) {
   return value;
 }
 
+// src/propose/metadata-response-policy.mjs
+var uncertainHttp = /* @__PURE__ */ new Set([408, 500, 502, 503, 504]);
+var networkCodes = /* @__PURE__ */ new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EPIPE",
+  "ETIMEDOUT",
+  "ENETUNREACH",
+  "EHOSTUNREACH",
+  "UND_ERR_SOCKET",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT"
+]);
+function data(value, key) {
+  if (value === null || typeof value !== "object") return void 0;
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor && Object.hasOwn(descriptor, "value") ? descriptor.value : void 0;
+}
+function metadataHttpOutcome(status) {
+  if (status === 200) return "returned";
+  if (uncertainHttp.has(status)) return "uncertain";
+  if (Number.isInteger(status) && status >= 400 && status < 500) return "rejected";
+  return "failed";
+}
+function metadataFetchFailure(error, signal, budgetExhausted) {
+  if (budgetExhausted) return "failed";
+  if (signal.aborted && error === signal.reason && error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name)) return "uncertain";
+  if (error instanceof TypeError && data(error, "message") === "fetch failed" && networkCodes.has(data(data(error, "cause"), "code"))) return "uncertain";
+  return "failed";
+}
+
 // src/propose/github-transport.mjs
 var MiB = 1024 * 1024;
 var HARD = Object.freeze({ requests: 4096, totalBytes: 128 * MiB });
@@ -24917,6 +24949,7 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
   const facts = (value) => Object.freeze({ ...value });
   const makeView = (input, registry, patch = null) => {
     const bound = limits(input), local = counters();
+    let patchState = "not-attempted";
     const exhausted = () => {
       global.exhausted = local.exhausted = true;
       controller.abort(new Error("github-transport-budget"));
@@ -24936,7 +24969,14 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
     const invoke = async (url, options) => {
       options.signal.throwIfAborted();
       takeRequest();
-      const response = await fetcher(url, options);
+      let response;
+      if (patch) patchState = "in-flight";
+      try {
+        response = await fetcher(url, options);
+      } catch (error) {
+        if (patch) patchState = metadataFetchFailure(error, options.signal, global.exhausted || local.exhausted);
+        throw error;
+      }
       if (!response || !Number.isInteger(response.status) || response.status < 100 || response.status > 599 || typeof response.ok !== "boolean" || response.ok !== (response.status >= 200 && response.status < 300)) fail4();
       return response;
     };
@@ -25012,7 +25052,9 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
               fail4();
             }
           }
-          return await bounded(response2, 2 * MiB, false);
+          const result = await bounded(response2, 2 * MiB, false);
+          patchState = metadataHttpOutcome(response2.status);
+          return result;
         }
         if (registry) {
           if (!registry.urls.has(url) || (options.method ?? "GET") !== "GET" || options.body !== void 0) fail4();
@@ -25059,10 +25101,15 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
         const maximum = artifact ? 20 * MiB : /^git\/blobs\/[a-f0-9]{40}$/.test(suffix) ? 4 * MiB : 2 * MiB;
         return await bounded(response, maximum, artifact);
       } catch {
+        if (patch && patchState === "in-flight") patchState = "failed";
         fail4();
       }
     };
-    return Object.freeze({ fetch: fetchBounded, facts: () => facts(local) });
+    return Object.freeze({
+      fetch: fetchBounded,
+      facts: () => facts(local),
+      ...patch ? { observation: () => Object.freeze({ state: patchState, authorized: false, reconciled: false }) } : {}
+    });
   };
   const createRegistryView = (input) => {
     const value = jsonData(input);

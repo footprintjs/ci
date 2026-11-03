@@ -469,3 +469,22 @@ continuous history, admit a reservation/grant, or implement the accepted C1
 terminal design/T1 business-outcome gates. Native records remain diagnostic.
 The committed inspection program continues to export only its existing
 read-only facade; this richer joined source entry is not adopted by a caller.
+
+
+The closed exact-metadata HTTP facet exposes a bounded, ephemeral attempt
+observation for its own invocation. It starts unattempted, becomes in-flight only
+after request admission, and distinguishes bounded HTTP200 bytes from narrow
+submission uncertainty, explicit rejection and technical failure. This does not
+say the payload parsed, the PR matches, or reconciliation succeeded. No error
+message, body, token or cause is emitted. Only selected HTTP408/500/502/503/504,
+a recognized own-data native fetch failure shape, or the actual interrupted
+request's recognized abort/timeout reason count as uncertainty. Unexpected
+exceptions, authorization rejection, invalid MIME/response or budget failure
+remain technical failures. Classification is attached to the actual fetch
+boundary; a network-shaped exception during response processing is not enough.
+
+An uncertain result still consumes the same owner's one PATCH attempt. Native
+GET verification stays on that owner where its budget permits. Another facet
+cannot repeat it, and the observation is not saved authority. The full native
+eligibility/recheck controller, exact GET comparison, C1 terminal mapping and
+T1 visible/business-outcome/downstream gates remain separately required.
