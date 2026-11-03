@@ -25927,10 +25927,13 @@ function createFoottraceProposerReader({ transport, context }) {
 
 // src/propose/proposal-bootstrap-flow.mjs
 var import_node_util5 = require("node:util");
-function createFoottraceProposalBootstrapInspection({ env, host, fetcher, limits: limits2 } = {}) {
+function createFoottraceProposalBootstrapInspection(options = {}) {
+  return createBootstrap(options, captureFoottraceProposalInvocation);
+}
+function createBootstrap({ env, host, fetcher, limits: limits2 }, captureInvocation2) {
   let captured = null, readHost = null, readInputs = null, readCurrent = null, initialReason = "proposal-invocation-unavailable";
   try {
-    captured = captureFoottraceProposalInvocation({ env, fetcher, limits: limits2 });
+    captured = captureInvocation2({ env, fetcher, limits: limits2 });
     initialReason = "proposal-host-source-unavailable";
     readHost = createFoottraceHostSourceReader({ ...captured, host });
     readInputs = createFoottraceCurrentInputReader(captured);

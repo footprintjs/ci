@@ -1,18 +1,31 @@
 import {decide,flowChart} from 'footprintjs';
-import {captureFoottraceProposalInvocation} from './proposal-invocation.mjs';
+import {captureFoottraceProposalInvocation,captureFoottraceMetadataWriterInvocation} from './proposal-invocation.mjs';
 import {createFoottraceHostSourceReader} from './host-source-binding.mjs';
 import {createFoottraceCurrentInputReader} from './foottrace-current-inputs.mjs';
 import {createFoottraceProposerReader} from './current-proposer.mjs';
 import {isDeepStrictEqual} from 'node:util';
 /** Current trusted-CODE host observation prefix. This does not authenticate an
  * arbitrary runner or admit the still-missing reviewed thin production bridge.
- * Only GET views are used here; no writer facet or effects are exposed.
- * Captured runtime input/accessors are private CODE data, never grants.
+ * Both CODE entries execute GET observations only. Inspection captures a read
+ * owner; the private writer prefix captures the separate existing writer token.
+ * Its backend owner is INPUT for the closed controller, never a permission.
+ * Start-of-job key-holder identity stays cached, not fresh pre-effect authority.
  */
-export function createFoottraceProposalBootstrapInspection({env,host,fetcher,limits}={}){
+export function createFoottraceProposalBootstrapInspection(options={}){
+ return createBootstrap(options,captureFoottraceProposalInvocation);
+}
+/** Internal CODE entry under the exact SC7 six-holder alternative. No key/JWT,
+ * signing child or DATA constructor selector. Actual host/writer source review,
+ * owning native pre-effect completion and ALL fresh repository rechecks remain
+ * separately required before the closed controller may perform one PATCH.
+ */
+export function createFoottraceMetadataWriterBootstrap(options={}){
+ return createBootstrap(options,captureFoottraceMetadataWriterInvocation);
+}
+function createBootstrap({env,host,fetcher,limits},captureInvocation){
  let captured=null,readHost=null,readInputs=null,readCurrent=null,initialReason='proposal-invocation-unavailable';
  try{
-  captured=captureFoottraceProposalInvocation({env,fetcher,limits});initialReason='proposal-host-source-unavailable';
+  captured=captureInvocation({env,fetcher,limits});initialReason='proposal-host-source-unavailable';
   readHost=createFoottraceHostSourceReader({...captured,host});
   readInputs=createFoottraceCurrentInputReader(captured);readCurrent=createFoottraceProposerReader(captured);
  }catch{/* Every invalid capture still sanitizes credential environment fields. */}

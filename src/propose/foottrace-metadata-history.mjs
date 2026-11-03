@@ -53,6 +53,49 @@ export function createFoottraceMetadataHistoryInspection(options={},predecessor)
  }catch{port=null;}
  const assess=createRetainedAttemptAssessor(createFoottraceRetainedAttemptProfile());
  let inputs=null,observed=null,workflows=null,versions=null,attempts=null,candidate=null,metadata=null;
+ let recheckReason='retained-workflow-discovery-drift';
+ // ONE complete native repository recheck for the initial chart and the owning
+ // C1 continuation. Saved records and scope booleans never select this reader.
+ const reacquire=async()=>{
+  recheckReason='retained-workflow-discovery-drift';
+  try{
+   const fresh=await readWorkflows();
+   if(!fresh.valid||fresh.digest!==workflows.digest)return false;
+   recheckReason='metadata-current-input-observation-drift';
+   if(!await input.reobserve())return false;
+   recheckReason='retained-source-version-unavailable';
+   const freshVersions=await readVersions(inputs.prepared,fresh);
+   if(!freshVersions.valid||freshVersions.digest!==versions.digest)return false;
+   const l=inputs.lineage;
+   const freshAttempts=assess({prepared:inputs.prepared,collection:fresh,versions:freshVersions,current:inputs.current,archive:inputs.archive,
+    published:{predecessor:l.predecessor,version:l.version,tree:l.tree,archiveDigest:l.archiveDigest,producer:l.producer}});
+   if(!freshAttempts.valid||!freshAttempts.eligible||freshAttempts.digest!==attempts.digest)return false;
+   recheckReason='candidate-publication-unavailable';
+   const freshCandidate=await readCandidate(inputs.prepared);
+   if(!freshCandidate.valid){recheckReason=reason(freshCandidate.reason);return false;}
+   if(freshCandidate.digest!==candidate.digest)return false;
+   recheckReason='metadata-current-observation-drift';
+   const current=await input.readCommit(inputs.prepared,inputs.pending,inputs.current);
+   if(!current.valid||current.digest!==observed.digest){
+    recheckReason='metadata-current-observation-drift';return false;
+   }
+   recheckReason='metadata-observation-drift';
+   const finalMetadata=await readMetadata(inputs.prepared,inputs.pending);
+   const join=v=>({reference:v.observation.reference,desiredDigest:v.observation.desiredDigest,
+    observedDigest:v.observation.observedDigest,matches:v.observation.matches});
+   if(!finalMetadata.valid||!isDeepStrictEqual(join(finalMetadata),join(metadata))){
+    recheckReason='metadata-observation-drift';return false;
+   }
+   recheckReason='metadata-history-observed';return true;
+  }catch{/* No stale or uncertain observation is promoted. */}
+  return false;
+ };
+ const reobserve=async()=>{
+  if(backend===null)return false;
+  const fresh=await reacquire();
+  if(!fresh)backend=null; // Failed reacquisition permanently invalidates this invocation.
+  return fresh;
+ };
  const chart=signed.chart.addFunction('Initialize current metadata history observation',scope=>{
   inputs=input.getBackend();observed=signed.getBackend();
   const ready=port!==null&&inputs!==null&&observed!==null&&observed.sameTargetTree===true;
@@ -127,36 +170,8 @@ export function createFoottraceMetadataHistoryInspection(options={},predecessor)
   {when:s=>s.metadataHistoryFacts.metadata===true,then:'metadata-history-recheck',label:'Reacquire complete native history and current signed/review/reference facts'}
  ],'metadata-history-hold-recheck'),'metadata-history-recheck-decision')
  .addFunctionBranch('metadata-history-recheck','Recheck native history and current state',async scope=>{
-  try{
-   const fresh=await readWorkflows();
-   if(!fresh.valid||fresh.digest!==workflows.digest)return;
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-current-input-observation-drift'};
-   if(!await input.reobserve())return;
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'retained-source-version-unavailable'};
-   const freshVersions=await readVersions(inputs.prepared,fresh);
-   if(!freshVersions.valid||freshVersions.digest!==versions.digest)return;
-   const l=inputs.lineage;
-   const freshAttempts=assess({prepared:inputs.prepared,collection:fresh,versions:freshVersions,current:inputs.current,archive:inputs.archive,
-    published:{predecessor:l.predecessor,version:l.version,tree:l.tree,archiveDigest:l.archiveDigest,producer:l.producer}});
-   if(!freshAttempts.valid||!freshAttempts.eligible||freshAttempts.digest!==attempts.digest)return;
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'candidate-publication-unavailable'};
-   const freshCandidate=await readCandidate(inputs.prepared);
-   if(!freshCandidate.valid){scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:reason(freshCandidate.reason)};return;}
-   if(freshCandidate.digest!==candidate.digest)return;
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-current-observation-drift'};
-   const current=await input.readCommit(inputs.prepared,inputs.pending,inputs.current);
-   if(!current.valid||current.digest!==observed.digest){
-    scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-current-observation-drift'};return;
-   }
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-observation-drift'};
-   const finalMetadata=await readMetadata(inputs.prepared,inputs.pending);
-   const join=v=>({reference:v.observation.reference,desiredDigest:v.observation.desiredDigest,
-    observedDigest:v.observation.observedDigest,matches:v.observation.matches});
-   if(!finalMetadata.valid||!isDeepStrictEqual(join(finalMetadata),join(metadata))){
-    scope.metadataHistoryFacts={...scope.metadataHistoryFacts,reason:'metadata-observation-drift'};return;
-   }
-   scope.metadataHistoryFacts={...scope.metadataHistoryFacts,fresh:true,reason:'metadata-history-observed'};
-  }catch{/* No stale or uncertain observation is promoted. */}
+  const fresh=await reacquire();
+  scope.metadataHistoryFacts={...scope.metadataHistoryFacts,fresh,reason:recheckReason};
  })
  .addFunctionBranch('metadata-history-hold-recheck','Fresh native reconciliation blocked',()=>{}).setDefault('metadata-history-hold-recheck').end()
  .addDeciderFunction('Current metadata history observation complete',scope=>decide(scope,[
@@ -173,7 +188,7 @@ export function createFoottraceMetadataHistoryInspection(options={},predecessor)
  // Backend is runtime INPUT knowledge only. Neither this accessor nor the
  // declared native stage ID proves completion, eligibility or permission.
  // The owning executor observes its actual completed prefix before continuing.
- return Object.freeze({chart,getBackend:()=>backend,resultStageId});
+ return Object.freeze({chart,getBackend:()=>backend,resultStageId,reobserve});
 }
 /** Complete read-only facade: incomplete native capture discards all backend
  * inputs. A composed caller owns its one executor and the whole run outcome.

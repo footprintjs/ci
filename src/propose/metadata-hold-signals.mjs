@@ -1,6 +1,7 @@
 import {flowChart,decide} from 'footprintjs';
 import {fields,jsonData} from '../eco/json-data.mjs';
 import {own} from './source-inventory.mjs';
+import {proposalOutcomeText} from './proposal-outcome-text.mjs';
 const ownedSignals=new WeakSet();
 export const isMetadataHoldSignal=value=>ownedSignals.has(value);
 const conclusions=[null,'success','failure','cancelled','skipped','neutral','timed_out','action_required'];
@@ -32,9 +33,9 @@ export function createMetadataHoldSignalStage(options={}){
   {when:s=>s.metadataHoldFacts.observed===true,then:'metadata-hold-signals',label:'Keep the named business HOLD open and block downstream continuation'}
  ],'metadata-hold-unavailable'),'metadata-hold-decision')
  .addFunctionBranch('metadata-hold-signals','Prepare bounded negative signals',()=>{
+  const text=proposalOutcomeText('metadata-hold');
   signals=Object.freeze({businessStatus:'held',proposeOutcome:'hold-metadata-stale',
-   output:'proposeOutcome=hold-metadata-stale\n',
-   summary:'### Propose held\n\nReported metadata remains stale. Release readiness is unadmitted.\n',
+   output:text.output,summary:text.summary,
    ecoFinding:'metadata-stale',downstreamBlocked:true,terminalAdmission:false,releaseReady:false,authorized:false});
   ownedSignals.add(signals);
  })
