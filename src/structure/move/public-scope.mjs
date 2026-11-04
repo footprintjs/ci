@@ -1,5 +1,14 @@
 import { codePath } from '../sources/paths.mjs';
 import { packageSourcePath } from '../sources/package-paths.mjs';
+import { posix } from 'node:path';
+
+export function nestedPackagePath(context,path){
+  for(let directory=posix.dirname(path);directory!=='.';directory=posix.dirname(directory)){
+    const target=`${directory}/package.json`;
+    if(context.files.has(target))return target;
+  }
+  return null;
+}
 
 function exportTargets(value,result){
   if(value===null)return;

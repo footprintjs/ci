@@ -99,3 +99,36 @@ test('deleting a recognized sealed facade remains visible even in a closed priva
     head:snapshot({...root,'src/gate/root.ts':'export function work(){return 1;}'})});
   assert.ok(result.findings.some(item=>item.rule==='move-exports'&&item.path==='src/gate.ts'));
 });
+
+test('a root export map cannot certify deletion of an existing child package entry as private',()=>{
+  const shared={'package.json':'{"exports":{".":"./dist/index.js"}}',
+    'src/index.ts':'export function run(){return 0;}',
+    'src/nested/package.json':'{"name":"child","exports":{".":"./dist/foo.js"}}'};
+  const result=verifyMove({base:snapshot({...shared,'src/nested/src/foo.ts':'export function helper(){return 1;}'}),
+    head:snapshot({...shared,'src/nested/src/bar.ts':'export function helper(){return 1;}'})});
+  assert.deepEqual(result.findings,[]);
+  assert.equal(result.coverage.complete,false);
+  assert.ok(result.coverage.unverified.some(item=>item.kind==='move-door-privacy'&&item.path==='src/nested/src/foo.ts'));
+});
+
+test('new nested package source cannot inherit a root private-leaf allowance',()=>{
+  const shared={'package.json':'{"exports":{".":"./dist/index.js"}}',
+    'src/index.ts':'export function run(){return 0;}',
+    'src/nested/package.json':'{"name":"child","exports":{".":"./dist/foo.js"}}'};
+  const result=verifyMove({base:snapshot({...shared,'src/nested/src/bar.ts':'function helper(){return 1;}'}),
+    head:snapshot({...shared,'src/nested/src/bar.ts':'','src/nested/src/foo.ts':'export function helper(){return 1;}'})});
+  assert.deepEqual(result.findings,[]);
+  assert.equal(result.coverage.complete,false);
+  assert.ok(result.coverage.unverified.some(item=>item.kind==='move-door-privacy'&&item.path==='src/nested/src/foo.ts'));
+});
+
+test('adding an export in a surviving child entry also needs nested publication proof',()=>{
+  const shared={'package.json':'{"exports":{".":"./dist/index.js"}}',
+    'src/index.ts':'export function run(){return 0;}',
+    'src/nested/package.json':'{"name":"child","exports":{".":"./dist/foo.js"}}'};
+  const result=verifyMove({base:snapshot({...shared,'src/nested/src/foo.ts':'function helper(){return 1;}'}),
+    head:snapshot({...shared,'src/nested/src/foo.ts':'export function helper(){return 1;}'})});
+  assert.deepEqual(result.findings,[]);
+  assert.equal(result.coverage.complete,false);
+  assert.ok(result.coverage.unverified.some(item=>item.kind==='move-door-privacy'));
+});

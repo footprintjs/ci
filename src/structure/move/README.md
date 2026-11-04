@@ -29,6 +29,10 @@ New shape-only facades are not automatically public additions: a finite closed
 package entry map can prove them private, while wildcard, legacy or unmapped
 entry routing stays incomplete. Explicit published entries and root indexes
 remain protected. Core facade/door discovery is not changed by this policy.
+Root closure does not prove a child package's entries: changed/new/deleted source paths
+under a tracked non-root `package.json` stay incomplete until nested routing is
+proved separately. Non-code entries, including exported JSON metadata, currently
+also keep closed-scope privacy incomplete rather than guessing a code mapping.
 External kinds, cyclic/ambiguous stars, namespace and
 import-equals ownership remain incomplete. `wiring` qualifies new imports by
 actual unit uses or an injectively matched move from their former owner; new
