@@ -22,5 +22,7 @@ export function checkSnapshots(head, base) {
       sourceScope: 'production src; tests and declaration files excluded from runtime graph',
       loadScope: 'static tracked-source estimate; external implementations are outside the tree',
       extractionCredit: 'whole top-level relocation only; partial extraction pending calibration',
-      statementMetric: 'separate follow-up, not yet implemented' } };
+      statementMetric: { status: 'counts-only', field: 'statementCount', body: 'Block only',
+        excluded: ['Block', 'EmptyStatement'], nestedBodies: 'included', erasedDeclarations: 'included',
+        headers: 'excluded', expressionBodies: 0, limit: null } } };
 }

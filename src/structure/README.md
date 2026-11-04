@@ -33,8 +33,11 @@ It is advisory and is not installed as a required check by this change.
 
 This first report implements metrics, folder fences, static load estimates,
 facades, stage bindings, references and a conservative debt comparison.
-Statement counts and calibrated extraction credit remain
-follow-ups. Coverage names unsupported analysis;
+Calibrated extraction credit remains a follow-up. Function JSON now includes
+`statementCount`: block-body syntactic statements, excluding blocks and empty
+statements, including nested bodies and erased declarations. Headers are outside
+the count; expression-bodied callables report0. Metadata records this grammar.
+Counts have no threshold, finding rule or ratchet effect. Coverage names unsupported analysis;
 absence of a finding does not claim those cases were verified.
 
 `affected/` estimates tests using both trees, named export owners and possible
