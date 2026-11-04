@@ -44,6 +44,14 @@ and other asset/metadata changes rather than treating them as equal. Unsupported
 metadata semantics and mode changes remain incomplete. Listing a baseline change
 does not certify its ratchet; the normal file-size check still owns that law.
 
+`environment` keeps module captures separate from declaration ownership. Moved
+`import.meta`, module-scoped lexical `this`/`arguments`/`new.target` and implicit
+module globals remain incomplete. A normal function's own `this` stays local to
+that unchanged function. Changed tracked package ancestry or source extensions
+also prevent a module-environment proof, even when a bare import spelling and
+both package manifests are unchanged. No npm, compiler or filesystem dependency
+resolution is inferred beyond the supplied tracked metadata.
+
 All results are JSON data. ASTs, token arrays, lexical caches and matching maps
 remain internal. Tests beside each helper exercise the admitted boundaries and
 the cases that must remain unknown.

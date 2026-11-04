@@ -10,6 +10,7 @@ import { ancillaryChanges } from './ancillary.mjs';
 import { unique } from './notes.mjs';
 import { wiringCoverage } from './wiring.mjs';
 import { residualComments } from './comment-residual.mjs';
+import { environmentCoverage } from './environment.mjs';
 
 /** Pure syntax proof; incomplete coverage is never an equivalence verdict. */
 export function verifyMove({ head: headSnapshot, base: baseSnapshot }) {
@@ -23,7 +24,8 @@ export function verifyMove({ head: headSnapshot, base: baseSnapshot }) {
   const ancillary = ancillaryChanges(base, head);
   const unverified = unique([...base.unverified, ...head.unverified, ...matched.unverified, ...bindings.unverified, ...surfaces.unverified,
     ...orderCoverage(matched.pairs, base), ...importOrderCoverage(base, head, bindings.identity),
-    ...references.unverified, ...ancillary.unverified,...wiringCoverage(base,head,matched.pairs)]);
+    ...references.unverified, ...ancillary.unverified,...wiringCoverage(base,head,matched.pairs),
+    ...environmentCoverage(matched.pairs,base,head)]);
   return { verification:'move',headId:headSnapshot.id??null,baseId:baseSnapshot.id??null,
   findings: unique([...matched.findings, ...bindings.findings, ...surfaces.findings,
     ...comments.findings, ...references.findings]), coverage: { complete: unverified.length === 0, unverified },
