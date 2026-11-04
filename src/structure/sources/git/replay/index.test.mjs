@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync,rmSync,existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyGitMerge } from './index.mjs';
 import { nativeGit } from './process.mjs';
@@ -80,4 +80,15 @@ test('unsupported attributes in a parent remain visible when the merge tree remo
   const result=verifyGitMerge(path,head);
   assert.equal(result.replay.status,'not-replayed');
   assert.ok(result.coverage.unverified.some(item=>item.kind==='merge-attributes'&&item.treeId===parent));
+});
+
+test('recomputing a missing unreachable automatic tree writes no object into the source repository',t=>{
+  const fixture=branches(t),{path}=fixture;
+  const changed=candidate(fixture,[['extra.ts','head-only content\n']]);
+  const automatic=join(path,'.git/objects',changed.tree.slice(0,2),changed.tree.slice(2));
+  assert.equal(existsSync(automatic),true,'fixture did not create the unreachable automatic tree');
+  rmSync(automatic);
+  const result=verifyGitMerge(path,changed.head);
+  assert.ok(result.findings.some(item=>item.rule==='merge-tree'));
+  assert.equal(existsSync(automatic),false,'read-only replay wrote an automatic object into the source repository');
 });
