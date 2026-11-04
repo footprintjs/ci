@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readGitSnapshot } from './index.mjs';
@@ -58,4 +58,44 @@ test('a normal candidate merge preserves main shrinkage that the stale branch co
   assert.deepEqual(candidate.ratchet.regressions, []);
   assert.equal(candidate.baseId, base);
   assert.equal(candidate.id, merge);
+});
+
+
+function workflowBase(path, source, event, base) {
+  const workflow = readFileSync(new URL('../../../../.github/workflows/structure-report.yml', import.meta.url), 'utf8');
+  const reportStep = workflow.split('      - name: Report candidate structure\n')[1];
+  const script = reportStep.split('        run: |\n')[1].split('          ARGS=')[0]
+    .split('\n').map(line => line.replace(/^          /, '')).join('\n');
+  return execFileSync('bash', ['-eu', '-o', 'pipefail', '-c', `${script}\nprintf '%s' "$BASE_SHA"`], {
+    encoding: 'utf8', env: { ...process.env, SOURCE_REPO: path,
+      SOURCE_SHA: source, EVENT_NAME: event, BASE_SHA: base }, stdio: 'pipe', timeout: 5000,
+  }).trim();
+}
+
+test('PR comparison follows the candidate first parent when the event base is stale', t => {
+  const { path, git } = repository(t);
+  writeFileSync(join(path, 'src/work.ts'), work(80));
+  writeFileSync(join(path, 'README.md'), 'Initial documentation.\n');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'Initial baseline');
+  const eventBase = git('rev-parse', 'HEAD');
+  git('switch', '--quiet', '-c', 'feature');
+  writeFileSync(join(path, 'README.md'), 'Feature documentation.\n');
+  git('add', 'README.md');
+  git('commit', '--quiet', '-m', 'Workflow-only equivalent');
+  git('switch', '--quiet', 'main');
+  writeFileSync(join(path, 'src/work.ts'), work(100));
+  git('add', 'src/work.ts');
+  git('commit', '--quiet', '-m', 'Independent main change');
+  const actualBase = git('rev-parse', 'HEAD');
+  git('merge', '--quiet', '--no-ff', '--no-edit', 'feature');
+  const candidate = git('rev-parse', 'HEAD');
+  const head = readGitSnapshot(path, candidate);
+  assert.ok(checkSnapshots(head, readGitSnapshot(path, eventBase)).ratchet.regressions.length > 0);
+  const selected = workflowBase(path, candidate, 'pull_request', eventBase);
+  assert.equal(selected, actualBase);
+  assert.deepEqual(checkSnapshots(head, readGitSnapshot(path, selected)).ratchet.regressions, []);
+  assert.equal(workflowBase(path, candidate, 'push', eventBase), eventBase);
+  assert.equal(workflowBase(path, candidate, 'push', ''), '');
+  assert.throws(() => workflowBase(path, eventBase, 'pull_request', actualBase));
 });

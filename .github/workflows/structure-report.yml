@@ -12,7 +12,7 @@ on:
         type: string
         default: ''
       base_sha:
-        description: Optional exact comparison commit; defaults to the event base
+        description: Comparison commit for non-PR events; PRs use the candidate first parent
         required: false
         type: string
         default: ''
@@ -57,9 +57,15 @@ jobs:
         env:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          SOURCE_REPO: ${{ github.workspace }}/source
           TS_ETW_MODULE_PATH: ''
         run: |
-          ARGS=(report --repo ../../../source --head "$SOURCE_SHA")
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            BASE_SHA=$(git --no-replace-objects -c core.fsmonitor=false -c core.hooksPath=/dev/null -C "$SOURCE_REPO" rev-parse --verify "$SOURCE_SHA^1")
+            [[ "$BASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          fi
+          ARGS=(report --repo "$SOURCE_REPO" --head "$SOURCE_SHA")
           if [[ -n "$BASE_SHA" && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]]; then
             ARGS+=(--base "$BASE_SHA")
           fi
