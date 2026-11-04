@@ -1,0 +1,78 @@
+name: Advisory structure report
+on:
+  workflow_call:
+    inputs:
+      tool_sha:
+        description: Reviewed full footprintjs/ci commit; pin the caller to the same SHA
+        required: true
+        type: string
+      source_sha:
+        description: Optional exact candidate commit; defaults to the event commit
+        required: false
+        type: string
+        default: ''
+      base_sha:
+        description: Optional exact comparison commit; defaults to the event base
+        required: false
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate pinned inputs
+        env:
+          TOOL_SHA: ${{ inputs.tool_sha }}
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          [[ "$TOOL_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^[a-f0-9]{40}$ ]]
+      - name: Checkout candidate data
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: source
+      - name: Checkout pinned checker
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: footprintjs/ci
+          ref: ${{ inputs.tool_sha }}
+          persist-credentials: false
+          path: structure-tool
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install only the pinned parser
+        working-directory: structure-tool/src/structure
+        run: npm ci --ignore-scripts
+      - name: Report candidate structure
+        working-directory: structure-tool/src/structure
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+          TS_ETW_MODULE_PATH: ''
+        run: |
+          ARGS=(report --repo ../../../source --head "$SOURCE_SHA")
+          if [[ -n "$BASE_SHA" && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]]; then
+            ARGS+=(--base "$BASE_SHA")
+          fi
+          node cli/main.mjs "${ARGS[@]}" > "$RUNNER_TEMP/structure-report.json"
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            import { summaryText } from "./reporters/text.mjs";
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              summaryText(JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/structure-report.json", "utf8"))));
+          '
+      - name: Retain machine-readable observations
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: structure-report
+          path: ${{ runner.temp }}/structure-report.json
+          if-no-files-found: error

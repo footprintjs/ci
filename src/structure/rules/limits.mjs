@@ -1,0 +1,15 @@
+export const LIMITS = Object.freeze({
+  functionLines: 60,
+  jsxLines: 120,
+  complexity: 15,
+  depth: 4,
+  parameters: 4,
+  classLines: 300,
+  physicalLines: 600,
+  fileCodeLines: 300,
+  facadeLines: 5,
+  facadeComplexity: 1,
+  stageLines: 40,
+  stageComplexity: 8,
+  directImports: 20,
+});
