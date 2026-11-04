@@ -12,3 +12,7 @@ committed trees and never runs the selected tests. Its base is mandatory.
 Compiler-only classification requires supported erased syntax. Unresolved
 loading selects conservatively. The full suite remains required before merge;
 this command changes no workflow or draft behavior.
+
+Affected output starts with the selected/known ratio and counts of unique tests
+per reason; reason groups may overlap. Supported literal runner discovery is
+read as syntax data. Missing or opaque discovery keeps selection conservative.

@@ -4,8 +4,10 @@ function quoted(value) {
 }
 
 export function affectedText(report) {
-  return [`Affected test estimate: ${report.headId ?? 'snapshot'}`, `Base: ${report.baseId ?? 'snapshot'}`,
-    `Selected tests: ${report.tests.length}`, ...report.tests.map(quoted),
+  const counts = Object.entries(report.selection.byReason).map(([kind, count]) => `${kind}=${count}`).join(', ');
+  return [`Affected test estimate: ${report.selection.selected}/${report.selection.known} tests selected`,
+    `Reasons (tests; overlap allowed): ${counts || 'none'}`,
+    `Candidate: ${report.headId ?? 'snapshot'}`, `Base: ${report.baseId ?? 'snapshot'}`, ...report.tests.map(quoted),
     `Compiler required: ${report.compilerRequired ? 'yes' : 'no'}`,
     `Unverified: ${report.coverage.unverified.length}`,
     `Full suite required before merge: ${report.fullSuiteBeforeMerge ? 'yes' : 'no'}`, ''].join('\n');

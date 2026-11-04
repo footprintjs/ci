@@ -15,7 +15,8 @@ function repository(t) {
     '-c', 'commit.gpgSign=false', '-c', 'tag.gpgSign=false', '-C', path, ...args],
   { encoding: 'utf8', env, stdio: 'pipe', timeout: 5000 }).trim();
   git('init', '--quiet', '--initial-branch=main', '--template=');
-  const files = { 'src/index.ts': "export { first } from './first.js'; export { second } from './second.js';",
+  const files = { 'vitest.config.ts': "export default { test: { include: [\'test/**/*.test.ts\'] } };",
+    'src/index.ts': "export { first } from './first.js'; export { second } from './second.js';",
     'src/first.ts': 'export function first() { return 1; }', 'src/second.ts': 'export function second() { return 2; }',
     'test/first.test.ts': "import { first } from '../src/index.js'; void first();",
     'test/second.test.ts': "import { second } from '../src/index.js'; void second();" };
@@ -44,6 +45,8 @@ test('affected CLI reads two exact trees and emits an advisory owner-followed se
   assert.deepEqual(errors, []);
   const report = JSON.parse(output.join(''));
   assert.deepEqual(report.tests, ['test/first.test.ts']);
+  assert.equal(Object.keys(report)[0], 'selection');
+  assert.deepEqual(report.selection, { selected: 1, known: 2, byReason: { 'runtime-dependency': 1 } });
   assert.equal(report.estimate, true);
   assert.equal(report.fullSuiteBeforeMerge, true);
   assert.equal(report.headId, head);
