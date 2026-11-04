@@ -15,7 +15,7 @@ import { environmentCoverage } from './environment.mjs';
 /** Pure syntax proof; incomplete coverage is never an equivalence verdict. */
 export function verifyMove({ head: headSnapshot, base: baseSnapshot }) {
   const base = moveContext(baseSnapshot);
-  const head = moveContext(headSnapshot);
+  const head = moveContext(headSnapshot, base.parsed);
   const matched = matchUnits(base, head);
   const bindings = bindingChanges(matched.pairs, base, head);
   const surfaces = surfaceChanges(base, head, bindings.identity);

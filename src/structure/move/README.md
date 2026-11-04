@@ -72,3 +72,10 @@ targets retain module-location uncertainty, including query-bearing paths.
 All results are JSON data. ASTs, token arrays, lexical caches and matching maps
 remain internal. Tests beside each helper exercise the admitted boundaries and
 the cases that must remain unknown.
+
+Within one comparison, exact unchanged path/text pairs share immutable syntax;
+unit keys, metadata and declaration ownership remain snapshot-specific. Comment
+ownership and token positions use ordered indexes, and unit matching keeps
+ordered candidate groups. Eager-import traversal visits each module once per
+root, with a separate active stack retaining cycle uncertainty. Counted-work
+fixtures cover these bounds; they do not claim a bound on all checker work.

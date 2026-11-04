@@ -3,6 +3,7 @@ import { resolveBinding, hasLexicalBinding } from '../bindings/index.mjs';
 import { moduleModel } from './module.mjs';
 import { importBinding, declarationKinds } from './declarations.mjs';
 import { forwarded } from './exports.mjs';
+import { tokenPrefixCount } from './token-position.mjs';
 
 const GLOBALS = new Set(['undefined', 'NaN', 'Infinity', 'Object', 'Array', 'String', 'Number', 'Boolean', 'BigInt', 'Symbol',
   'Promise', 'Map', 'Set', 'WeakMap', 'WeakSet', 'Error', 'TypeError', 'RangeError', 'Math', 'JSON', 'Reflect', 'RegExp',
@@ -48,7 +49,7 @@ function unitOwner(context, declaration, identity) {
   if (!unit || !identity.has(unit)) return null;
   const topName=topBindingName(declaration,unit);
   if(topName)return [identity.get(unit),topName,declarationKinds(unit.node)];
-  const index = unit.tokens.filter(token => token.start < declaration.getStart(unit.source.sourceFile)).length;
+  const index = tokenPrefixCount(unit.tokens,declaration.getStart(unit.source.sourceFile),'start');
   return [identity.get(unit), ts.SyntaxKind[declaration.kind], index];
 }
 
