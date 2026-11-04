@@ -7,7 +7,14 @@ export function runnableTest(path) {
 
 export function changedPaths(head, base) {
   return [...new Set([...head.keys(), ...base.keys()])].filter(path =>
-    !head.has(path) || !base.has(path) || head.get(path).text !== base.get(path).text).sort();
+    !head.has(path) || !base.has(path) || ['text', 'oid', 'mode', 'content']
+      .some(key => head.get(path)[key] !== base.get(path)[key])).sort();
+}
+
+export function executableChange(path, head, base) {
+  const before = base.get(path)?.mode;
+  const after = head.get(path)?.mode;
+  return before !== after && [before, after].includes('100755');
 }
 
 export function wholeSuiteInput(path) {
@@ -35,5 +42,5 @@ export function erasedSource(parsed) {
 }
 
 export function compilerChange(path) {
-  return codePath(path) || wholeSuiteInput(path);
+  return codePath(path) || wholeSuiteInput(path) || /\.jsonc?$/.test(path);
 }

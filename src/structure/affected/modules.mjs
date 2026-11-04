@@ -1,7 +1,8 @@
 import ts from 'typescript';
 import { patternBindings } from '../bindings/patterns.mjs';
-import { hasLexicalBinding } from '../bindings/index.mjs';
 import { erasedImport, importNames, makeRequest, filesystemRequest } from './requests.mjs';
+import { loadEffects } from './effects.mjs';
+import { loadingRequests } from './loaders.mjs';
 
 function addExport(info, name, entry) {
   info.exports.set(name, [...(info.exports.get(name) ?? []), entry]);
@@ -16,12 +17,16 @@ function recordImport(node, info, source, context) {
   for (const binding of bindings) info.imports.set(binding.local, { ...request, names: [binding.name] });
 }
 
+function localExports(node, info) {
+  for (const item of node.exportClause?.elements ?? []) {
+    if (!item.isTypeOnly) addExport(info, item.name.text, { local: (item.propertyName ?? item.name).text });
+  }
+}
+
 function recordExport(node, info, source, context) {
   if (node.isTypeOnly) return;
   if (!node.moduleSpecifier) {
-    for (const item of node.exportClause?.elements ?? []) {
-      if (!item.isTypeOnly) addExport(info, item.name.text, { local: (item.propertyName ?? item.name).text });
-    }
+    localExports(node, info);
     return;
   }
   const items = node.exportClause && ts.isNamedExports(node.exportClause)
@@ -39,45 +44,42 @@ function recordDeclaration(node, info) {
   const names = ts.isVariableStatement(node) ? node.declarationList.declarations
     .flatMap(item => patternBindings(item.name, item).map(binding => binding.name)) : node.name?.text ? [node.name.text] : [];
   for (const name of names) info.locals.add(name);
-  if (node.modifiers?.some(item => item.kind === ts.SyntaxKind.DefaultKeyword)
-    || (ts.isExportAssignment(node) && !node.isExportEquals)) addExport(info, 'default', { owner: true });
+  if (ts.isExportAssignment(node) && !node.isExportEquals) {
+    addExport(info, 'default', ts.isIdentifier(node.expression) ? { local: node.expression.text } : { owner: 'default' });
+  } else if (node.modifiers?.some(item => item.kind === ts.SyntaxKind.DefaultKeyword)) {
+    addExport(info, 'default', { owner: node.name?.text ?? 'default' });
+  }
   else if (node.modifiers?.some(item => item.kind === ts.SyntaxKind.ExportKeyword)) {
-    for (const name of names) addExport(info, name, { owner: true });
+    for (const name of names) addExport(info, name, { owner: name });
   }
 }
 
-function loadEffects(node) {
-  if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isFunctionDeclaration(node)
-    || ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isEmptyStatement(node)) return false;
-  if (node.modifiers?.some(item => item.kind === ts.SyntaxKind.DeclareKeyword)) return false;
-  if (ts.isVariableStatement(node)) return !node.declarationList.declarations.every(item => item.initializer
-    && (ts.isArrowFunction(item.initializer) || ts.isFunctionExpression(item.initializer)));
-  return !(ts.isExportAssignment(node) && (ts.isArrowFunction(node.expression) || ts.isFunctionExpression(node.expression)));
-}
-
-function loadingCalls(source, info, context) {
-  const visit = node => {
-    if (ts.isCallExpression(node)) {
-      const literal = node.expression.kind === ts.SyntaxKind.ImportKeyword;
-      const require = ts.isIdentifier(node.expression) && node.expression.text === 'require' && !hasLexicalBinding(node.expression);
-      if (literal || require) info.requests.push(makeRequest(source, node, {
-        specifier: node.arguments[0] && ts.isStringLiteralLike(node.arguments[0]) ? node.arguments[0].text : null,
-        names: ['*'], dynamic: true }, context));
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source.sourceFile);
+function recordEquals(node, info, source, context) {
+  if (node.isTypeOnly) return;
+  const expression = ts.isExternalModuleReference(node.moduleReference) ? node.moduleReference.expression : null;
+  const request = makeRequest(source, node, { names: ['*'], effect: true,
+    specifier: expression && ts.isStringLiteralLike(expression) ? expression.text : null }, context);
+  info.requests.push(request);
+  info.imports.set(node.name.text, request);
+  if (node.modifiers?.some(item => item.kind === ts.SyntaxKind.ExportKeyword)) addExport(info, node.name.text, { request });
 }
 
 export function moduleInfo(source, context) {
-  const info = { path: source.path, imports: new Map(), exports: new Map(), locals: new Set(),
+  const info = { path: source.path, imports: new Map(), exports: new Map(), locals: new Set(), unverified: [],
     requests: [], stars: [], effects: source.sourceFile.statements.some(loadEffects) };
   for (const node of source.sourceFile.statements) {
     if (ts.isImportDeclaration(node)) recordImport(node, info, source, context);
+    else if (ts.isImportEqualsDeclaration(node)) recordEquals(node, info, source, context);
     else if (ts.isExportDeclaration(node)) recordExport(node, info, source, context);
     else recordDeclaration(node, info);
   }
-  loadingCalls(source, info, context);
+  const loaders = loadingRequests(source, context);
+  info.requests.push(...loaders.requests);
+  info.unverified.push(...loaders.unverified);
+  if (info.requests.some(item => ['module', 'node:module', 'vm', 'node:vm'].includes(item.specifier))) {
+    info.unverified.push({ kind: 'affected-loading', path: source.path, line: 1,
+      reason: 'Module/VM loader construction is outside the admitted direct-loader grammar.' });
+  }
   info.reader = info.requests.some(filesystemRequest);
   return info;
 }
