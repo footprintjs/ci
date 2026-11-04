@@ -9,6 +9,6 @@ export function inertUnit(node) {
   if (ts.isFunctionDeclaration(node) || ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)
     || node.modifiers?.some(item => item.kind === ts.SyntaxKind.DeclareKeyword)) return true;
   if (!ts.isVariableStatement(node) || !(node.declarationList.flags & ts.NodeFlags.Const)) return false;
-  return node.declarationList.declarations.every(item => item.initializer &&
+  return node.declarationList.declarations.every(item => ts.isIdentifier(item.name) && item.initializer &&
     (literal(item.initializer) || ts.isArrowFunction(item.initializer) || ts.isFunctionExpression(item.initializer)));
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { verifyMove } from './verify.mjs';
+import { snapshot as sourceSnapshot } from './testing.fixture.mjs';
 
 const first = '/** First whole unit. */\nfunction first() { return 1; }';
 const middle = '/** Middle whole unit. */\nfunction middle() { return 2; }';
@@ -44,4 +45,14 @@ test('multiple runs do not permit reversing their source declaration order', () 
   assert.deepEqual(result.findings, []);
   assert.equal(result.coverage.complete, false);
   assert.ok(result.coverage.unverified.some(item => item.kind === 'move-order'), 'missing source-order uncertainty');
+});
+
+test('a moved destructuring key call cannot be admitted as an inert literal declaration',()=>{
+  const key='export function key(){throw 1;}';
+  const declaration='const {[key()]: value}="text";';
+  const result=verifyMove({base:sourceSnapshot({'src/a.ts':`${key}${declaration}`}),
+    head:sourceSnapshot({'src/a.ts':key,'src/a/leaf.ts':`import {key} from "../a.js";${declaration}`})});
+  assert.deepEqual(result.findings,[]);
+  assert.equal(result.coverage.complete,false);
+  assert.ok(result.coverage.unverified.some(item=>item.kind==='load-order'));
 });

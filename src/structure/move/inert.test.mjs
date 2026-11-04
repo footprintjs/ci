@@ -13,3 +13,8 @@ test('calls mutable initialization and class static execution are never credited
   const source=parseSource({path:'src/a.ts',text:'const state=make(); let count=0; class Cache {static {register();}}'});
   assert.deepEqual([...source.sourceFile.statements].map(inertUnit),[false,false,false]);
 });
+
+test('binding patterns may compute keys defaults or iterator reads at load',()=>{
+  const source=parseSource({path:'src/a.ts',text:'const {[key()]: value}="text"; const {name=initialize()}=()=>1; const [first]="text";'});
+  assert.deepEqual([...source.sourceFile.statements].map(inertUnit),[false,false,false]);
+});

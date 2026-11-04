@@ -45,3 +45,11 @@ test('exported callable values are wiring while invoked factories are runtime ef
   assert.deepEqual(observe('export default importedBinding;').findings, []);
   assert.ok(observe('export default construct();').findings.some(item => item.rule === 'facade-runtime'));
 });
+
+test('function initializer wiring does not hide execution in binding patterns',()=>{
+  for(const text of ['const {[key()]: value}=()=>1;', 'const {missing=initialize()}=function(){};',
+    'const [first]=function(){};']){
+    const parsed=parseSource({path:'src/index.ts',text});
+    assert.ok(facadeAnalysis(parsed,measureParsed(parsed)).findings.some(item=>item.rule==='facade-runtime'));
+  }
+});

@@ -68,7 +68,7 @@ function runtimeStatements(parsed) {
     if (ts.isExportAssignment(node) && (ts.isIdentifier(node.expression)
       || ts.isArrowFunction(node.expression) || ts.isFunctionExpression(node.expression))) return [];
     if (ts.isVariableStatement(node) && node.declarationList.declarations.every(declaration =>
-      declaration.initializer && (ts.isArrowFunction(declaration.initializer)
+      ts.isIdentifier(declaration.name) && declaration.initializer && (ts.isArrowFunction(declaration.initializer)
         || ts.isFunctionExpression(declaration.initializer)))) return [];
     return [node];
   });

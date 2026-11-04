@@ -17,7 +17,9 @@ extra copies, spliced bodies or changed tokens are findings. `order` accepts
 multiple intact source runs and retained inert gaps. Reordering is incomplete,
 not a finding. Calls, mutable initialization and class execution keep load-order
 uncertainty. The finite inert grammar is functions, interfaces, type aliases,
-declare forms and constants initialized with literals or functions.
+declare forms and identifier-bound constants initialized with literals or functions.
+Binding patterns may execute computed keys, defaults or iterator/property reads,
+so destructuring declarations retain load-order uncertainty.
 
 `bindings` compares lexical declaration owners and copied import bindings.
 `module`, `exports` and `surface` follow named/default reexports and finite stars
