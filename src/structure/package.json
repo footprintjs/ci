@@ -1,0 +1,20 @@
+{
+  "name": "@footprintjs/structure",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic advisory source-structure reports",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "bin": {
+    "structure": "./cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"**/*.test.mjs\""
+  },
+  "dependencies": {
+    "typescript": "5.4.5"
+  }
+}
