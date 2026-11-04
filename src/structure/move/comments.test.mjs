@@ -36,3 +36,11 @@ test('an owned citation may relocate only to its same matched declaration owner'
   assert.deepEqual(result.findings, []);
   assert.equal(result.coverage.complete, true);
 });
+
+test('nested declaration citations relocate with their exact whole class owner',()=>{
+  const body='/** See `src/a.ts` · `Gate.open`. */\nclass Gate { open(){return 1;} }';
+  const result=verifyMove({base:snapshot({'src/a.ts':body}),head:snapshot({'src/a.ts':"import {Gate} from './a/gate.js';",
+    'src/a/gate.ts':body.replace('src/a.ts','src/a/gate.ts').replace('class Gate','export class Gate')})});
+  assert.deepEqual(result.findings,[]);
+  assert.ok(result.coverage.unverified.some(item=>item.kind==='load-order'));
+});

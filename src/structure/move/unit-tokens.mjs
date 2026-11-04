@@ -4,6 +4,7 @@ import { resolveRelative } from '../sources/paths.mjs';
 import { hasLexicalBinding } from '../bindings/index.mjs';
 
 function moduleLiteral(node) {
+  if(ts.isImportTypeNode(node)&&ts.isLiteralTypeNode(node.argument)&&ts.isStringLiteralLike(node.argument.literal))return node.argument.literal;
   if (!ts.isCallExpression(node) || !node.arguments.length) return null;
   const loader = node.expression.kind === ts.SyntaxKind.ImportKeyword
     || (ts.isIdentifier(node.expression) && node.expression.text === 'require' && !hasLexicalBinding(node.expression));

@@ -21,3 +21,15 @@ test('a source reader of the surviving old owner stays unverified with its liter
   assert.ok(result.coverage.unverified.some(item => item.kind === 'source-reader'));
   assert.ok(result.sourceReaders.declarationLossLiterals.some(item => item.path === 'test/owner.test.ts' && item.target === 'src/owner.ts'));
 });
+
+test('unchanged legacy citation debt inside a moved unit keeps its original observation identity',()=>{
+  const input=simpleMove();
+  for(const snapshot of [input.base,input.head]){
+    const file=snapshot.files.find(item=>item.path=== (snapshot===input.base?'src/owner.ts':'src/owner/work.ts'));
+    assert.ok(file,'missing source fixture');
+    file.text=file.text.replace('Work docs.','Work docs. `src/never-existed.ts`.');
+  }
+  const result=verifyMove(input);
+  assert.deepEqual(result.findings,[]);
+  assert.equal(result.referenceScope.preExistingFindings,1);
+});

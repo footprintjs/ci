@@ -1,6 +1,15 @@
 import { extractReferences, referenceTarget } from '../references/citations.mjs';
 import { declarationOwners, symbolOwner } from '../references/owners.mjs';
 import { issue } from './notes.mjs';
+import { declarationNames } from './declarations.mjs';
+
+function citedUnits(source,symbol,context){
+  const names=declarationOwners(source).names;
+  const qualified=names.has(symbol)?[symbol]:[...names].filter(name=>name.endsWith(`.${symbol}`));
+  if(qualified.length!==1)return [];
+  const root=qualified[0].split('.')[0];
+  return context.units.filter(unit=>unit.path===source.path&&declarationNames(unit.node).includes(root));
+}
 
 function commentKey(comment, unit, context, identity) {
   let text = comment.text;
@@ -10,7 +19,7 @@ function commentKey(comment, unit, context, identity) {
     if (target.paths?.length !== 1) continue;
     const source = context.parsed.get(target.paths[0]);
     if (!source || symbolOwner(declarationOwners(source), reference.symbol) !== 'present') continue;
-    const owners = context.units.filter(item => item.path === source.path && item.name === reference.symbol);
+    const owners = citedUnits(source,reference.symbol,context);
     if (owners.length !== 1 || !identity.has(owners[0])) continue;
     text = text.slice(0, reference.offset) + identity.get(owners[0]) + text.slice(reference.offset + reference.target.length);
   }
