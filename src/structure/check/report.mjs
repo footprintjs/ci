@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { observeSnapshotContext } from './snapshot.mjs';
+import { snapshotContexts } from './snapshot.mjs';
 import { compareFindings } from '../ratchet/index.mjs';
 import { LIMITS } from '../rules/limits.mjs';
 import { readerComparison } from '../references/reader-comparison.mjs';
@@ -7,8 +7,7 @@ import { headShapedBaseline } from './baseline.mjs';
 import { movedFileEvidence, wiringAllowances } from '../ratchet/moves/index.mjs';
 
 export function checkSnapshots(head, base) {
-  const headContext = observeSnapshotContext(head);
-  const baseContext = base ? observeSnapshotContext(base) : null;
+  const { headContext, baseContext } = snapshotContexts(head, base);
   const readers = readerComparison(headContext, baseContext);
   const current = readers.current;
   const previous = baseContext ? headShapedBaseline(headContext, baseContext, readers.previous) : null;

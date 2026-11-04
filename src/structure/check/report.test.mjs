@@ -7,6 +7,7 @@ test('shrinking named function debt remains an advisory improvement', () => {
     text: ['function work() {', ...Array(count).fill('  use();'), '}'].join('\n') }] });
   const result = checkSnapshots(snapshot(59), snapshot(60));
   assert.equal(result.status, 'advisory');
+  assert.ok(result.ratchet, 'A supplied base must produce a comparison.');
   assert.ok(result.ratchet.improved.some(item => item.rule === 'function-lines'));
 });
 

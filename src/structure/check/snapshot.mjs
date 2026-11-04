@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { createHash } from 'node:crypto';
 import { trackedFiles, codePath, measurementPath } from '../sources/paths.mjs';
 import { discoverDoors } from '../sources/doors.mjs';
-import { parseSource } from '../syntax/parse.mjs';
+import { parseFiles } from '../syntax/files.mjs';
 import { measureParsed } from '../metrics/measure.mjs';
 import { evaluateMeasurements } from '../rules/index.mjs';
 import { facadeAnalysis } from '../facades/index.mjs';
@@ -48,10 +48,9 @@ function wholeFileHashes(findings, files) {
 }
 
 /** Internal context lets diff consumers reuse parsed trees without publishing ASTs. */
-export function observeSnapshotContext(snapshot) {
+export function observeSnapshotContext(snapshot, previous = null) {
   const files = trackedFiles(snapshot);
-  const parsed = new Map([...files].filter(([path]) => codePath(path)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
-    .map(([path, source]) => [path, parseSource(source)]));
+  const parsed = parseFiles([...files].filter(([path]) => codePath(path)), previous);
   const measurements = sourceUnits(parsed);
   const doors = discoverDoors(files, parsed);
   const units = unitRules(parsed, measurements, doors);
@@ -71,4 +70,11 @@ export function observeSnapshotContext(snapshot) {
 
 export function observeSnapshot(snapshot) {
   return observeSnapshotContext(snapshot).report;
+}
+
+/** Snapshot-dependent roles, graph and reader observations are never shared. */
+export function snapshotContexts(head, base) {
+  const headContext = observeSnapshotContext(head);
+  const baseContext = base ? observeSnapshotContext(base, headContext.parsed) : null;
+  return { headContext, baseContext };
 }
