@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {validateConfig,evaluateStage,KNOWN_REASONS,REASON_MESSAGES} from '../../src/policy.mjs';
 import {authorityWorld,ciWorld,sha,syntheticPackageArchive,authorityApiFixture} from '../upstream/test/release/helpers.mjs';
@@ -61,9 +61,26 @@ test('every source port and fixture snapshot matches complete provenance hashes'
  const originalLines=source.toString('utf8').trimEnd().split('\n').length;
  assert.ok(currentLines<=originalLines,'src/guards/release-github.cjs grew beyond its immutable native source: '+currentLines+' > '+originalLines);
 
- let transformed=source.toString('utf8');assert.equal(patch.replacements.length,2);
+ let transformed=source.toString('utf8');assert.equal(patch.replacements.length,3);
  for(const replacement of patch.replacements){assert.equal(transformed.split(replacement.before).length-1,1);transformed=transformed.replace(replacement.before,replacement.after);}
  assert.equal(transformed,readFileSync(new URL('../../'+row.destination,import.meta.url),'utf8'));
+ const extracted=patch.sourceViewExtraction;
+ assert.equal(extracted.destination,'src/guards/git-source.cjs');
+ assert.equal(extracted.sourceUnit,patch.replacements[2].before);
+ assert.equal(source.toString('utf8').split(extracted.sourceUnit).length-1,1);
+ let unit=extracted.sourceUnit;
+ for(const replacement of extracted.adaptations){assert.equal(unit.split(replacement.before).length-1,1);unit=unit.replace(replacement.before,replacement.after);}
+ assert.equal(extracted.moduleTemplate.split('__SOURCE_VIEW__').length-1,1);
+ const moved=readFileSync(new URL('../../'+extracted.destination,import.meta.url));
+ assert.equal(extracted.moduleTemplate.replace('__SOURCE_VIEW__',unit),moved.toString('utf8'));
+ assert.equal(createHash('sha256').update(moved).digest('hex'),extracted.sha256);
+ for(const local of manifest.localModules){
+  const bytes=readFileSync(new URL('../../'+local.destination,import.meta.url));
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),local.sha256,local.destination);
+  assert.equal(typeof local.role,'string');
+ }
+ const declared=[...manifest.files,...manifest.localModules].filter(r=>r.destination.startsWith('src/guards/')).map(r=>r.destination.split('/').at(-1));
+ assert.deepEqual(declared.sort(),readdirSync(new URL('../../src/guards/',import.meta.url)).sort(),'every production guard module has explicit provenance');
  const policy=patch.extractedPolicy,policyRow=manifest.files.find(r=>r.destination===policy.destination);
  assert.equal(policy.destination,'src/guards/proposal-metadata.cjs');assert.ok(policyRow);
  assert.equal(policyRow.sha256,policy.sha256);assert.equal(policyRow.sourceSha256,row.sourceSha256);

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "5377a6ce26f888d619845bb672a38766a49c08ad1962505e45e5fa48d6886582",
+  "sha256": "996c9c94a53c2d5858c4fb4336f3093cfbae1ef2d3aabe60425d2182397343ee",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -1021,6 +1021,14 @@
       "bytes": 6728
     },
     {
+      "path": "src/guards/git-blob.cjs",
+      "bytes": 3764
+    },
+    {
+      "path": "src/guards/git-source.cjs",
+      "bytes": 3598
+    },
+    {
       "path": "src/guards/proposal-metadata.cjs",
       "bytes": 1520
     },
@@ -1042,7 +1050,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 68538
+      "bytes": 65442
     },
     {
       "path": "src/guards/release-prepare.cjs",

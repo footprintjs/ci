@@ -2,7 +2,7 @@
   "repository": "https://github.com/footprintjs/foottrace",
   "commit": "f55250adcbe9bbfdde75b6bc2c889bac791ca131",
   "license": "MIT",
-  "scope": "Five production guard modules exact; release-github structurally shrinks through TWO exact data-only replacements into one small native metadata policy. Both policy and guard reproducible from preserved original; native request bytes/order and all predicates preserved. Complete native corpus retained; snapshot runner/workflows remain historical compatibility DATA.",
+  "scope": "Five production guard modules exact. The sixth is reproduced from the pinned original through three declared metadata/sourceView substitutions. The moved native source decoder and new owner-bound verified immutable blob port are explicit local adaptations, with full source and behavioural review required. Historical runner/workflow snapshots remain DATA.",
   "files": [
     {
       "source": ".github/workflows/ci.yml",
@@ -295,11 +295,11 @@
       "source": "scripts/release-github.cjs",
       "destination": "src/guards/release-github.cjs",
       "sourceSha256": "40a4c603118f377d7e1e2e94813201a5f6812d21d23a79fcdc51dd8d2e4ca710",
-      "sha256": "949ac023e1b14cfbc5ccb24c178465d1dc29f62e176b7b9d8ed6090cb1d4d0f2",
-      "adaptation": "Extract shared proposalCreation call to one small policy owner; preserve all native guard predicates and exact original request bytes/order.",
+      "sha256": "76e196a139a5f1d51b2b74284cb9b0266d9ce46e43ecbbcb4f1928e7582196c5",
+      "adaptation": "Metadata factory extraction plus native sourceView delegation; exact declared guard reconstruction, separately declared local decoder/opaque-owner adaptations.",
       "dataPatch": {
         "path": "provenance/adaptations/release-github-metadata-policy.json",
-        "sha256": "53ce1538b85ad59379b7580cfb2c1849051916830ceac0c9623dc568422d1df5"
+        "sha256": "2a6f954cb78c829036fe0178198bd1387bb718feb855e17834d3ccf794ee2cbd"
       }
     },
     {
@@ -341,5 +341,17 @@
     ],
     "nativeTests": 449,
     "note": "Historical runner snapshots retain local static helpers for original mocked workflow/runner compatibility assertions. Pure guard, archive, closure, history, collection, and verification fixture calls load src/guards production modules via the three documented import adaptations."
-  }
+  },
+  "localModules": [
+    {
+      "destination": "src/guards/git-source.cjs",
+      "sha256": "c288bb29fee6a38bc568710a3597d17ac0f5a027249caa997038cd7911172a1d",
+      "role": "Explicit native sourceView adaptation declared by sourceViewExtraction; not an exact upstream module copy."
+    },
+    {
+      "destination": "src/guards/git-blob.cjs",
+      "sha256": "b76c899b1b3368d4b4d644f2d85b0acd852b29a105823c8c1290582ae486f6e2",
+      "role": "New SAME-owner verified blob decoder/decorator; independently reviewed local library code, not an upstream module copy."
+    }
+  ]
 }

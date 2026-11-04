@@ -1,3 +1,4 @@
+import gitBlob from '../guards/git-blob.cjs';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import native from '../guards/release-github.cjs';
@@ -35,6 +36,7 @@ export function createFoottraceHostSourceReader({transport,context,invocation,ho
     const boundary={kind:'native-host-source',method:'GET',status:'unavailable'};observations.push(boundary);
     const result=await port.api(method,route);boundary.status='returned';return result;
    };
+   gitBlob.inheritGitBlobRead(read,port.api);
    const phase=async()=>{
     await requireClean();
     const profile=fields(jsonData(await readProfile()),['id','sourceSha','sourceTree','toolSha','workflow','entry','profile','identityHelper']);
@@ -56,13 +58,7 @@ export function createFoottraceHostSourceReader({transport,context,invocation,ho
      const bytes=Buffer.from(raw);
      if(preparation.gitObject('blob',bytes)!==rule.sha||sha(bytes)!==rule.sha256)fail();
      let provider=actual.bytes;
-     if(!provider){
-      const blob=own(await read('GET',prefix+'blobs/'+rule.sha),'data');
-      const content=own(blob,'content');
-      if(own(blob,'sha')!==rule.sha||own(blob,'encoding')!=='base64'||own(blob,'size')!==rule.bytes||
-       typeof content!=='string'||content.length>700*1024||! /^[A-Za-z0-9+/=\r\n]*$/.test(content))fail();
-      provider=Buffer.from(content,'base64');
-     }
+     if(!provider)provider=await view.blob(rule.sha);
      if(provider.length!==rule.bytes||preparation.gitObject('blob',provider)!==rule.sha||
       sha(provider)!==rule.sha256||!provider.equals(bytes))fail();
      blobs[kind+'Blob']=rule.sha;

@@ -6,7 +6,7 @@ import {foottraceInvocationContext} from './foottrace-context.mjs';
 import {foottraceTransportPort} from './foottrace-transport.mjs';
 import {createFoottraceMetadataParentSourceReader} from './foottrace-metadata-parent-source.mjs';
 import {createFoottraceCurrentInputReader} from './foottrace-current-inputs.mjs';
-import {createFoottraceProposerReader} from './current-proposer.mjs';
+import {createFoottraceProposerReader,createFoottraceProposerObservation} from './current-proposer.mjs';
 import {createFoottraceCurrentPreparationReader} from './current-preparation.mjs';
 import {createFoottraceLineageObservationReader} from './foottrace-lineage.mjs';
 import {createFoottracePendingObservationReader} from './foottrace-pending.mjs';
@@ -29,12 +29,14 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
   const sourceContext={repository:pinned.repository,sha:pinned.sha};
   readInputs=createFoottraceCurrentInputReader({transport,context:pinned});
   readCurrent=createFoottraceProposerReader({transport,context:pinned});
-  readArchive=createFoottraceCurrentPreparationReader({api:port.api,context:pinned,artifactId,readCurrentProposer:readCurrent});
+  readArchive=createFoottraceCurrentPreparationReader({api:port.api,context:pinned,artifactId,
+   readCurrentProposer:createFoottraceProposerObservation({transport,context:pinned})});
   readLineage=createFoottraceLineageObservationReader({transport:port,context:sourceContext,settings:port.settings});
   readPending=createFoottracePendingObservationReader({api:port.api,context:sourceContext,settings:{slug:port.settings.slug}});
   readReviews=createFoottraceReviewObservationReader({api:port.api,context:sourceContext,settings:{slug:port.settings.slug}});
   readParentSource=createFoottraceMetadataParentSourceReader({transport,context:pinned});
-  const observeCommit=createObservedAppCommitReader({api:port.api,repository:port.repository,settings:port.settings,readCurrentProposer:readCurrent});
+  const observeCommit=createObservedAppCommitReader({api:port.api,repository:port.repository,settings:port.settings,
+   readCurrentProposer:createFoottraceProposerObservation({transport,context:pinned})});
   readCommit=async(prepared,pending,current)=>{
    const value=await observeCommit(prepared,pending,current);
    if(!value.valid)return value;
@@ -173,7 +175,7 @@ export function createFoottraceMetadataInputBootstrap({transport,context,artifac
    if(!freshLineage.valid||!isDeepStrictEqual(lineageJoin(freshLineage),lineageJoin(lineage)))throw new Error();
    const freshParent=await readParentSource(prepared,pending,lineage);
    if(!freshParent.valid||freshParent.digest!==parentSource.digest)throw new Error();
-   return true;
+   return available;
   }catch{available=false;return false;}
  };
  return {chart,readCommit,reobserve,getBackend:()=>available?{prepared,current,archive,lineage,pending,parentSource,reviews}:null};

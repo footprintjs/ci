@@ -94,7 +94,7 @@ export function createFoottraceMetadataHistoryInspection(options={},predecessor)
   if(backend===null)return false;
   const fresh=await reacquire();
   if(!fresh)backend=null; // Failed reacquisition permanently invalidates this invocation.
-  return fresh;
+  return fresh&&backend!==null;
  };
  const chart=signed.chart.addFunction('Initialize current metadata history observation',scope=>{
   inputs=input.getBackend();observed=signed.getBackend();

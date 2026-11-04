@@ -28,3 +28,6 @@ await emit({entryPoint:'bin/release.mjs',outfile:'dist/release.cjs',metadataPath
  extra:{publisherPayload:{path:'vendor/npm/npm-11.19.0.tgz',version:'11.19.0',sha256:npmDigest,bytes:npmPayload.length,boundToShadow:false}}});
 await emit({entryPoint:'src/propose/proposal-bootstrap.mjs',outfile:'dist/propose.cjs',metadataPath:'dist/propose-metadata.json',mode:0o644,
  extra:{purpose:'proposal-bootstrap-inputs-only',writerAuthority:false}});
+
+await emit({entryPoint:'src/propose/writer-program.mjs',outfile:'dist/propose-writer.cjs',metadataPath:'dist/propose-writer-metadata.json',mode:0o644,
+ extra:{purpose:'native-proposal-writer',writerAuthority:false,releaseReady:false}});

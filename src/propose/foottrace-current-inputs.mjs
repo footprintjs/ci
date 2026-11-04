@@ -1,3 +1,4 @@
+import gitBlob from '../guards/git-blob.cjs';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import native from '../guards/release-github.cjs';
@@ -32,6 +33,7 @@ export function createFoottraceCurrentInputReader({transport,context}={}) {
     const row={kind:'native-current-source',method:'GET',status:'unavailable'};observations.push(row);
     const value=await port.api(method,route);row.status='native-input';return value;
    };
+   gitBlob.inheritGitBlobRead(read,port.api);
    const phase=async()=>{
     await native.assertCurrentMain(read,pinned);
     const view=native.sourceView(read,pinned),source=await native.sourceInput(read,pinned,view);

@@ -1,3 +1,5 @@
+import {createFoottracePendingReader} from './foottrace-pending.mjs';
+import {createFoottracePostRefObserver} from './foottrace-post-ref.mjs';
 import {createInspectionReobserver} from './inspection-reobservation.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {id} from '../eco/json-data.mjs';
@@ -13,7 +15,7 @@ import {createRetainedWorkflowReader} from './retained-workflows.mjs';
 import {createRetainedWitnessReader} from './retained-witnesses.mjs';
 import {createRetainedSourceVersionReader} from './retained-source-versions.mjs';
 import {createFoottraceCandidatePublicationReader} from './candidate-publication.mjs';
-import {createFoottraceProposerReader} from './current-proposer.mjs';
+import {createFoottraceProposerReader,createFoottraceProposerObservation} from './current-proposer.mjs';
 import {createFoottraceCurrentPreparationReader} from './current-preparation.mjs';
 import {createFoottraceOrdinaryPreparationReader} from './foottrace-ordinary-preparation.mjs';
 
@@ -30,13 +32,15 @@ export function createFoottraceProposeInspection({transport,context,artifactId}=
   port=foottraceTransportPort(transport);sourceContext={repository:pinned.repository,sha:pinned.sha};valid=true;
  }catch{/* The native bootstrap records invalid input without service reads. */}
  const bootstrap=createFoottraceInputBootstrap({transport:valid?transport:null,context:valid?sourceContext:undefined},predecessor);
- let readers={};
+ let readers={},collectWorkflows=null;
  try{
   if(!valid)throw new Error();
   const profile=createFoottraceWorkflowProfile();
   const readWorkflows=createRetainedWorkflowReader({api:port.api,repository:port.repository,profile});
+  collectWorkflows=readWorkflows;
   const readCurrentProposer=createFoottraceProposerReader({transport,context:pinned});
-  const readCurrentArchive=createFoottraceCurrentPreparationReader({api:port.api,context:pinned,artifactId,readCurrentProposer});
+  const readCurrentArchive=createFoottraceCurrentPreparationReader({api:port.api,context:pinned,artifactId,
+   readCurrentProposer:createFoottraceProposerObservation({transport,context:pinned})});
   readers={
    readOrdinaryPreparation:createFoottraceOrdinaryPreparationReader({api:port.api,context:sourceContext}),
    readLineage:createFoottraceLineageReader({transport:port,context:sourceContext,settings:port.settings}),
@@ -64,7 +68,25 @@ export function createFoottraceProposeInspection({transport,context,artifactId}=
  }catch{readers={};}
  const retainedProfile=createFoottraceRetainedAttemptProfile();
  const stage=createProposeInspection({profile:bootstrap.profile,readers,inputBootstrap:bootstrap,retainedProfile});
- return createInspectionReobserver({stage,bootstrap,readers,profile:bootstrap.profile,retainedProfile});
+ let readEffectAnchors=null;
+ try{
+  const pending=createFoottracePendingReader({api:port.api,context:sourceContext,settings:{slug:port.settings.slug}});
+  readEffectAnchors=async baseline=>{
+   const actual=await pending(baseline.prepared);
+   return actual.valid&&isDeepStrictEqual(actual.reference,baseline.reviews.reference);
+  };
+ }catch{/* Missing fixed native anchors never allows an effect. */}
+ const observed=createInspectionReobserver({stage,bootstrap,readers,profile:bootstrap.profile,retainedProfile,readEffectAnchors});
+ // CODE-only transition construction captures immutable INPUT facts then
+ // permanently invalidates the old-P mutable observer. No ACK/grant is supplied
+ // as DATA; the owning flow must prove its actual returned ref/prefix itself.
+ return Object.freeze({...observed,createTransitionObserver:()=>{
+  const baseline=observed.getBackend();
+  if(!baseline||baseline.retainedAttempts?.eligible!==true||collectWorkflows===null)throw new Error('post-ref-inputs-unavailable');
+  observed.invalidate();
+  return createFoottracePostRefObserver({transport,context:pinned,baseline,
+   readers:{...readers,readWorkflows:collectWorkflows},profile:bootstrap.profile,retainedProfile});
+ }});
 }
 
 /** The public facade never forwards DATA composition or reader/executor ports. */

@@ -743,6 +743,168 @@ ${suffix}`
   }
 });
 
+// src/guards/git-blob.cjs
+var require_git_blob = __commonJS({
+  "src/guards/git-blob.cjs"(exports2, module2) {
+    "use strict";
+    var preparation = require_release_prepare();
+    var control3 = require_release_control();
+    var owners = /* @__PURE__ */ new WeakMap();
+    var bindings2 = /* @__PURE__ */ new WeakMap();
+    var DEFAULTS = Object.freeze({ maxEntries: 4096, maxBytes: 128 * 1024 * 1024, maxPending: 64 });
+    var fail4 = () => {
+      const e = new Error("source-content");
+      e.code = "source-content";
+      throw e;
+    };
+    function createGitBlobOwner(repository, limits = {}) {
+      if (!repository || !Number.isSafeInteger(repository.id) || repository.id < 1 || typeof repository.full_name !== "string" || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository.full_name) || !limits || typeof limits !== "object" || Object.keys(limits).some((k) => !Object.hasOwn(DEFAULTS, k))) fail4();
+      const bound = { ...DEFAULTS, ...limits };
+      for (const key of Object.keys(DEFAULTS)) if (!Number.isSafeInteger(bound[key]) || bound[key] < 1 || bound[key] > DEFAULTS[key]) fail4();
+      const owner = Object.freeze({});
+      owners.set(owner, { repository: { id: repository.id, full_name: repository.full_name }, limits: bound, blobs: /* @__PURE__ */ new Map(), pending: /* @__PURE__ */ new Map(), bytes: 0, full: false });
+      return owner;
+    }
+    function bindGitBlobOwner(api, owner) {
+      if (typeof api !== "function" || !owners.has(owner) || bindings2.has(api) && bindings2.get(api) !== owner) fail4();
+      bindings2.set(api, owner);
+      return api;
+    }
+    function inheritGitBlobRead(target2, source) {
+      if (typeof target2 !== "function" || typeof source !== "function") fail4();
+      if (bindings2.has(source)) bindGitBlobOwner(target2, bindings2.get(source));
+      return target2;
+    }
+    function gitBlobOwnerFacts(owner) {
+      const s = owners.get(owner);
+      if (!s) fail4();
+      return Object.freeze({ entries: s.blobs.size, bytes: s.bytes, pending: s.pending.size, full: s.full, authorized: false });
+    }
+    async function decodeGitBlob(api, context, id) {
+      const value = (await api("GET", "/repos/" + context.repository.full_name + "/git/blobs/" + id)).data;
+      if (value.sha !== id || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail4();
+      const bytes = Buffer.from(value.content, "base64");
+      if (bytes.length !== value.size || preparation.gitObject("blob", bytes) !== id) fail4();
+      return bytes;
+    }
+    async function readGitBlob(api, context, id) {
+      if (!control3.validSha(id)) fail4();
+      const owner = bindings2.get(api), s = owner === void 0 ? null : owners.get(owner);
+      if (s === null) return decodeGitBlob(api, context, id);
+      if (context.repository.id !== s.repository.id || context.repository.full_name !== s.repository.full_name) fail4();
+      const key = s.repository.id + ":" + id;
+      if (s.blobs.has(key)) return Buffer.from(s.blobs.get(key));
+      if (s.pending.has(key)) return Buffer.from(await s.pending.get(key));
+      const load = async () => {
+        const bytes = await decodeGitBlob(api, context, id);
+        if (!s.full && !s.blobs.has(key)) {
+          if (s.blobs.size >= s.limits.maxEntries || s.bytes + bytes.length > s.limits.maxBytes) s.full = true;
+          else {
+            s.blobs.set(key, Buffer.from(bytes));
+            s.bytes += bytes.length;
+            if (s.blobs.size === s.limits.maxEntries || s.bytes === s.limits.maxBytes) s.full = true;
+          }
+        }
+        return bytes;
+      };
+      if (s.full || s.pending.size >= s.limits.maxPending) return Buffer.from(await load());
+      const work = load();
+      s.pending.set(key, work);
+      try {
+        return Buffer.from(await work);
+      } finally {
+        s.pending.delete(key);
+      }
+    }
+    module2.exports = { createGitBlobOwner, bindGitBlobOwner, inheritGitBlobRead, gitBlobOwnerFacts, readGitBlob };
+  }
+});
+
+// src/guards/git-source.cjs
+var require_git_source = __commonJS({
+  "src/guards/git-source.cjs"(exports2, module2) {
+    "use strict";
+    var preparation = require_release_prepare();
+    var control3 = require_release_control();
+    var { readGitBlob } = require_git_blob();
+    var prefix = (context) => {
+      if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
+        fail4("repository");
+      return `/repos/${context.repository.full_name}`;
+    };
+    var fail4 = (code) => {
+      const error = new Error(code);
+      error.code = code;
+      throw error;
+    };
+    function sourceView(api, context) {
+      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
+      const rawPaths = /* @__PURE__ */ new Set([
+        "package.json",
+        "package-lock.json",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/metadata.md",
+        ".github/workflows/publish.yml",
+        "scripts/release-app-auth.cjs",
+        "scripts/release-runner.cjs",
+        "test/release/app-identity.test.mjs",
+        "test/release/archive.test.mjs",
+        "test/release/diagnostics.test.mjs"
+      ]);
+      let totalBytes = 0;
+      const commit = async (id) => {
+        if (!control3.validSha(id)) fail4("source-sha");
+        if (!commits.has(id)) {
+          if (commits.size >= 512) fail4("recovery-source");
+          const value = (await api("GET", `${prefix(context)}/git/commits/${id}`)).data;
+          if (value.sha !== id || !control3.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control3.validSha(p.sha))) fail4("source-commit");
+          commits.set(id, value);
+        }
+        return commits.get(id);
+      };
+      const blob = async (id) => {
+        prefix(context);
+        if (!control3.validSha(id)) fail4("source-sha");
+        if (!blobs.has(id)) {
+          const bytes = await readGitBlob(api, context, id);
+          totalBytes += bytes.length;
+          if (totalBytes > 128 * 1024 * 1024) fail4("source-content");
+          blobs.set(id, bytes);
+        }
+        return Buffer.from(blobs.get(id));
+      };
+      const tree = async (id) => {
+        if (!control3.validSha(id)) fail4("source-sha");
+        const result3 = /* @__PURE__ */ new Map();
+        const tree2 = (await api("GET", `${prefix(context)}/git/trees/${id}?recursive=1`)).data;
+        if (tree2.sha !== id || tree2.truncated !== false || !Array.isArray(tree2.tree) || tree2.tree.length > 4096)
+          fail4("source-tree");
+        const seen = /* @__PURE__ */ new Set();
+        for (const row of tree2.tree) {
+          if (typeof row.path !== "string" || seen.has(row.path) || !control3.validSha(row.sha)) fail4("source-tree");
+          seen.add(row.path);
+          if (row.type === "tree" && row.mode === "040000") continue;
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail4("source-tree");
+          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
+          if (needsBytes) await blob(row.sha);
+          result3.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
+        }
+        if (preparation.treeOid(result3) !== id) fail4("source-tree");
+        return result3;
+      };
+      const inventory = async (id) => {
+        if (inventories.has(id)) return inventories.get(id);
+        const c = await commit(id), result3 = await tree(c.tree.sha);
+        inventories.set(id, result3);
+        return result3;
+      };
+      return { commit, inventory, blob, tree };
+    }
+    module2.exports = { sourceView };
+  }
+});
+
 // src/guards/proposal-metadata.cjs
 var require_proposal_metadata = __commonJS({
   "src/guards/proposal-metadata.cjs"(exports2, module2) {
@@ -807,6 +969,7 @@ var require_release_github = __commonJS({
   "src/guards/release-github.cjs"(exports2, module2) {
     "use strict";
     var preparation = require_release_prepare();
+    var { sourceView } = require_git_source();
     var { proposalCreation } = require_proposal_metadata();
     var { prepareRelease } = preparation;
     var control3 = require_release_control();
@@ -1086,61 +1249,6 @@ var require_release_github = __commonJS({
       } catch {
         fail4("source-content");
       }
-    }
-    function sourceView(api, context) {
-      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
-      const rawPaths = /* @__PURE__ */ new Set([
-        "package.json",
-        "package-lock.json",
-        "CHANGELOG.md",
-        "README.md",
-        "docs/metadata.md",
-        ".github/workflows/publish.yml",
-        "scripts/release-app-auth.cjs",
-        "scripts/release-runner.cjs",
-        "test/release/app-identity.test.mjs",
-        "test/release/archive.test.mjs",
-        "test/release/diagnostics.test.mjs"
-      ]);
-      let totalBytes = 0;
-      const commit = async (id) => {
-        if (!control3.validSha(id)) fail4("source-sha");
-        if (!commits.has(id)) {
-          if (commits.size >= 512) fail4("recovery-source");
-          const value = (await api("GET", `${prefix(context)}/git/commits/${id}`)).data;
-          if (value.sha !== id || !control3.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control3.validSha(p.sha))) fail4("source-commit");
-          commits.set(id, value);
-        }
-        return commits.get(id);
-      };
-      const inventory = async (id) => {
-        if (inventories.has(id)) return inventories.get(id);
-        const c = await commit(id), result3 = /* @__PURE__ */ new Map();
-        const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
-        if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail4("source-tree");
-        const seen = /* @__PURE__ */ new Set();
-        for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control3.validSha(row.sha)) fail4("source-tree");
-          seen.add(row.path);
-          if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail4("source-tree");
-          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
-          if (needsBytes && !blobs.has(row.sha)) {
-            const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail4("source-content");
-            const bytes = Buffer.from(value.content, "base64");
-            totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation.gitObject("blob", bytes) !== row.sha) fail4("source-content");
-            blobs.set(row.sha, bytes);
-          }
-          result3.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
-        }
-        if (preparation.treeOid(result3) !== c.tree.sha) fail4("source-tree");
-        inventories.set(id, result3);
-        return result3;
-      };
-      return { commit, inventory };
     }
     function packageIdentity(inventory, version) {
       const raw = (name) => {

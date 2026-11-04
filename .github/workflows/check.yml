@@ -22,4 +22,9 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Verify committed bundle and metadata
-        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json dist/propose.cjs dist/propose-metadata.json
+        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json dist/propose.cjs dist/propose-metadata.json dist/propose-writer.cjs dist/propose-writer-metadata.json
+
+  file-size:
+    uses: footprintjs/ci/.github/workflows/file-size.yml@fdafcc1e11197c2d38b49427aaca30e0e6a72d6a
+    with:
+      tool_sha: fdafcc1e11197c2d38b49427aaca30e0e6a72d6a

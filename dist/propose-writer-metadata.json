@@ -1,0 +1,1382 @@
+{
+  "schemaVersion": 1,
+  "format": "cjs",
+  "target": "node22",
+  "sha256": "deb5d5edc47c49f10656409f83f8e7a2d246f85ff86e7b036cc525ad73fd1709",
+  "inputs": [
+    {
+      "path": "node_modules/footprintjs/dist/esm/index.js",
+      "bytes": 37219
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/anySignal.js",
+      "bytes": 5856
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/backoff.js",
+      "bytes": 31395
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/call.js",
+      "bytes": 25396
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/category.js",
+      "bytes": 21401
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/correlation.js",
+      "bytes": 32108
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/deadline.js",
+      "bytes": 11898
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/decision.js",
+      "bytes": 19894
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/effect.js",
+      "bytes": 27689
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/errorField.js",
+      "bytes": 5297
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/errors.js",
+      "bytes": 7274
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/index.js",
+      "bytes": 3982
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/name.js",
+      "bytes": 6614
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/observed.js",
+      "bytes": 27827
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/policy.js",
+      "bytes": 14298
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/record.js",
+      "bytes": 4114
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/retryLoopContext.js",
+      "bytes": 4141
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/runner.js",
+      "bytes": 92963
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/standalone.js",
+      "bytes": 21331
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/budget/index.js",
+      "bytes": 1875
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/budget/timeBudget.js",
+      "bytes": 130412
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/FlowChartBuilder.js",
+      "bytes": 355894
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/index.js",
+      "bytes": 3274
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/retryLoop.js",
+      "bytes": 52053
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/structure/StructureRecorderDispatcher.js",
+      "bytes": 24102
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/typedFlowChart.js",
+      "bytes": 3724
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/builder/types.js",
+      "bytes": 22739
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/absentEntries.js",
+      "bytes": 12668
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/checkpointCapture.js",
+      "bytes": 14933
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/circular.js",
+      "bytes": 5504
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/envelope.js",
+      "bytes": 33809
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/historyData.js",
+      "bytes": 16623
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/historyNote.js",
+      "bytes": 10406
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/historyTarget.js",
+      "bytes": 4884
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/historyTypes.js",
+      "bytes": 3111
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/invokeHook.js",
+      "bytes": 5970
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeCoverage.js",
+      "bytes": 23070
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeSourceAddress.js",
+      "bytes": 3139
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/noteShape.js",
+      "bytes": 17037
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/readSources.js",
+      "bytes": 15492
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/sinkSettlement.js",
+      "bytes": 2086
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/sourceOwnership.js",
+      "bytes": 19008
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/sourceOwnershipFormat.js",
+      "bytes": 5259
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/sourceReadCounts.js",
+      "bytes": 4027
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/sourceReferenceBudget.js",
+      "bytes": 3942
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/storedReadSourceCounts.js",
+      "bytes": 13430
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/storedReadSources.js",
+      "bytes": 21615
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/storedSourceOwnership.js",
+      "bytes": 18953
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/summarize.js",
+      "bytes": 15641
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/contract/schema.js",
+      "bytes": 41270
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/decide/decide.js",
+      "bytes": 30775
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/decide/evidence.js",
+      "bytes": 4093
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/decide/index.js",
+      "bytes": 2460
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/decide/types.js",
+      "bytes": 9328
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/detach/spawn.js",
+      "bytes": 11057
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/devMode.js",
+      "bytes": 9459
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/graph/prefixNodeTree.js",
+      "bytes": 6079
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/graph/StageNode.js",
+      "bytes": 14669
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/breakFlag.js",
+      "bytes": 1343
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ChildrenExecutor.js",
+      "bytes": 38393
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/commitStage.js",
+      "bytes": 4921
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ContinuationResolver.js",
+      "bytes": 24323
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/DeciderHandler.js",
+      "bytes": 22930
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/index.js",
+      "bytes": 4406
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/NodeResolver.js",
+      "bytes": 12852
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ParallelForEachHandler.js",
+      "bytes": 36014
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ResumeEntry.js",
+      "bytes": 77295
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/RuntimeStructureManager.js",
+      "bytes": 28863
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SelectorHandler.js",
+      "bytes": 24561
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/servedPause.js",
+      "bytes": 3203
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/servedSubflowResults.js",
+      "bytes": 8656
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/stageError.js",
+      "bytes": 9165
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/StageRunner.js",
+      "bytes": 27880
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowExecutor.js",
+      "bytes": 76476
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowInputMapper.js",
+      "bytes": 25846
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/TraversalDepthError.js",
+      "bytes": 5528
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/index.js",
+      "bytes": 6784
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/CombinedNarrativeRecorder.js",
+      "bytes": 116612
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/FlowRecorderDispatcher.js",
+      "bytes": 31690
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/resolveText.js",
+      "bytes": 1371
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/sentences.js",
+      "bytes": 29549
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/NarrativeFlowRecorder.js",
+      "bytes": 25026
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/NullControlFlowNarrativeGenerator.js",
+      "bytes": 3197
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/AdaptiveNarrativeFlowRecorder.js",
+      "bytes": 5631
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ManifestFlowRecorder.js",
+      "bytes": 19471
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/MilestoneNarrativeFlowRecorder.js",
+      "bytes": 4531
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ProgressiveNarrativeFlowRecorder.js",
+      "bytes": 5494
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/RLENarrativeFlowRecorder.js",
+      "bytes": 8678
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/SeparateNarrativeFlowRecorder.js",
+      "bytes": 5861
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/SilentNarrativeFlowRecorder.js",
+      "bytes": 5997
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/WindowedNarrativeFlowRecorder.js",
+      "bytes": 9745
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/traversal/FlowchartTraverser.js",
+      "bytes": 269300
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/traversalContext.js",
+      "bytes": 14786
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/types.js",
+      "bytes": 46564
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/walkSubflowSpec.js",
+      "bytes": 22517
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/errors/errorInfo.js",
+      "bytes": 14695
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/errors/terminalFailure.js",
+      "bytes": 7879
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/filter/evaluator.js",
+      "bytes": 18207
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/ids/branchSegment.js",
+      "bytes": 15673
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/ids/idempotencyKey.js",
+      "bytes": 3920
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/ids/reservedIds.js",
+      "bytes": 7691
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/attention.js",
+      "bytes": 27966
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/borrowedMutation.js",
+      "bytes": 24365
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/DiagnosticCollector.js",
+      "bytes": 12925
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/logAddress.js",
+      "bytes": 1446
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/redaction.js",
+      "bytes": 228686
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/runAddress.js",
+      "bytes": 4368
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/runPolicy.js",
+      "bytes": 19001
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/StageContext.js",
+      "bytes": 190761
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/deferredDispatcher.js",
+      "bytes": 37299
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/flushDriver.js",
+      "bytes": 24774
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/index.js",
+      "bytes": 4936
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/mergedQueue.js",
+      "bytes": 13446
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/ring.js",
+      "bytes": 18774
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/pause/index.js",
+      "bytes": 1118
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/pause/interrupt.js",
+      "bytes": 18106
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/pause/record.js",
+      "bytes": 31015
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/pause/types.js",
+      "bytes": 53917
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/allowlist.js",
+      "bytes": 8588
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/arrayTraps.js",
+      "bytes": 39925
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/createTypedScope.js",
+      "bytes": 50667
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/handles.js",
+      "bytes": 14268
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/jsonProjection.js",
+      "bytes": 15042
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/liveView.js",
+      "bytes": 18361
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/pathBuilder.js",
+      "bytes": 4473
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/structuralWrite.js",
+      "bytes": 13686
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/types.js",
+      "bytes": 20909
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/reactive/writeTraps.js",
+      "bytes": 19728
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptMetricRows.js",
+      "bytes": 30174
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptMetrics.js",
+      "bytes": 28442
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptOTel.js",
+      "bytes": 18780
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/AttemptRecorder.js",
+      "bytes": 58403
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptSeries.js",
+      "bytes": 18098
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/BoundaryStateStore.js",
+      "bytes": 20710
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/CombinedRecorder.js",
+      "bytes": 26275
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/CompositeRecorder.js",
+      "bytes": 15160
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/ControlDepRecorder.js",
+      "bytes": 42286
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/hooks.js",
+      "bytes": 30196
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/index.js",
+      "bytes": 2752
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/InOutRecorder.js",
+      "bytes": 42458
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/KeyedStore.js",
+      "bytes": 13317
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/QualityRecorder.js",
+      "bytes": 30773
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/qualityTrace.js",
+      "bytes": 15460
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/RecorderOperation.js",
+      "bytes": 4384
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/SequenceStore.js",
+      "bytes": 23839
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/snapshot.js",
+      "bytes": 5827
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/TopologyRecorder.js",
+      "bytes": 60213
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/attach.js",
+      "bytes": 38218
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/captureHistory.js",
+      "bytes": 19675
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/checkpoint.js",
+      "bytes": 23427
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/deadline.js",
+      "bytes": 16795
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/DeferredObserverTier.js",
+      "bytes": 61514
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/ExecutionRuntime.js",
+      "bytes": 67621
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/FlowChartExecutor.js",
+      "bytes": 134599
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/getSubtreeSnapshot.js",
+      "bytes": 20900
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/index.js",
+      "bytes": 2425
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/options.js",
+      "bytes": 19670
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/readStoredCapture.js",
+      "bytes": 8390
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/recordSink.js",
+      "bytes": 58053
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/resume.js",
+      "bytes": 52245
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/RunContext.js",
+      "bytes": 8234
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/runId.js",
+      "bytes": 7393
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/RunnableChart.js",
+      "bytes": 21768
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/snapshot.js",
+      "bytes": 21716
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/storedCaptureAdmission.js",
+      "bytes": 19670
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/stringifySnapshot.js",
+      "bytes": 15974
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/validateInput.js",
+      "bytes": 1851
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/schema/detect.js",
+      "bytes": 7436
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/schema/errors.js",
+      "bytes": 6665
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/schema/index.js",
+      "bytes": 1881
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/schema/validate.js",
+      "bytes": 20414
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/index.js",
+      "bytes": 4378
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/protection/createProtectedScope.js",
+      "bytes": 7513
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/protection/index.js",
+      "bytes": 723
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/protection/readonlyInput.js",
+      "bytes": 14678
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/baseStateCompatible.js",
+      "bytes": 5082
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/guards.js",
+      "bytes": 4919
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/index.js",
+      "bytes": 1809
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/providers.js",
+      "bytes": 2439
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/registry.js",
+      "bytes": 4836
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/providers/resolve.js",
+      "bytes": 2164
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/recorders/DebugRecorder.js",
+      "bytes": 26042
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/recorders/MetricRecorder.js",
+      "bytes": 29670
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/runtime.js",
+      "bytes": 12615
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/scope/ScopeFacade.js",
+      "bytes": 145614
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/timers/longTimeout.js",
+      "bytes": 8550
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/recorders.js",
+      "bytes": 14199
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/trace.js",
+      "bytes": 5260
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/index.js",
+      "bytes": 1609
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/capture/freeze.js",
+      "bytes": 14356
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/capture/ownData.js",
+      "bytes": 1391
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/capture/valueKinds.js",
+      "bytes": 6954
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/evidence/admission.js",
+      "bytes": 2596
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/evidence/codes.js",
+      "bytes": 872
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/evidence/requirements.js",
+      "bytes": 7259
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/ids/attemptId.js",
+      "bytes": 4655
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/ids/runtimeStageId.js",
+      "bytes": 8678
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/admission.js",
+      "bytes": 6797
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/backtrack.js",
+      "bytes": 22593
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/commitLogUtils.js",
+      "bytes": 18265
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/deltaEncoding.js",
+      "bytes": 5430
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/equality.js",
+      "bytes": 11734
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/EventLog.js",
+      "bytes": 18949
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/honesty.js",
+      "bytes": 10755
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/keyPaths.js",
+      "bytes": 10361
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/logModel.js",
+      "bytes": 18188
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/merge.js",
+      "bytes": 2318
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/pathOps.js",
+      "bytes": 12342
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/paths.js",
+      "bytes": 2597
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/placeholders.js",
+      "bytes": 2834
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/recordCommit.js",
+      "bytes": 2160
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/RecordFrame.js",
+      "bytes": 18886
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/scrub.js",
+      "bytes": 4121
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/SharedMemory.js",
+      "bytes": 5297
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/sink.js",
+      "bytes": 4770
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/TransactionBuffer.js",
+      "bytes": 50282
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/utils.js",
+      "bytes": 6921
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/verbs.js",
+      "bytes": 20555
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/prov/encoding.js",
+      "bytes": 379
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/prov/ids.js",
+      "bytes": 2506
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/admission.js",
+      "bytes": 3588
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/bindings.js",
+      "bytes": 887
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/capture.js",
+      "bytes": 12159
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/codec.js",
+      "bytes": 6008
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/commitFacts.js",
+      "bytes": 2502
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/format.js",
+      "bytes": 294
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/originIndex.js",
+      "bytes": 7821
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/staging.js",
+      "bytes": 3609
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/types.js",
+      "bytes": 289
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/read-sources/writer.js",
+      "bytes": 1923
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/recorder/CommitRangeIndex.js",
+      "bytes": 8915
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/elementProvenance.js",
+      "bytes": 9767
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/forwardSliceForKey.js",
+      "bytes": 11846
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/index.js",
+      "bytes": 1285
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/keyIndex.js",
+      "bytes": 12907
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/keysReadSources.js",
+      "bytes": 5949
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/keyTimeline.js",
+      "bytes": 5272
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/serialize.js",
+      "bytes": 13264
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/sliceForKey.js",
+      "bytes": 4587
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/axis.js",
+      "bytes": 8002
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/bundles.js",
+      "bytes": 7564
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/chain.js",
+      "bytes": 9758
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/commitStops.js",
+      "bytes": 10644
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/index.js",
+      "bytes": 876
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/stateAt.js",
+      "bytes": 7148
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/storedRecord.js",
+      "bytes": 23545
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/tagStops.js",
+      "bytes": 4900
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/time-travel/timeTravel.js",
+      "bytes": 17487
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/paths.js",
+      "bytes": 319
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/write.js",
+      "bytes": 3146
+    },
+    {
+      "path": "src/eco/json-data.mjs",
+      "bytes": 4105
+    },
+    {
+      "path": "src/guards/git-blob.cjs",
+      "bytes": 3764
+    },
+    {
+      "path": "src/guards/git-source.cjs",
+      "bytes": 3598
+    },
+    {
+      "path": "src/guards/proposal-metadata.cjs",
+      "bytes": 1520
+    },
+    {
+      "path": "src/guards/release-app-auth.cjs",
+      "bytes": 1608
+    },
+    {
+      "path": "src/guards/release-archive.cjs",
+      "bytes": 8098
+    },
+    {
+      "path": "src/guards/release-changes.cjs",
+      "bytes": 2829
+    },
+    {
+      "path": "src/guards/release-control.cjs",
+      "bytes": 9093
+    },
+    {
+      "path": "src/guards/release-github.cjs",
+      "bytes": 65442
+    },
+    {
+      "path": "src/guards/release-prepare.cjs",
+      "bytes": 15263
+    },
+    {
+      "path": "src/guards/security-evidence.mjs",
+      "bytes": 1507
+    },
+    {
+      "path": "src/http-credential.cjs",
+      "bytes": 285
+    },
+    {
+      "path": "src/policy.mjs",
+      "bytes": 11900
+    },
+    {
+      "path": "src/propose/app-identity-api.mjs",
+      "bytes": 1060
+    },
+    {
+      "path": "src/propose/app-identity-facts.mjs",
+      "bytes": 1982
+    },
+    {
+      "path": "src/propose/candidate-publication.mjs",
+      "bytes": 9677
+    },
+    {
+      "path": "src/propose/computed-proposal-metadata.mjs",
+      "bytes": 2570
+    },
+    {
+      "path": "src/propose/configured-app-commit.mjs",
+      "bytes": 1759
+    },
+    {
+      "path": "src/propose/current-preparation.mjs",
+      "bytes": 7321
+    },
+    {
+      "path": "src/propose/current-prepared-inputs.mjs",
+      "bytes": 1287
+    },
+    {
+      "path": "src/propose/current-proposer.mjs",
+      "bytes": 8031
+    },
+    {
+      "path": "src/propose/foottrace-ancestry.mjs",
+      "bytes": 4495
+    },
+    {
+      "path": "src/propose/foottrace-context.mjs",
+      "bytes": 756
+    },
+    {
+      "path": "src/propose/foottrace-current-inputs.mjs",
+      "bytes": 4499
+    },
+    {
+      "path": "src/propose/foottrace-discovery-ports.mjs",
+      "bytes": 4415
+    },
+    {
+      "path": "src/propose/foottrace-input-bootstrap.mjs",
+      "bytes": 12394
+    },
+    {
+      "path": "src/propose/foottrace-inspection.mjs",
+      "bytes": 6453
+    },
+    {
+      "path": "src/propose/foottrace-lineage.mjs",
+      "bytes": 8832
+    },
+    {
+      "path": "src/propose/foottrace-metadata-checks.mjs",
+      "bytes": 2978
+    },
+    {
+      "path": "src/propose/foottrace-metadata-history.mjs",
+      "bytes": 15996
+    },
+    {
+      "path": "src/propose/foottrace-metadata-inputs.mjs",
+      "bytes": 16534
+    },
+    {
+      "path": "src/propose/foottrace-metadata-parent-source.mjs",
+      "bytes": 5666
+    },
+    {
+      "path": "src/propose/foottrace-ordinary-preparation.mjs",
+      "bytes": 6573
+    },
+    {
+      "path": "src/propose/foottrace-pending.mjs",
+      "bytes": 10850
+    },
+    {
+      "path": "src/propose/foottrace-post-ref.mjs",
+      "bytes": 4931
+    },
+    {
+      "path": "src/propose/foottrace-profile.mjs",
+      "bytes": 4311
+    },
+    {
+      "path": "src/propose/foottrace-proposal.mjs",
+      "bytes": 9294
+    },
+    {
+      "path": "src/propose/foottrace-reviews.mjs",
+      "bytes": 8070
+    },
+    {
+      "path": "src/propose/foottrace-rollover-inputs.mjs",
+      "bytes": 5260
+    },
+    {
+      "path": "src/propose/foottrace-rollover-inspection.mjs",
+      "bytes": 6513
+    },
+    {
+      "path": "src/propose/foottrace-transport.mjs",
+      "bytes": 5610
+    },
+    {
+      "path": "src/propose/github-transport.mjs",
+      "bytes": 11902
+    },
+    {
+      "path": "src/propose/historical-producer.mjs",
+      "bytes": 3327
+    },
+    {
+      "path": "src/propose/host-source-binding.mjs",
+      "bytes": 5395
+    },
+    {
+      "path": "src/propose/inspection-bindings.mjs",
+      "bytes": 19687
+    },
+    {
+      "path": "src/propose/inspection-flow.mjs",
+      "bytes": 26493
+    },
+    {
+      "path": "src/propose/inspection-reobservation.mjs",
+      "bytes": 4290
+    },
+    {
+      "path": "src/propose/local-host-source.mjs",
+      "bytes": 1086
+    },
+    {
+      "path": "src/propose/metadata-c1-flow.mjs",
+      "bytes": 7036
+    },
+    {
+      "path": "src/propose/metadata-response-policy.mjs",
+      "bytes": 1662
+    },
+    {
+      "path": "src/propose/native-observation-record.mjs",
+      "bytes": 1018
+    },
+    {
+      "path": "src/propose/nonforce-ref-submission.mjs",
+      "bytes": 1278
+    },
+    {
+      "path": "src/propose/observation-facts.mjs",
+      "bytes": 665
+    },
+    {
+      "path": "src/propose/observed-app-commit.mjs",
+      "bytes": 4805
+    },
+    {
+      "path": "src/propose/observed-commit-flow.mjs",
+      "bytes": 5730
+    },
+    {
+      "path": "src/propose/package-profile.mjs",
+      "bytes": 1192
+    },
+    {
+      "path": "src/propose/pending-chain.mjs",
+      "bytes": 2726
+    },
+    {
+      "path": "src/propose/pending-discovery.mjs",
+      "bytes": 10443
+    },
+    {
+      "path": "src/propose/pending-refresh-flow.mjs",
+      "bytes": 12172
+    },
+    {
+      "path": "src/propose/pending-successor-flow.mjs",
+      "bytes": 5064
+    },
+    {
+      "path": "src/propose/preparation-witness.mjs",
+      "bytes": 3587
+    },
+    {
+      "path": "src/propose/prepared-source.mjs",
+      "bytes": 5069
+    },
+    {
+      "path": "src/propose/proposal-bootstrap-flow.mjs",
+      "bytes": 7907
+    },
+    {
+      "path": "src/propose/proposal-created-reply.mjs",
+      "bytes": 728
+    },
+    {
+      "path": "src/propose/proposal-effect-request.mjs",
+      "bytes": 4331
+    },
+    {
+      "path": "src/propose/proposal-invocation.mjs",
+      "bytes": 3401
+    },
+    {
+      "path": "src/propose/proposal-metadata-payload.mjs",
+      "bytes": 725
+    },
+    {
+      "path": "src/propose/proposal-metadata-reply.mjs",
+      "bytes": 1127
+    },
+    {
+      "path": "src/propose/proposal-metadata.mjs",
+      "bytes": 2910
+    },
+    {
+      "path": "src/propose/proposal-object-flow.mjs",
+      "bytes": 6385
+    },
+    {
+      "path": "src/propose/proposal-object-observation.mjs",
+      "bytes": 6873
+    },
+    {
+      "path": "src/propose/proposal-object-plan.mjs",
+      "bytes": 3814
+    },
+    {
+      "path": "src/propose/proposal-outcome-output.mjs",
+      "bytes": 992
+    },
+    {
+      "path": "src/propose/proposal-outcome-text.mjs",
+      "bytes": 993
+    },
+    {
+      "path": "src/propose/proposal-route-observation.mjs",
+      "bytes": 3856
+    },
+    {
+      "path": "src/propose/proposal-terminal-outcome.mjs",
+      "bytes": 1851
+    },
+    {
+      "path": "src/propose/refresh-inputs.mjs",
+      "bytes": 3041
+    },
+    {
+      "path": "src/propose/retained-attempts.mjs",
+      "bytes": 12875
+    },
+    {
+      "path": "src/propose/retained-source-versions.mjs",
+      "bytes": 8445
+    },
+    {
+      "path": "src/propose/retained-witnesses.mjs",
+      "bytes": 8864
+    },
+    {
+      "path": "src/propose/retained-workflows.mjs",
+      "bytes": 8506
+    },
+    {
+      "path": "src/propose/rollover-inspection-readers.mjs",
+      "bytes": 2472
+    },
+    {
+      "path": "src/propose/rollover-post-ref.mjs",
+      "bytes": 4568
+    },
+    {
+      "path": "src/propose/rollover-proposal-anchor.mjs",
+      "bytes": 2785
+    },
+    {
+      "path": "src/propose/rollover-proposal-flow.mjs",
+      "bytes": 7019
+    },
+    {
+      "path": "src/propose/rollover-published-binding.mjs",
+      "bytes": 1063
+    },
+    {
+      "path": "src/propose/rollover-ref-flow.mjs",
+      "bytes": 6868
+    },
+    {
+      "path": "src/propose/rollover-successor-flow.mjs",
+      "bytes": 3752
+    },
+    {
+      "path": "src/propose/source-inventory.mjs",
+      "bytes": 2498
+    },
+    {
+      "path": "src/propose/writer-program.mjs",
+      "bytes": 235
+    },
+    {
+      "path": "src/record.mjs",
+      "bytes": 4928
+    }
+  ],
+  "purpose": "native-proposal-writer",
+  "writerAuthority": false,
+  "releaseReady": false,
+  "external": [
+    "node:crypto",
+    "node:fs",
+    "node:path",
+    "node:util",
+    "node:zlib"
+  ]
+}

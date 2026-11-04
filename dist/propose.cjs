@@ -577,6 +577,83 @@ var require_release_control = __commonJS({
   }
 });
 
+// src/guards/git-blob.cjs
+var require_git_blob = __commonJS({
+  "src/guards/git-blob.cjs"(exports2, module2) {
+    "use strict";
+    var preparation7 = require_release_prepare();
+    var control9 = require_release_control();
+    var owners = /* @__PURE__ */ new WeakMap();
+    var bindings2 = /* @__PURE__ */ new WeakMap();
+    var DEFAULTS = Object.freeze({ maxEntries: 4096, maxBytes: 128 * 1024 * 1024, maxPending: 64 });
+    var fail12 = () => {
+      const e = new Error("source-content");
+      e.code = "source-content";
+      throw e;
+    };
+    function createGitBlobOwner(repository, limits2 = {}) {
+      if (!repository || !Number.isSafeInteger(repository.id) || repository.id < 1 || typeof repository.full_name !== "string" || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository.full_name) || !limits2 || typeof limits2 !== "object" || Object.keys(limits2).some((k) => !Object.hasOwn(DEFAULTS, k))) fail12();
+      const bound = { ...DEFAULTS, ...limits2 };
+      for (const key of Object.keys(DEFAULTS)) if (!Number.isSafeInteger(bound[key]) || bound[key] < 1 || bound[key] > DEFAULTS[key]) fail12();
+      const owner = Object.freeze({});
+      owners.set(owner, { repository: { id: repository.id, full_name: repository.full_name }, limits: bound, blobs: /* @__PURE__ */ new Map(), pending: /* @__PURE__ */ new Map(), bytes: 0, full: false });
+      return owner;
+    }
+    function bindGitBlobOwner(api, owner) {
+      if (typeof api !== "function" || !owners.has(owner) || bindings2.has(api) && bindings2.get(api) !== owner) fail12();
+      bindings2.set(api, owner);
+      return api;
+    }
+    function inheritGitBlobRead(target, source) {
+      if (typeof target !== "function" || typeof source !== "function") fail12();
+      if (bindings2.has(source)) bindGitBlobOwner(target, bindings2.get(source));
+      return target;
+    }
+    function gitBlobOwnerFacts(owner) {
+      const s = owners.get(owner);
+      if (!s) fail12();
+      return Object.freeze({ entries: s.blobs.size, bytes: s.bytes, pending: s.pending.size, full: s.full, authorized: false });
+    }
+    async function decodeGitBlob(api, context, id2) {
+      const value = (await api("GET", "/repos/" + context.repository.full_name + "/git/blobs/" + id2)).data;
+      if (value.sha !== id2 || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail12();
+      const bytes = Buffer.from(value.content, "base64");
+      if (bytes.length !== value.size || preparation7.gitObject("blob", bytes) !== id2) fail12();
+      return bytes;
+    }
+    async function readGitBlob(api, context, id2) {
+      if (!control9.validSha(id2)) fail12();
+      const owner = bindings2.get(api), s = owner === void 0 ? null : owners.get(owner);
+      if (s === null) return decodeGitBlob(api, context, id2);
+      if (context.repository.id !== s.repository.id || context.repository.full_name !== s.repository.full_name) fail12();
+      const key = s.repository.id + ":" + id2;
+      if (s.blobs.has(key)) return Buffer.from(s.blobs.get(key));
+      if (s.pending.has(key)) return Buffer.from(await s.pending.get(key));
+      const load = async () => {
+        const bytes = await decodeGitBlob(api, context, id2);
+        if (!s.full && !s.blobs.has(key)) {
+          if (s.blobs.size >= s.limits.maxEntries || s.bytes + bytes.length > s.limits.maxBytes) s.full = true;
+          else {
+            s.blobs.set(key, Buffer.from(bytes));
+            s.bytes += bytes.length;
+            if (s.blobs.size === s.limits.maxEntries || s.bytes === s.limits.maxBytes) s.full = true;
+          }
+        }
+        return bytes;
+      };
+      if (s.full || s.pending.size >= s.limits.maxPending) return Buffer.from(await load());
+      const work = load();
+      s.pending.set(key, work);
+      try {
+        return Buffer.from(await work);
+      } finally {
+        s.pending.delete(key);
+      }
+    }
+    module2.exports = { createGitBlobOwner, bindGitBlobOwner, inheritGitBlobRead, gitBlobOwnerFacts, readGitBlob };
+  }
+});
+
 // src/http-credential.cjs
 var require_http_credential = __commonJS({
   "src/http-credential.cjs"(exports2, module2) {
@@ -585,6 +662,91 @@ var require_http_credential = __commonJS({
       return typeof value === "string" && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
     }
     module2.exports = { isOpaqueCredential: isOpaqueCredential3 };
+  }
+});
+
+// src/guards/git-source.cjs
+var require_git_source = __commonJS({
+  "src/guards/git-source.cjs"(exports2, module2) {
+    "use strict";
+    var preparation7 = require_release_prepare();
+    var control9 = require_release_control();
+    var { readGitBlob } = require_git_blob();
+    var prefix = (context) => {
+      if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
+        fail12("repository");
+      return `/repos/${context.repository.full_name}`;
+    };
+    var fail12 = (code) => {
+      const error = new Error(code);
+      error.code = code;
+      throw error;
+    };
+    function sourceView(api, context) {
+      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
+      const rawPaths = /* @__PURE__ */ new Set([
+        "package.json",
+        "package-lock.json",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/metadata.md",
+        ".github/workflows/publish.yml",
+        "scripts/release-app-auth.cjs",
+        "scripts/release-runner.cjs",
+        "test/release/app-identity.test.mjs",
+        "test/release/archive.test.mjs",
+        "test/release/diagnostics.test.mjs"
+      ]);
+      let totalBytes = 0;
+      const commit = async (id2) => {
+        if (!control9.validSha(id2)) fail12("source-sha");
+        if (!commits.has(id2)) {
+          if (commits.size >= 512) fail12("recovery-source");
+          const value = (await api("GET", `${prefix(context)}/git/commits/${id2}`)).data;
+          if (value.sha !== id2 || !control9.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control9.validSha(p.sha))) fail12("source-commit");
+          commits.set(id2, value);
+        }
+        return commits.get(id2);
+      };
+      const blob = async (id2) => {
+        prefix(context);
+        if (!control9.validSha(id2)) fail12("source-sha");
+        if (!blobs.has(id2)) {
+          const bytes = await readGitBlob(api, context, id2);
+          totalBytes += bytes.length;
+          if (totalBytes > 128 * 1024 * 1024) fail12("source-content");
+          blobs.set(id2, bytes);
+        }
+        return Buffer.from(blobs.get(id2));
+      };
+      const tree = async (id2) => {
+        if (!control9.validSha(id2)) fail12("source-sha");
+        const result = /* @__PURE__ */ new Map();
+        const tree2 = (await api("GET", `${prefix(context)}/git/trees/${id2}?recursive=1`)).data;
+        if (tree2.sha !== id2 || tree2.truncated !== false || !Array.isArray(tree2.tree) || tree2.tree.length > 4096)
+          fail12("source-tree");
+        const seen = /* @__PURE__ */ new Set();
+        for (const row of tree2.tree) {
+          if (typeof row.path !== "string" || seen.has(row.path) || !control9.validSha(row.sha)) fail12("source-tree");
+          seen.add(row.path);
+          if (row.type === "tree" && row.mode === "040000") continue;
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail12("source-tree");
+          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
+          if (needsBytes) await blob(row.sha);
+          result.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
+        }
+        if (preparation7.treeOid(result) !== id2) fail12("source-tree");
+        return result;
+      };
+      const inventory = async (id2) => {
+        if (inventories.has(id2)) return inventories.get(id2);
+        const c = await commit(id2), result = await tree(c.tree.sha);
+        inventories.set(id2, result);
+        return result;
+      };
+      return { commit, inventory, blob, tree };
+    }
+    module2.exports = { sourceView };
   }
 });
 
@@ -817,6 +979,7 @@ var require_release_github = __commonJS({
   "src/guards/release-github.cjs"(exports2, module2) {
     "use strict";
     var preparation7 = require_release_prepare();
+    var { sourceView } = require_git_source();
     var { proposalCreation } = require_proposal_metadata();
     var { prepareRelease } = preparation7;
     var control9 = require_release_control();
@@ -1096,61 +1259,6 @@ var require_release_github = __commonJS({
       } catch {
         fail12("source-content");
       }
-    }
-    function sourceView(api, context) {
-      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
-      const rawPaths = /* @__PURE__ */ new Set([
-        "package.json",
-        "package-lock.json",
-        "CHANGELOG.md",
-        "README.md",
-        "docs/metadata.md",
-        ".github/workflows/publish.yml",
-        "scripts/release-app-auth.cjs",
-        "scripts/release-runner.cjs",
-        "test/release/app-identity.test.mjs",
-        "test/release/archive.test.mjs",
-        "test/release/diagnostics.test.mjs"
-      ]);
-      let totalBytes = 0;
-      const commit = async (id2) => {
-        if (!control9.validSha(id2)) fail12("source-sha");
-        if (!commits.has(id2)) {
-          if (commits.size >= 512) fail12("recovery-source");
-          const value = (await api("GET", `${prefix(context)}/git/commits/${id2}`)).data;
-          if (value.sha !== id2 || !control9.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control9.validSha(p.sha))) fail12("source-commit");
-          commits.set(id2, value);
-        }
-        return commits.get(id2);
-      };
-      const inventory = async (id2) => {
-        if (inventories.has(id2)) return inventories.get(id2);
-        const c = await commit(id2), result = /* @__PURE__ */ new Map();
-        const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
-        if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail12("source-tree");
-        const seen = /* @__PURE__ */ new Set();
-        for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control9.validSha(row.sha)) fail12("source-tree");
-          seen.add(row.path);
-          if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail12("source-tree");
-          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
-          if (needsBytes && !blobs.has(row.sha)) {
-            const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail12("source-content");
-            const bytes = Buffer.from(value.content, "base64");
-            totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation7.gitObject("blob", bytes) !== row.sha) fail12("source-content");
-            blobs.set(row.sha, bytes);
-          }
-          result.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
-        }
-        if (preparation7.treeOid(result) !== c.tree.sha) fail12("source-tree");
-        inventories.set(id2, result);
-        return result;
-      };
-      return { commit, inventory };
     }
     function packageIdentity(inventory, version) {
       const raw = (name) => {
@@ -24884,6 +24992,7 @@ function foottraceInvocationContext(context) {
 }
 
 // src/propose/foottrace-transport.mjs
+var import_git_blob = __toESM(require_git_blob(), 1);
 var import_http_credential = __toESM(require_http_credential(), 1);
 
 // src/propose/proposal-metadata-payload.mjs
@@ -25167,7 +25276,7 @@ function createGitHubTransport({ repository, fetcher, limits: inputLimits } = {}
           }
           const result = await bounded(response2, 2 * MiB2, false, mutation.successStatus);
           mutationState = response2.status === mutation.successStatus ? "returned" : metadataHttpOutcome(response2.status);
-          if (mutationState === "uncertain") writeHalted = true;
+          if (mutationState !== "returned") writeHalted = true;
           return result;
         }
         if (registry) {
@@ -25372,15 +25481,15 @@ function createNativeOwner({ repository, token, appIdentity, fetcher, limits: li
 function registerOwner({ repository, settings, facts, fetcher, limits: limits2, inspectionReadOnly, makeApi }) {
   const http = createGitHubTransport({ repository, fetcher, limits: limits2 });
   const value = Object.freeze({ scope: inspectionReadOnly ? "captured-native-read-owner" : "captured-native-http-owner" });
-  transports.set(value, { http, repository, settings, facts, inspectionReadOnly, makeApi });
+  transports.set(value, { http, repository, settings, facts, inspectionReadOnly, makeApi, blobOwner: import_git_blob.default.createGitBlobOwner(repository) });
   return value;
 }
 function foottraceTransportPort(transport, limits2) {
   const value = transports.get(transport);
   if (!value) fail7();
-  const view = value.http.createView(limits2);
+  const view = value.http.createView(limits2), api = import_git_blob.default.bindGitBlobOwner(value.makeApi(view.fetch), value.blobOwner);
   return Object.freeze({
-    api: value.makeApi(view.fetch),
+    api,
     repository: value.repository,
     settings: value.settings,
     registry: (version) => value.http.createRegistryView({ packageName: "foottrace", version, ...limits2 === void 0 ? {} : { limits: limits2 } }).fetch,
@@ -25452,6 +25561,7 @@ function captureInvocation({ env, fetcher, limits: limits2 }, createTransport) {
 }
 
 // src/propose/host-source-binding.mjs
+var import_git_blob2 = __toESM(require_git_blob(), 1);
 var import_node_crypto = require("node:crypto");
 var import_node_util = require("node:util");
 var import_release_github2 = __toESM(require_release_github(), 1);
@@ -25501,6 +25611,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
         boundary.status = "returned";
         return result;
       };
+      import_git_blob2.default.inheritGitBlobRead(read, port.api);
       const phase = async () => {
         await requireClean();
         const profile = fields2(jsonData(await readProfile()), ["id", "sourceSha", "sourceTree", "toolSha", "workflow", "entry", "profile", "identityHelper"]);
@@ -25519,12 +25630,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
           const bytes = Buffer.from(raw);
           if (import_release_prepare3.default.gitObject("blob", bytes) !== rule.sha || sha2(bytes) !== rule.sha256) fail9();
           let provider = actual.bytes;
-          if (!provider) {
-            const blob = own4(await read("GET", prefix + "blobs/" + rule.sha), "data");
-            const content = own4(blob, "content");
-            if (own4(blob, "sha") !== rule.sha || own4(blob, "encoding") !== "base64" || own4(blob, "size") !== rule.bytes || typeof content !== "string" || content.length > 700 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(content)) fail9();
-            provider = Buffer.from(content, "base64");
-          }
+          if (!provider) provider = await view.blob(rule.sha);
           if (provider.length !== rule.bytes || import_release_prepare3.default.gitObject("blob", provider) !== rule.sha || sha2(provider) !== rule.sha256 || !provider.equals(bytes)) fail9();
           blobs[kind + "Blob"] = rule.sha;
         }
@@ -25566,6 +25672,7 @@ function createFoottraceHostSourceReader({ transport, context, invocation, host 
 }
 
 // src/propose/foottrace-current-inputs.mjs
+var import_git_blob3 = __toESM(require_git_blob(), 1);
 var import_node_crypto2 = require("node:crypto");
 var import_node_util3 = require("node:util");
 var import_release_github3 = __toESM(require_release_github(), 1);
@@ -25845,6 +25952,7 @@ function createFoottraceCurrentInputReader({ transport, context } = {}) {
         row.status = "native-input";
         return value;
       };
+      import_git_blob3.default.inheritGitBlobRead(read, port.api);
       const phase = async () => {
         await import_release_github3.default.assertCurrentMain(read, pinned);
         const view = import_release_github3.default.sourceView(read, pinned), source = await import_release_github3.default.sourceInput(read, pinned, view);
@@ -25928,7 +26036,10 @@ function state(raw) {
   if (!statuses.includes(status) || conclusion !== null && !conclusions.includes(conclusion)) fail11();
   return { status, conclusion };
 }
-function createFoottraceProposerReader({ transport, context }) {
+function createFoottraceProposerReader(options) {
+  return createReader(options, true);
+}
+function createReader({ transport, context }, adjacent) {
   let pinned, port;
   try {
     pinned = foottraceInvocationContext(context);
@@ -26026,13 +26137,17 @@ function createFoottraceProposerReader({ transport, context }) {
           appSettingsDigest: app.settingsDigest
         });
       };
-      const before = await phase(), after = await phase();
-      if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail11();
+      const before = await phase();
+      if (adjacent) {
+        const after = await phase();
+        if (!(0, import_node_util4.isDeepStrictEqual)(before, after)) fail11();
+      }
       return Object.freeze({
         valid: true,
         scope: "current-proposer-identity-only",
         identity: before,
         digest: digest3(before),
+        nativeIdentityPhases: adjacent ? 2 : 1,
         keyHolderIdentityFactsObserved: true,
         appIdentityObservation: "cached-key-holder-facts",
         privateAppIdentityAdmitted: false,
@@ -26152,7 +26267,7 @@ function createBootstrap({ env, host, fetcher, limits: limits2 }, captureInvocat
     reobserve: async () => {
       if (backend === null) return false;
       try {
-        if (await fresh()) return true;
+        if (await fresh() && backend !== null) return true;
       } catch {
       }
       backend = null;

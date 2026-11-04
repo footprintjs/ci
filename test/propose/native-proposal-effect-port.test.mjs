@@ -145,3 +145,23 @@ test('native effect views cannot reset an exhausted shared GET request bank',asy
  const p=f.effect('create-commit');await assert.rejects(()=>p.submit());
  assert.equal(f.calls.length,1);assert.equal(f.read.transportFacts().exhausted,true);
 });
+
+for(const status of [401,403,404,409,422,429,501,505])test('direct native owner halts ALL mutation views after HTTP '+status+' while permitting GET verification',async()=>{
+ const {createGitHubTransport}=await import('../../src/propose/github-transport.mjs');let calls=0;
+ const owner=createGitHubTransport({repository,fetcher:async(url,options)=>{
+  calls++;return calls===1?new Response(PRIVATE,{status}):Response.json({sha},{status:options.method==='POST'?201:200});
+ }});
+ const first=owner.createExactProposalEffectView({effect:'create-commit',payload:payloads['create-commit']});
+ const response=await first.fetch('https://api.github.com/repos/footprintjs/foottrace/git/commits',
+  {method:'POST',body:JSON.stringify(payloads['create-commit'])});
+ assert.equal(response.status,status);assert.equal(await response.text(),'');
+ assert.equal(first.observation().state,status<500?'rejected':'failed');
+ const next=owner.createExactProposalEffectView({effect:'move-ref',payload:payloads['move-ref']});
+ await assert.rejects(()=>next.fetch('https://api.github.com/repos/footprintjs/foottrace/git/refs/heads/release/next',
+  {method:'PATCH',body:JSON.stringify(payloads['move-ref'])}));
+ const desired={title:'Release 1.11.1',body:'exact'},metadata=owner.createExactPatchView({pullNumber:43,desired});
+ await assert.rejects(()=>metadata.fetch('https://api.github.com/repos/footprintjs/foottrace/pulls/43',
+  {method:'PATCH',body:JSON.stringify(desired)}));assert.equal(calls,1);
+ await owner.createView().fetch('https://api.github.com/repos/footprintjs/foottrace/git/commits/'+sha,{method:'GET'});
+ assert.equal(calls,2);
+});

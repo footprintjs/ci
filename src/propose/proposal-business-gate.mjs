@@ -7,6 +7,7 @@ const conclusions=[null,'success','failure','cancelled','skipped','neutral','tim
 const fail=()=>{throw new Error('proposal-business-output-unavailable');};
 const reports={
  held:{status:'held',businessGatePassed:false,finding:'metadata-stale'},
+ uncertain:{status:'held',businessGatePassed:false,finding:'proposal-submission-uncertain'},
  matched:{status:'matched',businessGatePassed:true,finding:null},
  'job-not-successful':{status:'held',businessGatePassed:false,finding:'proposal-job-not-successful'},
  unknown:{status:'unknown',businessGatePassed:false,finding:'proposal-outcome-unavailable'}
@@ -21,7 +22,7 @@ export function createProposalBusinessGate(options={}){
  let started=false,observation=null;
  const initialize=scope=>{
   observation=null;if(started)throw new Error('proposal-business-already-executed');started=true;
-  scope.proposalBusinessFacts={available:false,hold:false,match:false,technicalSuccess:false,authorized:false};
+  scope.proposalBusinessFacts={available:false,hold:false,uncertain:false,match:false,technicalSuccess:false,authorized:false};
  };
  const initial=start?start.addFunction('Observe reported proposal business outcome',initialize,'proposal-business-input'):
   flowChart('Observe reported proposal business outcome',initialize,'proposal-business-input');
@@ -29,17 +30,19 @@ export function createProposalBusinessGate(options={}){
   try{
    const data=fields(jsonData(await readOutput(),4096),['output','conclusion']);
    if(typeof data.output!=='string'||Buffer.byteLength(data.output)>1024||!conclusions.includes(data.conclusion))fail();
-   const hold=data.output==='proposeOutcome=hold-metadata-stale\n',match=data.output==='proposeOutcome=metadata-matched\n';
-   if(!hold&&!match)fail();
-   scope.proposalBusinessFacts={available:true,hold,match,technicalSuccess:data.conclusion==='success',authorized:false};
+   const hold=data.output==='proposeOutcome=hold-metadata-stale\n',uncertain=data.output==='proposeOutcome=hold-proposal-uncertain\n',match=data.output==='proposeOutcome=metadata-matched\n';
+   if(!hold&&!uncertain&&!match)fail();
+   scope.proposalBusinessFacts={available:true,hold,uncertain,match,technicalSuccess:data.conclusion==='success',authorized:false};
   }catch{/* No raw output, source exception or private payload enters scope. */}
  },'proposal-business-read')
  .addDeciderFunction('Require explicit business match AND technical success',scope=>decide(scope,[
   {when:s=>s.proposalBusinessFacts.hold,then:'proposal-business-held',label:'Reported HOLD blocks continuation even after provider SUCCESS'},
+  {when:s=>s.proposalBusinessFacts.uncertain,then:'proposal-business-uncertain',label:'Uncertain submission blocks continuation; output never grants retry'},
   {when:s=>s.proposalBusinessFacts.match&&s.proposalBusinessFacts.technicalSuccess,then:'proposal-business-matched',label:'Business predicate observed only; all native authority remains separate'},
   {when:s=>s.proposalBusinessFacts.available&&s.proposalBusinessFacts.match,then:'proposal-business-failed-job',label:'Never convert failed or running legacy job into success'}
  ],'proposal-business-unknown'),'proposal-business-decision')
  .addFunctionBranch('proposal-business-held','Retain metadata business HOLD',s=>{s.proposalBusinessDecision='held';})
+ .addFunctionBranch('proposal-business-uncertain','Retain uncertain proposal business HOLD',s=>{s.proposalBusinessDecision='uncertain';})
  .addFunctionBranch('proposal-business-matched','Record reported business match',s=>{s.proposalBusinessDecision='matched';})
  .addFunctionBranch('proposal-business-failed-job','Retain unsuccessful provider job',s=>{s.proposalBusinessDecision='job-not-successful';})
  .addFunctionBranch('proposal-business-unknown','Unknown output blocks continuation',s=>{s.proposalBusinessDecision='unknown';}).setDefault('proposal-business-unknown').end()

@@ -1,3 +1,4 @@
+import {sameLineageFacts} from './observation-facts.mjs';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {flowChart,FlowChartExecutor,decide} from 'footprintjs';
@@ -45,11 +46,11 @@ export function createFoottraceInputBootstrap({transport,context}={},predecessor
   if(!complete)return false;
   try{
    const freshLineage=await readLineage();
-   if(!freshLineage.valid||!isDeepStrictEqual(freshLineage,lineage))throw new Error('bootstrap-lineage-drift');
+   if(!freshLineage.valid||!sameLineageFacts(freshLineage,lineage))throw new Error('bootstrap-lineage-drift');
    const freshInputs={pending:discovery.backend.pending,currentSource:await sources.readSource(pinned.sha),currentPreparationDate:null};
    const freshPrepared=createRefreshInputReader(profile)(freshInputs);
    if(!freshPrepared.valid||!isDeepStrictEqual(freshPrepared,prepared))throw new Error('bootstrap-preparation-drift');
-   await recheckDiscovery();return true;
+   await recheckDiscovery();return complete&&!invalidated;
   }catch{complete=false;return false;}
  };
  const initialize=async scope=>{

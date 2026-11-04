@@ -1,3 +1,4 @@
+import gitBlob from '../guards/git-blob.cjs';
 import {isOpaqueCredential} from '../http-credential.cjs';
 import { jsonData, fields, id, text } from '../eco/json-data.mjs';
 import { own } from './source-inventory.mjs';
@@ -33,7 +34,7 @@ function createNativeOwner({repository,token,appIdentity,fetcher,limits},inspect
 function registerOwner({repository,settings,facts,fetcher,limits,inspectionReadOnly,makeApi}){
  const http=createGitHubTransport({repository,fetcher,limits});
  const value=Object.freeze({scope:inspectionReadOnly?'captured-native-read-owner':'captured-native-http-owner'});
- transports.set(value,{http,repository,settings,facts,inspectionReadOnly,makeApi});
+ transports.set(value,{http,repository,settings,facts,inspectionReadOnly,makeApi,blobOwner:gitBlob.createGitBlobOwner(repository)});
  return value;
 }
 
@@ -42,8 +43,8 @@ function registerOwner({repository,settings,facts,fetcher,limits,inspectionReadO
  */
 export function foottraceTransportPort(transport, limits) {
   const value = transports.get(transport); if (!value) fail();
-  const view = value.http.createView(limits);
-  return Object.freeze({ api: value.makeApi(view.fetch), repository: value.repository, settings: value.settings,
+  const view = value.http.createView(limits),api=gitBlob.bindGitBlobOwner(value.makeApi(view.fetch),value.blobOwner);
+  return Object.freeze({ api, repository: value.repository, settings: value.settings,
     registry: version => value.http.createRegistryView({ packageName: 'foottrace', version, ...(limits === undefined ? {} : { limits }) }).fetch,
     facts: view.facts, transportFacts: value.http.facts, inspectionReadOnly:value.inspectionReadOnly,
     identityFacts:value.facts,identityObservation:'cached-key-holder-facts' });

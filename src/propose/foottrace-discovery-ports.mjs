@@ -1,3 +1,4 @@
+import gitBlob from '../guards/git-blob.cjs';
 import { createHash } from 'node:crypto';
 import native from '../guards/release-github.cjs';
 import control from '../guards/release-control.cjs';
@@ -18,6 +19,7 @@ export function createFoottraceDiscoveryPorts({ api, repository }) {
     if (method !== 'GET' || body !== undefined || ++requests > 4096 || !route.startsWith(prefix + '/')) fail();
     return api(method, route);
   };
+  gitBlob.inheritGitBlobRead(read,api);
   const view = native.sourceView(read, { repository: repo });
   return {
     async readSource(sha) {

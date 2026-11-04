@@ -1,3 +1,4 @@
+import {bindConfiguredAppCommit} from './configured-app-commit.mjs';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {fields,jsonData,id,text,array} from '../eco/json-data.mjs';
@@ -40,11 +41,6 @@ export function createObservedAppCommitReader({api,repository,settings,readCurre
     return v;
    };
    const expected=admitIdentity(current),botLogin=app.slug+'[bot]';
-   const actor=raw=>{
-    const value={id:id(own(raw,'id')),login:own(raw,'login'),type:own(raw,'type')};
-    if(value.id!==expected.botId||value.login!==botLogin||value.type!=='Bot')fail();
-    return value;
-   };
    const freshIdentity=async()=>{
     const v=admitIdentity(await readCurrentProposer(prepared));
     if(!isDeepStrictEqual(v,expected))fail();
@@ -53,11 +49,7 @@ export function createObservedAppCommitReader({api,repository,settings,readCurre
     await freshIdentity();
     const row={kind:'provider-resolved-app-commit',method:'GET',status:'unavailable'};observations.push(row);
     const raw=own(await api('GET','/repos/'+repo.full_name+'/commits/'+ref.head),'data');
-    const commit=own(raw,'commit'),verification=own(commit,'verification'),parents=array(own(raw,'parents'),2);
-    const v={head:sha(own(raw,'sha')),tree:sha(own(own(commit,'tree'),'sha')),parents:parents.map(p=>sha(own(p,'sha'))),
-     author:actor(own(raw,'author')),committer:actor(own(raw,'committer')),verified:own(verification,'verified'),reason:own(verification,'reason')};
-    if(v.head!==ref.head||v.tree!==ref.tree||!isDeepStrictEqual(v.parents,ref.parents)||
-     v.verified!==true||v.reason!=='valid')fail();
+    const v=bindConfiguredAppCommit(raw,{head:ref.head,tree:ref.tree,parents:ref.parents,botId:expected.botId,botLogin});
     row.status='projected';row.digest=digest(v);
     await freshIdentity();
     return jsonData(v);

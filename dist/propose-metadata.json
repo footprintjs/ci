@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "6fc75accbc5d905f92457de1a81f699b8c8e0fdead992427713d487df8af063f",
+  "sha256": "8a85e8436edd7f76e8658d7ea0db4e8dee23d71d966b87fa15c8ffd1dd173673",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1009,6 +1009,14 @@
       "bytes": 4105
     },
     {
+      "path": "src/guards/git-blob.cjs",
+      "bytes": 3764
+    },
+    {
+      "path": "src/guards/git-source.cjs",
+      "bytes": 3598
+    },
+    {
       "path": "src/guards/proposal-metadata.cjs",
       "bytes": 1520
     },
@@ -1030,7 +1038,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 68538
+      "bytes": 65442
     },
     {
       "path": "src/guards/release-prepare.cjs",
@@ -1062,7 +1070,7 @@
     },
     {
       "path": "src/propose/current-proposer.mjs",
-      "bytes": 7490
+      "bytes": 8031
     },
     {
       "path": "src/propose/foottrace-context.mjs",
@@ -1070,7 +1078,7 @@
     },
     {
       "path": "src/propose/foottrace-current-inputs.mjs",
-      "bytes": 4407
+      "bytes": 4499
     },
     {
       "path": "src/propose/foottrace-profile.mjs",
@@ -1078,11 +1086,11 @@
     },
     {
       "path": "src/propose/foottrace-transport.mjs",
-      "bytes": 5470
+      "bytes": 5610
     },
     {
       "path": "src/propose/github-transport.mjs",
-      "bytes": 11903
+      "bytes": 11902
     },
     {
       "path": "src/propose/historical-producer.mjs",
@@ -1090,7 +1098,7 @@
     },
     {
       "path": "src/propose/host-source-binding.mjs",
-      "bytes": 5645
+      "bytes": 5395
     },
     {
       "path": "src/propose/local-host-source.mjs",
@@ -1114,7 +1122,7 @@
     },
     {
       "path": "src/propose/proposal-bootstrap-flow.mjs",
-      "bytes": 7891
+      "bytes": 7907
     },
     {
       "path": "src/propose/proposal-bootstrap.mjs",

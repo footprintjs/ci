@@ -1,7 +1,9 @@
-# Propose input components (unfinished)
+# Propose source components (unadopted)
 
-These components bind prepared inputs. They do not admit release authority,
-perform provider writes, or yet form the full native Propose flow.
+The private native recipes now include guarded proposal effects and a whole
+entry with fixed local output. Physical caller adoption, current full gates and
+independent exact committed-source review remain required. The component
+boundaries below distinguish preparation facts from effect eligibility.
 
 `runProposePreparation` composes this prepared-input inspection as a native
 FootPrint flowchart and `decide()` branch. Scope contains finite facts and a
@@ -578,3 +580,14 @@ See [closed native nonforce effect IO](./NONFORCE-IO.md) for exact request and
 same-owner uncertainty/budget boundaries; full native admission remains separate.
 See [native inspection composition](./INSPECTION-COMPOSITION.md) for the SAME
 recipe, one-executor and reobservation boundaries before owning nonforce effects.
+
+See [proposal object GET observations](./PROPOSAL-OBJECTS.md) for shared native
+Git decoding, signed current-object data and direct HTTP failure-stop bounds.
+
+See [the native pending successor object phase](./PENDING-SUCCESSOR.md); the full ref/PR transition and caller remain unadopted.
+
+
+Private source migration: the former existing-PR-only entry is replaced by runFoottraceProposal in foottrace-proposal.mjs. It uses one captured owner/native root/log for C1, pending REF and ordinary rollover. Successful complete PR/ref observations select a recipe only; each native recipe still requires its full eligibility/current-writer/pre-effect checks. Zero-open INPUT never proves prior uncertainty absent, and no alternative route follows a failure. This remains uncommitted private WIP, not a production bridge/adoption or source approval.
+
+See [whole native terminal output](./WHOLE-OUTPUT.md) for the fixed CODE entry,
+exact positive and negative business signals, native value joins and limitations.

@@ -98,7 +98,7 @@ function createBootstrap({env,host,fetcher,limits},captureInvocation){
  return Object.freeze({chart,resultStageId,getBackend:()=>backend,getInvocationInput:()=>captured,
   reobserve:async()=>{
    if(backend===null)return false;
-   try{if(await fresh())return true;}catch{/* Unknown remains input drift. */}
+   try{if(await fresh()&&backend!==null)return true;}catch{/* Unknown remains input drift. */}
    backend=null;return false;
   }});
 }

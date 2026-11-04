@@ -1,5 +1,6 @@
 'use strict';
 const preparation = require('./release-prepare.cjs');
+const { sourceView } = require('./git-source.cjs');
 const { proposalCreation } = require('./proposal-metadata.cjs');
 const { prepareRelease } = preparation;
 const control = require('./release-control.cjs');
@@ -293,58 +294,6 @@ async function content(api, context, path) {
 }
 // A view caches immutable objects only during one read phase. Every mutation phase
 // creates a fresh view and repeats current-main and publication checks.
-function sourceView(api, context) {
-  const commits = new Map(), blobs = new Map(), inventories = new Map();
-  const rawPaths = new Set(['package.json', 'package-lock.json', 'CHANGELOG.md', 'README.md', 'docs/metadata.md',
-    '.github/workflows/publish.yml', 'scripts/release-app-auth.cjs', 'scripts/release-runner.cjs',
-    'test/release/app-identity.test.mjs', 'test/release/archive.test.mjs', 'test/release/diagnostics.test.mjs']);
-  let totalBytes = 0;
-  const commit = async (id) => {
-    if (!control.validSha(id)) fail('source-sha');
-    if (!commits.has(id)) {
-      if (commits.size >= 512) fail('recovery-source');
-      const value = (await api('GET', `${prefix(context)}/git/commits/${id}`)).data;
-      if (value.sha !== id || !control.validSha(value.tree?.sha) || !Array.isArray(value.parents) ||
-        value.parents.length > 2 || value.parents.some((p) => !control.validSha(p.sha))) fail('source-commit');
-      commits.set(id, value);
-    }
-    return commits.get(id);
-  };
-  const inventory = async (id) => {
-    if (inventories.has(id)) return inventories.get(id);
-    const c = await commit(id), result = new Map();
-    const tree = (await api('GET', `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
-    if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-      fail('source-tree');
-    const seen = new Set();
-    for (const row of tree.tree) {
-      if (typeof row.path !== 'string' || seen.has(row.path) || !control.validSha(row.sha)) fail('source-tree');
-      seen.add(row.path);
-      if (row.type === 'tree' && row.mode === '040000') continue;
-      if (row.type !== 'blob' || !['100644', '100755'].includes(row.mode)) fail('source-tree');
-      // The complete immutable path/OID/mode inventory is the existing Git
-      // source identity basis. Fetch raw bytes only for semantic admission and
-      // the finite byte-transition exceptions, never a compare.files subset.
-      const needsBytes = rawPaths.has(row.path) || row.path.startsWith('.changes/') || row.path.startsWith('.release/');
-      if (needsBytes && !blobs.has(row.sha)) {
-        const value = (await api('GET', `${prefix(context)}/git/blobs/${row.sha}`)).data;
-        if (value.sha !== row.sha || value.encoding !== 'base64' || typeof value.content !== 'string' ||
-          !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 ||
-          !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail('source-content');
-        const bytes = Buffer.from(value.content, 'base64');
-        totalBytes += bytes.length;
-        if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 ||
-          preparation.gitObject('blob', bytes) !== row.sha) fail('source-content');
-        blobs.set(row.sha, bytes);
-      }
-      result.set(row.path, { sha: row.sha, mode: row.mode, ...(needsBytes ? { bytes: blobs.get(row.sha) } : {}) });
-    }
-    if (preparation.treeOid(result) !== c.tree.sha) fail('source-tree');
-    inventories.set(id, result);
-    return result;
-  };
-  return { commit, inventory };
-}
 function packageIdentity(inventory, version) {
   const raw = (name) => {
     const row = inventory.get(name);

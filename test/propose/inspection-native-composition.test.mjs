@@ -91,16 +91,16 @@ for(const [name,mutate] of [
  ['current running producer',(d,p)=>{if(p.endsWith('/actions/runs/500')){d.status='completed';d.conclusion='success';}}],
  ['current prepare job',(d,p)=>{if(p.includes('/runs/500/')&&p.includes('/jobs'))d.jobs.find(j=>j.name==='prepare').conclusion='failure';}],
  ['current archive',(d,p)=>{if(p.endsWith('/actions/artifacts/800'))d.workflow_run.head_sha='e'.repeat(40);}],
- ['immutable package blob',(d,p)=>{if(p.includes('/contents/package.json?ref='))d.sha='e'.repeat(40);}],
+ ['current source tree inventory',(d,p)=>{if(p.includes('/git/trees/'))d.truncated=true;}],
  ['new valid review observation',(d,p,f)=>{if(new URL('https://offline.invalid'+p).pathname.endsWith('/pulls/101/reviews'))
   d.push({id:101,state:'COMMENTED',commit_id:f.P,user:{id:500,type:'Bot'}});}],
  ['retained uncertain proposal',(d,p)=>{if(p.includes('/runs/456/')&&p.includes('/jobs'))d.jobs.find(j=>j.name==='proposal').conclusion='failure';}]
 ])test('later '+name+' drift permanently discards composed INPUT backend',async()=>{
- let later=false,f;f=await bootstrapFixture({retainedJobs:'full-native',change:(d,p)=>{if(later)mutate(d,p,f);}});
+ let later=false,mutated=false,f;f=await bootstrapFixture({retainedJobs:'full-native',change:(d,p)=>{if(later){const before=JSON.stringify(d);mutate(d,p,f);if(JSON.stringify(d)!==before)mutated=true;}}});
  const stage=factory(f);assert.equal(typeof stage.reobserve,'function','native reobservation absent');
  const {record}=await runNativeObservationRecord({chart:stage.chart});assert.equal(record.complete,true);
  assert.equal(stage.getBackend().retainedAttempts.eligible,true);later=true;
- assert.equal(await stage.reobserve(),false);assert.equal(stage.getBackend(),null);const stopped=f.calls.length;later=false;
+ assert.equal(await stage.reobserve(),false);assert.equal(mutated,true,'the intended fresh semantic observation was actually changed');assert.equal(stage.getBackend(),null);const stopped=f.calls.length;later=false;
  assert.equal(await stage.reobserve(),false);assert.equal(f.calls.length,stopped);assert.equal(stage.getBackend(),null);
 });
 

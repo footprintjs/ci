@@ -23,7 +23,14 @@ function state(raw) {
  * leaves writer credential-to-job binding and complete retained eligibility
  * unadmitted; it never grants a ref write, archive approval or publication.
  */
-export function createFoottraceProposerReader({ transport, context }) {
+export function createFoottraceProposerReader(options){return createReader(options,true);}
+/** CODE-only fresh single phase for an OUTER before/after native operation.
+ * Same strict predicates, SAME current run/jobs/writer owner, no cache or grant.
+ * Callers MUST actually observe on BOTH sides; this does not claim an adjacent
+ * pair by itself. DATA cannot select the phase count of either constructor.
+ */
+export function createFoottraceProposerObservation(options){return createReader(options,false);}
+function createReader({ transport, context },adjacent) {
   let pinned, port;
   try {
     pinned = foottraceInvocationContext(context);
@@ -93,10 +100,10 @@ export function createFoottraceProposerReader({ transport, context }) {
           runId: pinned.runId, runAttempt: pinned.runAttempt, prepareJobId: prepare.id, proposalJobId: proposal.id,
           appId: app.id, botId: bot.id, appSettingsDigest: app.settingsDigest });
       };
-      const before = await phase(), after = await phase();
-      if (!isDeepStrictEqual(before, after)) fail();
+      const before = await phase();
+      if(adjacent){const after=await phase();if(!isDeepStrictEqual(before,after))fail();}
       return Object.freeze({ valid: true, scope: 'current-proposer-identity-only', identity: before, digest: digest(before),
-        keyHolderIdentityFactsObserved:true,appIdentityObservation:'cached-key-holder-facts',privateAppIdentityAdmitted: false, writerCredentialBindingAdmitted: false, retainedEligibilityAdmitted: false, authorized: false,
+        nativeIdentityPhases:adjacent?2:1,keyHolderIdentityFactsObserved:true,appIdentityObservation:'cached-key-holder-facts',privateAppIdentityAdmitted: false, writerCredentialBindingAdmitted: false, retainedEligibilityAdmitted: false, authorized: false,
         observations: Object.freeze(observations.map(Object.freeze)) });
     } catch (error) {
       return Object.freeze({ valid: false, reason: 'current-proposer-unavailable', nativeReason: native.refusalCode(error),

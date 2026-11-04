@@ -104,7 +104,7 @@ export function createGitHubTransport({ repository, fetcher, limits: inputLimits
           }
           const result=await bounded(response,2 * MiB,false,mutation.successStatus);
           mutationState=response.status===mutation.successStatus?'returned':metadataHttpOutcome(response.status);
-          if(mutationState==='uncertain')writeHalted=true;
+          if(mutationState!=='returned')writeHalted=true;
           return result;
         }
         if (registry) {

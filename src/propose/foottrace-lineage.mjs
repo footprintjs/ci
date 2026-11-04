@@ -1,3 +1,4 @@
+import gitBlob from '../guards/git-blob.cjs';
 import native from '../guards/release-github.cjs';
 import { isDeepStrictEqual } from 'node:util';
 import control from '../guards/release-control.cjs';
@@ -58,6 +59,7 @@ export function createFoottraceLineageObservationReader({ transport, context, se
         }
         item.status = 'returned'; return reply;
       };
+      gitBlob.inheritGitBlobRead(api,apiPort);
       const fetcher = async (url, options = {}) => {
         const allowed = new Set([`https://registry.npmjs.org/foottrace/${sourceVersion}`,
           'https://registry.npmjs.org/foottrace/latest',
