@@ -1,5 +1,6 @@
 import { posix } from 'node:path';
-import { codePath, productionPath, resolveRelative } from './paths.mjs';
+import { codePath, productionPath } from './paths.mjs';
+import { packageSourcePath } from './package-paths.mjs';
 
 function siblingSeals(paths, trackedPaths) {
   const seals = [];
@@ -30,8 +31,7 @@ function packageDoors(files) {
   const manifest = JSON.parse(file.text);
   for (const target of exportTargets(manifest.exports ?? manifest.main)) {
     if (!codePath(target)) continue;
-    const mapped = target.replace(/^\.\//, '').replace(/^dist\//, 'src/');
-    const found = resolveRelative('package.json', `./${mapped}`, files);
+    const found = packageSourcePath(target, files);
     if (found.path && productionPath(found.path)) paths.push(found.path);
     else unverified.push({ kind: 'package-door', path: 'package.json', target,
       reason: found.reason ?? 'Public target has no supported tracked source mapping.' });
