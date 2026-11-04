@@ -23,8 +23,12 @@ test('report treats candidate packages and source as data and returns zero for a
   writeFileSync(join(repo, 'package.json'), '{"scripts":{"prepare":"node canary.cjs"}}');
   writeFileSync(join(repo, 'canary.cjs'), `require('fs').writeFileSync(${JSON.stringify(canary)}, 'bad');`);
   writeFileSync(join(repo, 'src/entry.ts'), `import '../canary.cjs';\nlet state = 1;\nexport { state };\n`);
-  const git = (...args) => execFileSync('git', ['-C', repo, ...args], { stdio: 'pipe' });
-  git('init', '--quiet');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_TERMINAL_PROMPT: '0' });
+  const git = (...args) => execFileSync('git', ['--no-pager', '-c', 'core.hooksPath=/dev/null',
+    '-c', 'commit.gpgSign=false', '-c', 'tag.gpgSign=false', '-C', repo, ...args],
+  { encoding: 'utf8', env, stdio: 'pipe', timeout: 5000 }).trim();
+  git('init', '--quiet', '--initial-branch=main', '--template=');
   git('add', '--force', '.');
   git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'core.hooksPath=/dev/null',
     'commit', '--quiet', '-m', 'candidate');
