@@ -1,0 +1,81 @@
+**Support** — verify whole-unit source moves from tracked snapshots.
+
+`verifyMove({head, base})` reads tracked snapshots as syntax data and returns
+`verification: 'move'`, snapshot IDs, `findings`, `coverage`, identified `moves`,
+`ancillaryChanges` and source-reader observations. It never evaluates candidate
+code or runs a compiler Program, emitter, plugin, build configuration or service.
+Complete coverage means the admitted source grammar was checked, not that a
+change passed: findings and coverage are separate. This advisory observation
+does not replace normal type, build, behavior or publication checks.
+
+`context`, `units` and `unit-tokens` inventory whole top-level statements.
+Multi-variable statements stay indivisible. The key includes complete headers
+and bodies, allowing only top-level export/default wrappers and literal import
+paths resolving to the same tracked module. `match` pairs units injectively.
+Equal-multiplicity ambiguous identities stay incomplete; missing statements,
+extra copies, spliced bodies or changed tokens are findings. `order` accepts
+multiple intact source runs and retained inert gaps. Reordering is incomplete,
+not a finding. Calls, mutable initialization and class execution keep load-order
+uncertainty. The finite inert grammar is functions, interfaces, type aliases,
+declare forms and identifier-bound constants initialized with literals or functions.
+Binding patterns may execute computed keys, defaults or iterator/property reads,
+so destructuring declarations retain load-order uncertainty.
+
+`bindings` compares lexical declaration owners and copied import bindings.
+`module`, `exports` and `surface` follow named/default reexports and finite stars
+to VALUE/TYPE declaration spaces and canonical paired owners. Surviving exported
+modules and recognized old doors cannot widen or
+silently point at another declaration. Deleted private implementations may move
+behind preserved published facades; a deleted recognized door is still checked.
+New shape-only facades are not automatically public additions: a finite closed
+package entry map can prove them private, while wildcard, legacy or unmapped
+entry routing stays incomplete. Explicit published entries and root indexes
+remain protected. Core facade/door discovery is not changed by this policy.
+Root closure does not prove a child package's entries: changed/new/deleted source paths
+under a tracked non-root `package.json` stay incomplete until nested routing is
+proved separately. Non-code entries, including exported JSON metadata, currently
+also keep closed-scope privacy incomplete rather than guessing a code mapping.
+External kinds, cyclic/ambiguous stars, namespace and
+import-equals ownership remain incomplete. `wiring` qualifies new imports by
+actual unit uses or an injectively matched move from their former owner; new
+unused/opaque wiring is not silently approved as ancillary.
+Static import/export attributes in either snapshot retain a named metadata
+uncertainty; declaration ownership alone cannot prove their loading semantics.
+
+`comments` preserves owned comment bytes and token-relative positions, including
+unique trailing ownership. Only explicit citations proven to name the same
+paired declaration can change paths. Added file headers and unowned file/wiring
+comments are listed separately. `documentation` checks JSDoc root bindings;
+moved imported links additionally require an emitted-declaration check because
+source imports can be elided. Unsupported lexical/type binding forms stay
+incomplete. This checker does not claim declaration-emission equivalence.
+
+`references` reports newly introduced path/owner findings, preserving unchanged
+legacy debt identities even inside moved units. Literal readers of files losing
+declarations receive a review list and separate source-reader uncertainty; file
+existence does not establish reader intent. `ancillary` lists document, baseline
+and other asset/metadata changes rather than treating them as equal. Unsupported
+metadata semantics and mode changes remain incomplete. Listing a baseline change
+does not certify its ratchet; the normal file-size check still owns that law.
+
+`environment` keeps module captures separate from declaration ownership. Moved
+`import.meta`, module-scoped lexical `this`/`arguments`/`new.target` and implicit
+module globals remain incomplete. A normal function's own `this` stays local to
+that unchanged function. Changed tracked package ancestry or source extensions
+also prevent a module-environment proof, even when a bare import spelling and
+both package manifests are unchanged. No npm, compiler or filesystem dependency
+resolution is inferred beyond the supplied tracked metadata.
+Moved native dynamic imports and import types require a literal relative target
+resolved to a tracked owner. Computed, external, attributed and unresolved
+targets retain module-location uncertainty, including query-bearing paths.
+
+All results are JSON data. ASTs, token arrays, lexical caches and matching maps
+remain internal. Tests beside each helper exercise the admitted boundaries and
+the cases that must remain unknown.
+
+Within one comparison, exact unchanged path/text pairs share immutable syntax;
+unit keys, metadata and declaration ownership remain snapshot-specific. Comment
+ownership and token positions use ordered indexes, and unit matching keeps
+ordered candidate groups. Eager-import traversal visits each module once per
+root, with a separate active stack retaining cycle uncertainty. Counted-work
+fixtures cover these bounds; they do not claim a bound on all checker work.
