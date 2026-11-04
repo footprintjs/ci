@@ -48,3 +48,26 @@ test('type wrappers do not hide actual loader capture', () => {
   assert.ok(loading('const load = (globalThis as any).require; load(path);').unverified.length);
   assert.ok(loading('const host = (globalThis as any); host.require(path);').unverified.length);
 });
+
+test('an unescaped readonly const alias with only finite non-loader property reads matches direct access', () => {
+  for(const text of ['const host = globalThis as unknown as Record<string,unknown>; host.BigInt?.prototype; host.SharedArrayBuffer?.prototype;',
+    'const host = globalThis; host["BigInt"]?.prototype;',
+    'const host = globalThis; function read(){ return host.SharedArrayBuffer?.prototype; }']){
+    assert.deepEqual(loading(text).unverified,[],text);
+  }
+});
+
+test('global metadata alias proof does not credit escape write dynamic access or loader properties', () => {
+  for(const text of ['const host=globalThis; consume(host); host.BigInt;',
+    'const host=globalThis; host.BigInt=replacement;',
+    'const host=globalThis; host[chosen];', 'const host=globalThis; host["require"](path);',
+    'const host=globalThis; host.Function(source);', 'const host=globalThis; host.eval(source);',
+    'let host=globalThis; host.BigInt;', 'export const host=globalThis;',
+    'const host=globalThis; export {host};',
+    'const host=globalThis; const alias=host; alias.require(path);'])assert.ok(loading(text).unverified.length,text);
+});
+
+test('a native-brand-derived dynamic global constructor remains unresolved', () => {
+  const text='const tag=Object.prototype.toString.call(child).slice(8,-1); const Ctor=(globalThis as unknown as Record<string,new (b:ArrayBuffer)=>ArrayBufferView>)[tag]; if(typeof Ctor==="function")new Ctor(bytes);';
+  assert.ok(loading(text).unverified.length);
+});

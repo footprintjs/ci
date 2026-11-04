@@ -3,6 +3,7 @@ import { hasLexicalBinding } from '../bindings/index.mjs';
 import { isValueReference } from '../bindings/references.mjs';
 import { makeRequest } from './requests.mjs';
 import { unwrapExpression, outerExpression, runtimeSyntax, onlyTypeof } from './runtime-position.mjs';
+import { safeGlobalCapture } from './global-metadata.mjs';
 
 function globalName(node, name) {
   return ts.isIdentifier(node) && node.text === name && !hasLexicalBinding(node);
@@ -20,7 +21,7 @@ function capturedContainer(node) {
   if (!['globalThis', 'module'].some(name => globalName(node, name)) || !isValueReference(node)) return false;
   const outer = outerExpression(node);
   const member = ts.isPropertyAccessExpression(outer.parent) || ts.isElementAccessExpression(outer.parent);
-  return !member || outer.parent.expression !== outer;
+  return (!member || outer.parent.expression !== outer) && !safeGlobalCapture(node);
 }
 
 function unsupported(node) {

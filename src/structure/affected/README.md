@@ -36,6 +36,13 @@ Signature-only overloads and erased companions of a runtime binding do not
 invent duplicate runtime owners. Actual duplicate implementations and other
 unproved declaration merges remain uncertain. Transparent type wrappers and
 erased type syntax do not turn safe global property reads into loader aliases.
+Private read-only `const` aliases of a global container receive the same finite
+static-property treatment as direct access only when every exact lexical use
+stays contained. Exports, escapes, writes, dynamic keys and loader-property
+reads retain uncertainty. A brand-derived dynamic `globalThis[tag]` constructor
+is still unknown: syntax does not restrict a spoofable tag to native brands.
+Such a common helper can keep the conservative selected set broad; that is
+reported rather than waived for a smaller ratio.
 Both head and base graphs participate, so deleted paths remain reachable.
 Tracked JSON/binary targets propagate through their importer just like source.
 

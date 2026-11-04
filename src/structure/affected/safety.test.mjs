@@ -192,3 +192,12 @@ test('unknown nested package metadata cannot exclude a reachable bare-import con
   assert.deepEqual(result?.tests, ['test/owner.test.ts']);
   assert.ok(result.coverage.unverified.some(item => item.kind === 'affected-import' && item.path === 'src/owner.ts'));
 });
+
+test('finite readonly global metadata does not spread uncertainty to an unrelated source change', () => {
+  const base={'src/meta.ts':'const host=globalThis as unknown as Record<string,{prototype?:object}>; export const value=host.BigInt?.prototype;',
+    'src/other.ts':'export const value=1;', 'test/meta.test.ts':"import {value} from '../src/meta.js'; assert(value);",
+    'test/other.test.ts':"import {value} from '../src/other.js'; assert(value);"};
+  const result=select(base,{...base,'src/other.ts':'export const value=2;'});
+  assert.deepEqual(result.tests,['test/other.test.ts']);
+  assert.equal(result.coverage.unverified.some(item=>item.kind==='affected-loading'&&item.path==='src/meta.ts'),false);
+});
