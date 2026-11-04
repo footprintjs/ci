@@ -4,6 +4,9 @@
 Git's batch protocol. It never imports candidate code, follows symlinks, uses
 text conversion, installs packages or runs hooks. Inherited Git environment
 overrides are removed; optional locks, lazy fetch and replacement refs are off.
+An empty `GIT_ALLOW_PROTOCOL` whitelist blocks every transport even when candidate
+per-protocol configuration allows one. This also closes older Git's lazy-fetch
+fallback, where the newer no-lazy-fetch environment flag alone is insufficient.
 Code, Markdown, package manifests and attributes are strict UTF-8 text; other
 entries retain their paths, object ids and modes with `content: path-only`.
 The empty `text` on those entries is a path-inventory placeholder, not a claim
