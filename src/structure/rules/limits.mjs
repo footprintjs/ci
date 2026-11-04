@@ -11,4 +11,5 @@ export const LIMITS = Object.freeze({
   facadeComplexity: 1,
   stageLines: 40,
   stageComplexity: 8,
+  directImports: 20,
 });

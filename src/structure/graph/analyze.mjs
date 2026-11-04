@@ -2,13 +2,14 @@ import { sourceEdges } from './edges.mjs';
 import { folderFindings } from './folders.mjs';
 import { sourceLoads } from './loads.mjs';
 import { overLimit } from '../rules/finding.mjs';
+import { LIMITS } from '../rules/limits.mjs';
 
 function importFindings(edges) {
   const counts = new Map();
   for (const edge of edges) {
     if (!edge.unverified) counts.set(edge.from, (counts.get(edge.from) ?? 0) + 1);
   }
-  return [...counts].flatMap(([path, value]) => overLimit({ path }, {}, { rule: 'direct-imports', value, limit: 20 }));
+  return [...counts].flatMap(([path, value]) => overLimit({ path }, {}, { rule: 'direct-imports', value, limit: LIMITS.directImports }));
 }
 
 export function graphAnalysis(files, parsed, doors) {

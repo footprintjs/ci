@@ -89,16 +89,23 @@ test('co-located and external test files do not create runtime folder edges', ()
 
 test('case-insensitive sibling facade seals allow the facade and internal consumers', () => {
   const report = observe({
-    'src/Agent.ts': "export { run } from './agent/run.js';",
+    'src/Agent.ts': "import { run } from './agent/run.js'; export class Agent { run() { return run(); } }",
     'src/agent/run.ts': 'export function run() {}',
     'src/agent/inside.ts': "import { run } from './run.js'; export const inside = run;",
   });
   noFindings(report, ['sealed-folder']);
 });
 
+test('a pure reexport barrel leaves direct small-file imports available', () => {
+  const report = observe({ 'src/Agent.ts': "export { run } from './agent/run.js';",
+    'src/agent/run.ts': 'export function run() {}',
+    'src/other.ts': "import { run } from './agent/run.js'; export const other = run;" });
+  noFindings(report, ['sealed-folder']);
+});
+
 test('an external file cannot bypass a differently cased sibling facade', () => {
   const report = observe({
-    'src/Agent.ts': "export { run } from './agent/run.js';",
+    'src/Agent.ts': "import { run } from './agent/run.js'; export class Agent { run() { return run(); } }",
     'src/agent/run.ts': 'export function run() {}',
     'src/other.ts': "import { run } from './agent/run.js'; export const other = run;",
   });
@@ -107,7 +114,7 @@ test('an external file cannot bypass a differently cased sibling facade', () => 
 
 test('the same seal applies to external consumers at a deeper folder depth', () => {
   const report = observe({
-    'src/domain/Agent.ts': "export { run } from './agent/run.js';",
+    'src/domain/Agent.ts': "import { run } from './agent/run.js'; export class Agent { run() { return run(); } }",
     'src/domain/agent/run.ts': 'export function run() {}',
     'src/domain/other/read.ts': "import { run } from '../agent/run.js'; export const read = run;",
   });
@@ -116,7 +123,7 @@ test('the same seal applies to external consumers at a deeper folder depth', () 
 
 test('type-only and test consumers do not violate a runtime seal', () => {
   const report = observe({
-    'src/Agent.ts': "export type { Shape } from './agent/shape.js';",
+    'src/Agent.ts': "export type { Shape } from './agent/shape.js'; export class Agent {}",
     'src/agent/shape.ts': 'export interface Shape {}',
     'src/other.ts': "import type { Shape } from './agent/shape.js'; export type Copy = Shape;",
     'test/agent.test.ts': "import { value } from '../src/agent/value.js'; void value;",

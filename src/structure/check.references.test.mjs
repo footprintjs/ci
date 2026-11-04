@@ -54,21 +54,31 @@ test('an ambiguous basename is not silently accepted as an owner', () => {
 });
 
 test('dynamic source readers report incomplete coverage instead of a fabricated verification', () => {
-  const report = observe({ 'test/reader.ts': `import { readFileSync } from 'node:fs';
-    export function readOwner(path: string) { return readFileSync(path, 'utf8'); }` });
+  const reader = `import { readFileSync } from 'node:fs'; const previousOwner = 'src/owner.ts';
+    export function readOwner(path: string) { return readFileSync(path, 'utf8'); }`;
+  const before = { 'src/owner.ts': 'export function work() {}', 'test/reader.ts': reader };
+  const report = reportOf(checkStructure(snapshot({ ...moved, 'test/reader.ts': reader }), snapshot(before, 'base')));
   unverified(report, 'source-reader', 'test/reader.ts');
+  assert.deepEqual(report.sourceReaders.analyzedPaths, ['test/reader.ts']);
+  noFindings(report, ['stale-path']);
 });
 
 test('an aliased promised file reader with a dynamic path is also incomplete', () => {
-  const report = observe({ 'test/reader.ts': `import { readFile as sourceText } from 'node:fs/promises';
-    export async function readOwner(path: string) { return sourceText(path, 'utf8'); }` });
+  const reader = `import { readFile as sourceText } from 'node:fs/promises'; const previousOwner = 'src/owner.ts';
+    export async function readOwner(path: string) { return sourceText(path, 'utf8'); }`;
+  const before = { 'src/owner.ts': 'export function work() {}', 'test/reader.ts': reader };
+  const report = reportOf(checkStructure(snapshot({ ...moved, 'test/reader.ts': reader }), snapshot(before, 'base')));
   unverified(report, 'source-reader', 'test/reader.ts');
+  assert.deepEqual(report.sourceReaders.analyzedPaths, ['test/reader.ts']);
+  noFindings(report, ['stale-path']);
 });
 
 test('a constant source reader path is checked for existence', () => {
-  const report = observe({ 'test/reader.ts': `import { readFileSync } from 'node:fs';
-    readFileSync('src/missing.ts', 'utf8');` });
+  const reader = `import { readFileSync } from 'node:fs'; readFileSync('src/removed.ts', 'utf8');`;
+  const before = { 'src/removed.ts': 'export function work() {}', 'test/reader.ts': reader };
+  const report = reportOf(checkStructure(snapshot({ 'test/reader.ts': reader }), snapshot(before, 'base')));
   finding(report, 'stale-path', 'test/reader.ts');
+  assert.deepEqual(report.sourceReaders.analyzedPaths, ['test/reader.ts']);
 });
 
 test('CHANGELOG and dated design references are counted separately from live findings', () => {
