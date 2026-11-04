@@ -23,7 +23,14 @@ test('literal runner includes exclude beside-test helpers without losing their d
 
 for (const replacement of [null, "export default { test: { include: chosen } };",
   "export default { test: { include: ['test/**/*.test.ts'], ...override } };",
-  "export default { test: { include: ['test/**/*.test.ts'], projects: ['packages/*'] } };"]) {
+  "export default { test: { include: ['test/**/*.test.ts'], projects: ['packages/*'] } };",
+  "export default { root:'a', root:'b', test:{include:['test/**/*.test.ts']} };",
+  "export default { get root(){return 'a'}, test:{include:['test/**/*.test.ts']} };",
+  "export default { test:{include:['test/**/*.test.ts'],dir:'a',dir:'b'} };",
+  "export default { test:{include:['test/**/*.test.ts'],get dir(){return 'a'}} };",
+  "export default { test:{include:['test/**/*.test.ts'],projects:['a'],projects:['b']} };",
+  "export default { test:{include:['test/**/*.test.ts'],get workspace(){return ['a']}} };",
+  "export default { test:{include:['test/**/*.test.ts'],includeSource:['a'],includeSource:['b']} };"]) {
   test(`unproved runner discovery remains whole-suite: ${replacement}`, () => {
     const base = files();
     if (replacement === null) delete base['vitest.config.ts']; else base['vitest.config.ts'] = replacement;

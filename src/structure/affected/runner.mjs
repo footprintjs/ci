@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { resolveBinding } from '../bindings/index.mjs';
 import { importOrigin } from '../bindings/imports.mjs';
-import { configProperty as property, literalSetups } from './config-fields.mjs';
+import { configProperty as property, hasConfigProperty as present, literalSetups } from './config-fields.mjs';
 
 function configObject(source) {
   const exports = source.sourceFile.statements.filter(ts.isExportAssignment);
@@ -31,10 +31,10 @@ export function runnerInclude(parsed) {
   const test = property(object, 'test');
   const include = property(test, 'include');
   if (source.sourceFile.parseDiagnostics.length) return { paths, reason: 'Runner config has syntax diagnostics.' };
-  if (property(object, 'root') || property(test, 'dir') || property(test, 'includeSource')) {
+  if (present(object, 'root') || present(test, 'dir') || present(test, 'includeSource')) {
     return { paths, reason: 'Alternate source roots or inline test discovery are outside the admitted include grammar.' };
   }
-  if (property(test, 'projects') || property(test, 'workspace') || [...parsed.keys()].some(path => /^vitest\.workspace\./.test(path))) {
+  if (present(test, 'projects') || present(test, 'workspace') || [...parsed.keys()].some(path => /^vitest\.workspace\./.test(path))) {
     return { paths, reason: 'Project/workspace runner discovery is outside the admitted literal include grammar.' };
   }
   if (!include || !ts.isArrayLiteralExpression(include) || !include.elements.length

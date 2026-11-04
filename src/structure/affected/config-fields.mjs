@@ -1,5 +1,10 @@
 import ts from 'typescript';
 
+/** Presence is separate from proving one plain literal property value. */
+export function hasConfigProperty(object, name) {
+  return Boolean(object && ts.isObjectLiteralExpression(object) && object.properties.some(item => item.name?.text === name));
+}
+
 export function configProperty(object, name) {
   if (!object || !ts.isObjectLiteralExpression(object)) return null;
   if (object.properties.some(item => ts.isSpreadAssignment(item) || (item.name && ts.isComputedPropertyName(item.name)))) return null;
