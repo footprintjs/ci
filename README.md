@@ -45,7 +45,7 @@ The reader uses Foottrace's existing causal slice APIs. It explains recorded rea
 
 ## What is preserved
 
-Six production guards are copied byte-for-byte from a pinned Foottrace source commit; the complete native release corpus is retained. Adapted guard/helper tests exercise the production copies; historical runner/workflow compatibility tests retain their snapshots. [Provenance](provenance/upstream.json) records every source hash and test-only adaptation. The adapter preserves source closure, reviewed/tested trees, App identity, archive/producer binding, retained history, reservation and unknown-outcome refusals. Uniform review policy additionally requires an exact-head public Claude verdict and disclosed delegated eligible-User approval. Normal security gates are mandatory.
+Five production guards remain exact copies of a pinned Foottrace source commit. The sixth is reconstructed through three declared metadata-policy/source-reader substitutions. The moved Git source decoder and new owner-bound verified immutable blob port are explicit local adaptations, with their own source and behaviour checks; they are not claimed as unchanged upstream modules. The native corpus is retained, while historical runner/workflow snapshots remain data for compatibility assertions. [Provenance](provenance/upstream.json) binds every guard and fixture hash, the exact guard reconstruction and the declared source-reader adaptation. Native source/tree/history, App identity, archive/producer binding, reservations and unknown outcomes remain mandatory. Uniform review policy also requires an exact-head public Claude verdict and disclosed delegated eligible-User approval.
 
 The runtime is pinned independently of the candidate: FootPrint 10.7.1 and Foottrace 1.10.0, with a dependency-complete committed bundle. npm 11.19.0 is separately vendored with its digest for a future reviewed publisher; it is **not executable through this shadow**. [Third-party notices](provenance/THIRD_PARTY_NOTICES.md).
 
@@ -71,3 +71,5 @@ Future live cutover needs its own exact-head review and owner approval: separate
 - [Interactive playground](https://footprintjs.github.io/footprint-playground/): explore workflow tracing.
 
 Repository-specific checks remain with each library; this repository supplies the shared release tool described above.
+
+Migration: the source-only proposal text factory lives in `src/guards/proposal-metadata.cjs`. Both creation and computed metadata use that one owner; the temporary internal `release-github.proposalMetadata` export is removed, with no forwarding alias. This is not a new release route or an effect grant.

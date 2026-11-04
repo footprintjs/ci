@@ -743,6 +743,186 @@ ${suffix}`
   }
 });
 
+// src/guards/git-blob.cjs
+var require_git_blob = __commonJS({
+  "src/guards/git-blob.cjs"(exports2, module2) {
+    "use strict";
+    var preparation = require_release_prepare();
+    var control3 = require_release_control();
+    var owners = /* @__PURE__ */ new WeakMap();
+    var bindings2 = /* @__PURE__ */ new WeakMap();
+    var DEFAULTS = Object.freeze({ maxEntries: 4096, maxBytes: 128 * 1024 * 1024, maxPending: 64 });
+    var fail4 = () => {
+      const e = new Error("source-content");
+      e.code = "source-content";
+      throw e;
+    };
+    function createGitBlobOwner(repository, limits = {}) {
+      if (!repository || !Number.isSafeInteger(repository.id) || repository.id < 1 || typeof repository.full_name !== "string" || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository.full_name) || !limits || typeof limits !== "object" || Object.keys(limits).some((k) => !Object.hasOwn(DEFAULTS, k))) fail4();
+      const bound = { ...DEFAULTS, ...limits };
+      for (const key of Object.keys(DEFAULTS)) if (!Number.isSafeInteger(bound[key]) || bound[key] < 1 || bound[key] > DEFAULTS[key]) fail4();
+      const owner = Object.freeze({});
+      owners.set(owner, { repository: { id: repository.id, full_name: repository.full_name }, limits: bound, blobs: /* @__PURE__ */ new Map(), pending: /* @__PURE__ */ new Map(), bytes: 0, full: false });
+      return owner;
+    }
+    function bindGitBlobOwner(api, owner) {
+      if (typeof api !== "function" || !owners.has(owner) || bindings2.has(api) && bindings2.get(api) !== owner) fail4();
+      bindings2.set(api, owner);
+      return api;
+    }
+    function inheritGitBlobRead(target2, source) {
+      if (typeof target2 !== "function" || typeof source !== "function") fail4();
+      if (bindings2.has(source)) bindGitBlobOwner(target2, bindings2.get(source));
+      return target2;
+    }
+    function gitBlobOwnerFacts(owner) {
+      const s = owners.get(owner);
+      if (!s) fail4();
+      return Object.freeze({ entries: s.blobs.size, bytes: s.bytes, pending: s.pending.size, full: s.full, authorized: false });
+    }
+    async function decodeGitBlob(api, context, id) {
+      const value = (await api("GET", "/repos/" + context.repository.full_name + "/git/blobs/" + id)).data;
+      if (value.sha !== id || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail4();
+      const bytes = Buffer.from(value.content, "base64");
+      if (bytes.length !== value.size || preparation.gitObject("blob", bytes) !== id) fail4();
+      return bytes;
+    }
+    async function readGitBlob(api, context, id) {
+      if (!control3.validSha(id)) fail4();
+      const owner = bindings2.get(api), s = owner === void 0 ? null : owners.get(owner);
+      if (s === null) return decodeGitBlob(api, context, id);
+      if (context.repository.id !== s.repository.id || context.repository.full_name !== s.repository.full_name) fail4();
+      const key = s.repository.id + ":" + id;
+      if (s.blobs.has(key)) return Buffer.from(s.blobs.get(key));
+      if (s.pending.has(key)) return Buffer.from(await s.pending.get(key));
+      const load = async () => {
+        const bytes = await decodeGitBlob(api, context, id);
+        if (!s.full && !s.blobs.has(key)) {
+          if (s.blobs.size >= s.limits.maxEntries || s.bytes + bytes.length > s.limits.maxBytes) s.full = true;
+          else {
+            s.blobs.set(key, Buffer.from(bytes));
+            s.bytes += bytes.length;
+            if (s.blobs.size === s.limits.maxEntries || s.bytes === s.limits.maxBytes) s.full = true;
+          }
+        }
+        return bytes;
+      };
+      if (s.full || s.pending.size >= s.limits.maxPending) return Buffer.from(await load());
+      const work = load();
+      s.pending.set(key, work);
+      try {
+        return Buffer.from(await work);
+      } finally {
+        s.pending.delete(key);
+      }
+    }
+    module2.exports = { createGitBlobOwner, bindGitBlobOwner, inheritGitBlobRead, gitBlobOwnerFacts, readGitBlob };
+  }
+});
+
+// src/guards/git-source.cjs
+var require_git_source = __commonJS({
+  "src/guards/git-source.cjs"(exports2, module2) {
+    "use strict";
+    var preparation = require_release_prepare();
+    var control3 = require_release_control();
+    var { readGitBlob } = require_git_blob();
+    var prefix = (context) => {
+      if (context.repository?.full_name !== "footprintjs/foottrace" || !Number.isSafeInteger(context.repository.id))
+        fail4("repository");
+      return `/repos/${context.repository.full_name}`;
+    };
+    var fail4 = (code) => {
+      const error = new Error(code);
+      error.code = code;
+      throw error;
+    };
+    function sourceView(api, context) {
+      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
+      const rawPaths = /* @__PURE__ */ new Set([
+        "package.json",
+        "package-lock.json",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/metadata.md",
+        ".github/workflows/publish.yml",
+        "scripts/release-app-auth.cjs",
+        "scripts/release-runner.cjs",
+        "test/release/app-identity.test.mjs",
+        "test/release/archive.test.mjs",
+        "test/release/diagnostics.test.mjs"
+      ]);
+      let totalBytes = 0;
+      const commit = async (id) => {
+        if (!control3.validSha(id)) fail4("source-sha");
+        if (!commits.has(id)) {
+          if (commits.size >= 512) fail4("recovery-source");
+          const value = (await api("GET", `${prefix(context)}/git/commits/${id}`)).data;
+          if (value.sha !== id || !control3.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control3.validSha(p.sha))) fail4("source-commit");
+          commits.set(id, value);
+        }
+        return commits.get(id);
+      };
+      const blob = async (id) => {
+        prefix(context);
+        if (!control3.validSha(id)) fail4("source-sha");
+        if (!blobs.has(id)) {
+          const bytes = await readGitBlob(api, context, id);
+          totalBytes += bytes.length;
+          if (totalBytes > 128 * 1024 * 1024) fail4("source-content");
+          blobs.set(id, bytes);
+        }
+        return Buffer.from(blobs.get(id));
+      };
+      const tree = async (id) => {
+        if (!control3.validSha(id)) fail4("source-sha");
+        const result3 = /* @__PURE__ */ new Map();
+        const tree2 = (await api("GET", `${prefix(context)}/git/trees/${id}?recursive=1`)).data;
+        if (tree2.sha !== id || tree2.truncated !== false || !Array.isArray(tree2.tree) || tree2.tree.length > 4096)
+          fail4("source-tree");
+        const seen = /* @__PURE__ */ new Set();
+        for (const row of tree2.tree) {
+          if (typeof row.path !== "string" || seen.has(row.path) || !control3.validSha(row.sha)) fail4("source-tree");
+          seen.add(row.path);
+          if (row.type === "tree" && row.mode === "040000") continue;
+          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail4("source-tree");
+          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
+          if (needsBytes) await blob(row.sha);
+          result3.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
+        }
+        if (preparation.treeOid(result3) !== id) fail4("source-tree");
+        return result3;
+      };
+      const inventory = async (id) => {
+        if (inventories.has(id)) return inventories.get(id);
+        const c = await commit(id), result3 = await tree(c.tree.sha);
+        inventories.set(id, result3);
+        return result3;
+      };
+      return { commit, inventory, blob, tree };
+    }
+    module2.exports = { sourceView };
+  }
+});
+
+// src/guards/proposal-metadata.cjs
+var require_proposal_metadata = __commonJS({
+  "src/guards/proposal-metadata.cjs"(exports2, module2) {
+    "use strict";
+    function proposalMetadata(version, notes) {
+      return { title: `Release ${version}`, body: `Release App proposal for foottrace ${version}.
+
+${notes}
+After Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.` };
+    }
+    function proposalCreation(version, notes) {
+      const metadata = proposalMetadata(version, notes);
+      return { title: metadata.title, head: "release/next", base: "main", body: metadata.body };
+    }
+    module2.exports = { proposalMetadata, proposalCreation };
+  }
+});
+
 // src/guards/release-app-auth.cjs
 var require_release_app_auth = __commonJS({
   "src/guards/release-app-auth.cjs"(exports2, module2) {
@@ -789,6 +969,8 @@ var require_release_github = __commonJS({
   "src/guards/release-github.cjs"(exports2, module2) {
     "use strict";
     var preparation = require_release_prepare();
+    var { sourceView } = require_git_source();
+    var { proposalCreation } = require_proposal_metadata();
     var { prepareRelease } = preparation;
     var control3 = require_release_control();
     var { appRequest } = require_release_app_auth();
@@ -1067,61 +1249,6 @@ var require_release_github = __commonJS({
       } catch {
         fail4("source-content");
       }
-    }
-    function sourceView(api, context) {
-      const commits = /* @__PURE__ */ new Map(), blobs = /* @__PURE__ */ new Map(), inventories = /* @__PURE__ */ new Map();
-      const rawPaths = /* @__PURE__ */ new Set([
-        "package.json",
-        "package-lock.json",
-        "CHANGELOG.md",
-        "README.md",
-        "docs/metadata.md",
-        ".github/workflows/publish.yml",
-        "scripts/release-app-auth.cjs",
-        "scripts/release-runner.cjs",
-        "test/release/app-identity.test.mjs",
-        "test/release/archive.test.mjs",
-        "test/release/diagnostics.test.mjs"
-      ]);
-      let totalBytes = 0;
-      const commit = async (id) => {
-        if (!control3.validSha(id)) fail4("source-sha");
-        if (!commits.has(id)) {
-          if (commits.size >= 512) fail4("recovery-source");
-          const value = (await api("GET", `${prefix(context)}/git/commits/${id}`)).data;
-          if (value.sha !== id || !control3.validSha(value.tree?.sha) || !Array.isArray(value.parents) || value.parents.length > 2 || value.parents.some((p) => !control3.validSha(p.sha))) fail4("source-commit");
-          commits.set(id, value);
-        }
-        return commits.get(id);
-      };
-      const inventory = async (id) => {
-        if (inventories.has(id)) return inventories.get(id);
-        const c = await commit(id), result3 = /* @__PURE__ */ new Map();
-        const tree = (await api("GET", `${prefix(context)}/git/trees/${c.tree.sha}?recursive=1`)).data;
-        if (tree.sha !== c.tree.sha || tree.truncated !== false || !Array.isArray(tree.tree) || tree.tree.length > 4096)
-          fail4("source-tree");
-        const seen = /* @__PURE__ */ new Set();
-        for (const row of tree.tree) {
-          if (typeof row.path !== "string" || seen.has(row.path) || !control3.validSha(row.sha)) fail4("source-tree");
-          seen.add(row.path);
-          if (row.type === "tree" && row.mode === "040000") continue;
-          if (row.type !== "blob" || !["100644", "100755"].includes(row.mode)) fail4("source-tree");
-          const needsBytes = rawPaths.has(row.path) || row.path.startsWith(".changes/") || row.path.startsWith(".release/");
-          if (needsBytes && !blobs.has(row.sha)) {
-            const value = (await api("GET", `${prefix(context)}/git/blobs/${row.sha}`)).data;
-            if (value.sha !== row.sha || value.encoding !== "base64" || typeof value.content !== "string" || !Number.isSafeInteger(value.size) || value.size < 0 || value.size > 2 * 1024 * 1024 || !/^[A-Za-z0-9+/=\r\n]*$/.test(value.content) || value.content.length > 3 * 1024 * 1024) fail4("source-content");
-            const bytes = Buffer.from(value.content, "base64");
-            totalBytes += bytes.length;
-            if (bytes.length !== value.size || totalBytes > 128 * 1024 * 1024 || preparation.gitObject("blob", bytes) !== row.sha) fail4("source-content");
-            blobs.set(row.sha, bytes);
-          }
-          result3.set(row.path, { sha: row.sha, mode: row.mode, ...needsBytes ? { bytes: blobs.get(row.sha) } : {} });
-        }
-        if (preparation.treeOid(result3) !== c.tree.sha) fail4("source-tree");
-        inventories.set(id, result3);
-        return result3;
-      };
-      return { commit, inventory };
     }
     function packageIdentity(inventory, version) {
       const raw = (name) => {
@@ -1597,15 +1724,7 @@ var require_release_github = __commonJS({
       await assertCurrentMain(api, context);
       const current = (await api("GET", `${base}/git/ref/heads/release/next`)).data;
       if (current.object?.sha !== commit.sha) fail4("proposal-existing");
-      const pr = (await api("POST", `${base}/pulls`, {
-        title: `Release ${pinned.version}`,
-        head: "release/next",
-        base: "main",
-        body: `Release App proposal for foottrace ${pinned.version}.
-
-${rebuilt.prepared.notes}
-After Claude's independent merge verdict for this exact head is recorded publicly and all current runtime/tested-tree/CodeQL checks pass, reconcile main/head/tested tree. The owner may submit personally or explicitly authorize Codex or Claude to submit the real GitHub APPROVED review on this final head through the owner's existing authorized User account, distinct from the App author, with current API permission write or admin. A delegated review names the submitting agent and the owner's explicit authorization. Standing FootTrace authorization remains sufficient within its stated scope; a changed head still requires fresh independent review, current checks and a fresh approval. An exchange verdict or comment is not that approval. No independent review is waived. No workflow auto-approval is added. This App-authored PR does not publish until normally merged and the Release App route verifies its authority. Owner App installation and npm trusted-publisher setup remain prerequisites; see docs/RELEASING.md.`
-      })).data;
+      const pr = (await api("POST", `${base}/pulls`, proposalCreation(pinned.version, rebuilt.prepared.notes))).data;
       const requireCreated = (value) => {
         if (!Number.isSafeInteger(value.number) || value.number <= 0 || value.number !== pr.number || value.state !== "open" || value.head?.sha !== commit.sha || value.base?.sha !== context.sha || value.user?.id !== bot.id || value.user.type !== "Bot" || value.user.login !== bot.login || !control3.sameRepo(value.head?.repo, context.repository) || !control3.sameRepo(value.base?.repo, context.repository) || value.head.ref !== "release/next" || value.base.ref !== "main") fail4("proposal-pr");
       };
@@ -2165,6 +2284,17 @@ After Claude's independent merge verdict for this exact head is recorded publicl
   }
 });
 
+// src/http-credential.cjs
+var require_http_credential = __commonJS({
+  "src/http-credential.cjs"(exports2, module2) {
+    "use strict";
+    function isOpaqueCredential2(value) {
+      return typeof value === "string" && value.length > 0 && value.length <= 8192 && !/[^\x21-\x7E]/.test(value);
+    }
+    module2.exports = { isOpaqueCredential: isOpaqueCredential2 };
+  }
+});
+
 // bin/release.mjs
 var release_exports = {};
 __export(release_exports, {
@@ -2230,6 +2360,10 @@ var messages = {
   PLAN_VERIFY_ONLY: "The existing publication or uncertain attempt requires verification only.",
   PLAN_SKIP: "There is no release proposal to prepare.",
   PROPOSAL_READY: "Native proposal preflight admitted the complete input closure and retained history.",
+  PROPOSAL_EVIDENCE_READY: "Prepared inputs, published predecessor, source ancestry and native reviews agree; complete retained eligibility and effect authority remain separate.",
+  PROPOSAL_EVIDENCE_UNAVAILABLE: "Read-only source evidence could not be joined; no proposal effect is permitted.",
+  PROPOSAL_INPUTS_READY: "Prepared inputs are reconstructed; native lineage, eligibility and effect authority remain separate.",
+  PROPOSAL_INPUTS_UNAVAILABLE: "Prepared input closure is unavailable; no proposal effect is permitted.",
   PROPOSAL_IDENTICAL: "The exact proposal already exists.",
   CI_REUSE: "The trusted latest CI attempt tested the exact merged tree.",
   SECURITY_REQUIRED: "The mandatory latest CodeQL run and both unique successful Analyze gates are required.",
@@ -25278,6 +25412,7 @@ async function runReleaseFlow({ config, context = {}, ports = {}, recordLimitByt
 var import_release_github2 = __toESM(require_release_github(), 1);
 
 // src/github-readonly.mjs
+var import_http_credential = __toESM(require_http_credential(), 1);
 var import_node_crypto = require("node:crypto");
 var REPO = "/repos/footprintjs/foottrace";
 var SHA2 = "[a-f0-9]{40}";
@@ -25325,7 +25460,7 @@ function createReadOnlyTransport({
   maxBytes = 128 * 1024 * 1024,
   maxResponseBytes = 24 * 1024 * 1024
 } = {}) {
-  if (githubToken !== void 0 && (typeof githubToken !== "string" || !/^[A-Za-z0-9_]{1,8192}$/.test(githubToken))) refuse3("readonly-credentials");
+  if (githubToken !== void 0 && !(0, import_http_credential.isOpaqueCredential)(githubToken)) refuse3("readonly-credentials");
   let requests = 0, bytesRead = 0;
   const observations = [];
   const readonlyFetch = async (input, options = {}) => {

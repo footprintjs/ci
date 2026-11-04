@@ -1,3 +1,4 @@
+import {isOpaqueCredential} from './http-credential.cjs';
 import { createHash } from 'node:crypto';
 
 const REPO = '/repos/footprintjs/foottrace';
@@ -40,7 +41,7 @@ function target(input, redirect = false) {
 // confined to GitHub API GETs; redirects and registry requests never receive it.
 export function createReadOnlyTransport({ fetcher = globalThis.fetch, maxRequests = 4096, githubToken,
   maxBytes = 128 * 1024 * 1024, maxResponseBytes = 24 * 1024 * 1024 } = {}) {
-  if (githubToken !== undefined && (typeof githubToken !== 'string' || !/^[A-Za-z0-9_]{1,8192}$/.test(githubToken))) refuse('readonly-credentials');
+  if (githubToken !== undefined && !isOpaqueCredential(githubToken)) refuse('readonly-credentials');
   let requests = 0, bytesRead = 0;
   const observations = [];
   const readonlyFetch = async (input, options = {}) => {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "bb178f17b747edad115875b1cd4bf2b7f50e4c2f51d98194ad422c206e2279b1",
+  "sha256": "996c9c94a53c2d5858c4fb4336f3093cfbae1ef2d3aabe60425d2182397343ee",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -1018,7 +1018,19 @@
     },
     {
       "path": "src/github-readonly.mjs",
-      "bytes": 6718
+      "bytes": 6728
+    },
+    {
+      "path": "src/guards/git-blob.cjs",
+      "bytes": 3764
+    },
+    {
+      "path": "src/guards/git-source.cjs",
+      "bytes": 3598
+    },
+    {
+      "path": "src/guards/proposal-metadata.cjs",
+      "bytes": 1520
     },
     {
       "path": "src/guards/release-app-auth.cjs",
@@ -1038,7 +1050,7 @@
     },
     {
       "path": "src/guards/release-github.cjs",
-      "bytes": 69621
+      "bytes": 65442
     },
     {
       "path": "src/guards/release-prepare.cjs",
@@ -1049,8 +1061,12 @@
       "bytes": 1507
     },
     {
+      "path": "src/http-credential.cjs",
+      "bytes": 285
+    },
+    {
       "path": "src/policy.mjs",
-      "bytes": 11369
+      "bytes": 11900
     },
     {
       "path": "src/record.mjs",
