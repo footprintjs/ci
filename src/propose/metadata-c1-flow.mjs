@@ -25,7 +25,7 @@ export function appendFoottraceMetadataReconciliation({chart:start,captured,root
   const fresh=await checks(baseline.pending.reference);
   if(!fresh.valid||fresh.digest!==baseline.checks.digest||!await root.reobserve())fail();
   const metadata=await observeMetadata(baseline.prepared,baseline.pending);
-  if(!metadata.valid||!isDeepStrictEqual(metadata.observation,baseline.metadata.observation))fail();
+  if(!metadata.valid||!isDeepStrictEqual(metadata.observation,baseline.metadata.observation)||!await root.reobserve())fail();
   return metadata;
  };
  let chart=history.chart.addFunction('Join current native history and required checks on ONE writer owner',async scope=>{

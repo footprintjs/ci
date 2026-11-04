@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "deb5d5edc47c49f10656409f83f8e7a2d246f85ff86e7b036cc525ad73fd1709",
+  "sha256": "977c748c7ab886e39186e0aed36d60a35b5866435219d7ae2d5b913069d77d8e",
   "inputs": [
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1198,7 +1198,7 @@
     },
     {
       "path": "src/propose/metadata-c1-flow.mjs",
-      "bytes": 7036
+      "bytes": 7061
     },
     {
       "path": "src/propose/metadata-response-policy.mjs",

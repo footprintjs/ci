@@ -30178,7 +30178,7 @@ function appendFoottraceMetadataReconciliation({ chart: start, captured, root, c
     const fresh = await checks(baseline.pending.reference);
     if (!fresh.valid || fresh.digest !== baseline.checks.digest || !await root.reobserve()) fail40();
     const metadata = await observeMetadata(baseline.prepared, baseline.pending);
-    if (!metadata.valid || !(0, import_node_util32.isDeepStrictEqual)(metadata.observation, baseline.metadata.observation)) fail40();
+    if (!metadata.valid || !(0, import_node_util32.isDeepStrictEqual)(metadata.observation, baseline.metadata.observation) || !await root.reobserve()) fail40();
     return metadata;
   };
   let chart = history.chart.addFunction("Join current native history and required checks on ONE writer owner", async (scope) => {
