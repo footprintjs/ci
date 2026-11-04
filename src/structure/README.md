@@ -14,6 +14,7 @@ Run from this folder with Node 22.14 or later:
 npm ci --ignore-scripts
 node cli/main.mjs report --repo /path/to/repository --head HEAD --base BASE
 node cli/main.mjs report --repo /path/to/repository --format text
+node cli/main.mjs affected --repo /path/to/repository --head HEAD --base BASE
 npm test
 ```
 
@@ -30,6 +31,14 @@ It is advisory and is not installed as a required check by this change.
 
 This first report implements metrics, folder fences, static load estimates,
 facades, stage bindings, references and a conservative debt comparison.
-`affected`, move verification, merge replay, statement counts and calibrated
-extraction credit remain follow-ups. Coverage names unsupported analysis;
+Move verification, merge replay, statement counts and calibrated extraction
+credit remain follow-ups. Coverage names unsupported analysis;
 absence of a finding does not claim those cases were verified.
+
+`affected/` estimates tests using both trees, named export owners and possible
+module loading effects. It keeps file/path readers and unresolved ownership
+conservative, returns compiler requirements, and always requires the full suite
+before merge. It evaluates no candidate code or runner configuration and enables
+no test skipping, workflow or policy change. The text view quotes filenames so
+candidate-controlled path characters cannot add summary lines; JSON keeps the
+original path data.

@@ -5,3 +5,14 @@ trees. JSON is the default. Findings are advisory and exit 0; unsupported or
 uncertain analysis stays visible in coverage. Invalid inputs, syntax errors
 and tool failures produce a structured error on stderr and exit 2.
 No command changes a repository, its settings, or its merge/release state.
+
+`affected --repo PATH --base REF [--head REF] [--format json|text]` returns an
+advisory test-selection estimate with reasons and coverage. It reads both
+committed trees and never runs the selected tests. Its base is mandatory.
+Compiler-only classification requires supported erased syntax. Unresolved
+loading selects conservatively. The full suite remains required before merge;
+this command changes no workflow or draft behavior.
+
+Affected output starts with the selected/known ratio and counts of unique tests
+per reason; reason groups may overlap. Supported literal runner discovery is
+read as syntax data. Missing or opaque discovery keeps selection conservative.

@@ -10,8 +10,12 @@ import { checkSnapshots } from '../../check/report.mjs';
 function repository(t) {
   const path = mkdtempSync(join(tmpdir(), 'structure-git-'));
   t.after(() => rmSync(path, { recursive: true, force: true }));
-  const git = (...args) => execFileSync('git', ['-C', path, ...args], { encoding: 'utf8' }).trim();
-  git('init', '--quiet');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_TERMINAL_PROMPT: '0' });
+  const git = (...args) => execFileSync('git', ['--no-pager', '-c', 'core.hooksPath=/dev/null',
+    '-c', 'commit.gpgSign=false', '-c', 'tag.gpgSign=false', '-C', path, ...args],
+  { encoding: 'utf8', env, stdio: 'pipe', timeout: 5000 }).trim();
+  git('init', '--quiet', '--initial-branch=main', '--template=');
   git('config', 'user.name', 'Fixture');
   git('config', 'user.email', 'fixture@example.invalid');
   mkdirSync(join(path, 'src'));
