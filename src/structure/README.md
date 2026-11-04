@@ -12,8 +12,8 @@ Run from this folder with Node 22.14 or later:
 
 ```
 npm ci --ignore-scripts
-node cli.mjs report --repo /path/to/repository --head HEAD --base BASE
-node cli.mjs report --repo /path/to/repository --format text
+node cli/main.mjs report --repo /path/to/repository --head HEAD --base BASE
+node cli/main.mjs report --repo /path/to/repository --format text
 npm test
 ```
 

@@ -63,7 +63,7 @@ jobs:
           if [[ -n "$BASE_SHA" && "$BASE_SHA" != 0000000000000000000000000000000000000000 ]]; then
             ARGS+=(--base "$BASE_SHA")
           fi
-          node cli.mjs "${ARGS[@]}" > "$RUNNER_TEMP/structure-report.json"
+          node cli/main.mjs "${ARGS[@]}" > "$RUNNER_TEMP/structure-report.json"
           node --input-type=module -e '
             import { readFileSync, appendFileSync } from "node:fs";
             import { summaryText } from "./reporters/text.mjs";

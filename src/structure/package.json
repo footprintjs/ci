@@ -9,7 +9,7 @@
     "node": ">=22.14.0"
   },
   "bin": {
-    "structure": "./cli.mjs"
+    "structure": "./cli/main.mjs"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 \"**/*.test.mjs\""
