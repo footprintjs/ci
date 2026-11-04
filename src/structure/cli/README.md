@@ -16,3 +16,9 @@ this command changes no workflow or draft behavior.
 Affected output starts with the selected/known ratio and counts of unique tests
 per reason; reason groups may overlap. Supported literal runner discovery is
 read as syntax data. Missing or opaque discovery keeps selection conservative.
+
+`verify-move --repo PATH --base REF [--head REF] [--format json|text]` reads two
+exact trees and reports whole-unit moves, findings, coverage and ancillary
+changes. The base is mandatory. Data observations exit0; input/syntax/tool
+failures exit2. It evaluates no candidate package or source. JSON identities
+bind the observations to the two commits, and incomplete cases retain reasons.

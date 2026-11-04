@@ -6,7 +6,7 @@ Limits live with the pinned checker, outside the repository being checked.
 
 `rules/` holds fixed limits, `metrics/` measures parsed syntax, `ratchet/`
 compares old and new debt, and adapters read trees and write reports. This
-package does not yet verify moves or replay merges.
+package reports whole-unit move evidence; merge replay remains a follow-up.
 
 Run from this folder with Node 22.14 or later:
 
@@ -15,6 +15,7 @@ npm ci --ignore-scripts
 node cli/main.mjs report --repo /path/to/repository --head HEAD --base BASE
 node cli/main.mjs report --repo /path/to/repository --format text
 node cli/main.mjs affected --repo /path/to/repository --head HEAD --base BASE
+node cli/main.mjs verify-move --repo /path/to/repository --head HEAD --base BASE
 npm test
 ```
 
@@ -31,8 +32,8 @@ It is advisory and is not installed as a required check by this change.
 
 This first report implements metrics, folder fences, static load estimates,
 facades, stage bindings, references and a conservative debt comparison.
-Move verification, merge replay, statement counts and calibrated extraction
-credit remain follow-ups. Coverage names unsupported analysis;
+Merge replay, statement counts and calibrated extraction credit remain
+follow-ups. Coverage names unsupported analysis;
 absence of a finding does not claim those cases were verified.
 
 `affected/` estimates tests using both trees, named export owners and possible
@@ -42,3 +43,10 @@ before merge. It evaluates no candidate code or runner configuration and enables
 no test skipping, workflow or policy change. The text view quotes filenames so
 candidate-controlled path characters cannot add summary lines; JSON keeps the
 original path data.
+
+`verify-move` compares complete source statements, owned comments, binding
+owners and public export names/kinds. It lists moved units and ancillary changes;
+reordering, dynamic initialization, unresolved bindings and declaration-emission
+limits remain named uncertainty. This is source evidence for review. Observations
+exit0; invalid input, syntax and tool failures exit2. JSON retains all details;
+the text summary shows counts and up to20 findings/uncertainty records.
