@@ -4,7 +4,7 @@
 trees. JSON is the default. Findings are advisory and exit 0; unsupported or
 uncertain analysis stays visible in coverage. Invalid inputs, syntax errors
 and tool failures produce a structured error on stderr and exit 2.
-No command changes a repository, its settings, or its merge/release state.
+Commands preserve candidate objects, settings and references.
 
 `affected --repo PATH --base REF [--head REF] [--format json|text]` returns an
 advisory test-selection estimate with reasons and coverage. It reads both
@@ -22,3 +22,9 @@ exact trees and reports whole-unit moves, findings, coverage and ancillary
 changes. The base is mandatory. Data observations exit0; input/syntax/tool
 failures exit2. It evaluates no candidate package or source. JSON identities
 bind the observations to the two commits, and incomplete cases retain reasons.
+
+`verify-merge --repo PATH [--head REF] [--format json|text]` replays the actual
+two parents in a disposable owned object store. It does not accept `--base`.
+Git version and exact conflict paths are recorded. Unsupported parent counts or
+attributes remain incomplete; tool/input errors exit2, observations exit0.
+No checkout, hook, candidate driver/configuration or candidate package runs.

@@ -6,7 +6,7 @@ Limits live with the pinned checker, outside the repository being checked.
 
 `rules/` holds fixed limits, `metrics/` measures parsed syntax, `ratchet/`
 compares old and new debt, and adapters read trees and write reports. This
-package reports whole-unit move evidence; merge replay remains a follow-up.
+package reports whole-unit move evidence and isolated automatic merge replay.
 
 Run from this folder with Node 22.14 or later:
 
@@ -16,6 +16,7 @@ node cli/main.mjs report --repo /path/to/repository --head HEAD --base BASE
 node cli/main.mjs report --repo /path/to/repository --format text
 node cli/main.mjs affected --repo /path/to/repository --head HEAD --base BASE
 node cli/main.mjs verify-move --repo /path/to/repository --head HEAD --base BASE
+node cli/main.mjs verify-merge --repo /path/to/repository --head MERGE
 npm test
 ```
 
@@ -32,7 +33,7 @@ It is advisory and is not installed as a required check by this change.
 
 This first report implements metrics, folder fences, static load estimates,
 facades, stage bindings, references and a conservative debt comparison.
-Merge replay, statement counts and calibrated extraction credit remain
+Statement counts and calibrated extraction credit remain
 follow-ups. Coverage names unsupported analysis;
 absence of a finding does not claim those cases were verified.
 
@@ -50,3 +51,11 @@ reordering, dynamic initialization, unresolved bindings and declaration-emission
 limits remain named uncertainty. This is source evidence for review. Observations
 exit0; invalid input, syntax and tool failures exit2. JSON retains all details;
 the text summary shows counts and up to20 findings/uncertainty records.
+
+`verify-merge` binds the commit's actual two parents and compares Git's automatic
+merge in an isolated temporary object store. Clean mismatches are findings;
+conflict resolutions may differ only at exact Git-reported paths. Unsupported
+parent counts or non-linguist attributes remain incomplete before replay.
+Git2.38 or newer is required and its actual version is recorded. Native errors
+exit2; advisory findings/incomplete coverage exit0. Candidate objects, references
+and settings remain unchanged. See `replay/` and `sources/git/replay/`.
