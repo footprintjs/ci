@@ -10,3 +10,7 @@ selection object as its first field. Human paths quote control characters.
 Move summaries show unit, finding, uncertainty and ancillary counts. Details
 quote source-controlled names and paths, and reference findings retain their
 actual target names. JSON contains all records when the text detail cap applies.
+
+Merge summaries retain the actual Git version, status, exact conflict paths and
+finding/coverage counts. Source-controlled paths and messages are quoted; text
+caps each detail group at20 while JSON retains the complete observation.
