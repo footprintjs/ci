@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compareFindings } from '../../src/structure/ratchet/index.mjs';
-import { debt } from './fixtures.mjs';
+import { compareFindings } from './index.mjs';
+import { debt } from './index.fixture.mjs';
 
 test('unchanged named debt is existing, not new', () => {
   const result = compareFindings([debt()], [debt()]);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { measureParsed, measureSource } from '../../src/structure/metrics/measure.mjs';
-import { parseSource } from '../../src/structure/syntax/parse.mjs';
+import { measureParsed, measureSource } from './measure.mjs';
+import { parseSource } from '../syntax/parse.mjs';
 
 const measure = text => measureSource({ path: 'src/example.ts', text });
 const named = (result, name) => {

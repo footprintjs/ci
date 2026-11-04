@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { evaluateMeasurements } from '../../src/structure/rules/index.mjs';
-import { measured, callable } from './fixtures.mjs';
+import { evaluateMeasurements } from './index.mjs';
+import { measured, callable } from './index.fixture.mjs';
 
 const callableRules = [
   ['function-lines', 'codeLines', 60, false],
