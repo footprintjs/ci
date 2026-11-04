@@ -1,7 +1,8 @@
 import { codePath } from '../paths.mjs';
+import { referenceTextPath } from '../text-formats.mjs';
 
 export function needsText(path) {
-  return codePath(path) || /\.(?:md|mdx)$/i.test(path) || /(?:^|\/)package\.json$/.test(path)
+  return codePath(path) || referenceTextPath(path) || /(?:^|\/)package\.json$/.test(path)
     || /(?:^|\/)\.gitattributes$/.test(path);
 }
 

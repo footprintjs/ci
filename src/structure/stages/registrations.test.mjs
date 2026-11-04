@@ -20,3 +20,21 @@ test('a real factory alias is admitted while a relative owner stays unverified',
 test('a local same-spelled function is unrelated rather than an imported factory', () => {
   assert.deepEqual(registration('function flowChart() {} flowChart();'), {});
 });
+
+test('Object prototype spellings do not manufacture registrations through any lookup route', () => {
+  for (const name of ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf']) {
+    const calls = [
+      `import { FlowChartBuilder } from 'footprintjs'; new FlowChartBuilder().${name}();`,
+      `import { FlowChartBuilder } from 'footprintjs'; new FlowChartBuilder()['${name}']();`,
+      `import { ${name} as imported } from 'footprintjs'; imported();`,
+      `${name}();`,
+    ];
+    for (const source of calls) {
+      let actual;
+      assert.doesNotThrow(() => { actual = registration(source); }, `non-stage call must not throw: ${source}`);
+      assert.ok(actual, 'missing registration observation');
+      assert.equal(actual.spec, undefined, `non-stage call must not acquire a specification: ${source}`);
+      assert.ok(!actual.reason, `non-stage call must not acquire uncertain registration provenance: ${source}`);
+    }
+  }
+});

@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { readGitSnapshot } from './index.mjs';
+import { checkSnapshots } from '../../check/report.mjs';
 
 function repository(t) {
   const path = mkdtempSync(join(tmpdir(), 'structure-git-'));
@@ -49,4 +50,16 @@ test('missing revisions and option-shaped revisions are input failures', t => {
   const { path } = repository(t);
   assert.throws(() => readGitSnapshot(path, 'missing-ref'), /revision|commit/i);
   assert.throws(() => readGitSnapshot(path, '--help'), /revision|commit/i);
+});
+
+test('committed rst and markdown citations reach the checker instead of empty path placeholders', t => {
+  const { path, git } = repository(t);
+  mkdirSync(join(path, 'docs'));
+  writeFileSync(join(path, 'docs/guide.rst'), 'See `src/missing.ts`.');
+  writeFileSync(join(path, 'docs/guide.markdown'), 'See `src/entry.ts` · `missing`.');
+  git('add', 'docs');
+  git('-c', 'core.hooksPath=/dev/null', 'commit', '--quiet', '-m', 'reference formats');
+  const report = checkSnapshots(readGitSnapshot(path, 'HEAD'));
+  assert.ok(report.findings.some(item => item.rule === 'stale-path' && item.path === 'docs/guide.rst'));
+  assert.ok(report.findings.some(item => item.rule === 'citation-owner' && item.path === 'docs/guide.markdown'));
 });

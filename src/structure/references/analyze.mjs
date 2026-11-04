@@ -1,4 +1,5 @@
 import { overLimit } from '../rules/finding.mjs';
+import { referenceTextPath } from '../sources/text-formats.mjs';
 import { sourceComments } from './comments.mjs';
 import { declarationOwners, symbolOwner } from './owners.mjs';
 import { extractReferences, historicalPath, referenceTarget } from './citations.mjs';
@@ -27,7 +28,7 @@ function inspectReference(file, reference, context) {
 }
 
 function fileReferences(file, parsed) {
-  if (/\.(?:md|mdx|markdown|rst|txt|adoc)$/i.test(file.path)) {
+  if (referenceTextPath(file.path)) {
     return { references: extractReferences(file.text), unverified: [] };
   }
   if (!parsed) return { references: [], unverified: [] };

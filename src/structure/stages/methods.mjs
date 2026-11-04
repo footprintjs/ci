@@ -1,12 +1,13 @@
 const callback = (index, returns, choice = null) => ({ mode: 'callback', index, returns, choice });
 const handler = (index, returns) => ({ mode: 'handler', index, returns, choice: null });
+const dictionary = entries => Object.freeze(Object.assign(Object.create(null), entries));
 
-export const FACTORIES = Object.freeze({
+export const FACTORIES = dictionary({
   flowChart: { mode: 'root', index: 1, returns: 'builder', choice: null },
   flowChartSelector: callback(1, 'selector', 'select'),
 });
 
-export const METHODS = Object.freeze({
+export const METHODS = dictionary({
   start: { ...FACTORIES.flowChart, receivers: ['builder'] },
   startSelector: { ...FACTORIES.flowChartSelector, receivers: ['builder'] },
   addFunction: { ...callback(1, 'builder'), receivers: ['builder'] },

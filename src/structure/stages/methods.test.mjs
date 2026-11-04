@@ -14,3 +14,13 @@ test('factory branch and handler positions match the actual published builder do
   assert.equal(nextReceiver('end', 'selector'), 'builder');
   assert.equal(nextReceiver('setDefault', 'selector'), 'unknown');
 });
+
+test('inherited Object names are neither factory nor builder-method specifications', () => {
+  for (const name of ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf']) {
+    assert.equal(FACTORIES[name], undefined, `not a factory: ${name}`);
+    assert.equal(METHODS[name], undefined, `not a stage method: ${name}`);
+    let next;
+    assert.doesNotThrow(() => { next = nextReceiver(name, 'builder'); }, `non-stage method must not throw: ${name}`);
+    assert.equal(next, 'unknown');
+  }
+});
