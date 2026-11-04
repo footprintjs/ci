@@ -19,3 +19,10 @@ JSX. Nested child components do not grant that allowance to the outer function.
 Default-parameter initializers contribute their own decisions; functions inside
 them remain separate units. Ambient classes and declaration-file classes do
 not create runtime class observations.
+
+`statementCount` counts syntactic statements inside a callable's block body,
+including nested callable bodies and TypeScript declaration statements. Blocks
+and empty semicolons are containers/padding; headers and default initializers are
+outside this count. Concise expression bodies count zero, even when they contain
+a block callback; that callback has its own count. This is a count only, with no
+limit, rule, ratchet effect or claim about runtime work. Other metrics are unchanged.

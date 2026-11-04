@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { runtimeCallable, runtimeClass, unitIdentity } from './identity.mjs';
 import { branchMetrics } from './branches.mjs';
 import { jsxComponent } from './jsx.mjs';
+import { countStatements } from './statements.mjs';
 
 export function unitLocation(node, parsed) {
   const start = node.getStart(parsed.sourceFile);
@@ -16,7 +17,8 @@ function callableMetric(node, parsed) {
   const parameters = node.parameters.filter(parameter => !(ts.isIdentifier(parameter.name) && parameter.name.text === 'this')).length;
   const initializers = node.parameters.map(parameter => parameter.initializer).filter(Boolean);
   return { ...unitIdentity(node, parsed), ...unitLocation(node, parsed),
-    ...branchMetrics(node.body, initializers), parameters, jsx: jsxComponent(node) };
+    ...branchMetrics(node.body, initializers), parameters, jsx: jsxComponent(node),
+    statementCount: countStatements(node) };
 }
 
 export function measureUnits(parsed) {
