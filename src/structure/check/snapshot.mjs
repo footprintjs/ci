@@ -47,7 +47,8 @@ function wholeFileHashes(findings, files) {
     bodyHash: createHash('sha256').update(files.get(item.path).text).digest('hex') } : item);
 }
 
-export function observeSnapshot(snapshot) {
+/** Internal context lets diff consumers reuse parsed trees without publishing ASTs. */
+export function observeSnapshotContext(snapshot) {
   const files = trackedFiles(snapshot);
   const parsed = new Map([...files].filter(([path]) => codePath(path)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, source]) => [path, parseSource(source)]));
@@ -58,10 +59,16 @@ export function observeSnapshot(snapshot) {
   const references = referenceAnalysis(files, parsed);
   const unverified = [...syntaxCoverage(parsed), ...doors.unverified, ...units.unverified,
     ...graph.unverified, ...references.unverified];
-  return { id: snapshot.id ?? null, findings: wholeFileHashes([
+  const report = { id: snapshot.id ?? null, findings: wholeFileHashes([
     ...units.findings, ...graph.findings, ...references.findings], files),
   coverage: { complete: unverified.length === 0, unverified },
   historicalReferences: references.historicalReferences, loads: graph.loads,
+  sourceReaders: { unverifiedCount: references.unverified.filter(item => item.kind === 'source-reader').length },
   stages: units.stages, mutualSiblingPairs: graph.mutualSiblingPairs,
   measurements: [...measurements.values()], graph: { edges: graph.edges } };
+  return { files, parsed, report };
+}
+
+export function observeSnapshot(snapshot) {
+  return observeSnapshotContext(snapshot).report;
 }

@@ -3,11 +3,13 @@ import test from 'node:test';
 import { readerReferences } from './readers.mjs';
 import { parseSource } from '../syntax/parse.mjs';
 
-test('namespace aliases and import-relative URLs produce tracked paths without file IO', () => {
+test('namespace aliases and import-relative URLs prove paths but leave reader intent unverified', () => {
   const parsed = parseSource({ path: 'test/read.ts', text: "import * as fs from 'node:fs'; const files = fs; files.readFileSync(new URL('../src/owner.ts', import.meta.url));" });
   const result = readerReferences(parsed);
   assert.deepEqual(result.references.map(item => item.target), ['src/owner.ts']);
-  assert.deepEqual(result.unverified, []);
+  assert.equal(result.unverified.length, 1);
+  assert.equal(result.unverified[0].kind, 'source-reader');
+  assert.match(result.unverified[0].reason, /intent|ownership/);
 });
 
 test('static import URLs decode path text without turning URL fragments into filenames', () => {

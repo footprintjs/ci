@@ -101,6 +101,11 @@ function constantPath(node, path, seen = new Set()) {
   return importUrlPath(node, path);
 }
 
+function readerUnverified(parsed, offset, reason) {
+  return { kind: 'source-reader', path: parsed.path,
+    line: parsed.sourceFile.getLineAndCharacterOfPosition(offset).line + 1, reason };
+}
+
 export function readerReferences(parsed) {
   const references = [];
   const unverified = [];
@@ -109,11 +114,12 @@ export function readerReferences(parsed) {
       const reader = readerStatus(node.expression);
       const offset = node.getStart(parsed.sourceFile);
       const target = reader.known ? constantPath(node.arguments[0], parsed.path) : null;
-      if (reader.possible || (reader.known && target === null)) unverified.push({ kind: 'source-reader', path: parsed.path,
-        line: parsed.sourceFile.getLineAndCharacterOfPosition(offset).line + 1,
-        reason: 'Filesystem reader provenance or path cannot be proved by the admitted immutable grammar.' });
+      if (reader.possible || (reader.known && target === null)) unverified.push(readerUnverified(parsed, offset,
+        'Filesystem reader provenance or path cannot be proved by the admitted immutable grammar.'));
       else if (reader.known && (target === 'src' || target.startsWith('src/'))) {
         references.push({ target, symbol: null, offset, exact: !['glob', 'globSync'].includes(reader.name) });
+        unverified.push(readerUnverified(parsed, offset,
+          'Path existence does not establish the source reader’s declaration ownership or whole-file intent.'));
       }
     }
     ts.forEachChild(node, visit);

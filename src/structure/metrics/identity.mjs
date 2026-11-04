@@ -13,12 +13,20 @@ export function runtimeClass(node) {
   return true;
 }
 
+function nameCarrier(node) {
+  const parent = node.parent;
+  if (!parent) return null;
+  if (ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent)) return parent;
+  if ((ts.isParameter(parent) || ts.isBindingElement(parent)) && parent.initializer === node
+    && ts.isIdentifier(parent.name)) return parent;
+  return null;
+}
+
 export function unitName(node) {
   if (node.name) return node.name.text ?? node.name.getText();
+  const carrier = nameCarrier(node);
+  if (carrier) return carrier.name.text ?? carrier.name.getText();
   const parent = node.parent;
-  if (parent && (ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent))) {
-    return parent.name.text ?? parent.name.getText();
-  }
   if (parent && ts.isBinaryExpression(parent) && parent.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
     return parent.left.getText();
   }
@@ -37,7 +45,8 @@ export function unitKind(node) {
 function ownerNames(node) {
   const names = [];
   for (let parent = node.parent; parent; parent = parent.parent) {
-    if (runtimeCallable(parent) || ts.isClassLike(parent) || ts.isObjectLiteralExpression(parent)) {
+    if (runtimeCallable(parent) || ts.isClassLike(parent) || ts.isObjectLiteralExpression(parent)
+      || (ts.isModuleDeclaration(parent) && ts.isIdentifier(parent.name))) {
       const name = unitName(parent);
       if (name) names.unshift(name);
     }
