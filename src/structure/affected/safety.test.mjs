@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { affectedTests } from './index.mjs';
+import { LITERAL_TEST_CONFIG } from './config.fixture.mjs';
 
-const snapshot = files => ({ files: Object.entries(files).map(([path, text]) => ({ path, text })) });
+const snapshot = files => ({ files: Object.entries({ 'vitest.config.ts': LITERAL_TEST_CONFIG, ...files }).map(([path, text]) => ({ path, text })) });
 function select(base, head) {
   const result = affectedTests(snapshot(head), snapshot(base));
   assert.ok(result && Array.isArray(result.tests), 'missing selected-test report');
@@ -99,7 +100,7 @@ test('star reexports follow the unique actual owner rather than every inert sibl
 });
 
 test('path-only asset OID changes propagate through actual adapter metadata', () => {
-  const files = oid => [{ path: 'src/data.json', text: '', content: 'path-only', oid, mode: '100644' },
+  const files = oid => [{ path: 'vitest.config.ts', text: LITERAL_TEST_CONFIG }, { path: 'src/data.json', text: '', content: 'path-only', oid, mode: '100644' },
     { path: 'src/read.ts', text: "import data from './data.json'; export const value = data.value;" },
     { path: 'test/data.test.ts', text: "import { value } from '../src/read.js'; assert(value);" }];
   const result = affectedTests({ files: files('b'.repeat(40)) }, { files: files('a'.repeat(40)) });
@@ -108,7 +109,7 @@ test('path-only asset OID changes propagate through actual adapter metadata', ()
 });
 
 test('an executable-mode change selects the whole known suite conservatively', () => {
-  const files = mode => [{ path: 'scripts/prepare.sh', text: '', content: 'path-only', mode, oid: 'a'.repeat(40) },
+  const files = mode => [{ path: 'vitest.config.ts', text: LITERAL_TEST_CONFIG }, { path: 'scripts/prepare.sh', text: '', content: 'path-only', mode, oid: 'a'.repeat(40) },
     { path: 'test/one.test.ts', text: 'assert(true);' }, { path: 'test/two.test.ts', text: 'assert(true);' }];
   const result = affectedTests({ files: files('100755') }, { files: files('100644') });
   assert.deepEqual(result.tests, ['test/one.test.ts', 'test/two.test.ts']);

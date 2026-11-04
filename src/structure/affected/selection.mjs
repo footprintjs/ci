@@ -1,4 +1,5 @@
 import { testDependencies } from './dependencies.mjs';
+import { sharedSetupImpact } from './shared-setup.mjs';
 
 function reason(test, changed, kind, text) {
   return { test, changed, kind, reason: text };
@@ -8,12 +9,20 @@ function alwaysRunDependency(current, previous) {
   return current.reader || previous.reader || current.processLoader || previous.processLoader;
 }
 
+function includeSharedSetup(test, shared, selection) {
+  if (shared.reasons.length) selection.selected.add(test);
+  if (shared.alwaysRun) selection.alwaysRun.add(test);
+  selection.reasons.push(...shared.reasons.map(item => ({ ...item, test })));
+}
+
 export function selectTests(head, base, change) {
   const selected = new Set();
   const alwaysRun = new Set();
   const reasons = [];
-  const unverified = [];
+  const shared = sharedSetupImpact(head, base, change);
+  const unverified = [...shared.unverified];
   for (const test of head.tests) {
+    includeSharedSetup(test, shared, { selected, alwaysRun, reasons });
     const current = testDependencies(head, test);
     const previous = base.files.has(test) ? testDependencies(base, test) : { paths: new Set(), reader: false, unverified: [] };
     unverified.push(...current.unverified, ...previous.unverified);

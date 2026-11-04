@@ -7,11 +7,11 @@ test('parse diagnostics are data while candidate code is never evaluated', () =>
   assert.ok(result.unverified.some(item => item.kind === 'parse-error' && item.path === 'src/a.ts'));
 });
 
-test('colocated tests are known while unexpressed runner discovery stays explicit', () => {
+test('missing runner config keeps suffix candidates known and discovery uncertainty explicit', () => {
   const result = snapshotContext({ files: [{ path: 'src/a.test.ts', text: '' }, { path: 'test/custom.ts', text: '' },
     { path: 'test/helpers/factory.ts', text: '' }] });
   assert.deepEqual(result.tests, ['src/a.test.ts']);
-  assert.ok(result.unverified.some(item => item.kind === 'affected-test-discovery' && item.path === 'test/custom.ts'));
+  assert.ok(result.unverified.some(item => item.kind === 'affected-test-discovery'));
 });
 
 test('root self imports and tracked package names override declared external ownership', () => {

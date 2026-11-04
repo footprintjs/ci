@@ -3,6 +3,7 @@ import { patternBindings } from '../bindings/patterns.mjs';
 import { erasedImport, importNames, makeRequest, filesystemRequest, processExecutionRequest } from './requests.mjs';
 import { loadEffects } from './effects.mjs';
 import { loadingRequests } from './loaders.mjs';
+import { erasedCompanions } from './companions.mjs';
 
 function addExport(info, name, entry) {
   info.exports.set(name, [...(info.exports.get(name) ?? []), entry]);
@@ -41,6 +42,7 @@ function recordExport(node, info, source, context) {
 }
 
 function recordDeclaration(node, info) {
+  if (info.companions.has(node)) return;
   const names = ts.isVariableStatement(node) ? node.declarationList.declarations
     .flatMap(item => patternBindings(item.name, item).map(binding => binding.name)) : node.name?.text ? [node.name.text] : [];
   for (const name of names) info.locals.add(name);
@@ -66,7 +68,7 @@ function recordEquals(node, info, source, context) {
 
 export function moduleInfo(source, context) {
   const info = { path: source.path, imports: new Map(), exports: new Map(), locals: new Set(), unverified: [],
-    requests: [], stars: [], effects: source.sourceFile.statements.some(loadEffects) };
+    requests: [], stars: [], effects: source.sourceFile.statements.some(loadEffects), companions: erasedCompanions(source.sourceFile) };
   for (const node of source.sourceFile.statements) {
     if (ts.isImportDeclaration(node)) recordImport(node, info, source, context);
     else if (ts.isImportEqualsDeclaration(node)) recordEquals(node, info, source, context);

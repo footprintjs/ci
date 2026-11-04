@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { affectedTests } from './index.mjs';
+import { LITERAL_TEST_CONFIG } from './config.fixture.mjs';
 
-const snapshot = files => ({ files: Object.entries(files).map(([path, text]) => ({ path, text })) });
+const snapshot = files => ({ files: Object.entries({ 'vitest.config.ts': LITERAL_TEST_CONFIG, ...files }).map(([path, text]) => ({ path, text })) });
 const resultOf = (base, head) => {
   const result = affectedTests(snapshot(head), snapshot(base));
   assert.ok(result && typeof result === 'object', 'missing selection report');

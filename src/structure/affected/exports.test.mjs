@@ -21,3 +21,25 @@ test('cyclic star ownership is incomplete rather than an invented owner', () => 
   assert.ok(result.unverified.length);
   assert.deepEqual(result.owners, []);
 });
+
+for (const body of ['export function work(value: string): string; export function work(value: number): number; export function work(value: unknown) { return value; }',
+  'export interface work { value: string } export class work { value = "kept"; }']) {
+  test(`erased declaration companions do not duplicate a unique runtime owner: ${body}`, () => {
+    const source = context({ 'src/owner.ts': body });
+    const result = resolveExport(source, 'src/owner.ts', 'work');
+    assert.deepEqual(result.owners, [{path:'src/owner.ts',name:'work'}]);
+    assert.deepEqual(result.unverified, []);
+  });
+}
+
+test('two actual runtime implementations remain uncertain rather than a legal overload proof', () => {
+  const source = context({ 'src/owner.ts': 'export function work() { return 1; } export function work() { return 2; }' });
+  assert.ok(resolveExport(source, 'src/owner.ts', 'work').unverified.length);
+});
+
+test('a standalone erased declaration retains its conservative source owner rather than inventing missing exports', () => {
+  const source=context({'src/types.ts':'export interface Shape {value: string}'});
+  const result=resolveExport(source,'src/types.ts','Shape');
+  assert.deepEqual(result.owners,[{path:'src/types.ts',name:'Shape'}]);
+  assert.deepEqual(result.unverified,[]);
+});

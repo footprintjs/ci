@@ -36,3 +36,15 @@ test('lexically shadowed loader spellings are unrelated to global loading', () =
   assert.deepEqual(loading('function use(eval, Function, globalThis, module) { const run = eval; const build = Function; const load = globalThis.require; return module.require; }'),
     { requests: [], unverified: [] });
 });
+
+test('transparent type wrappers around a safe global property are not a captured loader container', () => {
+  for (const text of ['const host = (globalThis as { process?: unknown }).process;',
+    'const bytes = (globalThis as any).Buffer;', 'const clock = (globalThis!).performance;',
+    'type Global = typeof globalThis; type Loader = typeof require;',
+    'const present = typeof require === "function";']) assert.deepEqual(loading(text).unverified, [], text);
+});
+
+test('type wrappers do not hide actual loader capture', () => {
+  assert.ok(loading('const load = (globalThis as any).require; load(path);').unverified.length);
+  assert.ok(loading('const host = (globalThis as any); host.require(path);').unverified.length);
+});

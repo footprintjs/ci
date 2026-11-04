@@ -1,6 +1,7 @@
 import { snapshotContext } from './context.mjs';
 import { changedPaths, wholeSuiteInput, compilerChange, erasedSource, executableChange } from './changes.mjs';
 import { selectTests } from './selection.mjs';
+import { selectionSummary } from './summary.mjs';
 
 function unique(items) {
   return [...new Map(items.map(item => [JSON.stringify(item), item])).values()]
@@ -25,9 +26,9 @@ export function affectedTests(headSnapshot, baseSnapshot = null) {
   const selected = selectTests(head, base, { paths, full, runtime });
   const unverified = unique([...head.unverified, ...base.unverified, ...selected.unverified]);
   const compilerRequired = !baseSnapshot || full.length > 0 || paths.some(compilerChange);
-  return { headId: headSnapshot.id ?? null, baseId: baseSnapshot?.id ?? null,
+  return { selection: selectionSummary(selected, head.tests), headId: headSnapshot.id ?? null, baseId: baseSnapshot?.id ?? null,
     changedPaths: paths, tests: selected.tests, alwaysRun: selected.alwaysRun, reasons: unique(selected.reasons),
     estimate: true, compilerRequired,
     compilerOnly: compilerRequired && !selected.tests.length && !runtime.length && paths.length > 0 && !unverified.length,
-    fullSuiteBeforeMerge: true, coverage: { complete: unverified.length === 0, unverified } };
+    fullSuiteBeforeMerge: true, coverage: { complete: unverified.length === 0, unverified }, discovery: head.discovery };
 }
