@@ -58,3 +58,21 @@ test('empty-tree entries cannot hide nonconflict additions', () => {
   const input = conflicted(); input.head.entries.push(entry('empty', ids.blob, '040000', 'tree'));
   assert.ok(observe(input).findings.some(item => item.rule === 'merge-conflict-scope' && item.path === 'empty'));
 });
+test('attribute uncertainty skips absent native replay data', () => {
+  const input = fixture();
+  input.head.attributeTrees[0].files.push({ path: '.gitattributes', mode: '100644', text: '*.ts merge=text' });
+  delete input.replay.mergeTree; delete input.replay.entries;
+  const result = observe(input);
+  assert.equal(result.replay.status, 'not-replayed');
+  assert.ok(result.coverage.unverified.some(item => item.kind === 'merge-attributes'));
+});
+test('uniform SHA256 object identities use the same finite protocol', () => {
+  const input = fixture();
+  input.head.id = '1'.repeat(64); input.head.parents = ['2'.repeat(64), '3'.repeat(64)];
+  input.head.tree = '4'.repeat(64);
+  input.head.entries = input.head.entries.map(value => ({ ...value, oid: '6'.repeat(64) }));
+  input.head.attributeTrees = [input.head.id, ...input.head.parents].map(id => ({ id, files: [] }));
+  input.replay.entries = input.head.entries; input.replay.mergeTree = raw(0, `${input.head.tree}\0`);
+  const result = observe(input);
+  assert.equal(result.coverage.complete, true); assert.deepEqual(result.findings, []);
+});
