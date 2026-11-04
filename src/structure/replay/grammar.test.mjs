@@ -8,6 +8,7 @@ test('canonical grammar preserves unusual path bytes but rejects escapes and wid
   assert.equal(checkedObjectId(ids.tree, 40), ids.tree);
   for (const path of ['', '/a', 'a//b', 'a/../b', 'a/./b', 'a\0b']) assert.throws(() => checkedPath(path));
   assert.throws(() => checkedObjectId(ids.tree, 64));
+  assert.throws(() => checkedObjectId(`${ids.tree}\n`));
 });
 test('raw process observations require explicit integer status and well-formed text', () => {
   const value = raw(1, '', 'error'); assert.equal(checkedRaw(value), value);

@@ -7,7 +7,8 @@ import { parseVersion } from './version.mjs';
 test('version parsing keeps exact observed text and enforces Git2.38 minimum', () => {
   assert.equal(parseVersion(raw(0, 'git version 2.50.1 (vendor build)\n')), 'git version 2.50.1 (vendor build)');
   assert.equal(parseVersion(raw(0, 'git version 2.38.0\n')), 'git version 2.38.0');
-  for (const value of [raw(0, 'git version 2.37.9\n'), raw(1, ''), raw(0, 'git version unknown\n')]) {
+  for (const value of [raw(0, 'git version 2.37.9\n'), raw(1, ''), raw(0, 'git version unknown\n'),
+    raw(0, 'git version 2.50.1\n\n')]) {
     assert.throws(() => parseVersion(value), Error);
   }
 });
