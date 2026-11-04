@@ -1,6 +1,7 @@
 import { posix } from 'node:path';
 import { codePath, productionPath } from './paths.mjs';
 import { packageSourcePath } from './package-paths.mjs';
+import { effectiveSeals } from './seals.mjs';
 
 function siblingSeals(paths, trackedPaths) {
   const seals = [];
@@ -39,11 +40,12 @@ function packageDoors(files) {
   return { paths, unverified };
 }
 
-export function discoverDoors(files) {
+export function discoverDoors(files, parsedFiles) {
   const sourcePaths = [...files.keys()].filter(productionPath).sort();
-  const seals = siblingSeals(sourcePaths, [...files.keys()].filter(path => path.startsWith('src/')));
+  const candidates = siblingSeals(sourcePaths, [...files.keys()].filter(path => path.startsWith('src/')));
+  const seals = effectiveSeals(candidates, files, parsedFiles);
   const manifest = packageDoors(files);
   const indexes = sourcePaths.filter(path => /^index\.[cm]?[jt]sx?$/.test(posix.basename(path)));
-  return { paths: new Set([...indexes, ...seals.map(seal => seal.facade), ...manifest.paths]),
+  return { paths: new Set([...indexes, ...candidates.map(seal => seal.facade), ...manifest.paths]),
     seals, unverified: manifest.unverified };
 }

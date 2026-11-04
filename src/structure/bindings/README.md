@@ -33,6 +33,5 @@ immutable proof from a matching name. Callers must preserve unsupported origins
 as unverified; const does not make an arbitrary object's properties immutable.
 The declaration record/AST stays internal and never enters a public JSON report.
 
-Tests are colocated. The original off-repo lexical battery was copied unchanged;
-its additional cases have no independent red receipt. Current implementations
-and helper fixtures are source-authored only, with execution still unrun.
+Tests beside these modules cover lexical shadowing, aliasing, mutation, escapes
+and conservative handling of unsupported syntax.

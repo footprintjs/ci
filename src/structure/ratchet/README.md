@@ -20,5 +20,4 @@ unit, so different old functions cannot subsidize its different rules.
 An unmatched callable/class with old same-kind debt gets an explicit incomplete
 observation; no threshold or credit is fabricated. Removed debt is recorded even
 when another unit regresses. Per-unit growth cannot be hidden by shrinking a
-different unit. These source changes and new fixtures remain unexecuted pending
-a distinct execution grant; the original skeleton/assertions are preserved.
+different unit.

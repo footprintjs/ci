@@ -28,6 +28,5 @@ This finite syntactic policy is not a runtime/type, aliasing, execution-order or
 semantic choice proof. Reflective mutation/external escapes need additional
 provenance admission; no whole-program completeness is claimed.
 
-The parent owns integration into checkStructure and its actual red fixtures.
-These module implementations and additional colocated tests remain unrun pending
-a distinct execution grant; no current green or mutation claim is made.
+The checker combines stage observations with metrics and coverage. Tests beside
+these modules cover admitted registrations and conservative unknown cases.
