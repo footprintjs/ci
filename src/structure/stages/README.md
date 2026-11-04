@@ -16,7 +16,7 @@ nested callable bodies; selectors require `select`. `measure` applies the fixed
 Only exact published `footprintjs` import origins are currently admitted. Import
 aliases, namespace calls and finite const aliases retain that provenance; spelling
 alone does not. Relative imports inside footprintjs itself remain explicitly
-unverified until the parent supplies verified repository/export-owner metadata.
+unverified until verified repository/export-owner metadata is available.
 Unknown factory results, mutable/cyclic aliases, imported unavailable callbacks,
 computed calls, spreads/accessors and unsupported forms retain `stage-binding`
 uncertainty. Arbitrary local wrappers are not evaluated as framework factories.

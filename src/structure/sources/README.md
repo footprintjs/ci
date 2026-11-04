@@ -2,5 +2,5 @@
 
 Path resolution uses only supplied tracked files, never the host filesystem or
 candidate configuration. Tests and declarations are excluded from the runtime
-source graph. Unsupported/ambiguous mappings stay explicit. Git adapters will
-provide the same snapshots without installing or executing candidate code.
+source graph. Unsupported/ambiguous mappings stay explicit. The Git adapter
+provides committed snapshots without installing or executing candidate code.
