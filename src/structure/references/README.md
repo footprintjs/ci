@@ -6,11 +6,16 @@ from the host. Declaration ownership uses AST declarations, not text matches or
 forward imports/exports. Historical references stay separately visible. Dynamic
 readers, ambiguous basenames and unsupported patterns remain unverified.
 
-An existing source-reader path proves existence only. The current-head
-`sourceReaders.unverifiedCount` counts reader uncertainty records, including
-unexpressed intent; base uncertainty stays separately in coverage. No expected
-declaration is inferred from string matching or a nearby comment. Whole-file
-inspection may be intentional and is not a wrong-owner finding.
+An existing source-reader path proves existence only. Inventories skip reader
+analysis and report `mode: skipped-inventory` with `unverifiedCount: null`;
+skipped work is not a measured zero. Comparisons analyze only code files with
+literal paths of source files that lost declarations, considering both trees.
+A cheap text prefilter precedes the check of already-parsed string literals.
+`sourceReaders.unverifiedCount` then counts current-head uncertainty records;
+the base count and analyzed paths stay separate. No expected declaration is
+inferred from string matching or a nearby comment. Whole-file inspection may be
+intentional and is not a wrong-owner finding. Document/comment citations always
+remain active, independently of this scoped reader pass.
 
 `sourceReaders.declarationLossLiterals` is an advisory list for a head/base diff:
 known AST declaration names disappeared from a source file and a test or script

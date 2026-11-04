@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseSource } from '../syntax/parse.mjs';
-import { referenceAnalysis } from './analyze.mjs';
+import { referenceAnalysis, sourceReaderAnalysis } from './analyze.mjs';
 
 const owners = {
   'src/owner.ts': "export { work } from './owner/work.js';",
@@ -13,7 +13,10 @@ function observed(extra) {
   const files = new Map(Object.entries({ ...owners, ...extra }).map(([path, text]) => [path, { path, text }]));
   const parsed = new Map([...files].filter(([path]) => /\.[cm]?[jt]sx?$/.test(path))
     .map(([path, file]) => [path, parseSource(file)]));
-  const result = referenceAnalysis(files, parsed);
+  const comments = referenceAnalysis(files, parsed);
+  const readers = sourceReaderAnalysis(files, parsed, files.keys());
+  const result = { findings: [...comments.findings, ...readers.findings],
+    unverified: [...comments.unverified, ...readers.unverified] };
   assert.ok(result && Array.isArray(result.findings), 'missing reference findings');
   assert.ok(Array.isArray(result.unverified), 'missing reference uncertainty');
   return result;

@@ -53,7 +53,7 @@ export function observeSnapshotContext(snapshot) {
   const parsed = new Map([...files].filter(([path]) => codePath(path)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, source]) => [path, parseSource(source)]));
   const measurements = sourceUnits(parsed);
-  const doors = discoverDoors(files);
+  const doors = discoverDoors(files, parsed);
   const units = unitRules(parsed, measurements, doors);
   const graph = graphAnalysis(files, parsed, doors);
   const references = referenceAnalysis(files, parsed);
@@ -63,7 +63,7 @@ export function observeSnapshotContext(snapshot) {
     ...units.findings, ...graph.findings, ...references.findings], files),
   coverage: { complete: unverified.length === 0, unverified },
   historicalReferences: references.historicalReferences, loads: graph.loads,
-  sourceReaders: { unverifiedCount: references.unverified.filter(item => item.kind === 'source-reader').length },
+  sourceReaders: { mode: 'skipped-inventory', unverifiedCount: null, analyzedPaths: [], declarationLossLiterals: [] },
   stages: units.stages, mutualSiblingPairs: graph.mutualSiblingPairs,
   measurements: [...measurements.values()], graph: { edges: graph.edges } };
   return { files, parsed, report };

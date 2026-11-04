@@ -3,7 +3,7 @@ import { posix } from 'node:path';
 import { measurementPath, testPath } from '../sources/paths.mjs';
 import { declarationOwners } from './owners.mjs';
 
-function lostDeclarations(head, base) {
+export function lostDeclarations(head, base) {
   const lost = new Map();
   for (const [path, before] of base ?? []) {
     if (!measurementPath(path) || head.get(path)?.text === before.text) continue;
@@ -19,7 +19,7 @@ function testOrScript(path) {
   return testPath(path) || /(?:^|\/)(?:scripts?|bin)\//.test(path);
 }
 
-function literalTargets(text, path, lost) {
+export function literalTargets(text, path, lost) {
   const candidates = [posix.normalize(text)];
   if (text.startsWith('.')) candidates.push(posix.normalize(posix.join(posix.dirname(path), text)));
   return [...new Set(candidates)].filter(target => lost.has(target));

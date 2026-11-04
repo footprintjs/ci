@@ -9,7 +9,10 @@ const ownerFiles = [
 
 function observed(readerText) {
   const report = checkStructure({ id: 'reader-intent', files: [...ownerFiles,
-    { path: 'test/read.ts', text: readerText }] });
+    { path: 'test/read.ts', text: readerText }] }, { files: [
+    { path: 'src/owner.ts', text: 'export function work() {}' },
+    { path: 'test/read.ts', text: readerText },
+  ] });
   assert.ok(report && Array.isArray(report.findings), 'missing structure findings');
   assert.ok(report.coverage && Array.isArray(report.coverage.unverified), 'missing structure coverage');
   return report;
@@ -37,7 +40,7 @@ test('legitimate whole-file byte inspection is qualified rather than accused of 
 });
 
 test('missing source paths retain definite stale-path evidence independently from reader intent', () => {
-  const report = observed("import { readFileSync } from 'node:fs'; readFileSync('src/missing.ts', 'utf8');");
+  const report = observed("import { readFileSync } from 'node:fs'; const prior = 'src/owner.ts'; readFileSync('src/missing.ts', 'utf8');");
   assert.ok(report.findings.some(item => item.rule === 'stale-path' && item.path === 'test/read.ts'));
 });
 

@@ -1,6 +1,5 @@
 import ts from 'typescript';
-import { resolveBinding } from '../bindings/index.mjs';
-import { isValueReference } from '../bindings/references.mjs';
+import { bindingUses } from '../bindings/uses.mjs';
 
 const observations = new WeakMap();
 const LOGICAL = new Set([ts.SyntaxKind.AmpersandAmpersandToken,
@@ -33,14 +32,8 @@ function runtimePosition(identifier) {
 /** Runtime syntax use of this exact lexical declaration, not a same-spelled name. */
 export function hasRuntimeValueUse(declaration) {
   if (observations.has(declaration)) return observations.get(declaration);
-  let found = false;
-  const visit = node => {
-    if (found) return;
-    if (ts.isIdentifier(node) && isValueReference(node) &&
-        resolveBinding(node)?.declaration === declaration && runtimePosition(node)) found = true;
-    ts.forEachChild(node, visit);
-  };
-  visit(declaration.getSourceFile());
+  const uses = bindingUses(declaration.getSourceFile()).valueUses.get(declaration) ?? [];
+  const found = uses.some(runtimePosition);
   observations.set(declaration, found);
   return found;
 }

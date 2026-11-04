@@ -8,15 +8,16 @@ const facade = "export { work } from './owner/work.js';";
 
 function readers(report) {
   assert.ok(report.sourceReaders, 'missing source-reader report');
-  assert.equal(typeof report.sourceReaders.unverifiedCount, 'number');
+  assert.ok(report.sourceReaders.unverifiedCount === null || typeof report.sourceReaders.unverifiedCount === 'number');
   assert.ok(Array.isArray(report.sourceReaders.declarationLossLiterals), 'missing declaration-loss literal list');
   return report.sourceReaders;
 }
 
 test('reader unverified count describes current head rather than adding the base count', () => {
-  const before = snapshot({ 'test/read.ts': "import { readFileSync } from 'node:fs'; readFileSync(dynamic); readFileSync(other);" });
+  const before = snapshot({ 'src/owner.ts': 'export function work() {}',
+    'test/read.ts': "import { readFileSync } from 'node:fs'; readFileSync(dynamic); readFileSync(other);" });
   const current = snapshot({ 'test/read.ts': "import { readFileSync } from 'node:fs'; readFileSync('src/owner.ts');",
-    'src/owner.ts': 'export function work() {}' });
+    'src/owner.ts': '' });
   const report = checkSnapshots(current, before);
   assert.equal(readers(report).unverifiedCount, 1);
   assert.equal(report.coverage.unverified.filter(item => item.kind === 'source-reader').length, 3);

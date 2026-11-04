@@ -19,7 +19,10 @@ function inspectReference(file, reference, context) {
   }
   if (!target.paths.length) return { findings: finding(file, reference, 'stale-path'), unverified: [] };
   if (!reference.symbol) return { findings: [], unverified: [] };
-  const owners = context.owners.get(target.paths[0]);
+  const path = target.paths[0];
+  if (!context.owners.has(path)) context.owners.set(path,
+    context.parsed.has(path) ? declarationOwners(context.parsed.get(path)) : undefined);
+  const owners = context.owners.get(path);
   const ownership = symbolOwner(owners, reference.symbol);
   if (ownership === 'present') return { findings: [], unverified: [] };
   if (ownership === 'unverified') return { findings: [], unverified: [{ kind: 'citation-owner',
@@ -32,27 +35,37 @@ function fileReferences(file, parsed) {
     return { references: extractReferences(file.text), unverified: [] };
   }
   if (!parsed) return { references: [], unverified: [] };
-  const readers = readerReferences(parsed);
   const comments = sourceComments(parsed).flatMap(comment => extractReferences(comment.text, comment.offset));
-  return { references: [...comments, ...readers.references], unverified: readers.unverified };
+  return { references: comments, unverified: [] };
 }
 
-export function referenceAnalysis(files, parsedFiles) {
+function analyzeFiles(files, parsedFiles, observe) {
   const findings = [];
   const unverified = [];
   const historicalReferences = [];
-  const owners = new Map([...parsedFiles].map(([path, parsed]) => [path, declarationOwners(parsed)]));
+  const owners = new Map();
   for (const [path, file] of files) {
-    const observed = fileReferences(file, parsedFiles.get(path));
+    const observed = observe(file, parsedFiles.get(path));
     unverified.push(...observed.unverified);
     for (const reference of observed.references) {
       if (historicalPath(path)) historicalReferences.push({ path, ...reference });
       else {
-        const result = inspectReference(file, reference, { files, owners });
+        const result = inspectReference(file, reference, { files, owners, parsed: parsedFiles });
         findings.push(...result.findings);
         unverified.push(...result.unverified);
       }
     }
   }
   return { findings, unverified, historicalReferences };
+}
+
+export function referenceAnalysis(files, parsedFiles) {
+  return analyzeFiles(files, parsedFiles, fileReferences);
+}
+
+/** Only explicit diff candidates get reader analysis; documents/comments are a separate pass. */
+export function sourceReaderAnalysis(files, parsedFiles, paths) {
+  const selected = new Set(paths);
+  return analyzeFiles(files, parsedFiles, (file, parsed) => parsed && selected.has(file.path)
+    ? readerReferences(parsed) : { references: [], unverified: [] });
 }
