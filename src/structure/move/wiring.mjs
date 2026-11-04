@@ -56,8 +56,14 @@ function uncertainWiring(node,context,path,used){
     (node.exportClause&&ts.isNamedExports(node.exportClause)&&!node.exportClause.elements.length));
 }
 
+function attributeCoverage(context){
+  return [...context.parsed].flatMap(([path,source])=>source.sourceFile.statements
+    .filter(node=>(ts.isImportDeclaration(node)||ts.isExportDeclaration(node))&&node.attributes)
+    .map(()=>unknown('move-wiring-attributes',{path},'Import/export attributes need module metadata semantics outside the admitted wiring grammar.')));
+}
+
 export function wiringCoverage(base,head,pairs){
-  const unverified=[];
+  const unverified=[...attributeCoverage(base),...attributeCoverage(head)];
   const context={...head,pairs,originalPaths:new Set(base.files.keys())};
   for(const [path,source]of head.parsed){
     const before=unchangedStatements(base.parsed.get(path));

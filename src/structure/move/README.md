@@ -39,6 +39,8 @@ External kinds, cyclic/ambiguous stars, namespace and
 import-equals ownership remain incomplete. `wiring` qualifies new imports by
 actual unit uses or an injectively matched move from their former owner; new
 unused/opaque wiring is not silently approved as ancillary.
+Static import/export attributes in either snapshot retain a named metadata
+uncertainty; declaration ownership alone cannot prove their loading semantics.
 
 `comments` preserves owned comment bytes and token-relative positions, including
 unique trailing ownership. Only explicit citations proven to name the same
