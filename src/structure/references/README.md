@@ -21,3 +21,10 @@ The list uses exact strings/no-substitution templates, with root- or file-relati
 path normalization. It does not evaluate constructed paths, decode arbitrary
 URLs, inspect comments as reader annotations or prove semantic intent. The
 parsed head/base context is internal; public reports contain JSON data only.
+
+A shorthand owner citation such as `tools/tool.ts` resolves only when its
+suffix identifies one tracked file under the root `src/`. Missing or ambiguous
+shorthand roots stay unverified; explicit missing `src/` paths remain findings.
+When a documentation package has its own matching `src/` tree, an unqualified
+source-root citation is context-uncertain. Use a file-relative path to identify
+that package explicitly. Literal reader paths never receive shorthand lookup.

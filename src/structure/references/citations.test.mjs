@@ -28,4 +28,30 @@ test('literal reader paths do not gain glob expansion or documentation anchors',
   const files = new Map([['src/a.ts', {}], ['src/a#note.ts', {}]]);
   assert.deepEqual(referenceTarget({ target: 'src/*.ts', exact: true }, 'test/read.ts', files).paths, []);
   assert.deepEqual(referenceTarget({ target: 'src/a#note.ts', exact: true }, 'test/read.ts', files).paths, ['src/a#note.ts']);
+  assert.deepEqual(referenceTarget({ target: 'a.ts', exact: true }, 'test/read.ts', files).paths, []);
+});
+
+test('a shorthand subpath resolves only to a unique tracked source suffix', () => {
+  const reference = { target: 'tools/tool.ts:12', symbol: 'work' };
+  const files = new Map([['src/core/agent/tools/tool.ts', {}]]);
+  assert.deepEqual(referenceTarget(reference, 'docs/guide.md', files).paths, ['src/core/agent/tools/tool.ts']);
+  files.set('src/other/tools/tool.ts', {});
+  assert.match(referenceTarget(reference, 'docs/guide.md', files).unverified ?? '', /ambiguous/i);
+});
+
+test('a missing shorthand root stays unknown while an explicit source path is missing', () => {
+  const files = new Map();
+  assert.match(referenceTarget({ target: 'tools/gone.ts', symbol: 'work' }, 'docs/guide.md', files).unverified ?? '', /root|missing/i);
+  assert.deepEqual(referenceTarget({ target: 'src/tools/gone.ts', symbol: 'work' }, 'docs/guide.md', files).paths, []);
+});
+
+test('a nested package source-root citation does not become a false root-path finding', () => {
+  const files = new Map([['docs-site/package.json', {}], ['docs-site/src/env.d.ts', {}]]);
+  const reference = { target: 'src/env.d.ts', symbol: null };
+  assert.match(referenceTarget(reference, 'docs-site/checks/README.md', files).unverified ?? '', /package|context/i);
+  files.set('src/env.d.ts', {});
+  assert.match(referenceTarget(reference, 'docs-site/checks/README.md', files).unverified ?? '', /package|context/i);
+  assert.deepEqual(referenceTarget({ target: '../src/env.d.ts' }, 'docs-site/checks/README.md', files).paths,
+    ['docs-site/src/env.d.ts']);
+  assert.deepEqual(referenceTarget({ target: 'src/env.d.ts', exact: true }, 'test/read.ts', files).paths, ['src/env.d.ts']);
 });

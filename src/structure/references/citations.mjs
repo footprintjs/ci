@@ -45,21 +45,41 @@ function globExpression(pattern) {
   return new RegExp(`${expression}$`);
 }
 
-export function referenceTarget(reference, citingPath, files) {
-  const target = reference.exact ? reference.target : withoutAnchor(reference.target);
-  if (!target.includes('/') && target !== 'src') {
-    const matches = [...files.keys()].filter(path => path.startsWith('src/') && posix.basename(path) === target);
-    return matches.length === 1 ? { paths: matches } : { unverified: 'Declaration basename is missing or ambiguous.' };
-  }
-  const normalized = target.startsWith('.') ? posix.normalize(posix.join(posix.dirname(citingPath), target)) : target;
-  if (normalized.startsWith('../') || posix.isAbsolute(normalized)) return { unverified: 'Reference escapes tracked source scope.' };
-  if (!reference.exact && /[\[*?]/.test(normalized)) {
-    const expression = globExpression(normalized);
+function matchingPaths(target, files, exact = false) {
+  if (!exact && /[\[*?]/.test(target)) {
+    const expression = globExpression(target);
     if (!expression) return { unverified: 'Unsupported source-reference glob grammar.' };
     return { paths: [...files.keys()].filter(path => expression.test(path)) };
   }
-  const paths = [...files.keys()].filter(path => path === normalized || path.startsWith(`${normalized.replace(/\/$/, '')}/`));
-  return { paths };
+  return { paths: [...files.keys()].filter(path => path === target || path.startsWith(`${target.replace(/\/$/, '')}/`)) };
+}
+
+function nestedPackageTarget(target, citingPath, files) {
+  for (let folder = posix.dirname(citingPath); folder !== '.'; folder = posix.dirname(folder)) {
+    if (files.has(`${folder}/package.json`)) return matchingPaths(`${folder}/${target}`, files).paths?.length > 0;
+  }
+  return false;
+}
+
+function shorthandTarget(target, files) {
+  const matches = [...files.keys()].filter(path => path.startsWith('src/') && path.endsWith(`/${target}`));
+  return matches.length === 1 ? { paths: matches } : { unverified: 'Source citation root is missing or ambiguous.' };
+}
+
+export function referenceTarget(reference, citingPath, files) {
+  const target = reference.exact ? reference.target : withoutAnchor(reference.target);
+  if (!reference.exact && !target.includes('/') && target !== 'src') return shorthandTarget(target, files);
+  const normalized = target.startsWith('.') ? posix.normalize(posix.join(posix.dirname(citingPath), target)) : target;
+  if (normalized.startsWith('../') || posix.isAbsolute(normalized)) return { unverified: 'Reference escapes tracked source scope.' };
+  const result = matchingPaths(normalized, files, reference.exact);
+  if (reference.exact || result.unverified) return result;
+  if (sourceReference(target) && !target.startsWith('.') && nestedPackageTarget(target, citingPath, files)) {
+    return { unverified: 'Source citation has a nested package context; its intended root is unverified.' };
+  }
+  if (!result.paths.length && reference.symbol && !sourceReference(target) && !target.startsWith('.')) {
+    return shorthandTarget(target, files);
+  }
+  return result;
 }
 
 export function historicalPath(path) {
