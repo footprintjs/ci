@@ -11,3 +11,10 @@ that the blob is empty. Selected text symlinks and invalid inputs are errors.
 
 Each Git read is bounded at 30 seconds and 256 MiB; each text blob at 8 MiB.
 This adapter reads existing objects only. Merge replay is a separate adapter.
+
+The advisory workflow compares a pull-request merge candidate with its actual
+first parent. The PR event/API base SHA can lag behind that parent when main
+moves, so using it can attribute another PR's changes to this one. Non-PR events
+retain their supplied/event base; a PR candidate without a parent is an error.
+The adjacent real-Git fixture executes this workflow selection and checks the
+resulting structural delta as well as push and missing-parent controls.
