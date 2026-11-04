@@ -71,3 +71,12 @@ test('a native-brand-derived dynamic global constructor remains unresolved', () 
   const text='const tag=Object.prototype.toString.call(child).slice(8,-1); const Ctor=(globalThis as unknown as Record<string,new (b:ArrayBuffer)=>ArrayBufferView>)[tag]; if(typeof Ctor==="function")new Ctor(bytes);';
   assert.ok(loading(text).unverified.length);
 });
+
+for(const statement of ['(host as any).BigInt = replacement;', 'host!.BigInt = replacement;',
+  '[host.BigInt] = [replacement];', '({outer:{value:(host as any).BigInt}} = replacement);',
+  'for ((host as any).BigInt of values) {}', 'for (host!.BigInt in values) {}',
+  '((host as any).BigInt)++;', 'delete (host as any).BigInt;']){
+  test(`wrapped and patterned writes do not prove a read-only metadata capture: ${statement}`,()=>{
+    assert.ok(loading(`const host=globalThis; ${statement}`).unverified.length,statement);
+  });
+}

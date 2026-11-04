@@ -23,3 +23,11 @@ test('private read-only alias proof rejects public export mutable alias writes a
     'let host=globalThis;host.BigInt;','const host=globalThis;host.BigInt=other;',
     'const host=globalThis;host[key];','const host=globalThis;host.require(path);'])assert.equal(observed(text),false,text);
 });
+
+test('read-only proof follows nested assignment targets through wrappers and patterns',()=>{
+  for(const write of ['(host as any).BigInt = other;', '[{value:host!.BigInt}]=values;',
+    'for ((host as any).BigInt of values) {}', 'delete host!.BigInt;']){
+    assert.equal(observed(`const host=globalThis; ${write}`),false,write);
+  }
+  assert.equal(observed('const host=globalThis; for(const value of host.BigInt?.prototype) {}'),true);
+});

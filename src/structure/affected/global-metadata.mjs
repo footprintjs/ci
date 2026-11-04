@@ -10,7 +10,24 @@ function exportedAlias(declaration) {
       (item.propertyName??item.name).text===declaration.name.text));
 }
 
+function targetOperation(owner, child) {
+  if (ts.isBinaryExpression(owner) && owner.operatorToken.kind>=ts.SyntaxKind.FirstAssignment
+    && owner.operatorToken.kind<=ts.SyntaxKind.LastAssignment) return owner.left===child;
+  if ((ts.isPrefixUnaryExpression(owner)||ts.isPostfixUnaryExpression(owner))
+    &&[ts.SyntaxKind.PlusPlusToken,ts.SyntaxKind.MinusMinusToken].includes(owner.operator)) return owner.operand===child;
+  if (ts.isDeleteExpression(owner)) return owner.expression===child;
+  return (ts.isForInStatement(owner)||ts.isForOfStatement(owner))&&owner.initializer===child;
+}
+
+function writePosition(reference) {
+  for(let child=reference,owner=reference.parent;owner;child=owner,owner=owner.parent){
+    if(targetOperation(owner,child))return true;
+  }
+  return false;
+}
+
 function finiteRead(reference, container) {
+  if (writePosition(reference)) return false;
   if (!runtimeSyntax(reference) || onlyTypeof(reference)) return true;
   const outer=outerExpression(reference);
   const parent=outer.parent;
