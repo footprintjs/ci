@@ -21,9 +21,15 @@ declare forms and constants initialized with literals or functions.
 
 `bindings` compares lexical declaration owners and copied import bindings.
 `module`, `exports` and `surface` follow named/default reexports and finite stars
-to VALUE/TYPE declaration spaces and canonical paired owners. Existing exported
-modules and the union of old/new discovered doors cannot widen or silently point
-at another declaration. External kinds, cyclic/ambiguous stars, namespace and
+to VALUE/TYPE declaration spaces and canonical paired owners. Surviving exported
+modules and recognized old doors cannot widen or
+silently point at another declaration. Deleted private implementations may move
+behind preserved published facades; a deleted recognized door is still checked.
+New shape-only facades are not automatically public additions: a finite closed
+package entry map can prove them private, while wildcard, legacy or unmapped
+entry routing stays incomplete. Explicit published entries and root indexes
+remain protected. Core facade/door discovery is not changed by this policy.
+External kinds, cyclic/ambiguous stars, namespace and
 import-equals ownership remain incomplete. `wiring` qualifies new imports by
 actual unit uses or an injectively matched move from their former owner; new
 unused/opaque wiring is not silently approved as ancillary.
