@@ -5,7 +5,7 @@ function objectManifest(value) {
 /** Read metadata as data; nested fixtures may leave package ownership unknown. */
 export function packageOwnership(files) {
   const text = files.get('package.json')?.text;
-  const root = text ? JSON.parse(text) : {};
+  const root = text === undefined ? {} : JSON.parse(text);
   if (!objectManifest(root)) throw new TypeError('Root package metadata must be an object.');
   const packages = new Set(['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
     .flatMap(key => Object.keys(root[key] ?? {})));

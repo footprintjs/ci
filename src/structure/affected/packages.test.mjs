@@ -18,4 +18,6 @@ test('malformed nested fixture data is uncertainty while malformed root input re
   assert.ok(result.unverified.some(item => item.path === 'test/fixtures/package.json'));
   assert.throws(() => packageOwnership(new Map([['package.json', { text: '{ invalid' }]])), SyntaxError);
   assert.throws(() => packageOwnership(new Map([['package.json', { text: 'null' }]])), TypeError);
+  assert.throws(() => packageOwnership(new Map([['package.json', { text: '' }]])), SyntaxError);
+  assert.equal(packageOwnership(new Map()).unknownSourcePackages, false);
 });
