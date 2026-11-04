@@ -19,3 +19,20 @@ test('loader aliases and reflection are uncertain while a shadowed require is un
   assert.ok(loading('globalThis[chosen](path);').unverified.length);
   assert.deepEqual(loading('function require(value) {} require(path);'), { requests: [], unverified: [] });
 });
+
+for (const text of ['const load = globalThis.require; load("./leaf.js");',
+  'const load = module["require"]; load("./leaf.js");',
+  'const evaluate = eval; evaluate(source);', '(0, eval)(source);',
+  'const Compile = Function; new Compile(source);',
+  'const evaluate = globalThis["eval"]; evaluate(source);',
+  'const root = globalThis; root.require("./leaf.js");',
+  'const { require: load } = module; load("./leaf.js");']) {
+  test(`captured or indirect global loading stays uncertain: ${text}`, () => {
+    assert.ok(loading(text).unverified.length, text);
+  });
+}
+
+test('lexically shadowed loader spellings are unrelated to global loading', () => {
+  assert.deepEqual(loading('function use(eval, Function, globalThis, module) { const run = eval; const build = Function; const load = globalThis.require; return module.require; }'),
+    { requests: [], unverified: [] });
+});

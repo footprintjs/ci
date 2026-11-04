@@ -137,3 +137,57 @@ test('two different bindings from one source file remain ambiguous star owners',
   assert.equal(result.coverage.complete, false);
   assert.ok(result.tests.includes('test/chosen.test.ts'));
 });
+
+for (const loader of ['const load = globalThis.require; load("./other.js");',
+  'const evaluate = eval; evaluate(source);', '(0, eval)(source);',
+  'const Compile = Function; new Compile(source);',
+  'const root = globalThis; root.require("./other.js");',
+  'const { require: load } = module; load("./other.js");']) {
+  test(`captured loading retains reachable tests after any source change: ${loader}`, () => {
+    const base = { 'src/loader.ts': loader, 'src/other.ts': 'export const value = 1;',
+      'test/loader.test.ts': "import '../src/loader.js';" };
+    const result = select(base, { ...base, 'src/other.ts': 'export const value = 2;' });
+    assert.deepEqual(result.tests, ['test/loader.test.ts'], loader);
+    assert.ok(result.coverage.unverified.some(item => item.kind === 'affected-loading' && item.path === 'src/loader.ts'), loader);
+  });
+}
+
+test('declared dependencies with tracked package owners are not proven external', () => {
+  const base = { 'package.json': '{"name":"root","dependencies":{"@scope/workspace":"workspace:*","published":"1.0.0"}}',
+    'packages/workspace/package.json': '{"name":"@scope/workspace","exports":"./src/index.ts"}',
+    'packages/workspace/src/index.ts': 'export const value = 1;',
+    'src/owner.ts': "import { value } from '@scope/workspace/subpath'; export const chosen = value;",
+    'test/owner.test.ts': "import { chosen } from '../src/owner.js'; assert(chosen);" };
+  const result = select(base, { ...base, 'packages/workspace/src/index.ts': 'export const value = 2;' });
+  assert.deepEqual(result.tests, ['test/owner.test.ts']);
+  assert.ok(result.coverage.unverified.some(item => item.kind === 'affected-import' && item.path === 'src/owner.ts'));
+});
+
+for (const loader of ["import { execFileSync } from 'node:child_process'; execFileSync('node', ['src/worker.js']);",
+  "import { execFileSync } from 'child_process'; execFileSync('node', ['src/worker.js']);",
+  "import { Worker } from 'node:worker_threads'; new Worker('src/worker.js');",
+  "import { Worker } from 'worker_threads'; new Worker('src/worker.js');",
+  "import { execa } from 'execa'; execa('node', ['src/worker.js']);",
+  "import { $ } from 'zx'; $('node src/worker.js');",
+  "import shell from 'shelljs'; shell.exec('node src/worker.js');"]) {
+  test(`opaque source execution retains its reachable test: ${loader}`, () => {
+    const base = { 'package.json': '{"dependencies":{"execa":"1","zx":"1","shelljs":"1"}}',
+      'src/loader.ts': loader, 'src/worker.js': 'export const value = 1;',
+      'test/loader.test.ts': "import '../src/loader.js';", 'test/unrelated.test.ts': 'assert(true);' };
+    const result = select(base, { ...base, 'src/worker.js': 'export const value = 2;' });
+    assert.deepEqual(result.tests, ['test/loader.test.ts']);
+    assert.deepEqual(result.alwaysRun, ['test/loader.test.ts']);
+    assert.ok(result.coverage.unverified.some(item => item.kind === 'affected-process-loading' && item.path === 'src/loader.ts'));
+  });
+}
+
+test('unknown nested package metadata cannot exclude a reachable bare-import consumer', () => {
+  const base = { 'package.json': '{"dependencies":{"published":"1"}}',
+    'test/fixtures/package.json': '{ malformed', 'src/other.ts': 'export const value = 1;',
+    'src/owner.ts': "import { work } from 'published'; work();",
+    'test/owner.test.ts': "import '../src/owner.js';", 'test/unrelated.test.ts': 'assert(true);' };
+  let result;
+  assert.doesNotThrow(() => { result = select(base, { ...base, 'src/other.ts': 'export const value = 2;' }); });
+  assert.deepEqual(result?.tests, ['test/owner.test.ts']);
+  assert.ok(result.coverage.unverified.some(item => item.kind === 'affected-import' && item.path === 'src/owner.ts'));
+});

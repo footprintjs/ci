@@ -31,6 +31,14 @@ Unknown dynamic targets, source aliases, cyclic/ambiguous export ownership,
 loader aliases, module/VM loader construction and reflection retain reasons
 and conservatively select their reachable tests when any path changes.
 Unresolved source ownership never becomes a guessed external dependency.
+Tracked package names, including the root package itself, override declared
+external dependencies; their bare-name routing stays uncertain until resolved.
+Malformed nested package metadata leaves possible package names unknown and
+bare-import consumers conservative; an invalid root manifest is an input error.
+Reachable `child_process`, `worker_threads`, `execa`, `zx` and `shelljs` imports
+retain tests in the always-run set with explicit process-loading uncertainty.
+This finite vocabulary does not interpret commands or prove arbitrary process
+wrappers absent.
 
 Compiler-only classification needs a finite erased syntax proof in both trees:
 interfaces, type aliases and explicit type-only imports/exports. Ambient and

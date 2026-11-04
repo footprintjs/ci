@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import { patternBindings } from '../bindings/patterns.mjs';
-import { erasedImport, importNames, makeRequest, filesystemRequest } from './requests.mjs';
+import { erasedImport, importNames, makeRequest, filesystemRequest, processExecutionRequest } from './requests.mjs';
 import { loadEffects } from './effects.mjs';
 import { loadingRequests } from './loaders.mjs';
 
@@ -81,5 +81,8 @@ export function moduleInfo(source, context) {
       reason: 'Module/VM loader construction is outside the admitted direct-loader grammar.' });
   }
   info.reader = info.requests.some(filesystemRequest);
+  info.processLoader = info.requests.some(processExecutionRequest);
+  if (info.processLoader) info.unverified.push({ kind: 'affected-process-loading', path: source.path, line: 1,
+    reason: 'Process/worker execution may load tracked source outside the static module graph; command arguments are not interpreted.' });
   return info;
 }

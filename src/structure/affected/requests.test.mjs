@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseSource } from '../syntax/parse.mjs';
-import { importNames, makeRequest } from './requests.mjs';
+import { importNames, makeRequest, processExecutionRequest } from './requests.mjs';
 
 test('runtime import aliases preserve actual imported names and exclude explicit type entries', () => {
   const source = parseSource({ path: 'test/a.test.ts', text: 'import value, { first as chosen, type Shape } from "../src/a.js";' });
@@ -14,4 +14,11 @@ test('a tracked data target is a dependency while unknown project aliases are no
   const request = details => makeRequest(source, source.sourceFile.statements[0], details, context);
   assert.equal(request({ specifier: './data.json', names: ['default'] }).target, 'src/data.json');
   assert.ok(request({ specifier: '@/hidden', names: ['work'] }).reason);
+});
+
+test('opaque process execution uses a finite package vocabulary, including package subpaths', () => {
+  assert.equal(processExecutionRequest({ specifier: 'node:child_process' }), true);
+  assert.equal(processExecutionRequest({ specifier: 'execa/subpath' }), true);
+  assert.equal(processExecutionRequest({ specifier: 'node:fs' }), false);
+  assert.equal(processExecutionRequest({ specifier: './execa.js' }), false);
 });

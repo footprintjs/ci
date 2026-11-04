@@ -3,14 +3,7 @@ import { trackedFiles, codePath, testPath } from '../sources/paths.mjs';
 import { parseSource } from '../syntax/parse.mjs';
 import { moduleInfo } from './modules.mjs';
 import { runnableTest, wholeSuiteInput } from './changes.mjs';
-
-function declaredPackages(files) {
-  const text = files.get('package.json')?.text;
-  if (!text) return new Set();
-  const manifest = JSON.parse(text);
-  return new Set(['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
-    .flatMap(key => Object.keys(manifest[key] ?? {})));
-}
+import { packageOwnership } from './packages.mjs';
 
 export function snapshotContext(snapshot) {
   const files = trackedFiles(snapshot ?? { files: [] });
@@ -27,7 +20,8 @@ export function snapshotContext(snapshot) {
         reason: 'Code in a test directory lacks the admitted test/spec suffix; runner configuration is not evaluated.' });
     }
   }
-  const context = { files, parsed, packages: declaredPackages(files), unverified };
+  const ownership = packageOwnership(files);
+  const context = { files, parsed, ...ownership, unverified: [...unverified, ...ownership.unverified] };
   const modules = new Map([...parsed].map(([path, source]) => [path, moduleInfo(source, context)]));
   return { ...context, modules, tests: [...files.keys()].filter(runnableTest).sort() };
 }

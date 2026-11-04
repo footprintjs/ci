@@ -5,6 +5,7 @@ function noteInfo(path, state) {
   const info = state.context.modules.get(path);
   if (info) {
     state.reader ||= info.reader;
+    state.processLoader ||= info.processLoader;
     state.unverified.push(...info.unverified);
   }
   return info;
@@ -83,7 +84,7 @@ function visitWhole(path, state) {
 }
 
 export function testDependencies(context, path) {
-  const state = { context, paths: new Set(), seen: new Set(), effects: new Map(), reader: false, unverified: [] };
+  const state = { context, paths: new Set(), seen: new Set(), effects: new Map(), reader: false, processLoader: false, unverified: [] };
   visitWhole(path, state);
-  return { paths: state.paths, reader: state.reader, unverified: state.unverified };
+  return { paths: state.paths, reader: state.reader, processLoader: state.processLoader, unverified: state.unverified };
 }

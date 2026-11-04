@@ -2,6 +2,9 @@ import ts from 'typescript';
 import { isBuiltin } from 'node:module';
 import { resolveRelative } from '../sources/paths.mjs';
 
+const PROCESS_PACKAGES = new Set(['child_process', 'node:child_process', 'worker_threads', 'node:worker_threads',
+  'execa', 'zx', 'shelljs']);
+
 export function importNames(node) {
   const clause = node.importClause;
   if (!clause || clause.isTypeOnly) return [];
@@ -29,8 +32,15 @@ export function makeRequest(source, node, details, context) {
   }
   const specifier = details.specifier;
   const name = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
-  if (isBuiltin(specifier) || context.packages.has(name)) return { ...request, external: true };
+  if (isBuiltin(specifier)) return { ...request, external: true };
+  if (context.sourcePackages?.has(name)) return { ...request, reason: 'Tracked package source ownership is unresolved; a dependency declaration does not prove it external.' };
+  if (context.unknownSourcePackages) return { ...request, reason: 'Unreadable nested package metadata prevents proving this bare import external.' };
+  if (context.packages.has(name)) return { ...request, external: true };
   return { ...request, reason: 'Bare source alias or undeclared external owner is unresolved.' };
+}
+
+export function processExecutionRequest(request) {
+  return PROCESS_PACKAGES.has(request.specifier?.split('/')[0]);
 }
 
 export function filesystemRequest(request) {

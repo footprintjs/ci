@@ -15,12 +15,18 @@ function objectLoader(expression) {
   return globalName(expression.expression, 'module') && (key === null || key === 'require');
 }
 
+function capturedContainer(node) {
+  if (!['globalThis', 'module'].some(name => globalName(node, name)) || !isValueReference(node)) return false;
+  const member = ts.isPropertyAccessExpression(node.parent) || ts.isElementAccessExpression(node.parent);
+  return !member || node.parent.expression !== node;
+}
+
 function unsupported(node) {
   if (globalName(node, 'require') && isValueReference(node)
     && !(ts.isCallExpression(node.parent) && node.parent.expression === node)) return 'Aliased require is outside the admitted direct-loader grammar.';
-  if (!ts.isCallExpression(node) && !ts.isNewExpression(node)) return null;
-  if (['eval', 'Function'].some(name => globalName(node.expression, name))) return 'Reflective source evaluation has no static dependency closure.';
-  if (objectLoader(node.expression)) return 'Global-object loader ownership is unresolved.';
+  if (['eval', 'Function'].some(name => globalName(node, name)) && isValueReference(node)) return 'Reflective source evaluation has no static dependency closure.';
+  if (objectLoader(node)) return 'Global-object loader ownership is unresolved.';
+  if (capturedContainer(node)) return 'A captured global loader container has no static dependency closure.';
   return null;
 }
 

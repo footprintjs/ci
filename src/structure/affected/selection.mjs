@@ -4,6 +4,10 @@ function reason(test, changed, kind, text) {
   return { test, changed, kind, reason: text };
 }
 
+function alwaysRunDependency(current, previous) {
+  return current.reader || previous.reader || current.processLoader || previous.processLoader;
+}
+
 export function selectTests(head, base, change) {
   const selected = new Set();
   const alwaysRun = new Set();
@@ -21,9 +25,9 @@ export function selectTests(head, base, change) {
       selected.add(test);
       reasons.push(reason(test, test, 'changed-test', 'A new or modified head test selects itself.'));
     }
-    if (change.paths.length && (current.reader || previous.reader)) {
+    if (change.paths.length && alwaysRunDependency(current, previous)) {
       selected.add(test); alwaysRun.add(test);
-      reasons.push(reason(test, null, 'always-run', 'Filesystem, path or folder-scan dependency keeps this test in the always-run set.'));
+      reasons.push(reason(test, null, 'always-run', 'Filesystem, path, folder-scan or opaque process/worker dependency keeps this test in the always-run set.'));
     }
     for (const path of change.runtime) {
       if (!current.paths.has(path) && !previous.paths.has(path)) continue;
