@@ -9,8 +9,12 @@ import { runCli } from './run.mjs';
 function repository(t) {
   const path = mkdtempSync(join(tmpdir(), 'structure-affected-'));
   t.after(() => rmSync(path, { recursive: true, force: true }));
-  const git = (...args) => execFileSync('git', ['-C', path, ...args], { encoding: 'utf8' }).trim();
-  git('init', '--quiet');
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_TERMINAL_PROMPT: '0' });
+  const git = (...args) => execFileSync('git', ['--no-pager', '-c', 'core.hooksPath=/dev/null',
+    '-c', 'commit.gpgSign=false', '-c', 'tag.gpgSign=false', '-C', path, ...args],
+  { encoding: 'utf8', env, stdio: 'pipe', timeout: 5000 }).trim();
+  git('init', '--quiet', '--initial-branch=main', '--template=');
   const files = { 'src/index.ts': "export { first } from './first.js'; export { second } from './second.js';",
     'src/first.ts': 'export function first() { return 1; }', 'src/second.ts': 'export function second() { return 2; }',
     'test/first.test.ts': "import { first } from '../src/index.js'; void first();",
@@ -27,7 +31,7 @@ function repository(t) {
   };
   const base = commit();
   writeFileSync(join(path, 'src/first.ts'), 'export function first() { return 3; }');
-  return { path, base, head: commit() };
+  return { path, base, head: commit(), commit };
 }
 
 test('affected CLI reads two exact trees and emits an advisory owner-followed selection', t => {
@@ -53,4 +57,21 @@ test('affected requires an explicit comparison base', () => {
   const errors = [];
   assert.equal(runCli(['affected'], { stdout: () => assert.fail('unexpected output'), stderr: text => errors.push(text) }), 2);
   assert.match(JSON.parse(errors.join('')).message, /base/i);
+});
+
+test('affected CLI observes real binary object changes through the Git adapter', t => {
+  const { path, commit } = repository(t);
+  writeFileSync(join(path, 'src/value.bin'), Buffer.from([255, 0, 1]));
+  writeFileSync(join(path, 'test/asset.test.ts'), "import asset from '../src/value.bin'; void asset;");
+  const base = commit();
+  writeFileSync(join(path, 'src/value.bin'), Buffer.from([255, 0, 2]));
+  const head = commit();
+  const output = [];
+  assert.equal(runCli(['affected', '--repo', path, '--base', base, '--head', head], {
+    stdout: text => output.push(text), stderr: text => assert.fail(text),
+  }), 0);
+  const result = JSON.parse(output.join(''));
+  assert.deepEqual(result.changedPaths, ['src/value.bin']);
+  assert.deepEqual(result.tests, ['test/asset.test.ts']);
+  assert.equal(result.fullSuiteBeforeMerge, true);
 });
