@@ -12,7 +12,7 @@ for(const declaration of ['function helper(path){return import(path);}',
   test(`a moved location-sensitive unresolved import remains incomplete: ${declaration}`,()=>{
     const shared={'src/dep.ts':'export function value(){return 1;}'};
     const result=verifyMove({base:snapshot({...shared,'src/a.ts':declaration}),
-      head:snapshot({...shared,'src/a.ts':'','src/a/leaf.ts':`export ${declaration}`})});
+      head:snapshot({...shared,'src/a.ts':'','src/a/leaf.ts':`export ${declaration.replace('"./dep.js"','"../dep.js"')}`})});
     assert.deepEqual(result.findings,[]);
     assert.equal(result.coverage.complete,false);
     assert.ok(result.coverage.unverified.some(item=>item.kind==='move-module-location'));
