@@ -2,10 +2,14 @@ import { posix } from 'node:path';
 import { moduleCaptures } from './module-context.mjs';
 import { packageContext } from './package-context.mjs';
 import { unknown } from './notes.mjs';
+import { dynamicImportReasons } from './dynamic-imports.mjs';
 
 export function environmentCoverage(pairs,base,head){
   const unverified=[];
   for(const pair of pairs.filter(item=>item.base.path!==item.head.path)){
+    for(const reason of new Set([...dynamicImportReasons(pair.base,base),...dynamicImportReasons(pair.head,head)])){
+      unverified.push(unknown('move-module-location',pair.head,reason));
+    }
     for(const capture of new Set([...moduleCaptures(pair.base),...moduleCaptures(pair.head)])){
       unverified.push(unknown('move-module-context',pair.head,`Moved unit captures ${capture}; module environment equivalence is unproved.`));
     }

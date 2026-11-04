@@ -65,6 +65,9 @@ that unchanged function. Changed tracked package ancestry or source extensions
 also prevent a module-environment proof, even when a bare import spelling and
 both package manifests are unchanged. No npm, compiler or filesystem dependency
 resolution is inferred beyond the supplied tracked metadata.
+Moved native dynamic imports and import types require a literal relative target
+resolved to a tracked owner. Computed, external, attributed and unresolved
+targets retain module-location uncertainty, including query-bearing paths.
 
 All results are JSON data. ASTs, token arrays, lexical caches and matching maps
 remain internal. Tests beside each helper exercise the admitted boundaries and
