@@ -52,6 +52,20 @@ test('shared syntax does not reuse graph, citation owners or reader results', ()
   assert.deepEqual(observed.current.sourceReaders.analyzedPaths, ['test/read.ts']);
 });
 
+test('shared code syntax still rebuilds reference findings for each tree', () => {
+  const files = { 'src/work.ts': 'export function work(){return 1;}',
+    'src/next.ts': 'export function next(){return 2;}' };
+  const baseInput = snapshot({ ...files, 'docs/use.md': 'See `src/work.ts` · `work`.' });
+  const headInput = snapshot({ ...files, 'docs/use.md': 'See `src/next.ts` · `work`.' });
+  const { headContext: head, baseContext: base } = snapshotContexts(headInput, baseInput);
+  for (const path of Object.keys(files)) assert.ok(head.parsed.get(path) === base.parsed.get(path));
+  const owners = context => context.report.findings.filter(item => item.rule === 'citation-owner')
+    .map(({ path, name }) => ({ path, name }));
+  assert.deepEqual(owners(head), [{ path: 'docs/use.md', name: 'work' }]);
+  assert.deepEqual(owners(base), []);
+  assert.deepEqual(base.report, observeSnapshotContext(baseInput).report);
+});
+
 test('unchanged sources recompute changed package doors and same-stem folder roles', () => {
   const files = { 'package.json': JSON.stringify({ exports: './src/left.ts' }),
     'src/left.ts': 'export const left=1;', 'src/right.ts': 'export const right=2;' };
