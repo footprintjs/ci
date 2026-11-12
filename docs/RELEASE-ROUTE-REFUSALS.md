@@ -64,7 +64,7 @@ by a test.
 | `manifest-json` | A package.json is not strict JSON (malformed, a duplicate key, or over a bound). |
 | `manifest-source` | The packed package.json differs from the source package.json in a field other than version. |
 | `archive-path` | The tarball holds a file the archive setting does not allow. |
-| `archive-name` | The tarball holds names a case-insensitive or Windows file system would merge (case twins, a second package.json, a trailing dot or space). |
+| `archive-name` | The tarball holds a name some file system resolves to another file (case twin, trailing dot or space, ~, :, a Windows device name). |
 | `archive-denied` | The tarball holds a file no setting may allow (root binding.gyp, server.js or npm-shrinkwrap.json; any .npmrc or node_modules). |
 | `archive-missing` | A folder or file the archive setting requires is not in the tarball. |
 | `archive-version` | The tarball or the source package.json does not carry the planned version. |
