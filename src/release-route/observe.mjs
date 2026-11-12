@@ -87,7 +87,10 @@ export async function observeSettings({ git, commit }) {
   await read('settingsRead', () => {
     const bytes = readAtCommit(git, commit, SETTINGS_PATH, MAX_SETTINGS_BYTES, 'settings-unreadable');
     if (bytes === null) refuse('settings-unreadable', SETTINGS_PATH);
-    found.context.changelogStyle = readSettings(bytes).changelog;
+    const settings = readSettings(bytes);
+    found.context.changelogStyle = settings.changelog;
+    // The Node major the build job must run: handed on as the plan's `node` output (step-common.mjs).
+    found.context.node = settings.node;
     return true;
   });
   return found;

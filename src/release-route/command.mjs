@@ -4,7 +4,7 @@
 // returns 0 or 1. Every exception ends as a named refusal and exit 1: no catch here passes.
 //
 //   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN]
-//            -> mode, rule, compare, commit, [package, version]       (exit 0 also for "nothing")
+//            -> mode, rule, compare, node, commit, [package, version] (exit 0 also for "nothing")
 //   npm-tool ROUTE_NPM_DIR                                             (the pinned npm, unpacked)
 //   build    ROUTE_COMMIT, ROUTE_OUT, [ROUTE_NPM_DIR]                  -> file
 //   inspect  ROUTE_COMMIT, ROUTE_TARBALL_DIR                           (re-checks package.tgz)

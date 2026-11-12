@@ -33,6 +33,11 @@ export function reportPlan({ result, causes, context, report }) {
     const first = unreadableFacts(result.seen)[0];
     refuse(result.refuse, result.rule === 'facts-unreadable' ? first : `rule ${result.rule}`);
   }
+  // The build job runs on the Node major the settings name (build refuses any other), so the
+  // workflow needs it before that job starts: one closed-alphabet output, from the settings the
+  // plan already read (every mode needs settingsRead, so a decision always has it). It is held
+  // with the other outputs and written only when the step passes (report.mjs · end).
+  report.output('node', context.node);
   report.output('mode', result.mode);
   report.output('compare', result.compare);
   const what = { nothing: 'nothing to do: the version is tagged and on npm', publish: 'publish, then verify, tag and release',

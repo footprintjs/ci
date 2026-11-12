@@ -49,7 +49,7 @@ test('footprint-storydeck 0.13.1 on main today: nothing to do', async () => {
     packageNamed: true, packagePrivate: false, versionPlain: true, tagExists: true, packageKnown: true, npmHasVersion: true,
     versionNewer: false, changelogFound: true });
   assert.deepEqual([result.rule, result.mode], ['released', 'nothing']);
-  assert.deepEqual(observed.context, { commit: COMMIT, name: 'footprint-storydeck', version: '0.13.1', changelogStyle: 'titled' });
+  assert.deepEqual(observed.context, { commit: COMMIT, name: 'footprint-storydeck', version: '0.13.1', changelogStyle: 'titled', node: '22' });
 });
 
 test('the same day as a dry run compares the rebuild with npm', async () => {

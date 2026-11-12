@@ -527,9 +527,11 @@ var COMMIT = /^[a-f0-9]{40}$/;
 var PLAIN_VERSION = /^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})$/;
 var NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
 var SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+var NODE_MAJOR = /^(2[2-9]|[3-9][0-9])$/;
 var isCommit = (value) => typeof value === "string" && COMMIT.test(value) && !/^0+$/.test(value);
 var isPlainVersion = (value) => typeof value === "string" && PLAIN_VERSION.test(value);
 var isPackageName = (value) => typeof value === "string" && value.length <= 214 && NAME.test(value);
+var isNodeMajor = (value) => typeof value === "string" && NODE_MAJOR.test(value);
 function parse(version) {
   const match = typeof version === "string" && version.length <= 256 ? SEMVER.exec(version) : null;
   if (!match) return null;
@@ -800,6 +802,7 @@ function reportPlan({ result, causes, context, report: report2 }) {
     const first = unreadableFacts(result.seen)[0];
     refuse(result.refuse, result.rule === "facts-unreadable" ? first : `rule ${result.rule}`);
   }
+  report2.output("node", context.node);
   report2.output("mode", result.mode);
   report2.output("compare", result.compare);
   const what = {
@@ -28832,7 +28835,7 @@ function readSettings(bytes) {
   for (const key of Object.keys(value)) if (!KEYS.includes(key)) refuse("settings-unknown-key", key);
   for (const key of KEYS) if (!Object.hasOwn(value, key)) refuse("settings-missing-key", key);
   if (value.schema !== 1) refuse("settings-invalid", "schema");
-  if (typeof value.node !== "string" || !/^(2[2-9]|[3-9][0-9])$/.test(value.node)) refuse("settings-invalid", "node");
+  if (!isNodeMajor(value.node)) refuse("settings-invalid", "node");
   const system = value.systemPackages;
   if (!Array.isArray(system) || system.length > MAX_SYSTEM_PACKAGES || new Set(system).size !== system.length || !system.every((name) => typeof name === "string" && SYSTEM_PACKAGE.test(name))) refuse("settings-invalid", "systemPackages");
   const install = commandArgv(value.install, "install");
@@ -28860,7 +28863,8 @@ var CONTEXT_CHECKS = Object.freeze({
   commit: isCommit,
   packageName: isPackageName,
   version: isPlainVersion,
-  changelogStyle: (value) => CHANGELOG_STYLES.includes(value)
+  changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
+  node: isNodeMajor
 });
 var CONTEXT_NAMES = Object.freeze(Object.keys(CONTEXT_CHECKS));
 function writeObservation(scope, found) {
@@ -29288,7 +29292,9 @@ async function observeSettings({ git: git2, commit }) {
   await read2("settingsRead", () => {
     const bytes = readAtCommit(git2, commit, SETTINGS_PATH, MAX_SETTINGS_BYTES, "settings-unreadable");
     if (bytes === null) refuse("settings-unreadable", SETTINGS_PATH);
-    found.context.changelogStyle = readSettings(bytes).changelog;
+    const settings = readSettings(bytes);
+    found.context.changelogStyle = settings.changelog;
+    found.context.node = settings.node;
     return true;
   });
   return found;
@@ -29358,7 +29364,6 @@ var CHANGELOG = Object.freeze({
 });
 
 // src/release-route/chart/stages/gather.mjs
-var CONTEXT = Object.freeze(["packageName", "version", "changelogStyle"]);
 var gather = (id, children2) => Object.freeze({
   id,
   name: "Gather what was seen",
@@ -29368,7 +29373,7 @@ var gather = (id, children2) => Object.freeze({
     for (const child of children2) {
       const found = scope.$read(`runs.${child.id}`) ?? {};
       for (const name of FACT_NAMES) if (Object.hasOwn(found, name)) scope[name] = found[name];
-      for (const key of CONTEXT) if (Object.hasOwn(found, key)) scope[key] = found[key];
+      for (const key of CONTEXT_NAMES) if (Object.hasOwn(found, key)) scope[key] = found[key];
       Object.assign(causes, found.causes ?? {});
     }
     if (Object.keys(causes).length > 0) scope.causes = causes;
@@ -29459,6 +29464,7 @@ var fromState = (state) => {
   if (state.commit) context.commit = state.commit;
   if (state.packageName) context.name = state.packageName;
   if (state.version) context.version = state.version;
+  if (state.node) context.node = state.node;
   return { facts, causes, context };
 };
 function chartResult(state) {
@@ -30190,6 +30196,7 @@ var OUTPUTS = Object.freeze({
   commit: (v) => COMMIT.test(v),
   version: (v) => PLAIN_VERSION.test(v),
   package: (v) => isPackageName(v),
+  node: (v) => isNodeMajor(v),
   file: (v) => v === "package.tgz",
   "title-file": (v) => v === "title.txt",
   "notes-file": (v) => v === "notes.md",

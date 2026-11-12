@@ -153,6 +153,7 @@ test('why on a plan record: a fact or a context value is Observed by, a computed
   assert.equal(governedBy(explain(record, 'action')), 'Observed by Read the request (request#0).');
   assert.equal(governedBy(explain(record, 'commit')), 'Observed by Read the request (request#0).');
   assert.equal(governedBy(explain(record, 'changelogStyle')), 'Observed by Read the settings (look-settings#3).');
+  assert.equal(governedBy(explain(record, 'node')), 'Observed by Read the settings (look-settings#3).');
   assert.equal(governedBy(explain(record, 'factsReadable')), 'Written by Weigh the facts (weigh#10).');
   assert.equal(governedBy(explain(record, 'runs')), 'Written by Ask npm (look-npm#7).');
 });

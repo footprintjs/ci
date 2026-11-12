@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "7f7b993f42bc04e2f1a2ce633fcb1b76c4552f7757c4eb2b38e00549facff056",
-  "bytes": 1226034,
+  "sha256": "dd9c53eddee70a305006b363280ed4e9c7f9402c465abad73643e703eabfca78",
+  "bytes": 1226246,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1312,7 +1312,7 @@
     },
     {
       "path": "src/release-route/chart/plan-run.mjs",
-      "bytes": 1786
+      "bytes": 1831
     },
     {
       "path": "src/release-route/chart/record.mjs",
@@ -1332,7 +1332,7 @@
     },
     {
       "path": "src/release-route/chart/stages/gather.mjs",
-      "bytes": 1145
+      "bytes": 1088
     },
     {
       "path": "src/release-route/chart/stages/npm.mjs",
@@ -1372,7 +1372,7 @@
     },
     {
       "path": "src/release-route/chart/state.mjs",
-      "bytes": 2823
+      "bytes": 2888
     },
     {
       "path": "src/release-route/chart/steps.mjs",
@@ -1412,11 +1412,11 @@
     },
     {
       "path": "src/release-route/identity.mjs",
-      "bytes": 2398
+      "bytes": 2823
     },
     {
       "path": "src/release-route/observe.mjs",
-      "bytes": 7442
+      "bytes": 7616
     },
     {
       "path": "src/release-route/plan.mjs",
@@ -1436,7 +1436,7 @@
     },
     {
       "path": "src/release-route/report.mjs",
-      "bytes": 6010
+      "bytes": 6054
     },
     {
       "path": "src/release-route/rules.mjs",
@@ -1444,7 +1444,7 @@
     },
     {
       "path": "src/release-route/settings.mjs",
-      "bytes": 4147
+      "bytes": 4142
     },
     {
       "path": "src/release-route/stdout.mjs",
@@ -1452,7 +1452,7 @@
     },
     {
       "path": "src/release-route/step-common.mjs",
-      "bytes": 5438
+      "bytes": 5851
     },
     {
       "path": "src/shared/append-whole.mjs",

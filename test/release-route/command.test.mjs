@@ -66,16 +66,32 @@ test('the script writes outputs and summary only to the runner files, and masks 
 test('plan for storydeck today: nothing, exit 0, closed outputs', async () => {
   const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL });
   assert.equal(await runStep('plan', d), 0);
-  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\ncompare=no\nmode=nothing\n`);
+  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=22\ncompare=no\nmode=nothing\n`);
   assert.match(printed.at(-1), /^Decision: rule released gives mode nothing, nothing to do/);
   assert.match(written.summary, /Facts seen: action=publish, .*tagExists=true/);
+});
+
+// The build job sets up the Node major the settings name before it starts (it cannot read the
+// settings itself without running a step first), so the plan hands it on: written with the passing
+// outputs, before compare and mode, and never by a refused plan, even one that read the settings.
+test('plan hands the settings\' Node major to the build job as `node`, only when it passes', async () => {
+  const settings = JSON.parse(storydeck['.github/release.json']);
+  const files = { ...storydeck, '.github/release.json': Buffer.from(JSON.stringify({ ...settings, node: '24' })) };
+  const env = { GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL };
+  const passed = doors(env, { files });
+  assert.equal(await runStep('plan', passed.doors), 0, passed.printed.join('\n'));
+  assert.equal(passed.written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=24\ncompare=no\nmode=nothing\n`);
+  // A refusal by the first row: the settings were read (the build would have had its Node), and still no node.
+  const refused = doors({ ...env, ROUTE_TOOL_SHA: 'main' }, { files });
+  assert.equal(await runStep('plan', refused.doors), 1);
+  assert.equal(refused.written.out, `rule=tool-commit-invalid\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\n`);
 });
 
 test('plan refused: exit 1, no mode written, the unreadable fact and its cause printed', async () => {
   const { '.github/release.json': _, ...noSettings } = storydeck;
   const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL }, { files: noSettings });
   assert.equal(await runStep('plan', d), 1);
-  assert.doesNotMatch(written.out, /mode=/);
+  assert.doesNotMatch(written.out, /mode=|node=/);
   assert.ok(printed.some((l) => l.startsWith('Unreadable fact settingsRead: settings-unreadable')));
   assert.ok(printed.includes('Detail: settingsRead'));
 });
