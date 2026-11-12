@@ -75,6 +75,8 @@ export function requireCleanCheckout(git, commit) {
   if (!isCommit(commit)) refuse('input-invalid', 'commit');
   const head = ask(git, ['rev-parse', '--verify', 'HEAD^{commit}'], 'rev-parse HEAD').toString('utf8').trim();
   if (head !== commit) refuse('checkout-mismatch', 'HEAD is another commit');
-  const status = ask(git, ['status', '--porcelain', '--untracked-files=all'], 'status').toString('utf8');
+  // --ignored too: a gitignored leftover (a node_modules, a dist/) is something left behind as
+  // much as an untracked file is, and the build would pack or run it.
+  const status = ask(git, ['status', '--porcelain', '--untracked-files=all', '--ignored'], 'status').toString('utf8');
   if (status !== '') refuse('checkout-mismatch', 'the tree has changes');
 }

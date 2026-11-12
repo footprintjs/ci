@@ -89,4 +89,12 @@ test('build runs only on the planned commit with a clean tree', (t) => {
   assert.equal(code(() => requireCleanCheckout(git, 'c'.repeat(40))), 'checkout-mismatch HEAD is another commit');
   writeFileSync(join(dir, 'left-behind.txt'), 'x');
   assert.equal(code(() => requireCleanCheckout(git, commit)), 'checkout-mismatch the tree has changes');
+  rmSync(join(dir, 'left-behind.txt'));
+  requireCleanCheckout(git, commit);
+  // A gitignored leftover counts too (N7 of the second read).
+  mkdirSync(join(dir, '.git/info'), { recursive: true });
+  writeFileSync(join(dir, '.git/info/exclude'), 'ignored/\n');
+  mkdirSync(join(dir, 'ignored'));
+  writeFileSync(join(dir, 'ignored/leftover.js'), 'x');
+  assert.equal(code(() => requireCleanCheckout(git, commit)), 'checkout-mismatch the tree has changes');
 });
