@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "node": "22",
+  "systemPackages": [],
+  "install": "npm ci --strict-peer-deps",
+  "checks": ["npm run build", "npm test", "npx publint", "npx @arethetypeswrong/cli --pack"],
+  "archive": ["dist/"],
+  "changelog": "keepachangelog"
+}

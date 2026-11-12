@@ -15,22 +15,22 @@
       "source": "scripts/publish-release/archive/README.md",
       "destination": "src/release-route/archive/README.md",
       "sourceSha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
-      "sha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
-      "adaptation": "exact"
+      "sha256": "7263f6e25f4130f1cfb04e354d559c9d7693a0cce7d8fe76aa98b251cfe7aa95",
+      "adaptation": "Route deltas listed at the top; profile and test-location sentences updated."
     },
     {
       "source": "scripts/publish-release/archive/corpus.test.cjs",
       "destination": "test/release-route/archive/corpus.test.cjs",
       "sourceSha256": "1ef507432720a29c21578325b6574b4f2b8d653762ab8faddbf95f541ca47610",
-      "sha256": "1ef507432720a29c21578325b6574b4f2b8d653762ab8faddbf95f541ca47610",
-      "adaptation": "exact"
+      "sha256": "378e3cd21337fb9d08962b8c9d08ac7c0c5d9c1002addc486eb3c510959cb520",
+      "adaptation": "require path; structural refusals may be archive-path:<member>."
     },
     {
       "source": "scripts/publish-release/archive/fixture.cjs",
       "destination": "test/release-route/archive/fixture.cjs",
       "sourceSha256": "7001d0a30f255b0cbae58ed507c39f10012f0cab592e8b2631e49e601d76803b",
-      "sha256": "7001d0a30f255b0cbae58ed507c39f10012f0cab592e8b2631e49e601d76803b",
-      "adaptation": "exact"
+      "sha256": "4df276d2d82368006f3b9ce735e6e744294ee8345c4b84e279c3d90758718d52",
+      "adaptation": "Source manifest from fixtures/source-package.json (footPrint package.json at the same commit); expected() is { version, sourceManifest, archive }."
     },
     {
       "source": "scripts/publish-release/archive/fixtures/.gitignore",
@@ -344,15 +344,15 @@
       "source": "scripts/publish-release/archive/inspector.cjs",
       "destination": "src/release-route/archive/inspector.cjs",
       "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "sha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "adaptation": "exact"
+      "sha256": "9b6720b94e563d719f54c6e8991ec601648edfff7fcc3433122c77909ea46124",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md; package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config."
     },
     {
       "source": "scripts/publish-release/archive/inspector.test.cjs",
       "destination": "test/release-route/archive/inspector.test.cjs",
       "sourceSha256": "e1a81ba8ea773a700c59ec51d72823cc8c5af974c07653bdb1322213acec7f90",
-      "sha256": "e1a81ba8ea773a700c59ec51d72823cc8c5af974c07653bdb1322213acec7f90",
-      "adaptation": "exact"
+      "sha256": "31bca55b49578aba58621a1bd7335f526b645e9c5dd94adf5dd0c2f8f4fc2f95",
+      "adaptation": "require path; refusal patterns include the named archive-* codes; the AGENTS.md positive lists it in the archive setting; the sibling-file case expects archive-path:<member>."
     },
     {
       "source": "scripts/publish-release/archive/manifest.cjs",
@@ -365,29 +365,36 @@
       "source": "scripts/publish-release/archive/refusal.cjs",
       "destination": "src/release-route/archive/refusal.cjs",
       "sourceSha256": "78cd4728d1ca76698f347fe3fd8b5a5ce58e345ee3e117ccc5dc1f34ca0e222a",
-      "sha256": "78cd4728d1ca76698f347fe3fd8b5a5ce58e345ee3e117ccc5dc1f34ca0e222a",
-      "adaptation": "exact"
+      "sha256": "f157bf29d6329886a28acfb40e67976ae6508879f2e731fcd864072420a3b1f9",
+      "adaptation": "A { text } field prints a route-bounded label (member path or entry-<n>) when it is printable ASCII without \":\"; otherwise hashed as before."
     },
     {
       "source": "scripts/publish-release/archive/strict-json.cjs",
       "destination": "src/release-route/archive/strict-json.cjs",
       "sourceSha256": "30be8b6addaffccaa6093e70e29114eb44e59b1a66d285a1c9befa75613363f7",
-      "sha256": "30be8b6addaffccaa6093e70e29114eb44e59b1a66d285a1c9befa75613363f7",
-      "adaptation": "exact"
+      "sha256": "1395d10fb471be3fad43af89d4b6a8af04219628477a7a8236c2dd0895f6567b",
+      "adaptation": "parseStrictJson(bytes, { maxBytes, maxValues }) exported; parseManifest keeps the copied 1 MiB / 100,000-value bounds."
     },
     {
       "source": "scripts/publish-release/archive/strict-json.test.cjs",
       "destination": "test/release-route/archive/strict-json.test.cjs",
       "sourceSha256": "021d16435ef19dc85252fb0e9b3e08e520a78db20dd101caee73c3d9c5b3aa66",
-      "sha256": "021d16435ef19dc85252fb0e9b3e08e520a78db20dd101caee73c3d9c5b3aa66",
-      "adaptation": "exact"
+      "sha256": "911f6b8d6da9b9dbf0b8cd88bb511472ef436207aa20be75c4394c9c4cee7b28",
+      "adaptation": "require paths."
     },
     {
       "source": "scripts/publish-release/check-archive.cjs",
       "destination": "src/release-route/archive/check-archive.cjs",
       "sourceSha256": "b9391d1f9e071f7938339fc8e990eabd9676a40de4d7a85bd4fcf745a3404cca",
-      "sha256": "b9391d1f9e071f7938339fc8e990eabd9676a40de4d7a85bd4fcf745a3404cca",
-      "adaptation": "exact"
+      "sha256": "0efce9fb17b49a57898b3dfaf6881e1dcfa3f3667be0c9283cd1c96eec919a52",
+      "adaptation": "The route port: checkArchive(intake, sourceBytes, version, archive); package name no longer hard-coded; release-candidate operation and CLI removed; refusals through refusal.cjs (archive-intake, archive-file, archive-version, publish-directory)."
+    },
+    {
+      "source": "package.json",
+      "destination": "test/release-route/archive/fixtures/source-package.json",
+      "sourceSha256": "e0d31c44ed8e88cd8bbf77f463d9d97c9779cdb2cd1e3eb108624c0d10f70b70",
+      "sha256": "e0d31c44ed8e88cd8bbf77f463d9d97c9779cdb2cd1e3eb108624c0d10f70b70",
+      "adaptation": "exact; test fixture only (the source manifest the copied tests were written against)"
     }
   ]
 }

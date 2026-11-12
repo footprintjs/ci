@@ -1,5 +1,23 @@
 # Inspected release archive
 
+The release route's ONE archive inspector, copied from footPrint
+`scripts/publish-release/archive/` at `531160b2124c11e373338bb65584909a1496a1f8`
+(per-file hashes: `provenance/release-route-archive.json`). The route changes only
+what it needs, all visible in the commit after the copy:
+
+- The package name is the source manifest's, never written in; the allowed members
+  come from the repository's `archive` setting (`allowed.cjs`, the one owner of that
+  rule; `docs/RELEASE-ROUTE.md` defines it) instead of `package/dist/` + `AGENTS.md`.
+- `check-archive.cjs` is the port: `checkArchive(intake, sourceBytes, version, archive)`.
+  The release-candidate operation and its CLI are gone (prereleases are a later phase).
+- Named refusals where the copy said `invalid-archive`: `archive-path:<member>`,
+  `archive-missing:<entry>`, `archive-version`, `archive-publish-config`, and
+  `archive-intake` / `archive-file` / `publish-directory` for the files around it.
+- `strict-json.cjs` exports `parseStrictJson(bytes, { maxBytes, maxValues })`, so the
+  route reads every JSON (settings, npm's and GitHub's answers) with this one reader.
+- Tests live in `test/release-route/archive/`; `PROVENANCE.json` below is footPrint's
+  record of ITS copy from foottrace and is kept unchanged as history.
+
 This folder admits the exact tarball submitted to npm. It never extracts a
 package, runs package code, installs a dependency or publishes a folder.
 
@@ -19,10 +37,10 @@ The archive profile is copied from `footprintjs/foottrace` at
 `bb3c18244655b794d7c3660b0c35f2a510b45ea0`,
 `scripts/release-archive.cjs`. `PROVENANCE.json` pins its full file hash and the
 unchanged parser units. The gzip, closed tar header, checksums, padding, single
-member, path, regular-file and finite resource rules remain that copy. FootPrint
-adds only `package/AGENTS.md` to the allowed root files; the rest is the existing
-`package/package.json`, `package/README.md`, `package/LICENSE` and `package/dist/`
-profile. PAX, GNU extensions, long/non-ASCII paths and links remain refused.
+member, path, regular-file and finite resource rules remain that copy. The allowed
+members are `package/package.json`, `package/README.md`, `package/LICENSE` and what
+the `archive` setting lists. PAX, GNU extensions, long/non-ASCII paths and links
+remain refused.
 
 The unused ZIP reader was removed. The manifest comparison is the same typed
 canonical whole-source comparison except `version`, with JSON object admission
@@ -37,6 +55,5 @@ data under `fixtures/`; no member is extracted or executed. Their old minimal
 baselines are not current positive fixtures. Structural corpus cases must fail
 at archive admission, rather than borrowing an unrelated source mismatch.
 
-Root runs `node --test scripts/publish-release/archive/*.test.cjs`; this folder's
-builder does not execute tests. Hosted exact-head checks, actual npm-pack profile
+`npm test` runs `test/release-route/archive/*.test.cjs` with the route's tests. Hosted exact-head checks, actual npm-pack profile
 proof and Claude review remain separate gates.

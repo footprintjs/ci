@@ -5,10 +5,14 @@ const MAX_DEPTH = 64;
 const MAX_VALUES = 100000;
 
 /** A bounded structural pass rejects decoded duplicate keys before JSON.parse. */
-function parseManifest(bytes) {
+// Release route: the same reader serves every JSON the route reads (settings, package.json,
+// npm's and GitHub's answers), so the byte and value bounds are parameters. npm's
+// abbreviated document for a package with hundreds of versions is over 1 MiB; the
+// defaults stay the manifest's. Every refusal is still `manifest-json`; callers rename it.
+function parseStrictJson(bytes, { maxBytes = MAX_BYTES, maxValues = MAX_VALUES } = {}) {
   try {
     if (!(Buffer.isBuffer(bytes) || typeof bytes === 'string')) fail('manifest-json');
-    if (Buffer.byteLength(bytes) > MAX_BYTES) fail('manifest-json');
+    if (Buffer.byteLength(bytes) > maxBytes) fail('manifest-json');
     const input = Buffer.isBuffer(bytes)
       ? new TextDecoder('utf-8', { fatal: true }).decode(bytes)
       : bytes.replace(/^\uFEFF/, '');
@@ -29,7 +33,7 @@ function parseManifest(bytes) {
       fail('manifest-json');
     }
     function value(depth) {
-      if (depth > MAX_DEPTH || ++values > MAX_VALUES) fail('manifest-json');
+      if (depth > MAX_DEPTH || ++values > maxValues) fail('manifest-json');
       whitespace();
       const first = input[at];
       if (first === '"') {
@@ -81,4 +85,5 @@ function parseManifest(bytes) {
     fail('manifest-json');
   }
 }
-module.exports = { parseManifest };
+const parseManifest = (bytes) => parseStrictJson(bytes);
+module.exports = { parseManifest, parseStrictJson };

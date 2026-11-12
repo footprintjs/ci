@@ -1,8 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseManifest } = require('./strict-json.cjs');
-const { archiveRefusalCode } = require('./refusal.cjs');
+const { parseManifest } = require('../../../src/release-route/archive/strict-json.cjs');
+const { archiveRefusalCode } = require('../../../src/release-route/archive/refusal.cjs');
 const { source } = require('./fixture.cjs');
 
 function rejects(input, pattern = /^manifest-json/) {

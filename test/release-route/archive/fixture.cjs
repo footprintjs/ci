@@ -3,7 +3,9 @@
 const { gzipSync } = require('node:zlib');
 const fs = require('node:fs');
 const path = require('node:path');
-const source = JSON.parse(fs.readFileSync(path.join(__dirname, '../../../package.json'), 'utf8'));
+// Release route: footPrint's package.json at the copied commit, kept as a fixture, so these
+// tests do not depend on this repository's own package.json.
+const source = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/source-package.json'), 'utf8'));
 function checksum(header) {
   header.fill(32, 148, 156);
   let sum = 0;
@@ -35,5 +37,5 @@ function pack(manifest = { ...source, version: '11.0.0-rc.1' }, extra = []) {
     tar([entry('package/package.json', json), entry('package/dist/index.js', 'fixture only\n'), ...extra]),
   );
 }
-const expected = () => ({ package: 'footprintjs', version: '11.0.0-rc.1', sourceManifest: source });
+const expected = () => ({ version: '11.0.0-rc.1', sourceManifest: source, archive: ['dist/'] });
 module.exports = { source, checksum, entry, tar, pack, expected };

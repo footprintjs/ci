@@ -4,6 +4,7 @@ const { createHash } = require('node:crypto');
 const { fail, archiveRefusalCode } = require('./refusal.cjs');
 const { requireSourceManifest } = require('./manifest.cjs');
 const { parseManifest } = require('./strict-json.cjs');
+const { compileArchiveRule } = require('./allowed.cjs');
 const hash = (bytes, algorithm, encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
 function text(bytes) {
   try {
@@ -59,8 +60,12 @@ function headerSize(header) {
     fail();
   return octal(header.subarray(124, 136));
 }
+// Release route: `expected` is { version, sourceManifest, archive }. The package name is the
+// source manifest's (the whole-manifest comparison below already demands it), and the allowed
+// members come from the repository's `archive` setting (allowed.cjs) instead of a fixed list.
 function inspectArchive(bytes, expected) {
   try {
+    const allowed = compileArchiveRule(expected.archive);
     const maxArchive = expected.maxArchiveBytes ?? 16 * 1024 * 1024;
     const maxExpanded = expected.maxExpandedBytes ?? 64 * 1024 * 1024;
     const maxFiles = expected.maxFiles ?? 10000;
@@ -109,11 +114,7 @@ function inspectArchive(bytes, expected) {
         names.has(name)
       )
         fail();
-      if (
-        !['package/package.json', 'package/README.md', 'package/LICENSE', 'package/AGENTS.md'].includes(name) &&
-        !name.startsWith('package/dist/')
-      )
-        fail();
+      if (!allowed.admits(name.slice('package/'.length))) fail('archive-path', { text: name });
       names.add(name);
       if (names.size > maxFiles) fail();
       files.push({ path: name, size, sha256: hash(data, 'sha256') });
@@ -122,15 +123,14 @@ function inspectArchive(bytes, expected) {
         manifestBytes = data;
       }
     }
-    if (!ended || !manifestBytes || !files.some((f) => f.path.startsWith('package/dist/'))) fail();
+    if (!ended || !manifestBytes) fail();
+    const missing = allowed.missing(files.map((f) => f.path.slice('package/'.length)));
+    if (missing.length > 0) fail('archive-missing', { text: missing[0] });
     const identity = parseManifest(manifestBytes);
     requireSourceManifest(identity, expected.sourceManifest);
-    if (
-      identity.name !== expected.package ||
-      identity.version !== expected.version ||
-      Object.prototype.hasOwnProperty.call(identity, 'publishConfig')
-    )
-      fail();
+    if (identity.version !== expected.version) fail('archive-version');
+    // publishConfig can move the registry or the dist-tag at publish time; the route names it.
+    if (Object.prototype.hasOwnProperty.call(identity, 'publishConfig')) fail('archive-publish-config');
     return {
       package: identity.name,
       version: identity.version,

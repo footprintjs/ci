@@ -3,10 +3,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { gzipSync, gunzipSync } = require('node:zlib');
 const { createHash } = require('node:crypto');
-const { inspectArchive, archiveRefusalCode } = require('./inspector.cjs');
+const { inspectArchive, archiveRefusalCode } = require('../../../src/release-route/archive/inspector.cjs');
 const { source, checksum, entry, tar, pack, expected } = require('./fixture.cjs');
 
-function refuses(bytes, options = expected(), code = /^(invalid-archive|archive-profile|manifest-)/) {
+function refuses(bytes, options = expected(), code = /^(invalid-archive|archive-profile|archive-(path|missing|version)|manifest-)/) {
   assert.throws(
     () => inspectArchive(bytes, options),
     (error) => {
@@ -17,9 +17,9 @@ function refuses(bytes, options = expected(), code = /^(invalid-archive|archive-
   );
 }
 
-test('accepts the full source manifest except version and the one FP root addition', () => {
+test('accepts the full source manifest except version and a root file the archive setting lists', () => {
   const bytes = pack(undefined, [entry('package/AGENTS.md', 'Package instructions\n')]);
-  const result = inspectArchive(bytes, expected());
+  const result = inspectArchive(bytes, { ...expected(), archive: ['dist/', 'AGENTS.md'] });
   assert.equal(result.package, 'footprintjs');
   assert.equal(result.version, '11.0.0-rc.1');
   assert.equal(result.sha256, createHash('sha256').update(bytes).digest('hex'));
@@ -101,7 +101,7 @@ for (const value of [null, [], 'object', 1, false, undefined])
   );
 
 test('sourceManifest is required, including when the packed identity looks right', () => {
-  refuses(pack(), { package: 'footprintjs', version: '11.0.0-rc.1' }, /^manifest-source:root$/);
+  refuses(pack(), { version: '11.0.0-rc.1', archive: ['dist/'] }, /^manifest-source:root$/);
 });
 
 test('source JSON data does not invoke getters or toJSON', () => {
@@ -159,7 +159,7 @@ for (const manifest of ['[]', 'null', '"object"', '1', 'true'])
 
 for (const name of ['package/.npmrc', 'package/binding.gyp', 'package/server.js'])
   test('profile refuses sibling ' + name + ' before reading malformed JSON', () => {
-    refuses(pack('not JSON', [entry(name, 'fixture only')]), expected(), /^invalid-archive$/);
+    refuses(pack('not JSON', [entry(name, 'fixture only')]), expected(), new RegExp('^archive-path:' + name + '$'));
   });
 
 for (const name of [

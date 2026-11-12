@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
-const { inspectArchive, archiveRefusalCode } = require('./inspector.cjs');
+const { inspectArchive, archiveRefusalCode } = require('../../../src/release-route/archive/inspector.cjs');
 const { expected } = require('./fixture.cjs');
 const corpus = require('./fixtures/corpus.json');
 
@@ -24,8 +24,8 @@ for (const item of corpus)
         assert.match(
           code,
           item.structuralRefusal
-            ? /^(invalid-archive|archive-profile)$/
-            : /^(invalid-archive|archive-profile|manifest-)/,
+            ? /^(invalid-archive|archive-profile|archive-path:.+)$/
+            : /^(invalid-archive|archive-profile|archive-path:|manifest-)/,
         );
         return true;
       },
