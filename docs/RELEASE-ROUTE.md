@@ -407,7 +407,9 @@ the workflow as parsed YAML), or why no test can.
   plan/publish the same version at once.
   - Kept in the caller, which a package writes (below); `release-route.yml` has no `concurrency:`, as GitHub
     advises against the same group in caller and called workflow. Test: "W11" parses the caller shown in this
-    doc. Each package's own file is checked when it adopts the route, not here.
+    doc. Each package's own file is checked when it adopts the route, not here. One more thing the group
+    does: a newer queued run cancels a PENDING run of the same group (GitHub keeps one running and one pending
+    per group). Harmless: the newest run plans the tip.
 - **W12.** `ROUTE_OUT`, `ROUTE_TARBALL_DIR` and `ROUTE_NPM_DIR` are fresh folders under `RUNNER_TEMP`, one per job.
   - Kept: each is `${{ runner.temp }}/<name>`, one folder per variable in a job, no two variables sharing one
     (`ROUTE_RECORD_DIR` and the publish's empty folder too). Fresh because GitHub empties `RUNNER_TEMP` at the
@@ -471,7 +473,7 @@ plan ─┬─▶ hold ─▶ build ─▶ publish ─▶ verify ─▶ release 
 | plan | always | `contents: read` | the caller at `github.sha` into `source` (no credentials kept), the tool into `tool`, Node 22, the charted `plan`; its record is uploaded passed or refused. Its outputs are exactly the step's: `rule`, `commit`, `package`, `version`, `node`, `compare`, `mode` |
 | hold | mode `publish` or `dry-run` | `contents`, `issues`, `pull-requests`: read | the hold check (`.github/actions/hold` from the tool checkout, mode fixed to `publish`): the early signal, before the build spends its minutes |
 | build | mode `publish` or `dry-run` after a green hold; mode `recover` | `contents: read` | the caller at the planned commit, the Node the settings name (the plan's `node` output), `npm-tool`, `build`; uploads `package.tgz` as `release-route-package`, the one thing other jobs may read |
-| publish | mode `publish` after a green build | `contents: read`, `id-token: write`, `issues: read`, `pull-requests: read` | downloads the package, `npm-tool` in this job, `inspect`, `ready`, the hold check as a step, and on `publish=yes` the publish from an empty folder. Installs nothing, runs no repository code |
+| publish | mode `publish` after a green build | `contents: read`, `id-token: write`, `issues: read`, `pull-requests: read` | downloads the package, `npm-tool` in this job, `inspect`, `ready` (which measures the plan again: the tip of `main`, the newest version), the hold check as a step, and on `publish=yes` the publish from an empty folder. Installs nothing, runs no repository code |
 | verify | `compare=yes` after a green build; for `publish`, after the publish job succeeded OR failed | `contents: read` | downloads the package, the charted `verify`; its record is uploaded passed or refused |
 | release | mode `publish` or `recover` after a green verify | `contents: write` | `tag`, `notes`, then the tag (create-only API call) and the GitHub release, each only on `tag`'s `create` |
 
@@ -520,18 +522,33 @@ Two rows to read twice:
   the version, `verify` waits its bounded time and refuses (`registry-late`), and nothing is tagged.
 - **publish cancelled: verify does not run.** A cancelled publish is not a failed one. If it was
   cancelled after npm accepted, the next run's plan sees "on npm, no tag" and recovers, or a person uses
-  "Re-run failed jobs" on this run (`ready` answers `no`, verify and release follow). Whether GitHub reports
+  "Re-run failed jobs" on this run (`ready` answers `no` when npm has the same bytes, verify and release
+  follow). Whether GitHub reports
   a job that hit its `timeout-minutes` as `cancelled` or `failure` is not written in the documents read for
   this; the first real run that times out will show it, and either way nothing is tagged unproven.
 
 No condition in this file is what stops a publish from a branch or from an old commit: `plan` refuses
-those (`publish-off-main`, `not-main-tip`), and writes `mode` only when it passes.
+those (`publish-off-main`, `not-main-tip`), and writes `mode` only when it passes; on a re-run that
+reuses an old plan, `ready` refuses it (`plan-stale`).
+
+**Four things to know when adopting the route.**
+
+- The build's Node is the newest minor of the major the settings name (`actions/setup-node` resolves
+  `22` when the job runs), so a rebuild weeks later may not be byte-equal to the first (a minor can
+  change Node's zlib). It matters for `recover` and for the dry run's compare with npm.
+- Tags and releases made with the job's token start no `push: tags` or `release` workflow in the
+  package's repository (GitHub starts no workflow from an event its job token made).
+- The caller's concurrency group keeps one running and one pending run: a newer queued run cancels a
+  PENDING run of the same group. Harmless: the newest run plans the tip.
+- A publish that was held still lets `verify` run (it runs after a failed publish, W7): it waits its
+  bounded time and ends `registry-late`: red for the right reason (nothing was published), with a
+  misleading name.
 
 **Artifacts.**
 
 | Artifact | Written by | Read by | Kept | Why |
 |---|---|---|---|---|
-| `release-route-package` | build | publish, verify | 30 days | the one file that crosses jobs. Its name has no attempt number, so "Re-run failed jobs" finds the first attempt's file. 30 days, as design section 4 says: a recover whose rebuild differs from npm is answered by re-running the ORIGINAL run's failed jobs, which still hold the published bytes |
+| `release-route-package` | build | publish, verify | 30 days | the one file that crosses jobs. Its name has no attempt number and no `overwrite`, so "Re-run failed jobs" finds the first attempt's file and nothing can replace bytes npm may already have. 30 days, as design section 4 says: a recover whose rebuild differs from npm is answered by re-running the ORIGINAL run's failed jobs, which still hold the published bytes |
 | `release-route-plan-record-<attempt>` | plan | nobody (people, `why`) | 90 days | the plan's record. Its name has the attempt number: no job reads it, and a re-run of a failed job must not fail on a name an earlier attempt took (the upload refuses an existing name) |
 | `release-route-verify-record-<attempt>` | verify | nobody (people, `why`) | 90 days | the same, for verify: a `registry-late` verify re-run later must be able to keep its record |
 
@@ -632,38 +649,48 @@ with npm. Nothing is written anywhere.
 
 | Case | What the route does | What a person does |
 |---|---|---|
-| Version merged, not published (build red, a hold, machine trouble) | nothing more; the version stays untagged and unpublished | machine trouble: re-run the whole run once. A real failure: merge a fix WITHOUT a new version; that push publishes |
+| Version merged, not published (build red, a hold, machine trouble) | nothing more; the version stays untagged and unpublished | machine trouble: "Re-run failed jobs" (safe: the publish job measures again). After the build has turned green, never "Re-run all jobs" on that run: the build's second upload of `release-route-package` is expected to fail on the name, and a rebuild must not replace the bytes npm may already have; use "Re-run failed jobs", or start a new run from `main`. A real failure: merge a fix WITHOUT a new version; that push publishes |
 | A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs". That is safe: the publish job measures again; if `main` moved on or a newer version was published meanwhile, `ready` refuses (`plan-stale`) and publishes nothing, and the newer run's plan decides |
 | npm accepted, verify red with `registry-differs` | stops; no tag, no release | investigate; never tag over a mismatch |
 | npm shows the version late (`registry-late`) | verify red after its bounded wait; no tag | "Re-run failed jobs" later: verify compares again with the same run's package |
-| Published, then the tag or the release failed | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, re-run the ORIGINAL run's failed jobs (its package is kept 30 days) |
+| Published, then the TAG failed (no tag was made) | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, "Re-run failed jobs" on the ORIGINAL run (its package is kept 30 days) |
+| Tagged, then the GitHub release failed | the next run finds the tag and the version on npm: `released`, nothing to do, green. The route makes no GitHub release on its own | "Re-run failed jobs" on the run that failed, within GitHub's re-run window (`tag` answers skip for the tag, create for the release); after that, write the release by hand. A later pull request will make the plan see a missing release |
 | A run of an older commit of `main` finds its version on npm with no tag | refused, `release-unfinished` | "Re-run failed jobs" on the run that published it, or write the tag at that commit by hand |
 | Tag exists, npm does not have the version | refused, `tag-without-package` | decide by hand (delete the stray tag, or raise the version) |
 | Package unknown on npm | refused, `package-unknown` | the first publish of a new name is by hand (npm requires it) |
 | "Re-run failed jobs", any time | the old plan is reused, so the publish job measures again: `ready` publishes only while the commit is the tip of `main` and the version the newest (else `plan-stale`), and skips the publish when npm has the same bytes; `tag` skips a tag at the same commit and refuses one elsewhere; a release that exists is skipped | none |
 
-### Checked here, and what waits for a real run
+### Checked here
 
-Checked here: the two files parse (by the strict YAML subset the tests read with, which agrees with
-Ruby's YAML parser on both files where Ruby is installed) and keep W1 to W14 as listed above. This
-repository's check has no workflow linter (no `actionlint`), and none is downloaded by this change.
+The two files parse (by the strict YAML subset the tests read with, which agrees with Ruby's YAML
+parser on both files where Ruby is installed, and refuses what YAML would read differently) and keep
+W1 to W14 as listed above. This repository's check has no workflow linter (no `actionlint`), and none
+is downloaded by this change.
+
+### The first dry run: what only a real run can show
 
 There is no real run yet: a reusable workflow needs a caller on a default branch, which is the next
-step in another repository. These are proved only by that caller's first dry run and first release:
+step in another repository. On that caller's first dry run (and, where said, its first release),
+look at each of these:
 
-- that `job.workflow_sha` is filled in a called workflow (an empty value is refused by the guard, so a
-  wrong guess fails closed);
-- that `uses: ./tool/.github/actions/hold` resolves to the tool checkout (GitHub's syntax reference
-  says a `./` path resolves against the runner's workspace, where the tool was checked out);
-- that the package artifact crosses jobs, and crosses attempts on "Re-run failed jobs" (no document
-  read for this says whether an earlier attempt's artifact can be downloaded, and users report both);
-  and what "Re-run all jobs" does when the build uploads `release-route-package` again under a name the
-  first attempt used (if GitHub refuses it, the build job of that attempt is red and nothing publishes);
-- the OIDC publish with the vendored npm from a called workflow, with provenance;
-- `git ls-remote` against the caller's `origin` with no credentials kept (fine for a public
-  repository; a private caller would fail closed);
-- the tag through the API and the release through `gh` with the job's token;
-- whether a job that reaches `timeout-minutes` is reported as `cancelled` or `failure` (above).
+- `job.workflow_sha` is filled: the guard step is green, and the tool checkout's log shows that commit
+  (an empty value is refused by the guard, so a wrong guess fails closed).
+- `./tool/.github/actions/hold` resolves: the hold job's log shows the action path under `tool/`.
+- `release-route-package` crosses jobs: the verify (and, on a release, the publish) download logs.
+- Across attempts, on a throwaway dry run: "Re-run failed jobs" on verify (does it find attempt 1's
+  package?) and "Re-run all jobs" (does the build's upload get a 409 Conflict?). How artifacts behave
+  across attempts is not known until the first dry run; the doc's advice above assumes one name space
+  per run, the reader's expectation.
+- The OIDC publish with the vendored npm and provenance from a called workflow, and that npm's trusted
+  publisher matches the caller's `publish.yml` (first release).
+- `git ls-remote` on the caller's `origin` with no credentials kept (fine for a public repository; a
+  private caller would fail closed).
+- The tag POST and `gh release create` with the job's token, including under a tag ruleset (first
+  release).
+- Whether a job that reaches `timeout-minutes` reads as `cancelled` or `failure`, and whether a
+  timed-out verify still uploads its record.
+- What `actions/checkout` writes to git config (W2): the plan job's checkout log.
+- A release made beside an existing draft with the same tag (first release, if one exists).
 
 ## Not built yet
 
