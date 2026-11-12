@@ -375,7 +375,12 @@ the workflow as parsed YAML), or why no test can.
     download the package into a fresh folder, `npm-tool` into `${{ runner.temp }}/npm`, `inspect`, `ready`, the
     hold check, then the publish on `publish == 'yes'`: `mkdir` a fresh `${{ runner.temp }}/empty` (no `-p`, so
     an existing folder fails), `cd` into it, and the command above. Every other script is
-    `node tool/scripts/release-route.mjs <step>`. Test: "W6" (both), "least power" (`id-token` only here).
+    `node "$GITHUB_WORKSPACE/tool/scripts/release-route.mjs" <step>`: the tool by its absolute place, so no
+    working directory can turn it into the caller's file of the same name. The publish job's (and the plan
+    job's) steps are compared WHOLE with the test's own copy, and in every job of both files a step may have
+    only `name`, `id`, `if`, `uses`, `with`, `env`, `run` (no `continue-on-error`, `working-directory`,
+    `shell`); no env names `NODE_OPTIONS`, `NODE_PATH` or `npm_config_*`; every setup-node has one input.
+    Tests: "W6" (both) and "least power" in `release-route.test.mjs`, and `release-route-steps.test.mjs`.
   - One departure from the order written above: the hold check runs AFTER `ready`, directly before the
     publishing step, because the hold check's own rule (`docs/HOLD.md`: the step goes "directly before
     `npm publish`") wants the moment it looks to be the last one before the publish; `ready` only reads npm.

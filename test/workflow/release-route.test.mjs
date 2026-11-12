@@ -115,7 +115,7 @@ test('W1, W2: plan runs first in its own job; nothing before it runs repository 
   const at = steps.findIndex((step) => step.id === 'plan');
   assert.deepEqual(steps.slice(0, at).map((step) => step.name),
     [TOOL_GUARD.name, 'Check out the caller at the commit being planned', 'Check out the release tool at this workflow\'s commit', 'Node for the tool']);
-  assert.equal(steps[at].run, 'node tool/scripts/release-route-chart.mjs plan');
+  assert.equal(steps[at].run, 'node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" plan');
   // ROUTE_SOURCE is the caller's checkout (at GITHUB_SHA), never the tool's.
   const caller = steps.find((step) => isCheckout(step) && !isToolCheckout(step));
   assert.equal(caller.with.ref, '${{ github.sha }}');
@@ -162,8 +162,8 @@ test('W6: the publish job installs nothing, runs no repository code, and publish
     'Inspect the package again', 'Ask npm whether to publish', 'Refuse while a hold-release label is open', 'Publish package.tgz']);
   // Every script is this repository's step, or the one publishing command; nothing else runs.
   const scripts = runsOf(jobs.publish).slice(1).map((step) => step.run);
-  assert.deepEqual(scripts, ['node tool/scripts/release-route.mjs npm-tool', 'node tool/scripts/release-route.mjs inspect',
-    'node tool/scripts/release-route.mjs ready', PUBLISH_COMMAND]);
+  const step = (name) => `node "$GITHUB_WORKSPACE/tool/scripts/release-route.mjs" ${name}`;
+  assert.deepEqual(scripts, [step('npm-tool'), step('inspect'), step('ready'), PUBLISH_COMMAND]);
   assert.doesNotMatch(JSON.stringify(jobs.publish), /npm (ci|install|run|exec)|npx|yarn|pnpm|corepack|node source|source\//);
   // npm-tool unpacks into a NEW folder under RUNNER_TEMP in this job, and the publish uses that folder.
   assert.deepEqual(stepNamed(jobs.publish, 'Unpack the pinned npm in this job').env, { ROUTE_NPM_DIR: '${{ runner.temp }}/npm', ROUTE_SOURCE: 'source' });
@@ -271,10 +271,11 @@ test('W13: the case it names (not the tip, npm has the version, no tag) is refus
 test('W14: plan and verify run charted only, with ROUTE_RECORD_DIR set, and their records are kept', () => {
   const scripts = allSteps().filter(([, step]) => typeof step.run === 'string' && /scripts\/release-route/.test(step.run));
   const charted = scripts.filter(([, step]) => step.run.includes('release-route-chart.mjs'));
-  assert.deepEqual(charted.map(([id, step]) => [id, step.run]), [['plan', 'node tool/scripts/release-route-chart.mjs plan'], ['verify', 'node tool/scripts/release-route-chart.mjs verify']]);
+  const chart = (name) => `node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" ${name}`;
+  assert.deepEqual(charted.map(([id, step]) => [id, step.run]), [['plan', chart('plan')], ['verify', chart('verify')]]);
   for (const [, step] of charted) assert.match(step.env.ROUTE_RECORD_DIR, /^\$\{\{ runner\.temp \}\}\//);
   for (const [, step] of scripts.filter(([, s]) => !s.run.includes('release-route-chart.mjs')))
-    assert.match(step.run, /^node tool\/scripts\/release-route\.mjs (npm-tool|build|inspect|ready|tag|notes)$/);
+    assert.match(step.run, /^node "\$GITHUB_WORKSPACE\/tool\/scripts\/release-route\.mjs" (npm-tool|build|inspect|ready|tag|notes)$/);
   for (const [id, record] of [['plan', 'plan'], ['verify', 'verify']]) {
     const keep = jobs[id].steps.at(-1);
     assert.equal(keep.if, '${{ !cancelled() }}');

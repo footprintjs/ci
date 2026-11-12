@@ -57,7 +57,7 @@ jobs:
           ROUTE_SOURCE: source
           ROUTE_RECORD_DIR: ${{ runner.temp }}/plan-record
           GITHUB_TOKEN: ${{ github.token }}
-        run: node tool/scripts/release-route-chart.mjs plan
+        run: node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" plan
       - name: Keep the plan's record
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
