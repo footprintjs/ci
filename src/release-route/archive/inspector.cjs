@@ -60,6 +60,11 @@ function headerSize(header) {
     fail();
   return octal(header.subarray(124, 136));
 }
+// Release route: a path segment some file system resolves to another file (see readTar).
+const DEVICE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+const foldedByAFileSystem = (segment) =>
+  segment.endsWith('.') || segment.endsWith(' ') || segment.includes('~') || segment.includes(':') ||
+  DEVICE.test(segment.split('.')[0].trimEnd());
 // Release route: the gzip + closed tar walk, split out of inspectArchive unchanged so that the
 // vendored npm (npm-tool.mjs) is unpacked by this same reader instead of a second one.
 // `admit(name)` is asked of every member right after its path passed the profile; it throws to
@@ -113,16 +118,20 @@ function readTar(bytes, limits, admit) {
       names.has(name)
     )
       fail();
-    // Release route (B2 of the second read): names a case-insensitive file system or Windows would
-    // fold together. npm on macOS or Windows extracts package/Package.json OVER package/package.json,
-    // so a twin could carry an install script past the manifest comparison. Refused in the profile,
-    // whatever the setting says: two paths equal without letter case; a root member other than the
-    // exact package/package.json equal to it without case; a segment ending in "." or a space
-    // (Windows drops those, so "binding.gyp." would become binding.gyp).
+    // Release route (B2 of the second read): no member may have a name that some file system
+    // resolves to a DIFFERENT file than the one written. npm on macOS or Windows extracts
+    // package/Package.json OVER package/package.json, so a twin could carry an install script past
+    // the manifest comparison. Refused in the profile, whatever the setting says (the README's
+    // "names no archive may hold" says why for each): two paths equal without letter case; a root
+    // member other than the exact package/package.json equal to it without case; and in any
+    // segment a trailing "." or space, a "~" (Windows short names: PACKAG~1.JSO), a ":" (a drive
+    // or an alternate data stream: package.json:x), or a Windows device base name (CON, PRN, AUX,
+    // NUL, COM1-9, LPT1-9, any case, any extension). "\\" and anything outside printable ASCII
+    // were already refused above.
     const folded = name.toLowerCase();
     if (folds.has(folded)) fail('archive-name', { text: name });
     if (folded === 'package/package.json' && name !== 'package/package.json') fail('archive-name', { text: name });
-    if (name.split('/').some((p) => p.endsWith('.') || p.endsWith(' '))) fail('archive-name', { text: name });
+    if (name.split('/').some(foldedByAFileSystem)) fail('archive-name', { text: name });
     folds.add(folded);
     admit(name);
     names.add(name);

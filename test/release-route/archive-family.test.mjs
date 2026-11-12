@@ -3,6 +3,7 @@
 // four ways a tarball goes wrong are each refused by name. The real tarballs are not committed;
 // docs/RELEASE-ROUTE.md records the run of the inspector over them.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { test } from 'node:test';
@@ -90,4 +91,34 @@ for (const [label, extra, setting, code] of [
 test('B2: the twin is refused by the profile before any setting is asked (readArchiveMembers too)', () => {
   const bytes = fixture.pack(twinSource, [fixture.entry('package/Package.json', twinManifest)]);
   assert.equal(refusedWith(() => inspector.readArchiveMembers(bytes)), 'archive-name:package/Package.json');
+});
+
+// The same class, stated once (round 3): no member may have a name that some file system resolves
+// to a different file than the one written. None of the four real tarballs, nor the vendored npm,
+// uses "~", ":" or a device name, so the profile refuses them outright.
+const hashed = (text) => `key-${createHash('sha256').update(text).digest('hex').slice(0, 12)}`;
+for (const [label, member, setting, code] of [
+  ['a Windows short name PACKAG~1.JSO', 'package/PACKAG~1.JSO', ['dist/', '*.JSO'], 'archive-name:package/PACKAG~1.JSO'],
+  ['a "~" anywhere in a segment', 'package/dist/a~b.js', ['dist/'], 'archive-name:package/dist/a~b.js'],
+  ['an alternate data stream package.json:x', 'package/package.json:x', ['dist/', 'package.json*'], `archive-name:${hashed('package/package.json:x')}`],
+  ['a drive-like segment', 'package/dist/c:x.js', ['dist/'], `archive-name:${hashed('package/dist/c:x.js')}`],
+  ['the device name CON', 'package/dist/CON', ['dist/'], 'archive-name:package/dist/CON'],
+  ['a device name with an extension, lower case', 'package/con.js', ['dist/', '*.js'], 'archive-name:package/con.js'],
+  ['Aux.d.ts in a folder', 'package/dist/Aux.d.ts', ['dist/'], 'archive-name:package/dist/Aux.d.ts'],
+  ['COM1.txt', 'package/dist/COM1.txt', ['dist/'], 'archive-name:package/dist/COM1.txt'],
+  ['lpt9 as a folder', 'package/dist/lpt9/x.js', ['dist/'], 'archive-name:package/dist/lpt9/x.js'],
+  ['NUL with a space before the extension', 'package/dist/NUL .txt', ['dist/'], 'archive-name:package/dist/NUL .txt'],
+  ['a backslash (already refused by the copied profile)', 'package/dist\\x.js', ['dist/'], 'invalid-archive'],
+  ['a non-ASCII letter (already refused by the copied profile)', 'package/dist/\u{E9}.js', ['dist/'], 'archive-profile'],
+  ['a Cyrillic look-alike of package.json (already refused)', 'package/p\u{430}ckage.json', ['dist/', '*.json'], 'archive-profile'],
+])
+  test(`names no archive may hold: ${label}`, () => {
+    const bytes = fixture.pack(twinSource, [fixture.entry(member, 'x')]);
+    assert.equal(refusedWith(() => inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: setting })), code);
+  });
+
+test('names no archive may hold: ordinary names with dots, dashes and digits still pass', () => {
+  const bytes = fixture.pack(twinSource, ['package/dist/console.js', 'package/dist/com10.js', 'package/dist/aux-data.json', 'package/dist/v1.2.3/x.js']
+    .map((member) => fixture.entry(member, 'x')));
+  assert.equal(inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: ['dist/'] }).files.length, 6);
 });

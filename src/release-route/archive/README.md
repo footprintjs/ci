@@ -14,10 +14,7 @@ what it needs, all visible in the commit after the copy:
   `archive-missing:<entry>`, `archive-version`, `archive-publish-config`, and
   `archive-intake` / `archive-file` / `publish-directory` for the files around it.
 - What the port refuses that the original did not need to (its list was closed, so it never met
-  these): two members equal without letter case, a root member other than the exact
-  `package/package.json` equal to it without case, a path segment ending in `.` or a space
-  (`archive-name`); and the fixed deny list of `allowed.cjs` (`archive-denied`). A
-  case-insensitive or Windows file system would fold such names together.
+  these): see "Names no archive may hold" below.
 - `strict-json.cjs` exports `parseStrictJson(bytes, { maxBytes, maxValues })`, so the
   route reads every JSON (settings, npm's and GitHub's answers) with this one reader.
 - Tests live in `test/release-route/archive/`; `PROVENANCE.json` below is footPrint's
@@ -62,3 +59,37 @@ at archive admission, rather than borrowing an unrelated source mismatch.
 
 `npm test` runs `test/release-route/archive/*.test.cjs` with the route's tests. Hosted exact-head checks, actual npm-pack profile
 proof and Claude review remain separate gates.
+
+## Names no archive may hold
+
+The original admitted a closed list of names. Once the allowed names became a setting, these are
+refused whatever the setting says, because each one makes a consumer's install do something the
+package.json the route compared does not say, or makes some file system resolve the name to a
+different file than the one written. Owner: `allowed.cjs` (what npm gives a meaning) and
+`inspector.cjs · readTar` (what a file system folds together).
+
+Files npm gives a meaning of its own (`archive-denied`, any letter case):
+
+| Name | Why |
+|---|---|
+| root `binding.gyp` | npm's default install script is `node-gyp rebuild`: code on every install |
+| root `server.js` | npm's default start script is `node server.js` |
+| root `npm-shrinkwrap.json` | npm installs the tree it pins instead of the declared ranges |
+| any `.npmrc` | npm configuration: registry, scripts, credentials |
+| any `node_modules` folder | dependency code shipped inside the package, around the declared dependencies |
+
+Names a file system resolves to a different file (`archive-name`):
+
+| Name | Why |
+|---|---|
+| two paths equal without letter case | macOS and Windows keep one of them: `Package.json` lands on `package.json` |
+| a root member equal to `package.json` without case, other than the exact one | the same, at the one file the route compares |
+| a segment ending in `.` or a space | Windows drops them: `binding.gyp.` becomes `binding.gyp` |
+| `~` in a segment | Windows short names: `PACKAG~1.JSO` can resolve to an existing `package.json` (no family tarball uses `~`) |
+| `:` in a segment | a drive letter or an alternate data stream on Windows: `package.json:x` |
+| a Windows device base name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`, any case, any extension) | Windows opens the device, not a file |
+
+Already refused by the copied profile (`invalid-archive` / `archive-profile`): `\` anywhere (a path
+separator on Windows), `.` and `..` segments, empty segments, and any character outside printable
+ASCII, which keeps Unicode look-alikes and normal forms out (`pаckage.json` with a Cyrillic `а`).
+
