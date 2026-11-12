@@ -60,75 +60,83 @@ function headerSize(header) {
     fail();
   return octal(header.subarray(124, 136));
 }
+// Release route: the gzip + closed tar walk, split out of inspectArchive unchanged so that the
+// vendored npm (npm-tool.mjs) is unpacked by this same reader instead of a second one.
+// `admit(name)` is asked of every member right after its path passed the profile; it throws to
+// refuse. Returns the members with their bytes, in tar order.
+function readTar(bytes, limits, admit) {
+  const maxArchive = limits.maxArchiveBytes ?? 16 * 1024 * 1024;
+  const maxExpanded = limits.maxExpandedBytes ?? 64 * 1024 * 1024;
+  const maxFiles = limits.maxFiles ?? 10000;
+  if (
+    ![maxArchive, maxExpanded, maxFiles].every((n) => Number.isSafeInteger(n) && n > 0) ||
+    !Buffer.isBuffer(bytes) ||
+    bytes.length > maxArchive
+  )
+    fail();
+  // One flags-zero gzip member only. Never publish bytes hidden after its trailer.
+  if (bytes.length < 18 || bytes[0] !== 31 || bytes[1] !== 139 || bytes[2] !== 8 || bytes[3] !== 0) fail();
+  const decoded = inflateRawSync(bytes.subarray(10), { maxOutputLength: maxExpanded, info: true }),
+    tar = decoded.buffer,
+    trailer = 10 + decoded.engine.bytesWritten;
+  if (
+    trailer + 8 !== bytes.length ||
+    bytes.readUInt32LE(trailer) !== crc32(tar) ||
+    bytes.readUInt32LE(trailer + 4) !== tar.length
+  )
+    fail();
+  if (tar.length % 512 !== 0) fail();
+  const names = new Set(),
+    members = [];
+  let at = 0,
+    ended = false;
+  while (at + 512 <= tar.length) {
+    const header = tar.subarray(at, at + 512);
+    at += 512;
+    if (header.every((n) => n === 0)) {
+      if (at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail();
+      ended = true;
+      break;
+    }
+    const size = headerSize(header);
+    const padded = Math.ceil(size / 512) * 512;
+    if (at + padded > tar.length || tar.subarray(at + size, at + padded).some((n) => n !== 0)) fail();
+    const data = tar.subarray(at, at + size);
+    at += padded;
+    const name = field(header.subarray(0, 100));
+    if (Buffer.byteLength(name) >= 100 || /[^\x20-\x7e]/.test(name)) fail('archive-profile');
+    if (
+      !name.startsWith('package/') ||
+      /[\\\x00-\x1f]/.test(name) ||
+      name.split('/').some((p) => p === '..' || p === '.' || p === '') ||
+      names.has(name)
+    )
+      fail();
+    admit(name);
+    names.add(name);
+    if (names.size > maxFiles) fail();
+    members.push({ path: name, size, data });
+  }
+  if (!ended) fail();
+  return members;
+}
 // Release route: `expected` is { version, sourceManifest, archive }. The package name is the
 // source manifest's (the whole-manifest comparison below already demands it), and the allowed
 // members come from the repository's `archive` setting (allowed.cjs) instead of a fixed list.
 function inspectArchive(bytes, expected) {
   try {
     const allowed = compileArchiveRule(expected.archive);
-    const maxArchive = expected.maxArchiveBytes ?? 16 * 1024 * 1024;
-    const maxExpanded = expected.maxExpandedBytes ?? 64 * 1024 * 1024;
-    const maxFiles = expected.maxFiles ?? 10000;
-    if (
-      ![maxArchive, maxExpanded, maxFiles].every((n) => Number.isSafeInteger(n) && n > 0) ||
-      !Buffer.isBuffer(bytes) ||
-      bytes.length > maxArchive
-    )
-      fail();
-    // One flags-zero gzip member only. Never publish bytes hidden after its trailer.
-    if (bytes.length < 18 || bytes[0] !== 31 || bytes[1] !== 139 || bytes[2] !== 8 || bytes[3] !== 0) fail();
-    const decoded = inflateRawSync(bytes.subarray(10), { maxOutputLength: maxExpanded, info: true }),
-      tar = decoded.buffer,
-      trailer = 10 + decoded.engine.bytesWritten;
-    if (
-      trailer + 8 !== bytes.length ||
-      bytes.readUInt32LE(trailer) !== crc32(tar) ||
-      bytes.readUInt32LE(trailer + 4) !== tar.length
-    )
-      fail();
-    if (tar.length % 512 !== 0) fail();
-    const names = new Set(),
-      files = [];
-    let at = 0,
-      manifestBytes = null,
-      ended = false;
-    while (at + 512 <= tar.length) {
-      const header = tar.subarray(at, at + 512);
-      at += 512;
-      if (header.every((n) => n === 0)) {
-        if (at + 512 > tar.length || !tar.subarray(at).every((n) => n === 0)) fail();
-        ended = true;
-        break;
-      }
-      const size = headerSize(header);
-      const padded = Math.ceil(size / 512) * 512;
-      if (at + padded > tar.length || tar.subarray(at + size, at + padded).some((n) => n !== 0)) fail();
-      const data = tar.subarray(at, at + size);
-      at += padded;
-      const name = field(header.subarray(0, 100));
-      if (Buffer.byteLength(name) >= 100 || /[^\x20-\x7e]/.test(name)) fail('archive-profile');
-      if (
-        !name.startsWith('package/') ||
-        /[\\\x00-\x1f]/.test(name) ||
-        name.split('/').some((p) => p === '..' || p === '.' || p === '') ||
-        names.has(name)
-      )
-        fail();
+    const members = readTar(bytes, expected, (name) => {
       // A file npm gives a meaning of its own is refused whatever the setting says (allowed.cjs).
       if (allowed.denied(name.slice('package/'.length))) fail('archive-denied', { text: name });
       if (!allowed.admits(name.slice('package/'.length))) fail('archive-path', { text: name });
-      names.add(name);
-      if (names.size > maxFiles) fail();
-      files.push({ path: name, size, sha256: hash(data, 'sha256') });
-      if (name === 'package/package.json') {
-        if (size > 1024 * 1024) fail();
-        manifestBytes = data;
-      }
-    }
-    if (!ended || !manifestBytes) fail();
+    });
+    const files = members.map((m) => ({ path: m.path, size: m.size, sha256: hash(m.data, 'sha256') }));
+    const manifest = members.find((m) => m.path === 'package/package.json');
+    if (!manifest || manifest.size > 1024 * 1024) fail();
     const missing = allowed.missing(files.map((f) => f.path.slice('package/'.length)));
     if (missing.length > 0) fail('archive-missing', { text: missing[0] });
-    const identity = parseManifest(manifestBytes);
+    const identity = parseManifest(manifest.data);
     requireSourceManifest(identity, expected.sourceManifest);
     if (identity.version !== expected.version) fail('archive-version');
     // publishConfig can move the registry or the dist-tag at publish time; the route names it.
@@ -147,6 +155,16 @@ function inspectArchive(bytes, expected) {
     fail();
   }
 }
+// Release route: readTar alone, for a payload the caller has already pinned by digest. Every
+// refusal is still this module's.
+function readArchiveMembers(bytes, limits = {}) {
+  try {
+    return readTar(bytes, limits, () => {});
+  } catch (e) {
+    if (archiveRefusalCode(e) !== undefined) throw e;
+    fail();
+  }
+}
 function crc32(bytes) {
   let n = 0xffffffff;
   for (const b of bytes) {
@@ -155,4 +173,4 @@ function crc32(bytes) {
   }
   return (n ^ 0xffffffff) >>> 0;
 }
-module.exports = { inspectArchive, archiveRefusalCode, parseManifest };
+module.exports = { inspectArchive, readArchiveMembers, archiveRefusalCode, parseManifest };

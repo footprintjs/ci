@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import archivePort from './archive/check-archive.cjs';
 import { isPlainVersion } from './identity.mjs';
+import { npmCli } from './npm-tool.mjs';
 import { readPackage } from './observe.mjs';
 import { readAtCommit, requireCleanCheckout } from './repo.mjs';
 import { refuse } from './refusals.mjs';
@@ -59,7 +60,10 @@ function prepareOut(out, source) {
   if (inside === '' || (!inside.startsWith(`..${sep}`) && inside !== '..' && !isAbsolute(inside))) refuse('output-folder', 'inside the checkout');
 }
 
-export function build({ git, run = spawnRunner, source, commit, out, env = process.env, nodeVersion = process.versions.node }) {
+// npmDir: the folder `npm-tool` unpacked the vendored npm into. Given, the package is packed with
+// that npm (`node <npmDir>/package/bin/npm-cli.js pack ...`), the one the publish job uses; not
+// given, with the runner's `npm`.
+export function build({ git, run = spawnRunner, source, commit, out, env = process.env, nodeVersion = process.versions.node, npmDir, nodePath = process.execPath }) {
   requireCleanCheckout(git, commit);
   const settingsBytes = readAtCommit(git, commit, SETTINGS_PATH, MAX_SETTINGS_BYTES, 'settings-unreadable');
   if (settingsBytes === null) refuse('settings-unreadable', SETTINGS_PATH);
@@ -67,6 +71,7 @@ export function build({ git, run = spawnRunner, source, commit, out, env = proce
   const { bytes: sourceBytes, manifest } = readPackage(git, commit);
   if (!isPlainVersion(manifest.version)) refuse('version-not-plain');
   if (nodeVersion.split('.')[0] !== settings.node) refuse('node-version', `running ${nodeVersion.split('.')[0]}, settings say ${settings.node}`);
+  const packer = npmDir === undefined ? ['npm'] : [nodePath, npmCli(npmDir)];
   prepareOut(out, source);
 
   const childEnv = commandEnv(env);
@@ -82,7 +87,7 @@ export function build({ git, run = spawnRunner, source, commit, out, env = proce
 
   const packDir = mkdtempSync(join(tmpdir(), 'release-route-pack-'));
   try {
-    step(['npm', 'pack', '--ignore-scripts', '--pack-destination', packDir], 'pack-failed');
+    step([...packer, 'pack', '--ignore-scripts', '--pack-destination', packDir], 'pack-failed');
     const left = readdirSync(packDir);
     if (left.length !== 1 || !left[0].endsWith('.tgz')) refuse('pack-output', `${left.length} entries`);
     const packed = join(packDir, left[0]);

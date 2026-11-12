@@ -81,9 +81,14 @@ export async function compareWithNpm({ fetcher, name, version, localBytes, sleep
   const local = integrityOf(localBytes);
   const dist = await waitForDist({ fetcher, name, version, sleep, wait });
   if (dist.integrity !== local) refuse('registry-differs', 'integrity');
-  const { status, bytes } = await boundedGet({ fetcher, url: dist.tarball, maxBytes: archivePort.MAX_ARCHIVE_BYTES,
-    headers: { accept: 'application/octet-stream' } });
-  if (status !== 200) refuse('response-status', `npm tarball HTTP ${status}`);
-  if (integrityOf(bytes) !== local) refuse('registry-differs', 'tarball bytes');
+  if (integrityOf(await downloadTarball({ fetcher, url: dist.tarball })) !== local) refuse('registry-differs', 'tarball bytes');
   return { integrity: local, tarball: dist.tarball };
+}
+
+// The bytes npm serves at a tarball address readDist already checked; bounded like any archive.
+export async function downloadTarball({ fetcher, url }) {
+  if (typeof url !== 'string' || !url.startsWith(`${ORIGIN}/`)) refuse('tarball-url');
+  const { status, bytes } = await boundedGet({ fetcher, url, maxBytes: archivePort.MAX_ARCHIVE_BYTES, headers: { accept: 'application/octet-stream' } });
+  if (status !== 200) refuse('response-status', `npm tarball HTTP ${status}`);
+  return bytes;
 }

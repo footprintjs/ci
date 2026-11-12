@@ -129,3 +129,21 @@ test('the repository\'s commands see no file-command variable, no ROUTE_ input a
   go(repo(t), run, { env });
   assert.ok(calls.every((c) => !('GITHUB_TOKEN' in c.env) && c.env.PATH === '/bin'));
 });
+
+test('given the unpacked pinned npm, build packs with `node <npm>/package/bin/npm-cli.js pack`', (t) => {
+  const r = repo(t);
+  const npmDir = join(r.root, 'npm');
+  mkdirSync(join(npmDir, 'package/bin'), { recursive: true });
+  writeFileSync(join(npmDir, 'package/package.json'), JSON.stringify({ name: 'npm', version: '11.19.0' }));
+  writeFileSync(join(npmDir, 'package/bin/npm-cli.js'), '// stand-in');
+  const calls = [];
+  const run = (argv, options) => {
+    calls.push(argv);
+    if (argv[2] === 'pack') writeFileSync(join(argv[5], 'x.tgz'), fixture.pack({ ...manifest }));
+    return 0;
+  };
+  go(r, run, { npmDir, nodePath: '/usr/bin/node-of-the-job' });
+  assert.deepEqual(calls.at(-1).slice(0, 4), ['/usr/bin/node-of-the-job', join(npmDir, 'package/bin/npm-cli.js'), 'pack', '--ignore-scripts']);
+  writeFileSync(join(npmDir, 'package/package.json'), JSON.stringify({ name: 'npm', version: '10.0.0' }));
+  assert.equal(code(() => go(repo(t), run, { npmDir })), 'npm-tool the npm folder holds another npm');
+});

@@ -22,6 +22,9 @@ const OUTPUTS = Object.freeze({
   file: (v) => v === 'package.tgz',
   'title-file': (v) => v === 'title.txt',
   'notes-file': (v) => v === 'notes.md',
+  publish: (v) => v === 'yes' || v === 'no',
+  tag: (v) => v === 'create' || v === 'skip',
+  release: (v) => v === 'create' || v === 'skip',
 });
 
 export function safeLine(line) {

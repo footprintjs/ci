@@ -1,17 +1,23 @@
-// The one command: `node scripts/release-route.mjs <step>`, steps plan | build | inspect | verify
-// | notes. Inputs come from the environment the workflow sets with `env:` (never interpolated
+// The one command: `node scripts/release-route.mjs <step>`, steps plan | npm-tool | build |
+// inspect | ready | verify | tag | notes. Inputs come from the environment the workflow sets with `env:` (never interpolated
 // into a script line); each step prints a short summary, writes closed-alphabet outputs, and
 // returns 0 or 1. Every exception ends as a named refusal and exit 1: no catch here passes.
 //
 //   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN]
 //            -> mode, rule, compare, commit, [package, version]       (exit 0 also for "nothing")
-//   build    ROUTE_COMMIT, ROUTE_OUT                                   -> file
+//   npm-tool ROUTE_NPM_DIR                                             (the pinned npm, unpacked)
+//   build    ROUTE_COMMIT, ROUTE_OUT, [ROUTE_NPM_DIR]                  -> file
 //   inspect  ROUTE_COMMIT, ROUTE_TARBALL_DIR                           (re-checks package.tgz)
+//   ready    ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR           -> publish (yes|no)
 //   verify   ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR           (npm serves these bytes)
+//   tag      ROUTE_COMMIT, ROUTE_VERSION, GITHUB_REPOSITORY, [GITHUB_TOKEN] -> tag, release (create|skip)
 //   notes    ROUTE_COMMIT, ROUTE_OUT                                   -> title-file, notes-file
 // ROUTE_SOURCE (default ".") is the repository checkout every git question is asked in.
 import archivePort from './archive/check-archive.cjs';
 import { build } from './build.mjs';
+import { unpackNpm } from './npm-tool.mjs';
+import { ready } from './ready.mjs';
+import { tagPlan } from './tag.mjs';
 import { isCommit, isPackageName, isPlainVersion } from './identity.mjs';
 import { releaseNotes, writeNotes } from './notes.mjs';
 import { observe, readPackage } from './observe.mjs';
@@ -22,7 +28,7 @@ import { asRefusal, REFUSALS, refuse } from './refusals.mjs';
 import { MAX_SETTINGS_BYTES, readSettings, SETTINGS_PATH } from './settings.mjs';
 import { clean as printable } from '../shared/text.mjs';
 
-export const STEPS = Object.freeze(['plan', 'build', 'inspect', 'verify', 'notes']);
+export const STEPS = Object.freeze(['plan', 'npm-tool', 'build', 'inspect', 'ready', 'verify', 'tag', 'notes']);
 
 const input = (env, name, check) => {
   const value = env[name];
@@ -58,7 +64,8 @@ async function planStep({ env, git, fetcher, report }) {
 }
 
 function buildStep({ env, git, run, report }) {
-  const result = build({ git, run, source: env.ROUTE_SOURCE || '.', commit: commitInput(env), out: pathInput(env, 'ROUTE_OUT'), env });
+  const npmDir = env.ROUTE_NPM_DIR === undefined || env.ROUTE_NPM_DIR === '' ? undefined : pathInput(env, 'ROUTE_NPM_DIR');
+  const result = build({ git, run, source: env.ROUTE_SOURCE || '.', commit: commitInput(env), out: pathInput(env, 'ROUTE_OUT'), env, npmDir });
   report.output('file', result.file);
   report.say(`Built ${printable(result.name, 214)} ${result.version}: package.tgz, ${result.files} files, ${result.integrity}.`);
 }
@@ -82,6 +89,29 @@ async function verifyStep({ env, fetcher, sleep, report }) {
   report.say(`Verified: npm serves ${name}@${version} with the same bytes as the built file (${result.integrity}).`);
 }
 
+function npmToolStep({ env, report }) {
+  const result = unpackNpm({ out: pathInput(env, 'ROUTE_NPM_DIR'), source: env.ROUTE_SOURCE || '.' });
+  report.say(`Unpacked the pinned npm ${result.version} (${result.files} files, digests equal to vendor/npm/manifest.json).`);
+}
+
+async function readyStep({ env, fetcher, report }) {
+  const name = input(env, 'ROUTE_PACKAGE', isPackageName);
+  const version = input(env, 'ROUTE_VERSION', isPlainVersion);
+  const { bytes } = archivePort.readIntake(pathInput(env, 'ROUTE_TARBALL_DIR'));
+  const publish = await ready({ fetcher, name, version, localBytes: bytes });
+  report.output('publish', publish);
+  report.say(publish === 'yes' ? `Ready: npm does not have ${name}@${version}; publish it.`
+    : `Ready: npm already serves ${name}@${version} with exactly these bytes; do not publish again, go on to verify.`);
+}
+
+async function tagStep({ env, git, fetcher, report }) {
+  const version = input(env, 'ROUTE_VERSION', isPlainVersion);
+  const result = await tagPlan({ git, fetcher, repo: env.GITHUB_REPOSITORY, version, commit: commitInput(env), token: env.GITHUB_TOKEN });
+  report.output('tag', result.tag);
+  report.output('release', result.release);
+  report.say(`Tag v${version}: ${result.tag}. GitHub release: ${result.release}.`);
+}
+
 function notesStep({ env, git, report }) {
   const notes = releaseNotes({ git, commit: commitInput(env) });
   const files = writeNotes(pathInput(env, 'ROUTE_OUT'), notes);
@@ -91,7 +121,8 @@ function notesStep({ env, git, report }) {
   report.say(`Release notes: ${notes.lines.length} lines in notes.md.`);
 }
 
-const HANDLERS = Object.freeze({ plan: planStep, build: buildStep, inspect: inspectStep, verify: verifyStep, notes: notesStep });
+const HANDLERS = Object.freeze({ plan: planStep, 'npm-tool': npmToolStep, build: buildStep, inspect: inspectStep, ready: readyStep, verify: verifyStep,
+  tag: tagStep, notes: notesStep });
 
 // doors: { env, git, fetcher, run, sleep, report }. Returns the exit code.
 export async function runStep(step, doors) {

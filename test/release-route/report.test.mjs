@@ -34,8 +34,9 @@ test('outputs are written only from their closed alphabets', () => {
   report.output('compare', 'no');
   report.output('rule', 'released');
   report.output('file', 'package.tgz');
-  assert.equal(files['/out'], 'mode=publish\ncommit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\ncompare=no\nrule=released\nfile=package.tgz\n');
-  for (const [key, value] of [['mode', 'ship'], ['version', '1.0.0\nmode=publish'], ['commit', 'HEAD'], ['title', 'x'], ['file', '../x.tgz'], ['package', 'A'], ['rule', 'x'], ['mode', 1]])
+  for (const [key, value] of [['publish', 'yes'], ['publish', 'no'], ['tag', 'create'], ['tag', 'skip'], ['release', 'create'], ['release', 'skip']]) report.output(key, value);
+  assert.equal(files['/out'], 'mode=publish\ncommit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\ncompare=no\nrule=released\nfile=package.tgz\npublish=yes\npublish=no\ntag=create\ntag=skip\nrelease=create\nrelease=skip\n');
+  for (const [key, value] of [['mode', 'ship'], ['version', '1.0.0\nmode=publish'], ['commit', 'HEAD'], ['title', 'x'], ['file', '../x.tgz'], ['package', 'A'], ['rule', 'x'], ['mode', 1], ['publish', 'maybe'], ['tag', 'move'], ['release', 'yes']])
     assert.throws(() => report.output(key, value), (error) => error instanceof Refusal && error.code === 'output-invalid');
 });
 

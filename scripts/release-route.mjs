@@ -1,4 +1,5 @@
-// The release route's one command: node scripts/release-route.mjs <plan|build|inspect|verify|notes>
+// The release route's one command: node scripts/release-route.mjs <step>, one of
+// plan | npm-tool | build | inspect | ready | verify | tag | notes.
 // Built-in Node modules only: the workflow runs this from a plain checkout with no install.
 // What each step reads and writes: src/release-route/command.mjs and docs/RELEASE-ROUTE.md.
 import { execFileSync } from 'node:child_process';

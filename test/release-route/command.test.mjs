@@ -41,7 +41,7 @@ test('the script: an unknown or missing step is refused with exit 1', () => {
   for (const args of [['ship'], [], ['__proto__'], ['PLAN']]) {
     const result = runCli(args);
     assert.equal(result.status, 1, JSON.stringify(args));
-    assert.match(result.stdout, /^Refused: unknown-step\. The step is not one of plan, build, inspect, verify, notes\.$/m);
+    assert.match(result.stdout, /^Refused: unknown-step\. The step is not one of plan, npm-tool, build, inspect, ready, verify, tag, notes\.$/m);
   }
 });
 
@@ -116,4 +116,31 @@ test('a failing git is git-failed; an exception the route has no name for is une
   assert.match(printed.at(-1), /^Refused: unexpected-failure\./);
   const broken = { ...d, report: { ...d.report, say: d.report.say, summary: () => { throw new Error('disk full'); } } };
   assert.equal(await runStep('unknown', broken), 1);
+});
+
+test('ready, tag and npm-tool as steps: closed outputs, and a refusal is exit 1', async (t) => {
+  const intake = join(folder(t), 'tarball');
+  mkdirSync(intake);
+  const tgz = Buffer.from('built');
+  writeFileSync(join(intake, 'package.tgz'), tgz);
+  const V = 'https://registry.npmjs.org/footprint-storydeck/0.13.2';
+  const r1 = doors({ ROUTE_PACKAGE: 'footprint-storydeck', ROUTE_VERSION: '0.13.2', ROUTE_TARBALL_DIR: intake }, { fetched: { [V]: json({}, 404) } });
+  assert.equal(await runStep('ready', r1.doors), 0);
+  assert.equal(r1.written.out, 'publish=yes\n');
+
+  const releaseUrl = 'https://api.github.com/repos/footprintjs/storydeck/releases/tags/v0.13.1';
+  const r2 = doors({ ROUTE_COMMIT: COMMIT, ROUTE_VERSION: '0.13.1', GITHUB_REPOSITORY: 'footprintjs/storydeck' },
+    { lsRemote: `${'e'.repeat(40)}\trefs/tags/v0.13.1\n`, fetched: { [releaseUrl]: json({}, 404) } });
+  assert.equal(await runStep('tag', r2.doors), 1);
+  assert.match(r2.printed[0], /^Refused: tag-elsewhere\./);
+  const r3 = doors({ ROUTE_COMMIT: COMMIT, ROUTE_VERSION: '0.13.1', GITHUB_REPOSITORY: 'footprintjs/storydeck' },
+    { lsRemote: '', fetched: { [releaseUrl]: json({}, 404) } });
+  assert.equal(await runStep('tag', r3.doors), 0);
+  assert.equal(r3.written.out, 'tag=create\nrelease=create\n');
+
+  const npmDir = join(folder(t), 'npm');
+  const r4 = doors({ ROUTE_NPM_DIR: npmDir, ROUTE_SOURCE: process.cwd() });
+  assert.equal(await runStep('npm-tool', r4.doors), 0, r4.printed.join('\n'));
+  assert.match(r4.printed[0], /^Unpacked the pinned npm 11\.19\.0 \(1943 files/);
+  assert.equal(await runStep('npm-tool', doors({ ROUTE_NPM_DIR: npmDir, ROUTE_SOURCE: process.cwd() }).doors), 1);
 });

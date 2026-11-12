@@ -1,4 +1,5 @@
-// The route's ONE question to GitHub: is the release tool's commit on footprintjs/ci main?
+// The route's TWO questions to GitHub. The first, `toolReviewed`: is the release tool's commit on
+// footprintjs/ci main? The second, `readRelease`, comes after it below.
 //
 // What it is for: a caller pins the route by full commit, and pinning a commit that was never on
 // ci main (a branch commit, a typo that happens to exist, a commit pushed to a fork and addressed
@@ -11,9 +12,9 @@
 // with the commit as merge base means the commit is an ancestor of main. Anything else,
 // including a 404 for a commit GitHub does not know, is "not reviewed".
 
-import { GITHUB_API, githubHeaders, isToken } from '../shared/github.mjs';
+import { GITHUB_API, githubHeaders, isRepository, isToken } from '../shared/github.mjs';
 import { answerJson, boundedGet } from './http.mjs';
-import { isCommit } from './identity.mjs';
+import { isCommit, isPlainVersion } from './identity.mjs';
 import { refuse } from './refusals.mjs';
 
 export const TOOL_REPOSITORY = 'footprintjs/ci';
@@ -35,4 +36,20 @@ export async function toolReviewed({ fetcher, sha, token }) {
   if (answer.status === 'identical' || answer.status === 'behind') return base.sha === sha;
   if (answer.status === 'ahead' || answer.status === 'diverged') return false;
   refuse('response-shape', 'GitHub compare status');
+}
+
+// The second question (added for the release job's `tag` step): is there a GitHub release for tag
+// v<version> in `repo`? null on 404, else { tagName, draft }. Same fixed host, same token rule.
+const RELEASE = { maxBytes: 4 * 1024 * 1024, maxValues: 200_000 };
+export async function readRelease({ fetcher, repo, version, token }) {
+  if (!isRepository(repo)) refuse('input-invalid', 'GITHUB_REPOSITORY');
+  if (!isPlainVersion(version)) refuse('input-invalid', 'version');
+  if (token !== undefined && token !== '' && !isToken(token)) refuse('input-invalid', 'GITHUB_TOKEN');
+  const { status, bytes } = await boundedGet({ fetcher, url: `${GITHUB_API}/repos/${repo}/releases/tags/v${version}`,
+    headers: githubHeaders(token || undefined), maxBytes: RELEASE.maxBytes });
+  if (status === 404) return null;
+  if (status !== 200) refuse('response-status', `GitHub HTTP ${status}`);
+  const answer = answerJson(bytes, RELEASE, new URL(GITHUB_API).host);
+  if (typeof answer.tag_name !== 'string' || typeof answer.draft !== 'boolean') refuse('response-shape', 'GitHub release');
+  return { tagName: answer.tag_name, draft: answer.draft };
 }

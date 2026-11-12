@@ -344,8 +344,8 @@
       "source": "scripts/publish-release/archive/inspector.cjs",
       "destination": "src/release-route/archive/inspector.cjs",
       "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "sha256": "c55be18405a11973c8f2afb5f53777d76b2561d3341dd756d6cc670e605b94bc",
-      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config."
+      "sha256": "43f9a71b551315e52496d446df827f8006c22781b2565c1783fa4f7ec2748140",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader."
     },
     {
       "source": "scripts/publish-release/archive/inspector.test.cjs",

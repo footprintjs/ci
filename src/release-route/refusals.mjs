@@ -9,7 +9,7 @@ import archiveRefusal from './archive/refusal.cjs';
 
 export const REFUSALS = Object.freeze({
   // The command itself.
-  'unknown-step': 'The step is not one of plan, build, inspect, verify, notes.',
+  'unknown-step': 'The step is not one of plan, npm-tool, build, inspect, ready, verify, tag, notes.',
   'input-invalid': 'An input the workflow passes is missing or malformed.',
   'output-invalid': 'A value meant for a later job is outside its closed alphabet, so it is not written.',
   'unexpected-failure': 'Something failed that the route has no name for; it stops rather than guess.',
@@ -69,6 +69,11 @@ export const REFUSALS = Object.freeze({
   // npm against the built file.
   'registry-differs': 'npm serves different bytes for this version than the file the route built.',
   'registry-late': 'npm did not show this version within the bounded wait.',
+
+  // The release job and the pinned npm.
+  'tag-elsewhere': 'The tag for this version exists at another commit; the route never moves or reuses a tag.',
+  'release-unexpected': 'A GitHub release for this tag exists but is a draft or names another tag; decide by hand.',
+  'npm-tool': 'The vendored npm does not match its pinned digest, or its folder is not new, private and outside the checkout.',
 
   // The archive inspector (src/release-route/archive/); codes may carry ":<field>".
   'invalid-archive': 'The tarball is not the closed gzip/tar shape the route accepts.',
