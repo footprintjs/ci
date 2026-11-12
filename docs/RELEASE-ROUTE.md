@@ -1,13 +1,13 @@
-# The shared release route (core scripts)
+# The shared release route
 
 One release route for every package of the family, kept here once. A person merges a pull
 request that changes the version; the route builds the package, checks the file, publishes that
 exact file, proves npm serves the same bytes, and only then writes the tag and the GitHub release.
 
-This page covers the part with no workflow in it: the modules in `src/release-route/` and the one
-command the workflow will call, `node scripts/release-route.mjs <step>`. The workflow
-(`release-route.yml`) comes later (see the last section). Design and rulings:
-`review-exchange/designs/shared-release-route-20261112.md` (sections 12 and 13 win).
+This page covers the modules in `src/release-route/`, the one command the workflows call,
+`node scripts/release-route.mjs <step>`, and the two workflows that wire the steps into jobs,
+`release-route.yml` and `release-check.yml` (section "The workflows"). Design and rulings:
+`review-exchange/designs/shared-release-route-20261112.md` (sections 12 to 15 win).
 
 Why it is built this way, in one line each:
 
@@ -29,9 +29,9 @@ Why it is built this way, in one line each:
 
 ## The steps
 
-| Step | Job (next PR) | Reads (environment) | Does | Writes (`$GITHUB_OUTPUT`) |
+| Step | Job | Reads (environment) | Does | Writes (`$GITHUB_OUTPUT`) |
 |---|---|---|---|---|
-| `plan` | plan: read only, no repo code runs | `GITHUB_SHA`, `GITHUB_REF`, `ROUTE_ACTION` (`publish` or `dry-run`), `ROUTE_TOOL_SHA` (`job.workflow_sha`), optional `GITHUB_TOKEN` | observes the facts (git, npm, GitHub) and runs the rule table | `rule`, `commit`, `package`, `version`, and on a decision `mode`, `compare` |
+| `plan` | plan: read only, no repo code runs | `GITHUB_SHA`, `GITHUB_REF`, `ROUTE_ACTION` (`publish` or `dry-run`), `ROUTE_TOOL_SHA` (`job.workflow_sha`), optional `GITHUB_TOKEN` | observes the facts (git, npm, GitHub) and runs the rule table | `rule`, `commit`, `package`, `version`, and on a decision `node` (the settings' Node major, for the build job), `compare`, `mode` |
 | `npm-tool` | build and publish, first | `ROUTE_NPM_DIR` | checks `vendor/npm/npm-11.19.0.tgz` against both digests in `vendor/npm/manifest.json` and unpacks it (with the inspector's tar reader) into that new, private folder outside the checkout | nothing |
 | `build` | build: no secret, no write right | `ROUTE_COMMIT`, `ROUTE_OUT`, `ROUTE_NPM_DIR` | the settings' system packages, install, checks, then `node <npm>/package/bin/npm-cli.js pack --ignore-scripts` (the runner's `npm` when `ROUTE_NPM_DIR` is not given), one archive check | `file` (`package.tgz`) |
 | `inspect` | publish, just before `npm publish` | `ROUTE_COMMIT`, `ROUTE_TARBALL_DIR` | the archive check again, with this repository's inspector | nothing |
@@ -55,7 +55,7 @@ in `$GITHUB_OUTPUT` when the step ends. It holds by these rules:
   A failing summary write (the path is a folder, read-only, or under a missing folder) or a failing
   output append leaves no output at all, and after a failed write nothing more is written.
 - A refused step writes only the outputs that name the run (`rule`, `commit`, `package`,
-  `version`), never `mode`, `compare`, `publish`, `tag`, `release` or a file name.
+  `version`), never `mode`, `compare`, `node`, `publish`, `tag`, `release` or a file name.
 - That append is whole or nothing (`src/shared/append-whole.mjs · appendWhole`): when it fails
   part-way, the file is cut back to the size it had, so a step that exits 1 after a failed output
   write leaves `$GITHUB_OUTPUT` exactly as it found it.
@@ -333,39 +333,91 @@ step of design section 8 is done). A commit merged into ci `main` runs everywher
 ## What the workflow must keep
 
 The workflow pull request is checked against this list. It is the second reader's, from round 2
-of its read of this pull request, in its words; nothing in these scripts can enforce it.
+of its read of this pull request, in its words; nothing in these scripts can enforce it. Under each
+rule, how `release-route.yml` keeps it and the test that holds it there (`test/workflow/`, reading
+the workflow as parsed YAML), or why no test can.
 
 - **W1.** `plan` runs in its own job, first, with no repository command before it; it checks out the CALLER at
   `GITHUB_SHA` with `persist-credentials: false`, and `ROUTE_SOURCE` points at that checkout, never at the ci tool's
   checkout (otherwise `origin`, the tags and the main tip are ci's).
+  - Kept: the plan job's steps before the plan step are exactly the tool guard, the caller's checkout at
+    `${{ github.sha }}` into `source`, the tool's checkout into `tool`, and the Node setup; `ROUTE_SOURCE` is
+    `source`. Test: `release-route.test.mjs` "W1, W2", and "every checkout leaves no credentials behind".
 - **W2.** No step before `plan` in that job writes git config, `insteadOf`, `GIT_*` variables, or `HOME`.
+  - Kept: no `env:` at the workflow or job level; no step up to the plan step sets a `GIT_*` or `HOME` variable or
+    runs `git`. Test: "W1, W2". Not testable here: what `actions/checkout` itself writes. With
+    `persist-credentials: false` it leaves the checkout's own `.git/config` (the origin URL, which W1 needs) and,
+    by its documentation, no credential; the first real run is where that is seen.
 - **W3.** Before checking out ci, a step refuses a `job.workflow_sha` that is not 40 lowercase hex, and `ROUTE_TOOL_SHA`
   is set from that value only.
+  - Kept: the first step of EVERY job (each one checks out the tool) is the same guard, with
+    `ROUTE_TOOL_SHA: ${{ job.workflow_sha }}` in `env:`; every `ROUTE_TOOL_SHA` in the file is that value. Test:
+    "W3", which also runs the guard's script in bash on good and bad values (empty, `main`, upper case, 39 and 41
+    characters, a trailing newline or space).
 - **W4.** No job reads any output or file of the build job except the uploaded artifact. The build job's printed
   integrity and archive check are not evidence. The publish job re-runs `inspect` on the downloaded artifact.
+  - Kept: the build job has no `outputs:` and nothing reads `needs.build.outputs`; it uploads one artifact,
+    `release-route-package`, and only publish and verify download it, by that name. Test: "W4", and "W6" for
+    `inspect` in the publish job.
 - **W5.** The build job has `contents: read` only, no `id-token`, `persist-credentials: false`, no cache restore or
   save, and nothing after `build` in that job may be trusted (a detached process outlives the step).
+  - Kept: the permissions are exactly `contents: read`; the step after `build` is only the upload; no token is
+    in the job. Test: "W5", "least power", "no cache restore or save anywhere". `actions/setup-node` v4.4.0
+    restores a cache only when its `cache` input is given, and no step gives one.
 - **W6.** The publish job installs nothing and runs no repository code: it runs `npm-tool` into a NEW folder under
   `RUNNER_TEMP` in that same job (never a folder or npm from another job), then `inspect`, the hold check, `ready`, and
   only on `publish=yes` `node <npm-dir>/package/bin/npm-cli.js publish <absolute package.tgz> --ignore-scripts
   --provenance` from an empty working folder.
+  - Kept: the steps, in order: guard, tool checkout, caller checkout (data for `inspect`, no credentials), Node,
+    download the package into a fresh folder, `npm-tool` into `${{ runner.temp }}/npm`, `inspect`, `ready`, the
+    hold check, then the publish on `publish == 'yes'`: `mkdir` a fresh `${{ runner.temp }}/empty` (no `-p`, so
+    an existing folder fails), `cd` into it, and the command above. Every other script is
+    `node tool/scripts/release-route.mjs <step>`. Test: "W6" (both), "least power" (`id-token` only here).
+  - One departure from the order written above: the hold check runs AFTER `ready`, directly before the
+    publishing step, because the hold check's own rule (`docs/HOLD.md`: the step goes "directly before
+    `npm publish`") wants the moment it looks to be the last one before the publish; `ready` only reads npm.
 - **W7.** `verify` runs after the publish job on both `publish=yes` and `publish=no` (and after a failed publish); the
   release job needs `verify` green.
+  - Kept: the conditions between the jobs (section "The workflows", the truth table). Test:
+    `release-route-conditions.test.mjs`, which evaluates every job's `if:` from the YAML over every mode, a
+    refused plan, and every result of every job that runs, and computes the doc's table again.
 - **W8.** The release job acts on `tag`'s answer in the same job: create with a non-force push of
   `<commit>:refs/tags/v<version>` (or the API), never `--force`, never moving a tag; the release title is passed from
   `title.txt` through an environment variable as ONE argument, notes with `--notes-file`.
+  - Kept: in the release job, `tag` then `notes`; on `tag == 'create'` the API's create-only call
+    (`gh api --method POST repos/<repo>/git/refs`, which answers 422 when the tag exists, so no tag can move
+    whatever the earlier answer was); on `release == 'create'`, `gh release create v<version> --verify-tag
+    --title "$title" --notes-file <notes.md>`, the title read from `title.txt` into one quoted shell variable.
+    Test: "W8, W9" (no `--force`, `PATCH`, `git push` or `git tag` anywhere).
 - **W9.** `notes.md` is never printed to the log (it keeps `::`).
+  - Kept: `notes.md` appears once in the file, as the `--notes-file` argument. Test: "W8, W9". What `gh` itself
+    prints is not testable here; it prints the release's address, not its notes.
 - **W10.** Every input reaches `run:` through `env:`; no `${{ … }}` inside a `run:` line.
+  - Kept, and narrowed: outside `env:`, an expression reads only a closed alphabet (`mode`, `compare`, `commit`,
+    `node`, a job's result, `publish`, `tag`, `release`) or a fixed context. Test: "W10".
 - **W11.** The caller's concurrency group is per ref with `cancel-in-progress: false`, so two runs of `main` never
   plan/publish the same version at once.
+  - Kept in the caller, which a package writes (below); `release-route.yml` has no `concurrency:`, as GitHub
+    advises against the same group in caller and called workflow. Test: "W11" parses the caller shown in this
+    doc. Each package's own file is checked when it adopts the route, not here.
 - **W12.** `ROUTE_OUT`, `ROUTE_TARBALL_DIR` and `ROUTE_NPM_DIR` are fresh folders under `RUNNER_TEMP`, one per job.
+  - Kept: each is `${{ runner.temp }}/<name>`, one folder per variable in a job, no two variables sharing one
+    (`ROUTE_RECORD_DIR` and the publish's empty folder too). Fresh because GitHub empties `RUNNER_TEMP` at the
+    start of each job, and because each step refuses a folder that is not new or empty (`npm-tool`: must not exist;
+    `build` and `notes`: absent or empty; `inspect`, `ready`, `verify`: exactly `package.tgz`; the record: never
+    over a file). Test: "W12".
 - **W13.** The run summary must surface a `not-main-tip` decision with `npmHasVersion=true` (or the doc must tell people
   to use "Re-run failed jobs"), until the route prints it itself.
+  - Kept by the route itself since round 3 (below). Test: "W13" pins the row.
 
 - **W14.** The workflow runs only the charted `plan` and `verify` (`node scripts/release-route-chart.mjs`), with
   `ROUTE_RECORD_DIR` set; no step ever falls back to the plain `plan` or `verify`, and a bundle that will not load
   (`bundle-unloadable`) stops the run. The plain steps leave no record; they are the oracle the charted steps are
   tested against, and a way for a person, outside the workflow, to read a failure.
+  - Kept: the only `release-route-chart.mjs` calls are `plan` (plan job) and `verify` (verify job), each with
+    `ROUTE_RECORD_DIR`, each followed by the record's upload on `!cancelled()`; every other script is a plain
+    step other than `plan` and `verify`. A bundle that will not load exits 1, so its job fails and nothing
+    after it runs. Test: "W14".
 
 Since round 3, the case W13 names is refused by the route itself (`unfinished-not-tip`,
 `release-unfinished`), so the run is red and names what to do.
@@ -374,13 +426,228 @@ Since round 3, the case W13 names is refused by the route itself (`unfinished-no
 
 What was run, on which Node, and what it gave: [RELEASE-ROUTE-PROOF.md](RELEASE-ROUTE-PROOF.md).
 
-## Not in this pull request
+## The workflows
 
-The workflow files, the hold check calls, change notes, `prepare`, the bot, `release-check.yml`,
-and any change in another repository. Prereleases are refused (`version-not-plain`).
+Two reusable workflows (`on: workflow_call`) wire the steps above into jobs. Each job runs steps and
+reads their closed-alphabet outputs; no job decides anything of its own. The tool (this repository) is
+checked out in every job at `job.workflow_sha`, the commit of the workflow file itself, so a caller has
+one pin, and the first step of every job refuses a value that is not 40 lowercase hex before any
+checkout (an empty value would check out ci's default branch).
 
-## The next pull request
+### `release-route.yml`: the route
 
-**The workflows**: `release-route.yml` and `release-check.yml`, wiring the steps above (the
-charted `plan` and `verify` through `scripts/release-route-chart.mjs`, with `ROUTE_RECORD_DIR`
-uploaded as an artifact) and keeping every rule under "What the workflow must keep".
+One input, `action` (`publish` or `dry-run`; anything else is refused by `plan`, not by YAML). No secret.
+`permissions: {}` at the top; each job asks for its own.
+
+```
+plan ─┬─▶ hold ─▶ build ─▶ publish ─▶ verify ─▶ release    publish
+      ├─────────▶ build ──────────────▶ verify ─▶ release    recover (the hold is not asked)
+      ├─▶ hold ─▶ build ──────────────▶ verify               dry-run, compare=yes
+      ├─▶ hold ─▶ build                                      dry-run, compare=no
+      └─ nothing more                                        nothing, or a refused plan
+```
+
+| Job | Runs when | Permissions | What it does |
+|---|---|---|---|
+| plan | always | `contents: read` | the caller at `github.sha` into `source` (no credentials kept), the tool into `tool`, Node 22, the charted `plan`; its record is uploaded passed or refused. Its outputs are exactly the step's: `rule`, `commit`, `package`, `version`, `node`, `compare`, `mode` |
+| hold | mode `publish` or `dry-run` | `contents`, `issues`, `pull-requests`: read | the hold check (`.github/actions/hold` from the tool checkout, mode fixed to `publish`): the early signal, before the build spends its minutes |
+| build | mode `publish` or `dry-run` after a green hold; mode `recover` | `contents: read` | the caller at the planned commit, the Node the settings name (the plan's `node` output), `npm-tool`, `build`; uploads `package.tgz` as `release-route-package`, the one thing other jobs may read |
+| publish | mode `publish` after a green build | `contents: read`, `id-token: write`, `issues: read`, `pull-requests: read` | downloads the package, `npm-tool` in this job, `inspect`, `ready`, the hold check as a step, and on `publish=yes` the publish from an empty folder. Installs nothing, runs no repository code |
+| verify | `compare=yes` after a green build; for `publish`, after the publish job succeeded OR failed | `contents: read` | downloads the package, the charted `verify`; its record is uploaded passed or refused |
+| release | mode `publish` or `recover` after a green verify | `contents: write` | `tag`, `notes`, then the tag (create-only API call) and the GitHub release, each only on `tag`'s `create` |
+
+**The conditions.** GitHub skips a job whose needed job was skipped or failed unless its `if:` holds a
+status function, and otherwise adds an implied `success()`. To leave nothing implied, every job but
+`plan` starts its `if:` with `!cancelled() && needs.plan.result == 'success'` and names the result of
+each job it depends on: the truth table is the expression alone. The expressions use a few forms only
+(`cancelled()`, `!`, `&&`, `||`, parentheses, and `<job result or output> == '<word>'`; any other form
+is refused by the tests' evaluator, `test/workflow/support/expression.mjs`), and
+`test/workflow/release-route-conditions.test.mjs` evaluates them from the YAML over every mode, a
+refused plan, a plan whose job failed after the step passed (GitHub keeps the step's outputs), a
+cancelled run, and every result of every job that runs. It checks each job against the rule in the
+table above, that no job runs because a job it needs FAILED except `verify` after a failed publish
+(W7), and that publish and release run only for a plan that PASSED with `publish` or `recover`. It
+also computes this table again ("runs", or "-" for skipped):
+
+<!-- route-truth-table -->
+| Case | hold | build | publish | verify | release |
+|---|---|---|---|---|---|
+| plan refused (exit 1: only the names of the run are written) | - | - | - | - | - |
+| plan passed, then a later step of its job failed (outputs kept) | - | - | - | - | - |
+| the run is cancelled | - | - | - | - | - |
+| `nothing` | - | - | - | - | - |
+| `publish`, every job green | runs | runs | runs | runs | runs |
+| `publish`, hold red | runs | - | - | - | - |
+| `publish`, build red | runs | runs | - | - | - |
+| `publish`, build cancelled | runs | runs | - | - | - |
+| `publish`, publish red, verify green | runs | runs | runs | runs | runs |
+| `publish`, publish red, verify red | runs | runs | runs | runs | - |
+| `publish`, publish cancelled | runs | runs | runs | - | - |
+| `publish`, verify red | runs | runs | runs | runs | - |
+| `recover`, every job green | - | runs | - | runs | runs |
+| `recover`, build red | - | runs | - | - | - |
+| `recover`, verify red | - | runs | - | runs | - |
+| `dry-run`, compare=yes, every job green | runs | runs | - | runs | - |
+| `dry-run`, compare=no, every job green | runs | runs | - | - | - |
+| `dry-run`, hold red | runs | - | - | - | - |
+<!-- /route-truth-table -->
+
+Two rows to read twice:
+
+- **publish red, verify green: the release runs.** The publish job can fail after npm accepted the file
+  (the command's own exit, a lost connection), or at a step before it while npm already serves the same
+  bytes from an earlier attempt. `verify` then proves npm serves exactly the bytes this run built, and the
+  tag records that (design question 6: a hold set after npm accepted still tags). If npm does not have
+  the version, `verify` waits its bounded time and refuses (`registry-late`), and nothing is tagged.
+- **publish cancelled: verify does not run.** A cancelled publish is not a failed one. If it was
+  cancelled after npm accepted, the next run's plan sees "on npm, no tag" and recovers, or a person uses
+  "Re-run failed jobs" on this run (`ready` answers `no`, verify and release follow). Whether GitHub reports
+  a job that hit its `timeout-minutes` as `cancelled` or `failure` is not written in the documents read for
+  this; the first real run that times out will show it, and either way nothing is tagged unproven.
+
+No condition in this file is what stops a publish from a branch or from an old commit: `plan` refuses
+those (`publish-off-main`, `not-main-tip`), and writes `mode` only when it passes.
+
+**Artifacts.**
+
+| Artifact | Written by | Read by | Kept | Why |
+|---|---|---|---|---|
+| `release-route-package` | build | publish, verify | 30 days | the one file that crosses jobs. Its name has no attempt number, so "Re-run failed jobs" finds the first attempt's file. 30 days, as design section 4 says: a recover whose rebuild differs from npm is answered by re-running the ORIGINAL run's failed jobs, which still hold the published bytes |
+| `release-route-plan-record-<attempt>` | plan | nobody (people, `why`) | 90 days | the plan's record. Its name has the attempt number: no job reads it, and a re-run of a failed job must not fail on a name an earlier attempt took (the upload refuses an existing name) |
+| `release-route-verify-record-<attempt>` | verify | nobody (people, `why`) | 90 days | the same, for verify: a `registry-late` verify re-run later must be able to keep its record |
+
+Anyone who can read the run can download the records. They hold what `RELEASE-ROUTE-CHART.md`, "The
+record", promises: no token, no environment, no runner path. 90 days is the longest a public
+repository keeps an artifact, the same as this repository's shadow records.
+
+### `release-check.yml`: what would the route do with this pull request?
+
+No input, `contents: read`, one job: the route's plan job with the action fixed to `dry-run` and no
+outputs (`test/workflow/release-check.test.mjs` holds it equal to that job except for those).
+Without a build, hold or secret it answers: a pull request that leaves the version alone reads "dry
+run: rebuild and compare"; one that raises it reads "would publish x.y.z"; a version with no CHANGELOG
+section, an invalid settings file or a private package is red with its named refusal. The record is
+uploaded as `release-check-plan-record-<attempt>`.
+
+A pull request from a fork runs it with a read-only token and no secret. The tool is checked out at the
+workflow's own commit, never at the pull request's, so nothing the pull request changes in the package
+(its `package.json`, CHANGELOG, settings) changes the code that checks it. What it does NOT stop: a pull
+request that edits the caller's own workflow file changes what runs for that pull request, as for every
+`pull_request` check (it can change the pin, or drop the check). `plan` refuses a tool commit that is not
+on ci `main` (`tool-not-reviewed`), which catches the mistake but not a deliberate change; the review of a
+change to the caller's workflow file is the gate.
+
+### The caller a package writes
+
+<!-- caller -->
+```yaml
+# The release route for <package>. Every step lives in footprintjs/ci, pinned below by full commit.
+# Keep this file's name, publish.yml, and its name line: npm's trusted publisher for the package is
+# bound to the repository + publish.yml. How to release: footprintjs/ci docs/RELEASE-ROUTE.md.
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "dry-run = build and compare, publish nothing. publish = release what main names."
+        type: choice
+        options: [dry-run, publish]
+        default: dry-run
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: footprintjs/ci/.github/workflows/release-route.yml@0000000000000000000000000000000000000000 # the reviewed ci commit
+    permissions:
+      contents: write
+      id-token: write
+      issues: read
+      pull-requests: read
+    with:
+      action: ${{ github.event_name == 'push' && 'publish' || inputs.action }}
+```
+<!-- /caller -->
+
+The caller grants the most any job needs; inside, every job asks for less (a called workflow can
+only lower permissions). `id-token: write` must be in both files, as npm's trusted publishing asks.
+The concurrency group is per ref and never cancels a run in progress (W11). The pin is a real commit
+of ci `main`; `plan` refuses one that is not (`tool-not-reviewed`), and the all-zero placeholder above
+is not a commit at all.
+
+The pull-request check, in the package's pull-request workflow, pinned to the SAME commit:
+
+```yaml
+on:
+  pull_request:
+jobs:
+  release-check:
+    permissions:
+      contents: read
+    uses: footprintjs/ci/.github/workflows/release-check.yml@0000000000000000000000000000000000000000 # the same reviewed ci commit
+```
+
+### What a person does
+
+**To release** (by hand until change notes and `prepare` exist):
+
+1. In a pull request, raise `version` in `package.json` (and the lock file) and write that version's
+   CHANGELOG section. The release check says "would publish x.y.z", or names what is missing.
+2. Merge it. The push to `main` runs the route as `publish`: plan, hold, build, publish, verify, release.
+3. Read the run: the plan's summary says what it decided and why; verify's says npm serves the built
+   bytes; the release job writes tag `v<version>` and the GitHub release. The records are the run's
+   artifacts (`node scripts/release-route-chart.mjs why <record>` reads one).
+
+**To try without publishing:** Actions, "Publish to npm", "Run workflow", action `dry-run`, from any
+branch. It plans, checks the hold, builds, and (for a version npm already has) compares the rebuild
+with npm. Nothing is written anywhere.
+
+**When something fails** (design section 4, as it stands after the rulings):
+
+| Case | What the route does | What a person does |
+|---|---|---|
+| Version merged, not published (build red, a hold, machine trouble) | nothing more; the version stays untagged and unpublished | machine trouble: re-run the whole run once. A real failure: merge a fix WITHOUT a new version; that push publishes |
+| A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs" |
+| npm accepted, verify red with `registry-differs` | stops; no tag, no release | investigate; never tag over a mismatch |
+| npm shows the version late (`registry-late`) | verify red after its bounded wait; no tag | "Re-run failed jobs" later: verify compares again with the same run's package |
+| Published, then the tag or the release failed | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, re-run the ORIGINAL run's failed jobs (its package is kept 30 days) |
+| A run of an older commit of `main` finds its version on npm with no tag | refused, `release-unfinished` | "Re-run failed jobs" on the run that published it, or write the tag at that commit by hand |
+| Tag exists, npm does not have the version | refused, `tag-without-package` | decide by hand (delete the stray tag, or raise the version) |
+| Package unknown on npm | refused, `package-unknown` | the first publish of a new name is by hand (npm requires it) |
+| Any re-run | `ready` skips the publish when npm has the same bytes; `tag` skips a tag at the same commit and refuses one elsewhere; a release that exists is skipped | none |
+
+### Checked here, and what waits for a real run
+
+Checked here: the two files parse (by the strict YAML subset the tests read with, which agrees with
+Ruby's YAML parser on both files where Ruby is installed) and keep W1 to W14 as listed above. This
+repository's check has no workflow linter (no `actionlint`), and none is downloaded by this change.
+
+There is no real run yet: a reusable workflow needs a caller on a default branch, which is the next
+step in another repository. These are proved only by that caller's first dry run and first release:
+
+- that `job.workflow_sha` is filled in a called workflow (an empty value is refused by the guard, so a
+  wrong guess fails closed);
+- that `uses: ./tool/.github/actions/hold` resolves to the tool checkout (GitHub's syntax reference
+  says a `./` path resolves against the runner's workspace, where the tool was checked out);
+- that the package artifact crosses jobs, and crosses attempts on "Re-run failed jobs" (no document
+  read for this says whether an earlier attempt's artifact can be downloaded, and users report both);
+  and what "Re-run all jobs" does when the build uploads `release-route-package` again under a name the
+  first attempt used (if GitHub refuses it, the build job of that attempt is red and nothing publishes);
+- the OIDC publish with the vendored npm from a called workflow, with provenance;
+- `git ls-remote` against the caller's `origin` with no credentials kept (fine for a public
+  repository; a private caller would fail closed);
+- the tag through the API and the release through `gh` with the job's token;
+- whether a job that reaches `timeout-minutes` is reported as `cancelled` or `failure` (above).
+
+## Not built yet
+
+Change notes, `prepare`, the bot, the linting of the caller's workflow file in `release-check.yml`,
+the `npm` environment of design section 8, and any change in another repository. Prereleases are
+refused (`version-not-plain`).
