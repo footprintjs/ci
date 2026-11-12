@@ -13,6 +13,7 @@ import { FILES, TOOL } from '../storydeck-today.mjs';
 
 const RUNNERS = { bundle: resolve('dist/release-route.cjs'), plain: resolve('scripts/release-route.mjs') };
 const ANSWERS = resolve('test/release-route/chart/answers-from-fixtures.mjs');
+const DISK_FULL = resolve('test/release-route/chart/output-write-fails.cjs');
 const GIT_ENV = { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_AUTHOR_NAME: 'route test', GIT_AUTHOR_EMAIL: 'route@test.invalid',
   GIT_COMMITTER_NAME: 'route test', GIT_COMMITTER_EMAIL: 'route@test.invalid' };
 const asRoot = typeof process.getuid === 'function' && process.getuid() === 0;
@@ -39,13 +40,13 @@ function repository(dir) {
   return { repo, commit: git('rev-parse', 'HEAD').trim() };
 }
 
-function plan(t, runner, setup = (dir) => ({})) {
+function plan(t, runner, setup = (dir) => ({}), preload = []) {
   const dir = folder(t);
   const { repo, commit } = repository(dir);
   const env = { PATH: process.env.PATH, ...GIT_ENV, ROUTE_SOURCE: repo, GITHUB_SHA: commit, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish',
     ROUTE_TOOL_SHA: TOOL, GITHUB_OUTPUT: join(dir, 'out'), GITHUB_STEP_SUMMARY: join(dir, 'summary') };
   Object.assign(env, setup(dir));
-  const result = spawnSync(process.execPath, ['--import', ANSWERS, RUNNERS[runner], 'plan'], { encoding: 'utf8', env, timeout: 30_000 });
+  const result = spawnSync(process.execPath, ['--import', ANSWERS, ...preload, RUNNERS[runner], 'plan'], { encoding: 'utf8', env, timeout: 30_000 });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr, output: read(env.GITHUB_OUTPUT) };
 }
 
@@ -75,6 +76,13 @@ for (const runner of Object.keys(RUNNERS)) {
     const result = plan(t, runner, (dir) => { mkdirSync(join(dir, 'out')); return {}; });
     assert.equal(result.code, 1);
     assert.equal(result.output, '<not a file>');
+    assert.match(result.stdout, /^Refused: unexpected-failure\./m);
+  });
+
+  test(`${runner}: the disk fills 3 bytes before the end of the output append: exit 1, and GITHUB_OUTPUT is left as it was`, (t) => {
+    const result = plan(t, runner, (dir) => { writeFileSync(join(dir, 'out'), 'earlier=yes\n'); return {}; }, ['--require', DISK_FULL]);
+    assert.equal(result.code, 1, result.stdout + result.stderr);
+    assert.equal(result.output, 'earlier=yes\n');
     assert.match(result.stdout, /^Refused: unexpected-failure\./m);
   });
 }
