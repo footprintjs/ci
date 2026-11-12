@@ -253,9 +253,12 @@ decision channel as not collected from it, and the decision's evidence would be 
 no network, why a top-level key (default: `mode`, else `refusal`, else `verified`) has its value:
 the decision that governs it (the decision whose branch let the key's last writer run, from the
 record's control edges) with the rule that matched and each fact the rule tested, its value and the
-stage that observed it; or, for a key no decision governs (a fact, the package name), one line saying
-so, no rule, and one line naming the stage that observed the key (`Observed by Look at the tip of
-main (look-tip#1).`). The stage that observed a fact is the one that wrote it into the record,
+stage that observed it; or, for a key no decision governs, one line saying so, no rule, and one
+line naming the stage. That line says `Observed by` only for what a look observed: a fact of the
+rule table or a context value (the commit, the package name, the version, the changelog style),
+for example `Observed by Look at the tip of main (look-tip#1).` Every other key (a computed value
+such as `factsReadable` or `servedEqual`, or the `runs` container) says `Written by`, naming the
+stage that wrote it last. The stage that observed a fact is the one that wrote it into the record,
 foottrace's `findLastWriter` on the look's own path. Then each unreadable fact with its cause, then the walk back. Every walk is foottrace's
 (`findLastWriter`, `causalChain` with the control edges the record kept, `formatCausalChain`,
 `keysReadFromExecutionTree`); `why.mjs` only arranges the answers into lines. Every line is

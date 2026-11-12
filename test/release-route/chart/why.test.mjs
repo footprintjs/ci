@@ -14,6 +14,8 @@ import { runChartStep } from '../../../src/release-route/chart/cli.mjs';
 import { explain, readRouteRecord, SIDE_BY_SIDE } from '../../../src/release-route/chart/why.mjs';
 import { asRefusal } from '../../../src/release-route/refusals.mjs';
 import { createReport, safeLine } from '../../../src/release-route/report.mjs';
+import { integrityOf } from '../../../src/release-route/registry.mjs';
+import { bytes, fakeFetch, json } from '../fake-fetch.mjs';
 import { storydeckDoors } from '../storydeck-today.mjs';
 
 const folder = (t) => {
@@ -125,7 +127,7 @@ test('why names the decision that governs the value asked about, or says that no
   assert.equal(record.control.decisions.length, 2);
   assert.deepEqual(explain(record, 'z').slice(1, 3), ['Decision at second#3: rule y is two matched.', 'Fact y eq 2: was 2, holds; observed by One (one#2).']);
   assert.deepEqual(explain(record, 'y').slice(1, 3), ['Decision at first#1: rule x is one matched.', 'Fact x eq 1: was 1, holds; observed by Seed (seed#0).']);
-  assert.deepEqual(explain(record, 'x').slice(1, 3), ['No decision governs x: Seed (seed#0) wrote it, and that stage runs whatever is decided.', 'Observed by Seed (seed#0).']);
+  assert.deepEqual(explain(record, 'x').slice(1, 3), ['No decision governs x: Seed (seed#0) wrote it, and that stage runs whatever is decided.', 'Written by Seed (seed#0).']);
 });
 
 test('why on a fact of the plan: no decision governs it, no rule is named, and one line names the stage that observed it', async (t) => {
@@ -138,6 +140,41 @@ test('why on a fact of the plan: no decision governs it, no rule is named, and o
   assert.equal(explain(record, 'commitIsMainTip')[2], 'Observed by Look at the tip of main (look-tip#1).');
   assert.equal(explain(record, 'packageName')[2], 'Observed by Read package.json (look-package#4).');
   assert.ok(!explain(record).concat(explain(record, 'tagExists')).some((line) => /read by|"read by"/.test(line)), 'a line still says "read by"');
+});
+
+// "Observed by" is said only for what was observed: a fact of the rule table (FACT_NAMES) or a
+// context value a look reads. Every other key with no decision (a computed value, the `runs`
+// container) says "Written by", so a computed value is never called an observation.
+const governedBy = (lines) => lines.find((line) => /^(Observed|Written) by /.test(line));
+
+test('why on a plan record: a fact or a context value is Observed by, a computed key or the runs container is Written by', async (t) => {
+  const record = readRouteRecord(await savedPlan(t));
+  assert.equal(governedBy(explain(record, 'tagExists')), 'Observed by Look for the tag (look-tag#6).');
+  assert.equal(governedBy(explain(record, 'action')), 'Observed by Read the request (request#0).');
+  assert.equal(governedBy(explain(record, 'commit')), 'Observed by Read the request (request#0).');
+  assert.equal(governedBy(explain(record, 'changelogStyle')), 'Observed by Read the settings (look-settings#3).');
+  assert.equal(governedBy(explain(record, 'factsReadable')), 'Written by Weigh the facts (weigh#10).');
+  assert.equal(governedBy(explain(record, 'runs')), 'Written by Ask npm (look-npm#7).');
+});
+
+test('why on a verify record: a context value is Observed by, a computed key is Written by', async (t) => {
+  const NAME = 'footprint-storydeck';
+  const V = `https://registry.npmjs.org/${NAME}/0.13.1`;
+  const TARBALL = `https://registry.npmjs.org/${NAME}/-/${NAME}-0.13.1.tgz`;
+  const built = Buffer.from('the built tarball');
+  const intake = join(folder(t), 'tarball');
+  mkdirSync(intake);
+  writeFileSync(join(intake, 'package.tgz'), built);
+  const dir = join(folder(t), 'record');
+  const report = createReport({ env: {}, print: () => {}, append: () => {} });
+  const doc = { name: NAME, version: '0.13.1', dist: { integrity: integrityOf(built), tarball: TARBALL } };
+  assert.equal(await runChartStep('verify', {
+    env: { ROUTE_PACKAGE: NAME, ROUTE_VERSION: '0.13.1', ROUTE_TARBALL_DIR: intake, ROUTE_RECORD_DIR: dir },
+    fetcher: fakeFetch({ [V]: json(doc), [TARBALL]: bytes(built) }).fetcher, sleep: async () => {}, report, argv: [],
+  }), 0);
+  const record = readRouteRecord(join(dir, 'verify.record.json'));
+  assert.equal(governedBy(explain(record, 'version')), 'Observed by Read the built file (built#0).');
+  assert.equal(governedBy(explain(record, 'servedEqual')), 'Written by Weigh the bytes (weigh-bytes#3).');
 });
 
 test('above every walk, one fixed line says side-by-side steps may be shown one under another', async (t) => {

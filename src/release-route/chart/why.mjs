@@ -14,6 +14,7 @@ import strictJson from '../archive/strict-json.cjs';
 import { refuse } from '../refusals.mjs';
 import { clean } from '../../shared/text.mjs';
 import { MAX_RECORD_BYTES, RECORD_FORMAT, RECORD_VERSION } from './record.mjs';
+import { CONTEXT_NAMES, FACT_NAMES } from './state.mjs';
 
 const KEY = /^[A-Za-z][A-Za-z0-9]{0,40}$/;
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -76,6 +77,11 @@ function observerOf(record, fact) {
 // at is printed for every key that has a writer: one per fact a rule tested, or one for the key.
 export const SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.';
 
+// A key is OBSERVED when it is a fact of the rule table or a context value a look reads; any other
+// key (a computed value such as factsReadable or servedEqual, the `runs` container) is only WRITTEN
+// by the stage that made it, and the line says so: "Observed by" is never said of a computation.
+const OBSERVED_KEYS = new Set([...FACT_NAMES, ...CONTEXT_NAMES]);
+
 const observedBy = (stage) => (stage ? `${clean(stage.stage, 60)} (${clean(stage.runtimeStageId, 60)})` : 'no stage');
 
 // The decision that governs a key: the one whose branch let the key's last writer run (the
@@ -87,7 +93,7 @@ function decisionLines(record, key, writer) {
   const decision = isObject(edge) ? record.control.decisions.find((one) => isObject(one) && one.deciderRuntimeStageId === edge.deciderId) : undefined;
   if (!decision || !isObject(decision.evidence) || !Array.isArray(decision.evidence.rules))
     return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`,
-      `Observed by ${observedBy(observerOf(record, key))}.`];
+      `${OBSERVED_KEYS.has(key) ? 'Observed' : 'Written'} by ${observedBy(observerOf(record, key))}.`];
   const matched = decision.evidence.rules.find((rule) => isObject(rule) && rule.matched === true);
   const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {

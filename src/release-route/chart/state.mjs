@@ -34,6 +34,9 @@ const CONTEXT_CHECKS = Object.freeze({
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
 });
 
+// The names of the context values a look reads (the keys above), as FACT_NAMES is the facts'.
+export const CONTEXT_NAMES = Object.freeze(Object.keys(CONTEXT_CHECKS));
+
 // Writes one observation ({ facts, causes, context } from observe.mjs) into the stage's scope.
 export function writeObservation(scope, found) {
   for (const [name, value] of Object.entries(found.facts)) scope[name] = factValue(name, value);
