@@ -12,7 +12,7 @@ On 12 Nov 2026 the owner told one working session to hold a release, and another
 - Lift: remove the label, or close the item.
 - Create the label once per repository and pick it from the list. GitHub's label filter ignores letter case, so `Hold-Release` also holds; apart from case the name is exact, so `hold release`, `hold_release` or `on-hold` hold nothing, and nothing warns about a misspelt label.
 - Anyone who can label issues can set a hold. A hold only ever blocks, so the worst a wrong label does is delay a release; there is deliberately no allow-list of who may set one.
-- Issues must be enabled in the repository: with issues turned off GitHub refuses the listing and every check fails (safe, but every release is then blocked).
+- Issues must be enabled in the repository. With issues turned off GitHub is expected to refuse the listing (not run); if it does, every check fails, which is safe but blocks every release.
 
 ## Three places the check runs, one implementation
 
@@ -44,7 +44,7 @@ This is the `pull-request` output; `publish` mode (job and step) omits the versi
 
 ## Caller snippets
 
-Put `permissions:` on the JOB, not at the top of the file. A pasted top-level block would replace the workflow's own and silently drop `id-token: write`, which trusted publishing needs. A job that has its own `permissions:` lists everything it needs; the publish job must add `issues: read` and `pull-requests: read` for the step. A reusable workflow cannot raise its caller's permissions: a caller that does not grant the three read scopes gets a startup failure, which is safe.
+Put `permissions:` on the JOB, not at the top of the file. A pasted top-level block would replace the workflow's own and silently drop `id-token: write`, which trusted publishing needs. A job that has its own `permissions:` lists everything it needs; the publish job must add `issues: read` and `pull-requests: read` for the step. For the `hold.yml` form only: GitHub's documented rule is that a called workflow cannot raise its caller's permissions, so a caller that does not grant the three read scopes is expected to fail at startup. That is GitHub's rule, not something this repository ran, and the failure would be safe. **The step form has no such startup check of its permissions**: the publish job itself must grant `issues: read` and `pull-requests: read`. On a public repository the listing is public data. On a private repository a missing scope was not tested: GitHub may answer 403 (the check then fails, which is safe) or may leave out items the token cannot see. So on a private repository grant both scopes, and treat a hold set on an issue as unproven until one test run has shown the step red.
 
 A publish workflow: the `hold` job first, and the step directly before `npm publish`. Pin both to the same reviewed full `footprintjs/ci` commit.
 
@@ -73,7 +73,7 @@ jobs:
       - run: npm publish
 ```
 
-The step has one pin: the action runs the script of its own commit (`scripts/hold.mjs`, found from `$GITHUB_ACTION_PATH`), so there is no `tool_sha` to keep in step. Its one input is `token` (default: the job's token, which needs the two read scopes above); the mode is fixed to `publish`. It uses the Node already on the runner (run `actions/setup-node` earlier in the job) and fails, with a line that says so, if `node` is missing or older than `package.json` `engines` of that commit asks. It installs and checks out nothing.
+The step has one pin: the action runs the script of its own commit (`scripts/hold.mjs`, found from `github.action_path`, which the action passes to its script as `HOLD_ACTION_PATH`), so there is no `tool_sha` to keep in step. The step also starts with an empty `NODE_OPTIONS`, so a job-level `NODE_OPTIONS` (for example an `--import`) cannot load the caller's code into the check. Its one input is `token` (default: the job's token, which needs the two read scopes above); the mode is fixed to `publish`. It uses the Node already on the runner (run `actions/setup-node` earlier in the job) and fails, with a line that says so, if `node` is missing or older than `package.json` `engines` of that commit asks. It installs and checks out nothing.
 
 A pull-request job (a repository that wants it required adds the emitted check to its main-branch ruleset):
 
@@ -105,7 +105,7 @@ The workflow form does not compare `tool_sha` with the `uses:` pin: `hold.yml` o
 | Variable | Meaning | Missing or unusable |
 |---|---|---|
 | `HOLD_MODE` | `publish` or `pull-request` | exit 1, could not check |
-| `GH_TOKEN` | read-only token (issues and pull requests); sent in one header to the API host, never printed | exit 1, could not check |
+| `GH_TOKEN` | a token that may list issues and pull requests; sent in one header to the API host, never printed | exit 1, could not check |
 | `GITHUB_REPOSITORY` | `owner/name` of the repository whose labels are read (the runner sets it to the CALLER's repository, also inside a reusable workflow) | exit 1, could not check |
 | `GITHUB_API_URL` | API base, a plain `https` URL; default `https://api.github.com` (the runner sets it) | a value that is not a plain https URL: exit 1 |
 | `HOLD_EVENT_NAME` | the caller's event name; `pull-request` mode accepts only `pull_request` | `pull-request` mode: exit 1 |
@@ -113,6 +113,18 @@ The workflow form does not compare `tool_sha` with the `uses:` pin: `hold.yml` o
 | `HOLD_SOURCE_DIR` | the git checkout `pull-request` mode reads, default `.` | `pull-request` mode: a directory that is not a merge checkout: exit 1 |
 
 Only `publish` mode needs the first three (and optionally `GITHUB_API_URL`); the last three are read in `pull-request` mode only. Exit status: 0 only when the decision is "no hold" (or, in `pull-request` mode, "this pull request leaves the version alone"); everything else, including every failure to look, is 1.
+
+## This repository's own run
+
+## Proved on real runs
+
+Run 43260415985 of this repository (a pull request run of `.github/workflows/check.yml`):
+
+- Attempt 1, no hold open: `hold-step` and `hold-workflow / hold` both green. The workflow form read the merge commit at `fetch-depth: 2`; the step ran on the runner image's own Node.
+- Attempt 2, with issue #18 open and labelled `hold-release`: `hold-step` RED and naming #18; `hold-workflow / hold` green, because that pull request leaves the version alone.
+- Attempt 3, issue closed, "Re-run failed jobs": `hold-step` green.
+
+Still unproved: the step used from ANOTHER repository as `footprintjs/ci/.github/actions/hold@SHA` (only the local `./` form has run; if the script were not found next to the action the step fails closed); a private repository; a container job (where `github.action_path` may be a host path; that too would fail closed).
 
 ## This repository's own run
 
@@ -126,16 +138,16 @@ A release gate that says "no hold" because it could not look is worse than none.
 - a later page fails, or more than 500 open items carry the label (the bound is 5 pages of 100; past it the check refuses rather than guess);
 - `pull-request` mode and a version that cannot be read on either side (no file, not JSON, no string `version`, an empty one), or an event that is not exactly `pull_request`, a head SHA that is missing, all zeros or not 40 lowercase hex characters, a checkout that is not a merge commit with exactly two parents, or a second parent that is not the pull request's head SHA, with or without a hold open;
 - an unknown `mode`, a malformed `tool_sha`, a missing or malformed repository name, a missing or malformed token;
-- in the step form: no `node`, a `node` older than `engines` asks, an unknown action path, a missing script, an unreadable `package.json`.
+- in the step form: no `node`, a `node` older than `engines` asks, an unknown action path, a missing script, an unreadable `package.json`, a `sort -V` that cannot order the two versions (its own line, not "node is older").
 
 Nothing turns an exception into a pass.
 
 ## Safety
 
-- Titles and versions are text the check does not control. Control, bidirectional-format and separator characters are removed, whitespace collapses, text is cut, `::` and `##[` are broken up wherever they appear (so `a ::error:: b` prints as `a : :error: : b`: the runner reads a command starting with `::` at the start of a line and one starting with `##[` anywhere in a line), and no printed line starts with untrusted text.
+- Titles and versions are text the check does not control. Control, bidirectional-format and separator characters are removed, whitespace collapses, text is cut, `::` and `##[` are broken up wherever they appear (so `a ::error:: b` prints as `a : :error: : b`). A `::` command is read at the start of a line; the runner's older syntax may read `##[` anywhere in a line (not run here), and the check breaks it up either way, and no printed line starts with untrusted text.
 - `tool_sha`, `mode`, the event name and the pull request head SHA reach the scripts through `env:` only, are validated, and are never interpolated into a `run:` script; the action has no `${{ }}` inside its `run:` either.
-- The token is the job's read-only `GITHUB_TOKEN`. It is sent in one header to `api.github.com` (or `GITHUB_API_URL`), never followed through a redirect, and never put in a message; if a library ever did, it is masked in the output.
-- A pull request from a fork runs with a read-only token and needs no secret.
+- The token is whatever the job or step is given: for the `hold.yml` job that is its read-only `GITHUB_TOKEN`, but the step runs inside the publish job, whose token may carry `id-token: write` or more, and a caller can pass any token as `token:`. What the check does with it: sends it in one GET header to the API host (`api.github.com` or `GITHUB_API_URL`) and nowhere else, never follows a redirect with it, never prints it; if a library ever did, it is masked in the output. Give the step the narrowest token that can list issues.
+- A pull request from a fork runs with a read-only token and needs no secret. The step reads no secret either.
 
 ## What it does NOT do
 

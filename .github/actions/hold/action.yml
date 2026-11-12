@@ -18,6 +18,8 @@ runs:
         HOLD_MODE: publish
         GH_TOKEN: ${{ inputs.token }}
         HOLD_ACTION_PATH: ${{ github.action_path }}
+        # A job-level NODE_OPTIONS (for example --import=...) would load the caller's code into the check; the step starts clean.
+        NODE_OPTIONS: ''
       run: |
         # The command is the one in this action's own commit (action_path = .github/actions/hold),
         # so a caller has one pin. Every way of not being able to look ends in exit 1.
@@ -29,5 +31,7 @@ runs:
         have=$(node --version) && have=${have#v} || no "node cannot report its version"
         need=$(node -p 'require(process.argv[1]).engines.node' "$root/package.json") && need=${need#>=} || no "the minimum node version cannot be read from package.json"
         [[ "$have" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$need" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || no "node version $have or the required version $need is not plain x.y.z"
-        [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -n 1)" = "$need" ] || no "node $have is older than the $need this check needs"
+        order=$(printf '%s\n%s\n' "$need" "$have" | sort -V) || no "sort -V could not order the versions, so node $have cannot be compared with the $need needed"
+        [[ "$order" == *$'\n'* ]] || no "sort -V gave no ordering, so node $have cannot be compared with the $need needed"
+        [ "${order%%$'\n'*}" = "$need" ] || no "node $have is older than the $need this check needs"
         node "$root/scripts/hold.mjs"

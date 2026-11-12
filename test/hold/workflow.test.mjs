@@ -74,6 +74,10 @@ test('action: the mode is fixed to publish; no input and no expression can chang
   assert.equal([...action.matchAll(/HOLD_MODE:\s*(.*)$/gm)].map((m) => m[1].trim()).join(','), 'publish');
   assert.doesNotMatch(action, /inputs\.mode|\bmode:/);
 });
+test('action: the step starts with an empty NODE_OPTIONS, so a job-level one cannot load code into the check', () => {
+  assert.equal([...action.matchAll(/^ {8}NODE_OPTIONS:(.*)$/gm)].map((m) => m[1].trim()).join('|'), "''");
+  assert.equal(action.indexOf('NODE_OPTIONS') < action.indexOf('run: |'), true, 'it is set in env:, not inside the script');
+});
 test('action: no expression inside a run: block; values come through env:', () => {
   const blocks = runBlocks(action);
   assert.equal(blocks.length, 1);

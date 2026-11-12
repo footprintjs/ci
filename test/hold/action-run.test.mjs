@@ -68,3 +68,16 @@ test('action step: a node older than package.json engines asks is exit 1 and nam
   writeFileSync(shim, `#!/bin/sh\n[ "$1" = "--version" ] && { echo v99.0.0; exit 0; }\nexec "${process.execPath}" "$@"\n`);
   assert.equal(runAction(t, { path: `${bin}:/usr/bin:/bin` }).status, 0);
 });
+test('action step: a sort that cannot order the versions is exit 1 with its own line, not "node is older"', (t) => {
+  const bin = tempDir(t);
+  writeFileSync(join(bin, 'node'), `#!/bin/sh\nexec "${process.execPath}" "$@"\n`);
+  writeFileSync(join(bin, 'sort'), '#!/bin/sh\nexit 1\n');
+  chmodSync(join(bin, 'node'), 0o755); chmodSync(join(bin, 'sort'), 0o755);
+  const failing = runAction(t, { path: `${bin}:/usr/bin:/bin` });
+  couldNotCheck(failing, /sort -V could not order the versions/);
+  assert.doesNotMatch(failing.stdout, /older than/);
+  writeFileSync(join(bin, 'sort'), '#!/bin/sh\nexit 0\n'); // succeeds, prints nothing: still no pass
+  const silent = runAction(t, { path: `${bin}:/usr/bin:/bin` });
+  couldNotCheck(silent, /sort -V gave no ordering/);
+  assert.doesNotMatch(silent.stdout, /older than/);
+});
