@@ -61,6 +61,19 @@ test('when cutting back fails too, the first error is thrown and nothing else is
   assert.deepEqual(calls, ['openSync', 'fstatSync', 'writeSync', 'writeSync', 'ftruncateSync', 'closeSync']);
 });
 
+// What the words in report.mjs and docs/RELEASE-ROUTE.md say is left: a failure on the very last
+// byte (the final newline) together with a failed cut-back leaves a whole `mode` with no newline.
+// Pinned so the sentence cannot drift back to "a line cut part-way before a whole mode".
+test('a failure on the last byte AND a failed cut-back leaves a whole mode line with no newline', (t) => {
+  const file = join(folder(t), 'out');
+  writeFileSync(file, '');
+  const { io: both } = io((write, length) => { if (length > 1) return write(length - 1); throw ENOSPC(); },
+    { ftruncateSync: () => { throw new Error('EIO: cut back'); } });
+  assert.throws(() => appendWhole(file, TEXT, both), (error) => error.code === 'ENOSPC');
+  assert.equal(readFileSync(file, 'utf8'), TEXT.slice(0, -1));
+  assert.match(readFileSync(file, 'utf8'), /(^|\n)mode=publish$/);
+});
+
 test('a write that takes fewer bytes is continued until the whole text is written', (t) => {
   const file = join(folder(t), 'out');
   writeFileSync(file, 'earlier=yes\n');

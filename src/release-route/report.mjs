@@ -22,10 +22,13 @@
 //      order inside the append: the outputs that NAME the run (rule, commit, package, version),
 //      then the others, `mode` as the very last line, so a prefix the cut-back could not remove
 //      holds a line cut part-way (not a value of its closed alphabet) before it holds a whole
-//      `mode`. Example: a write that fails inside the commit line and is not cut back leaves
-//      "rule=publish\ncommit=61e129bc3", which names the run and tells nothing to act. What is
-//      left: a write that fails AND a cut-back that fails, two independent failures of the same
-//      file.
+//      `mode`. Example: a write that fails inside the commit
+//      line and is not cut back leaves "rule=publish\ncommit=61e129bc3", which names the run and
+//      tells nothing to act. The exception: the order makes every cut but the last byte harmless;
+//      a write that fails on the final newline AND a cut-back that fails leaves a whole
+//      `mode=<value>` with no newline, which the runner may still read. What it takes is two
+//      independent failures of the same file (no order of lines can close it: the last byte is
+//      always the newline of the last line).
 //   4. On exit 1 only the four that name the run are written: a pass refused afterwards (the
 //      charted plan whose record cannot be written) leaves no `mode` and no `compare` behind.
 import { appendFileSync } from 'node:fs';

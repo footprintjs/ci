@@ -60,9 +60,12 @@ in `$GITHUB_OUTPUT` when the step ends. It holds by these rules:
   part-way, the file is cut back to the size it had, so a step that exits 1 after a failed output
   write leaves `$GITHUB_OUTPUT` exactly as it found it.
 - Second line of defence, the order inside the append: the names come first and `mode` is the last
-  line, so a prefix the cut-back could not remove holds a line cut part-way (not a value of its
-  closed alphabet) before it holds a whole `mode`. What is left: a write that fails AND a cut-back
-  that fails, two independent failures of the same file.
+  line, so the order makes every cut but the last byte harmless: a prefix the cut-back could not
+  remove holds a line cut part-way (not a value of its closed alphabet) before it holds a whole
+  `mode`. The exception is the last byte: a write that fails on the final newline AND a cut-back
+  that fails leaves a whole `mode=<value>` with no newline, which the runner may still read. That
+  takes two independent failures of the same file, and no order of lines can close it (the last
+  byte is always the newline of the last line).
 
 The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
 publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).
