@@ -26,8 +26,8 @@ by a test.
 | `package-name-invalid` | The package name in package.json is not a valid npm name. |
 | `version-not-plain` | The version is not plain x.y.z; prereleases are not released by this route yet. |
 | `changelog-unreadable` | CHANGELOG.md is not a regular file, not UTF-8 text, or larger than its bound. |
-| `changelog-missing` | CHANGELOG.md has no section for this version. |
-| `changelog-duplicate` | CHANGELOG.md has more than one section for this version. |
+| `changelog-missing` | CHANGELOG.md has no heading for this version outside fenced code and raw HTML (<pre>, <script>, <style>, <textarea>). |
+| `changelog-duplicate` | CHANGELOG.md names this version's heading more than once, anywhere (a quote or code counts); it must appear once. |
 | `git-failed` | A git question failed, so the route could not see the repository. |
 | `checkout-mismatch` | The checkout is not the planned commit with a clean tree. |
 | `request-failed` | A request could not be made or did not finish in time. |

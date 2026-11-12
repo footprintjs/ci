@@ -51,28 +51,49 @@ test('a keepachangelog heading may carry a title; link definitions at the end ar
   assert.deepEqual(findSection(text, '2.0.0', 'keepachangelog'), { title: 'the big one', lines: ['### Changed', '', '- x'] });
 });
 
-test('a "## " inside a fenced code block is not a heading', () => {
-  const text = `## 1.0.0 ${DASH} t\n- before\n\`\`\`md\n## 0.9.0 ${DASH} not a heading\n\`\`\`\n- after\n## 0.9.0 ${DASH} real\n- old\n`;
+test('a "## " inside a fence does not END the section (only a "## " outside one does)', () => {
+  const text = `## 1.0.0 ${DASH} t\n- before\n\`\`\`md\n## 0.9.0 ${DASH} not a heading\n\`\`\`\n- after\n## 0.8.0 ${DASH} real\n- old\n`;
   const section = findSection(text, '1.0.0', 'titled');
   assert.ok(section.lines.includes('- after'));
-  assert.equal(findSection(text, '0.9.0', 'titled').title, 'real');
+  assert.ok(!section.lines.includes('- old'));
 });
 
-test('fences follow CommonMark: closed only by the same character at least as long (the reader\'s notesx.mjs case)', () => {
-  const F3 = '`'.repeat(3);
-  const F4 = '`'.repeat(4);
+// The rule fails closed instead of modelling Markdown: the version's heading text must occur
+// exactly once in the whole file, as plain text, outside fenced code and outside raw HTML.
+const F3 = '`'.repeat(3);
+const F4 = '`'.repeat(4);
+test('the reader\'s fenced spoof: the heading text twice is changelog-duplicate, wherever the second one stands', () => {
   const spoof = ['# C', '', '## 1.1.0', '', F4, F3, `## 1.2.0 ${DASH} FAKE`, '', '- fake notes', F4, '', `## 1.2.0 ${DASH} real`, '', '- real notes', ''].join('\n');
-  assert.deepEqual(findSection(spoof, '1.2.0', 'titled'), { title: 'real', lines: ['- real notes'] });
-  const tilde = ['~~~~', '~~~', `## 1.2.0 ${DASH} FAKE`, '```', '~~~~', `## 1.2.0 ${DASH} real`, '- x'].join('\n');
-  assert.equal(findSection(tilde, '1.2.0', 'titled').title, 'real');
-  const mixed = ['```', `## 1.2.0 ${DASH} FAKE`, '~~~', `## 1.2.0 ${DASH} still fenced`, '```', `## 1.2.0 ${DASH} real`].join('\n');
-  assert.equal(findSection(mixed, '1.2.0', 'titled').title, 'real');
-  const unclosed = [`## 1.2.0 ${DASH} real`, '- a', '````', `## 1.2.0 ${DASH} FAKE`].join('\n');
-  assert.equal(findSection(unclosed, '1.2.0', 'titled').title, 'real');
-  const notAFence = [`## 1.2.0 ${DASH} one`, '``` x`y', `## 1.2.0 ${DASH} two`].join('\n');
-  assert.equal(code(() => findSection(notAFence, '1.2.0', 'titled')), 'changelog-duplicate');
-  const twoReal = ['````', '```', '````', `## 1.2.0 ${DASH} a`, '- x', `## 1.2.0 ${DASH} b`].join('\n');
+  assert.equal(code(() => findSection(spoof, '1.2.0', 'titled')), 'changelog-duplicate');
+  const tilde = ['~~~~', `## 1.2.0 ${DASH} FAKE`, '~~~~', `## 1.2.0 ${DASH} real`].join('\n');
+  assert.equal(code(() => findSection(tilde, '1.2.0', 'titled')), 'changelog-duplicate');
+  const twoReal = [`## 1.2.0 ${DASH} a`, '- x', `## 1.2.0 ${DASH} b`].join('\n');
   assert.equal(code(() => findSection(twoReal, '1.2.0', 'titled')), 'changelog-duplicate');
+});
+
+test('a real heading plus the same text in a <code> span or mid-line is changelog-duplicate (never quote your own version heading)', () => {
+  const span = [`## 1.2.0 ${DASH} real`, '- see <code>## 1.2.0</code> above'].join('\n');
+  assert.equal(code(() => findSection(span, '1.2.0', 'titled')), 'changelog-duplicate');
+  const keep = ['## [1.2.0] - 2026-11-12', '- the heading `## [1.2.0]` is this one'].join('\n');
+  assert.equal(code(() => findSection(keep, '1.2.0', 'keepachangelog')), 'changelog-duplicate');
+});
+
+test('the one occurrence only inside a fence, after an unclosed fence, or inside raw <pre> is missing', () => {
+  assert.equal(findSection([F3, `## 1.2.0 ${DASH} fenced`, F3].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection([F4, F3, `## 1.2.0 ${DASH} fenced`, F3].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection(['<pre>', `## 1.2.0 ${DASH} raw`, '</pre>'].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection(['<PRE class="x">', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection(['<script>', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection(['text <textarea>', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
+  assert.equal(findSection(['- see 1.2.0 ## 1.2.0'].join('\n'), '1.2.0', 'titled'), null);
+});
+
+test('closed raw HTML, other tags, and a fence before the heading leave it found', () => {
+  assert.equal(findSection(['<pre>x</pre>', `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
+  assert.equal(findSection(['<preamble>', `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
+  assert.equal(findSection(['<code>', `## 1.2.0 ${DASH} real`, '</code>'].join('\n'), '1.2.0', 'titled').title, 'real');
+  assert.equal(findSection([F4, F3, F4, `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
+  assert.equal(findSection([`## 1.2.0-rc.1 ${DASH} candidate`, `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
 });
 
 test('two sections for one version is changelog-duplicate', () => {
@@ -92,19 +113,6 @@ test('the bytes must be strict UTF-8 within the bound; an unknown style is a set
   assert.equal(code(() => decodeChangelog(Buffer.alloc(MAX_CHANGELOG_BYTES + 1, 0x20))), 'changelog-unreadable');
   assert.equal(code(() => decodeChangelog('text')), 'changelog-unreadable');
   assert.equal(code(() => findSection('', '1.0.0', 'toString')), 'settings-invalid');
-});
-
-test('a "## " inside an HTML <pre> or <code> block is not a section (round 2 of the second read)', () => {
-  const pre = ['<pre>', `## 1.2.0 ${DASH} FAKE`, '</pre>', `## 1.1.0 ${DASH} old`].join('\n');
-  assert.equal(findSection(pre, '1.2.0', 'titled'), null);
-  const both = ['<PRE class="x">', `## 1.2.0 ${DASH} FAKE`, '- fake', '</Pre>', `## 1.2.0 ${DASH} real`, '- real'].join('\n');
-  assert.deepEqual(findSection(both, '1.2.0', 'titled'), { title: 'real', lines: ['- real'] });
-  const code = ['<code>', `## 1.2.0 ${DASH} FAKE`, '</code>', `## 1.2.0 ${DASH} real`].join('\n');
-  assert.equal(findSection(code, '1.2.0', 'titled').title, 'real');
-  const oneLine = ['<pre>## 1.2.0 x</pre>', `## 1.2.0 ${DASH} real`].join('\n');
-  assert.equal(findSection(oneLine, '1.2.0', 'titled').title, 'real');
-  const preamble = ['<preamble>', `## 1.2.0 ${DASH} real`].join('\n');
-  assert.equal(findSection(preamble, '1.2.0', 'titled').title, 'real');
 });
 
 test('an empty section has no lines, not one empty line', () => {
