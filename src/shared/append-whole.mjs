@@ -11,9 +11,20 @@
 // take fewer bytes than asked, so loop; a write that takes nothing is a failure, not a loop), and
 // on ANY failure cut the file back to that size through the same descriptor and throw the FIRST
 // error. If cutting back fails too, the first error is still the one thrown: what is left then
-// needs two independent failures of the same file. The descriptor is closed in every case; a
-// failing close is not reported: the bytes were already written or cut back, and a close that
-// fails after a whole write can at worst lose them, which tells no later job to act.
+// needs two independent failures of the same file. The descriptor is closed in every case.
+//
+// A failing close is NOT reported, and that is the rule, not an oversight. By then the bytes are
+// written whole (or cut back). Reporting the close would turn a whole, correct write into a thrown
+// error, so the step would exit 1 while `mode=publish` already sits in $GITHUB_OUTPUT: a step that
+// exits 1 and still tells a later job to act, the one thing this helper exists to prevent. What a
+// swallowed close can cost is the bytes themselves (a close that loses buffered data), which leaves
+// the outputs missing: a later job reads nothing and acts on nothing. Pinned by
+// test/shared/append-whole.test.mjs ("a close that throws after a whole write").
+//
+// Assumed, not checked: this helper is the ONLY writer of the file between reading its size and
+// finishing, and the file is a regular file (true of $GITHUB_OUTPUT, which the runner gives to one
+// step). Another writer's bytes written in between would be cut away with ours when a failure cuts
+// the file back to the old size, and a pipe cannot be cut back at all.
 //
 // Example: appendWhole(env.GITHUB_OUTPUT, 'rule=publish\nmode=publish\n') either adds both lines
 // or, when the write fails after 'rule=publish\nmode=publish', throws with the file as it was.

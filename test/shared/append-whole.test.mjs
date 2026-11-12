@@ -74,6 +74,20 @@ test('a failure on the last byte AND a failed cut-back leaves a whole mode line 
   assert.match(readFileSync(file, 'utf8'), /(^|\n)mode=publish$/);
 });
 
+// The close rule: a close that throws after a whole write is NOT reported. Reporting it would turn
+// a whole, correct write into exit 1 while `mode` sits in the file (see append-whole.mjs).
+test('a close that throws after a whole write throws nothing, and the file holds the text', (t) => {
+  const file = join(folder(t), 'out');
+  writeFileSync(file, 'earlier=yes\n');
+  let closed = 0;
+  const { io: closeFails } = io((write, length) => write(length), {
+    closeSync: (fd) => { closed += 1; fs.closeSync(fd); throw new Error('EIO: close'); },
+  });
+  assert.doesNotThrow(() => appendWhole(file, TEXT, closeFails));
+  assert.equal(closed, 1);
+  assert.equal(readFileSync(file, 'utf8'), `earlier=yes\n${TEXT}`);
+});
+
 test('a write that takes fewer bytes is continued until the whole text is written', (t) => {
   const file = join(folder(t), 'out');
   writeFileSync(file, 'earlier=yes\n');
