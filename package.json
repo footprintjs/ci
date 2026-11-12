@@ -9,14 +9,14 @@
     "node": ">=22.14.0"
   },
   "dependencies": {
-    "footprintjs": "12.0.0",
+    "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
   },
   "devDependencies": {
     "esbuild": "0.28.0"
   },
   "scripts": {
-    "test": "node --test test/eco/*.test.mjs test/flow/*.test.mjs test/hold/*.test.mjs test/policy/*.test.mjs test/release-route/*.test.mjs test/release-route/archive/*.test.cjs test/shadow/*.test.mjs test/shared/*.test.mjs test/workflow/*.test.mjs test/upstream/test/release/*.test.mjs",
+    "test": "node --test test/eco/*.test.mjs test/flow/*.test.mjs test/hold/*.test.mjs test/policy/*.test.mjs test/release-route/*.test.mjs test/release-route/chart/*.test.mjs test/release-route/archive/*.test.cjs test/shadow/*.test.mjs test/shared/*.test.mjs test/workflow/*.test.mjs test/upstream/test/release/*.test.mjs",
     "build": "node scripts/build.mjs",
     "check": "npm test && npm run build",
     "eco": "node bin/eco.mjs"

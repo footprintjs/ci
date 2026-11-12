@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "ddd97d51ef0e84e8610c843e39f96f546b6acae5392f965674391bf3e11b84ae",
+  "sha256": "86ed932b47ea04e8e51a5cc6acf44ab98bff52b6a1aa371fdf686935cf2d3d9b",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -666,7 +666,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/ControlDepRecorder.js",
-      "bytes": 42422
+      "bytes": 49495
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/FinalizationBook.js",
@@ -687,6 +687,10 @@
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/KeyedStore.js",
       "bytes": 13317
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/loopBackEdges.js",
+      "bytes": 12305
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/QualityRecorder.js",

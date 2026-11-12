@@ -15,7 +15,7 @@ test('ordinary checks rebuild and reject uncommitted bundle drift on both requir
   const source = await readFile('.github/workflows/check.yml','utf8');
   assert.match(source, /node: \[22, 24\]/); assert.match(source, /npm ci --ignore-scripts/);
   assert.match(source, /npm test/); assert.match(source, /npm run build/);
-  assert.match(source, /git diff --exit-code -- dist\/release.cjs dist\/build-metadata.json/);
+  assert.match(source, /git diff --exit-code -- dist\/release.cjs dist\/build-metadata.json dist\/release-route.cjs dist\/release-route-metadata.json\n/);
 });
 test('prebuilt metadata closes runtime imports and contains approved cohort dependencies', async () => {
   const meta = JSON.parse(await readFile('dist/build-metadata.json','utf8'));

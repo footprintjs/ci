@@ -29199,6 +29199,54 @@ function decide(scope, rules, defaultBranch) {
   return { branch: defaultBranchId, [DECISION_RESULT]: true, evidence };
 }
 
+// node_modules/footprintjs/dist/esm/lib/recorder/loopBackEdges.js
+var LoopBackEdges = class {
+  /** Hop sources whose re-entry has not been seen yet. */
+  pendingSources = /* @__PURE__ */ new Set();
+  /** Stage id → its latest execution seen: the target's previous run when a re-entry arrives. */
+  lastRunOf = /* @__PURE__ */ new Map();
+  reentries = /* @__PURE__ */ new Map();
+  /** `onLoop`: the execution `source` hopped back to an earlier stage. */
+  noteLoop(source) {
+    this.pendingSources.add(source);
+  }
+  /** Every step seen (a parentless root too: a loop may go back to it); the first child of a pending hop source is its re-entry. */
+  noteStage(runtimeStageId, parentRuntimeStageId, parentOf) {
+    if (runtimeStageId === parentRuntimeStageId)
+      return;
+    const stageId = stageIdOf(runtimeStageId);
+    const previous = this.lastRunOf.get(stageId);
+    this.lastRunOf.set(stageId, runtimeStageId);
+    if (parentRuntimeStageId === void 0 || !this.pendingSources.delete(parentRuntimeStageId))
+      return;
+    if (previous === void 0 || previous === runtimeStageId)
+      return;
+    const gateRun = parentOf.get(parentRuntimeStageId);
+    const loop = `${stageIdOf(parentRuntimeStageId)}>${stageId}`;
+    const before = this.reentries.get(previous);
+    this.reentries.set(runtimeStageId, {
+      gate: gateRun === void 0 ? void 0 : stageIdOf(gateRun),
+      loop,
+      entry: before?.loop === loop ? before.entry : previous
+    });
+  }
+  /**
+   * When `reentry` is a loop's re-entered target and the walk has `passed` a run of that loop's gate, the execution
+   * to go on from (the loop's entry); otherwise `undefined` — cross the back-edge.
+   */
+  exitTo(reentry, passed) {
+    const found = this.reentries.get(reentry);
+    if (found === void 0 || found.gate === void 0 || !passed.has(found.gate))
+      return void 0;
+    return found.entry;
+  }
+  clear() {
+    this.pendingSources.clear();
+    this.lastRunOf.clear();
+    this.reentries.clear();
+  }
+};
+
 // node_modules/footprintjs/dist/esm/lib/recorder/ControlDepRecorder.js
 var _counter2 = 0;
 function controlDepRecorder(options = {}) {
@@ -29216,6 +29264,8 @@ var ControlDepRecorder = class {
   pending = [];
   /** Stage ids that already consumed a pending slot (entry OR error). */
   consumedSlots = /* @__PURE__ */ new Set();
+  /** Loop back-edges in the ancestor chain, and which steps they govern. */
+  loops = new LoopBackEdges();
   /** Convention 4 — runId of the run currently being recorded. */
   lastRunId;
   captureCoverage;
@@ -29242,11 +29292,13 @@ var ControlDepRecorder = class {
     this.resetIfNewRun(ctx.runId);
     const deciderId = ctx.runtimeStageId;
     const ruleLabel = matchedRuleLabel(event.evidence);
+    const defaultLabel = fellBackLabel(event.evidence);
     this.decisions.set(deciderId, {
       deciderRuntimeStageId: deciderId,
       chosen: event.chosen,
       ...event.evidence && { evidence: event.evidence },
-      ...ruleLabel !== void 0 && { ruleLabel }
+      ...ruleLabel !== void 0 && { ruleLabel },
+      ...defaultLabel !== void 0 && { defaultLabel }
     });
     this.pending.push({ deciderId, remaining: 1 });
   }
@@ -29279,14 +29331,22 @@ var ControlDepRecorder = class {
       return;
     this.pending.push({ deciderId, remaining: event.selected.length });
   }
+  /** A `loopTo` hop: the next step whose parent is this execution re-enters the loop. */
+  onLoop(event) {
+    const ctx = event.traversalContext;
+    if (!ctx)
+      return;
+    this.resetIfNewRun(ctx.runId);
+    this.loops.noteLoop(ctx.runtimeStageId);
+  }
   onStageExecuted(event) {
     const ctx = event.traversalContext;
     if (!ctx)
       return;
     this.resetIfNewRun(ctx.runId);
     const { runtimeStageId, parentRuntimeStageId } = ctx;
+    this.noteStage(runtimeStageId, parentRuntimeStageId);
     if (parentRuntimeStageId) {
-      this.parentOf.set(runtimeStageId, parentRuntimeStageId);
       this.consumePendingSlot(
         runtimeStageId,
         parentRuntimeStageId,
@@ -29307,7 +29367,7 @@ var ControlDepRecorder = class {
       return;
     this.resetIfNewRun(ctx.runId);
     if (ctx.parentRuntimeStageId) {
-      this.parentOf.set(ctx.runtimeStageId, ctx.parentRuntimeStageId);
+      this.noteStage(ctx.runtimeStageId, ctx.parentRuntimeStageId);
       this.consumePendingSlot(
         ctx.runtimeStageId,
         ctx.parentRuntimeStageId,
@@ -29321,10 +29381,13 @@ var ControlDepRecorder = class {
    * Resolve the NEAREST governing decision for an execution step: walks the
    * runtime ancestor chain (the step itself first) until it hits a
    * registered branch entry. `undefined` when the step is not downstream of
-   * any recorded decision.
+   * any recorded decision. A walk that passed a loop's gate (the step that
+   * chose the looping branch) does not cross that loop's back-edge; it goes
+   * on from the loop's entry (`LoopBackEdges · exitTo`).
    */
   lookup(runtimeStageId) {
     const seen = /* @__PURE__ */ new Set();
+    const passed = /* @__PURE__ */ new Set();
     let cur = runtimeStageId;
     while (cur !== void 0 && !seen.has(cur)) {
       seen.add(cur);
@@ -29336,7 +29399,9 @@ var ControlDepRecorder = class {
           ...record?.ruleLabel !== void 0 && { label: record.ruleLabel }
         };
       }
-      cur = this.parentOf.get(cur);
+      if (cur !== runtimeStageId)
+        passed.add(stageIdOf(cur));
+      cur = this.loops.exitTo(cur, passed) ?? this.parentOf.get(cur);
     }
     return void 0;
   }
@@ -29385,6 +29450,7 @@ var ControlDepRecorder = class {
     this.branchEntryToDecision.clear();
     this.pending = [];
     this.consumedSlots.clear();
+    this.loops.clear();
   }
   // ── Internals ─────────────────────────────────────────────────────────
   /** Convention 4: a new runId means a new run — reset transient state. */
@@ -29393,6 +29459,12 @@ var ControlDepRecorder = class {
       return;
     this.clear();
     this.lastRunId = runId;
+  }
+  /** Every executed step: its chain link, and its place in the loops (a parentless root may be a loop target). */
+  noteStage(runtimeStageId, parentRuntimeStageId) {
+    if (parentRuntimeStageId)
+      this.parentOf.set(runtimeStageId, parentRuntimeStageId);
+    this.loops.noteStage(runtimeStageId, parentRuntimeStageId, this.parentOf);
   }
   /**
    * If `parentRuntimeStageId` is a decider with an unmatched pending slot,
@@ -29424,6 +29496,11 @@ function matchedRuleLabel(evidence) {
     return void 0;
   const rule = evidence.rules.find((r) => r.matched && r.branch === evidence.chosen) ?? evidence.rules.find((r) => r.matched);
   return rule?.label;
+}
+function fellBackLabel(evidence) {
+  if (!evidence || evidence.rules.some((r) => r.matched))
+    return void 0;
+  return evidence.defaultLabel;
 }
 
 // src/record.mjs
