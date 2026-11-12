@@ -47,6 +47,7 @@ by a test.
 | `recover-off-main` | Recovering a release writes a tag and a GitHub release, so it runs only from main. |
 | `release-unfinished` | npm has this version but no tag: use Re-run failed jobs on the run that published it, or tag v<version> at that commit by hand. |
 | `no-rule-matched` | No rule of the decision matched these facts, so nothing is decided. |
+| `plan-stale` | The plan is no longer true: main moved on, or a newer version is on npm. This job published nothing; start a new run from main (a push or a dispatch). |
 | `output-folder` | The output folder is not an empty folder the route may write. |
 | `node-version` | The Node running the build is not the major version the settings name. |
 | `system-packages-failed` | Installing the system packages failed. |

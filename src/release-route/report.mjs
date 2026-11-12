@@ -33,7 +33,7 @@
 //      charted plan whose record cannot be written) leaves no `mode` and no `compare` behind.
 import { appendFileSync } from 'node:fs';
 import { appendWhole } from '../shared/append-whole.mjs';
-import { COMMIT, PLAIN_VERSION, isPackageName } from './identity.mjs';
+import { COMMIT, PLAIN_VERSION, isNodeMajor, isPackageName } from './identity.mjs';
 import { refuse } from './refusals.mjs';
 import { clean } from '../shared/text.mjs';
 
@@ -44,6 +44,7 @@ const OUTPUTS = Object.freeze({
   commit: (v) => COMMIT.test(v),
   version: (v) => PLAIN_VERSION.test(v),
   package: (v) => isPackageName(v),
+  node: (v) => isNodeMajor(v),
   file: (v) => v === 'package.tgz',
   'title-file': (v) => v === 'title.txt',
   'notes-file': (v) => v === 'notes.md',

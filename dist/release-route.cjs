@@ -527,9 +527,11 @@ var COMMIT = /^[a-f0-9]{40}$/;
 var PLAIN_VERSION = /^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})$/;
 var NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
 var SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
+var NODE_MAJOR = /^(2[2-9]|[3-9][0-9])$/;
 var isCommit = (value) => typeof value === "string" && COMMIT.test(value) && !/^0+$/.test(value);
 var isPlainVersion = (value) => typeof value === "string" && PLAIN_VERSION.test(value);
 var isPackageName = (value) => typeof value === "string" && value.length <= 214 && NAME.test(value);
+var isNodeMajor = (value) => typeof value === "string" && NODE_MAJOR.test(value);
 function parse(version) {
   const match = typeof version === "string" && version.length <= 256 ? SEMVER.exec(version) : null;
   if (!match) return null;
@@ -670,6 +672,7 @@ var REFUSALS = Object.freeze({
   "recover-off-main": "Recovering a release writes a tag and a GitHub release, so it runs only from main.",
   "release-unfinished": "npm has this version but no tag: use Re-run failed jobs on the run that published it, or tag v<version> at that commit by hand.",
   "no-rule-matched": "No rule of the decision matched these facts, so nothing is decided.",
+  "plan-stale": "The plan is no longer true: main moved on, or a newer version is on npm. This job published nothing; start a new run from main (a push or a dispatch).",
   // Building the package.
   "output-folder": "The output folder is not an empty folder the route may write.",
   "node-version": "The Node running the build is not the major version the settings name.",
@@ -800,6 +803,7 @@ function reportPlan({ result, causes, context, report: report2 }) {
     const first = unreadableFacts(result.seen)[0];
     refuse(result.refuse, result.rule === "facts-unreadable" ? first : `rule ${result.rule}`);
   }
+  report2.output("node", context.node);
   report2.output("mode", result.mode);
   report2.output("compare", result.compare);
   const what = {
@@ -28832,7 +28836,7 @@ function readSettings(bytes) {
   for (const key of Object.keys(value)) if (!KEYS.includes(key)) refuse("settings-unknown-key", key);
   for (const key of KEYS) if (!Object.hasOwn(value, key)) refuse("settings-missing-key", key);
   if (value.schema !== 1) refuse("settings-invalid", "schema");
-  if (typeof value.node !== "string" || !/^(2[2-9]|[3-9][0-9])$/.test(value.node)) refuse("settings-invalid", "node");
+  if (!isNodeMajor(value.node)) refuse("settings-invalid", "node");
   const system = value.systemPackages;
   if (!Array.isArray(system) || system.length > MAX_SYSTEM_PACKAGES || new Set(system).size !== system.length || !system.every((name) => typeof name === "string" && SYSTEM_PACKAGE.test(name))) refuse("settings-invalid", "systemPackages");
   const install = commandArgv(value.install, "install");
@@ -28860,7 +28864,8 @@ var CONTEXT_CHECKS = Object.freeze({
   commit: isCommit,
   packageName: isPackageName,
   version: isPlainVersion,
-  changelogStyle: (value) => CHANGELOG_STYLES.includes(value)
+  changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
+  node: isNodeMajor
 });
 var CONTEXT_NAMES = Object.freeze(Object.keys(CONTEXT_CHECKS));
 function writeObservation(scope, found) {
@@ -29206,7 +29211,7 @@ function readAtCommit(git2, commit, path2, maxBytes, unreadable) {
   if (bytes.length !== size) refuse("git-failed", `read ${path2}`);
   return bytes;
 }
-function remoteCommit(git2, ref, question) {
+function remoteCommit(git2, ref, question, peeled) {
   const out = ask(git2, ["ls-remote", "origin", ref, `${ref}^{}`], question).toString("utf8");
   if (out === "") return null;
   if (!out.endsWith("\n")) refuse("git-failed", question);
@@ -29218,6 +29223,7 @@ function remoteCommit(git2, ref, question) {
     if (found.has(match[2])) refuse("git-failed", question);
     found.set(match[2], match[1]);
   }
+  if (peeled === "refuse" && found.has(`${ref}^{}`)) refuse("git-failed", question);
   if (!found.has(ref)) {
     if (found.size > 0) refuse("git-failed", question);
     return null;
@@ -29226,11 +29232,11 @@ function remoteCommit(git2, ref, question) {
 }
 function tagCommit(git2, version) {
   if (!isPlainVersion(version)) refuse("input-invalid", "version");
-  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags");
+  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags", "follow");
 }
 var tagExists = (git2, version) => tagCommit(git2, version) !== null;
 function mainTip(git2) {
-  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main");
+  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main", "refuse");
   if (tip === null) refuse("git-failed", "ls-remote main");
   return tip;
 }
@@ -29288,7 +29294,9 @@ async function observeSettings({ git: git2, commit }) {
   await read2("settingsRead", () => {
     const bytes = readAtCommit(git2, commit, SETTINGS_PATH, MAX_SETTINGS_BYTES, "settings-unreadable");
     if (bytes === null) refuse("settings-unreadable", SETTINGS_PATH);
-    found.context.changelogStyle = readSettings(bytes).changelog;
+    const settings = readSettings(bytes);
+    found.context.changelogStyle = settings.changelog;
+    found.context.node = settings.node;
     return true;
   });
   return found;
@@ -29358,7 +29366,6 @@ var CHANGELOG = Object.freeze({
 });
 
 // src/release-route/chart/stages/gather.mjs
-var CONTEXT = Object.freeze(["packageName", "version", "changelogStyle"]);
 var gather = (id, children2) => Object.freeze({
   id,
   name: "Gather what was seen",
@@ -29368,7 +29375,7 @@ var gather = (id, children2) => Object.freeze({
     for (const child of children2) {
       const found = scope.$read(`runs.${child.id}`) ?? {};
       for (const name of FACT_NAMES) if (Object.hasOwn(found, name)) scope[name] = found[name];
-      for (const key of CONTEXT) if (Object.hasOwn(found, key)) scope[key] = found[key];
+      for (const key of CONTEXT_NAMES) if (Object.hasOwn(found, key)) scope[key] = found[key];
       Object.assign(causes, found.causes ?? {});
     }
     if (Object.keys(causes).length > 0) scope.causes = causes;
@@ -29459,6 +29466,7 @@ var fromState = (state) => {
   if (state.commit) context.commit = state.commit;
   if (state.packageName) context.name = state.packageName;
   if (state.version) context.version = state.version;
+  if (state.node) context.node = state.node;
   return { facts, causes, context };
 };
 function chartResult(state) {
@@ -30190,6 +30198,7 @@ var OUTPUTS = Object.freeze({
   commit: (v) => COMMIT.test(v),
   version: (v) => PLAIN_VERSION.test(v),
   package: (v) => isPackageName(v),
+  node: (v) => isNodeMajor(v),
   file: (v) => v === "package.tgz",
   "title-file": (v) => v === "title.txt",
   "notes-file": (v) => v === "notes.md",

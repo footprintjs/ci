@@ -37,12 +37,14 @@ test('outputs are written only from their closed alphabets', () => {
   report.output('package', '@footprintjs/release-flow');
   report.output('compare', 'no');
   report.output('rule', 'released');
+  report.output('node', '22');
   report.output('file', 'package.tgz');
   for (const [key, value] of [['publish', 'yes'], ['publish', 'no'], ['tag', 'create'], ['tag', 'skip'], ['release', 'create'], ['release', 'skip']]) report.output(key, value);
   report.end(0);
-  assert.equal(files['/out'], 'commit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\nrule=released\ncompare=no\nfile=package.tgz\npublish=yes\npublish=no\ntag=create\ntag=skip\nrelease=create\nrelease=skip\nmode=publish\n');
+  assert.equal(files['/out'], 'commit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\nrule=released\ncompare=no\nnode=22\nfile=package.tgz\npublish=yes\npublish=no\ntag=create\ntag=skip\nrelease=create\nrelease=skip\nmode=publish\n');
   const fresh = capture().report;
-  for (const [key, value] of [['mode', 'ship'], ['version', '1.0.0\nmode=publish'], ['commit', 'HEAD'], ['title', 'x'], ['file', '../x.tgz'], ['package', 'A'], ['rule', 'x'], ['mode', 1], ['publish', 'maybe'], ['tag', 'move'], ['release', 'yes']])
+  for (const [key, value] of [['mode', 'ship'], ['version', '1.0.0\nmode=publish'], ['commit', 'HEAD'], ['title', 'x'], ['file', '../x.tgz'], ['package', 'A'], ['rule', 'x'], ['mode', 1], ['publish', 'maybe'], ['tag', 'move'], ['release', 'yes'],
+    ['node', '21'], ['node', '22.14.0'], ['node', 'v22'], ['node', '22\nmode=publish'], ['node', 22]])
     assert.throws(() => fresh.output(key, value), (error) => error instanceof Refusal && error.code === 'output-invalid');
 });
 
@@ -57,7 +59,7 @@ test('without the runner files nothing is appended', () => {
 test('outputs wait for the step\'s end; a step that exits 1 keeps only those that name the run', () => {
   const { report, files } = capture();
   for (const [key, value] of [['rule', 'publish'], ['commit', 'c94c2a6fed62378c428df22d316d36f576511d6a'], ['package', 'footprint-storydeck'],
-    ['version', '0.13.2'], ['mode', 'publish'], ['compare', 'yes'], ['publish', 'yes'], ['tag', 'create'], ['release', 'create'], ['file', 'package.tgz']])
+    ['version', '0.13.2'], ['mode', 'publish'], ['node', '22'], ['compare', 'yes'], ['publish', 'yes'], ['tag', 'create'], ['release', 'create'], ['file', 'package.tgz']])
     report.output(key, value);
   assert.equal(files['/out'], undefined, 'nothing is written before the end');
   report.end(1);

@@ -4,11 +4,11 @@
 // returns 0 or 1. Every exception ends as a named refusal and exit 1: no catch here passes.
 //
 //   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN]
-//            -> mode, rule, compare, commit, [package, version]       (exit 0 also for "nothing")
+//            -> mode, rule, compare, node, commit, [package, version] (exit 0 also for "nothing")
 //   npm-tool ROUTE_NPM_DIR                                             (the pinned npm, unpacked)
 //   build    ROUTE_COMMIT, ROUTE_OUT, [ROUTE_NPM_DIR]                  -> file
 //   inspect  ROUTE_COMMIT, ROUTE_TARBALL_DIR                           (re-checks package.tgz)
-//   ready    ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR           -> publish (yes|no)
+//   ready    ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR, ROUTE_COMMIT -> publish (yes|no)
 //   verify   ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR           (npm serves these bytes)
 //   tag      ROUTE_COMMIT, ROUTE_VERSION, GITHUB_REPOSITORY, [GITHUB_TOKEN] -> tag, release (create|skip)
 //   notes    ROUTE_COMMIT, ROUTE_OUT                                   -> title-file, notes-file
@@ -65,13 +65,14 @@ function npmToolStep({ env, report }) {
   report.say(`Unpacked the pinned npm ${result.version} (${result.files} files, digests equal to vendor/npm/manifest.json).`);
 }
 
-async function readyStep({ env, fetcher, report }) {
+async function readyStep({ env, git, fetcher, report }) {
   const name = input(env, 'ROUTE_PACKAGE', isPackageName);
   const version = input(env, 'ROUTE_VERSION', isPlainVersion);
+  const commit = commitInput(env);
   const { bytes } = archivePort.readIntake(pathInput(env, 'ROUTE_TARBALL_DIR'));
-  const publish = await ready({ fetcher, name, version, localBytes: bytes });
+  const publish = await ready({ fetcher, git, name, version, commit, localBytes: bytes });
   report.output('publish', publish);
-  report.say(publish === 'yes' ? `Ready: npm does not have ${name}@${version}; publish it.`
+  report.say(publish === 'yes' ? `Ready: npm does not have ${name}@${version}, the commit is still the tip of main and the version still the newest; publish it.`
     : `Ready: npm already serves ${name}@${version} with exactly these bytes; do not publish again, go on to verify.`);
 }
 

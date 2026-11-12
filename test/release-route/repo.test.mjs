@@ -87,6 +87,25 @@ test('an annotated tag is answered by its peeled commit; the tip of main is meas
   assert.equal(mainTip(answer(`${'b'.repeat(40)}\trefs/heads/x/refs/heads/main\n${commit}\trefs/heads/main\n`)), commit);
 });
 
+// N7 of the second read: git sends a peeled line for an annotated TAG, never for a branch. For the
+// tip of main a peeled line is not git's answer, so the fact is unreadable; it must never become
+// the answer (`main=B` beside `main^{}=A` read as A made `ready` say publish for A). Tags keep
+// their rule: the peeled commit wins.
+test('the tip of main refuses a peeled line; a tag still follows its peeled line', () => {
+  const [tip, other] = ['a'.repeat(40), 'b'.repeat(40)];
+  const answer = (text) => () => Buffer.from(text);
+  assert.equal(mainTip(answer(`${tip}\trefs/heads/main\n`)), tip);
+  for (const text of [`${tip}\trefs/heads/main\n${other}\trefs/heads/main^{}\n`, `${other}\trefs/heads/main^{}\n${tip}\trefs/heads/main\n`, `${other}\trefs/heads/main^{}\n`,
+    `${tip}\trefs/heads/main\n${tip}\trefs/heads/main^{}\n`])
+    assert.equal(code(() => mainTip(answer(text))), 'git-failed ls-remote main', JSON.stringify(text));
+  // An unrelated ref that ends like main, with a peeled line of ITS own name, is still ignored.
+  assert.equal(mainTip(answer(`${other}\trefs/heads/x/refs/heads/main^{}\n${tip}\trefs/heads/main\n`)), tip);
+  // Tags, unchanged: the peeled line wins; a ref alone answers itself; only a peeled line is unreadable.
+  assert.equal(tagCommit(answer(`${other}\trefs/tags/v1.0.0\n${tip}\trefs/tags/v1.0.0^{}\n`), '1.0.0'), tip);
+  assert.equal(tagCommit(answer(`${tip}\trefs/tags/v1.0.0\n`), '1.0.0'), tip);
+  assert.equal(code(() => tagCommit(answer(`${tip}\trefs/tags/v1.0.0^{}\n`), '1.0.0')), 'git-failed ls-remote tags');
+});
+
 test('build runs only on the planned commit with a clean tree', (t) => {
   const { dir, commit, git } = fixture(t);
   requireCleanCheckout(git, commit);

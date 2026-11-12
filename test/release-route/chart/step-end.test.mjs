@@ -36,12 +36,12 @@ async function plan(runner, env, append = appendFileSync, appendOutputs = undefi
 }
 
 for (const [path, runner] of Object.entries(PATHS)) {
-  test(`${path}: the pass writes the four names, compare, and mode as the last line`, async (t) => {
+  test(`${path}: the pass writes the four names, node, compare, and mode as the last line`, async (t) => {
     const dir = folder(t);
     const env = { GITHUB_OUTPUT: join(dir, 'out'), GITHUB_STEP_SUMMARY: join(dir, 'summary') };
     const result = await plan(runner, env);
     assert.equal(result.code, 0, result.printed.join('\n'));
-    assert.match(read(env.GITHUB_OUTPUT), /^rule=publish\ncommit=[0-9a-f]{40}\npackage=footprint-storydeck\nversion=0\.13\.2\ncompare=yes\nmode=publish\n$/);
+    assert.match(read(env.GITHUB_OUTPUT), /^rule=publish\ncommit=[0-9a-f]{40}\npackage=footprint-storydeck\nversion=0\.13\.2\nnode=22\ncompare=yes\nmode=publish\n$/);
   });
 
   const SUMMARY_FAILS = {

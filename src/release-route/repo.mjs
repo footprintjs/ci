@@ -39,12 +39,16 @@ export function readAtCommit(git, commit, path, maxBytes, unreadable) {
 // The commit `ref` names on origin, or null when origin has no such ref. Asked of `origin`
 // itself, not of the local refs, which a shallow checkout does not hold. An annotated tag is
 // answered with its peeled line (`<ref>^{}`), whose commit is the one returned.
+// A BRANCH is the opposite: the tip of main is the commit the ref line itself names, and git never
+// sends a peeled line for a branch, so one in the answer (`main=B` beside `main^{}=A`, which would
+// make A the tip) means the answer is not git's: git-failed, never the commit. Second reader, N7.
+// `peeled` says which rule applies: 'follow' (a tag) or 'refuse' (a branch).
 // `ls-remote` matches the END of ref names, so a branch named `x/refs/heads/main` or
 // `refs/tags/v1.5.0` adds lines of its own: those are IGNORED (refusing them would let anyone who
 // can push a branch stop every release; found by the second reader). Only the lines whose ref is
 // EXACTLY the one asked for, or its peeled line, count; a malformed line, or the exact ref twice,
 // is git-failed: never guessed.
-function remoteCommit(git, ref, question) {
+function remoteCommit(git, ref, question, peeled) {
   // Both patterns: git prints the peeled line of an annotated tag only when it is asked for.
   const out = ask(git, ['ls-remote', 'origin', ref, `${ref}^{}`], question).toString('utf8');
   if (out === '') return null;
@@ -57,6 +61,7 @@ function remoteCommit(git, ref, question) {
     if (found.has(match[2])) refuse('git-failed', question);
     found.set(match[2], match[1]);
   }
+  if (peeled === 'refuse' && found.has(`${ref}^{}`)) refuse('git-failed', question);
   if (!found.has(ref)) {
     if (found.size > 0) refuse('git-failed', question);
     return null;
@@ -67,14 +72,14 @@ function remoteCommit(git, ref, question) {
 // The commit tag v<version> points at on origin, or null.
 export function tagCommit(git, version) {
   if (!isPlainVersion(version)) refuse('input-invalid', 'version');
-  return remoteCommit(git, `refs/tags/v${version}`, 'ls-remote tags');
+  return remoteCommit(git, `refs/tags/v${version}`, 'ls-remote tags', 'follow');
 }
 export const tagExists = (git, version) => tagCommit(git, version) !== null;
 
 // The commit at the tip of origin's main. Measured, so "is this run's commit still the tip of
 // main" is a fact the route reads, not one it is told.
 export function mainTip(git) {
-  const tip = remoteCommit(git, 'refs/heads/main', 'ls-remote main');
+  const tip = remoteCommit(git, 'refs/heads/main', 'ls-remote main', 'refuse');
   if (tip === null) refuse('git-failed', 'ls-remote main');
   return tip;
 }

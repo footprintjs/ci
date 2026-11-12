@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isCommit, isPackageName, isPlainVersion, newerThanAll } from '../../src/release-route/identity.mjs';
+import { isCommit, isNodeMajor, isPackageName, isPlainVersion, newerThanAll } from '../../src/release-route/identity.mjs';
 
 test('plain versions only', () => {
   for (const v of ['0.0.0', '0.13.1', '12.0.0', '999999999.0.1']) assert.equal(isPlainVersion(v), true, v);
@@ -16,6 +16,11 @@ test('commits are 40 lowercase hex and never all zeros', () => {
 test('npm package names', () => {
   for (const v of ['footprint-storydeck', '@footprintjs/release-flow', 'a.b_c-d']) assert.equal(isPackageName(v), true, v);
   for (const v of ['Upper', '-x', '.x', '@scope', '@/x', 'a b', 'x'.repeat(215), '', 'a/b', '../x']) assert.equal(isPackageName(v), false, v);
+});
+
+test('a Node major is the text "22" to "99", nothing around it', () => {
+  for (const v of ['22', '24', '30', '99']) assert.equal(isNodeMajor(v), true, v);
+  for (const v of ['21', '18', '100', '22.14.0', 'v22', ' 22', '22\n', '022', 'lts', '', 22, undefined]) assert.equal(isNodeMajor(v), false, String(v));
 });
 
 test('newer than every published version, prereleases included', () => {

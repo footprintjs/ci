@@ -238,7 +238,8 @@ never over an existing file, at most 8 MiB). Absent, nothing is saved and the st
 
 What it never holds: the token (it stays inside the doors), the environment, or a path of the
 runner. Every fact is `true`, `false` or `null`; the action is cut to 40 characters and cleaned;
-the commit, name, version and changelog style are kept only when each has its exact shape; a
+the commit, name, version, changelog style and the settings' Node major are kept only when each
+has its exact shape; a
 cause's detail is cut to 120 characters and cleaned. `steps.test.mjs` runs a plan with a
 recognisable token (which does reach GitHub, through its door) and searches the saved file for
 it, for the name `GITHUB_TOKEN`, and for the temp, home, working and record folders.
@@ -255,7 +256,7 @@ the decision that governs it (the decision whose branch let the key's last write
 record's control edges) with the rule that matched and each fact the rule tested, its value and the
 stage that observed it; or, for a key no decision governs, one line saying so, no rule, and one
 line naming the stage. That line says `Observed by` only for what a look observed: a fact of the
-rule table or a context value (the commit, the package name, the version, the changelog style),
+rule table or a context value (the commit, the package name, the version, the changelog style, the Node major),
 for example `Observed by Look at the tip of main (look-tip#1).` Every other key (a computed value
 such as `factsReadable` or `servedEqual`, or the `runs` container) says `Written by`, naming the
 stage that wrote it last. The stage that observed a fact is the one that wrote it into the record,

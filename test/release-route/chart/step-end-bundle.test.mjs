@@ -51,10 +51,10 @@ function plan(t, runner, setup = (dir) => ({}), preload = []) {
 }
 
 for (const runner of Object.keys(RUNNERS)) {
-  test(`${runner}: the pass writes the four names, compare, and mode as the last line`, (t) => {
+  test(`${runner}: the pass writes the four names, node, compare, and mode as the last line`, (t) => {
     const result = plan(t, runner);
     assert.equal(result.code, 0, result.stdout + result.stderr);
-    assert.match(result.output, /^rule=publish\ncommit=[0-9a-f]{40}\npackage=footprint-storydeck\nversion=0\.13\.2\ncompare=yes\nmode=publish\n$/);
+    assert.match(result.output, /^rule=publish\ncommit=[0-9a-f]{40}\npackage=footprint-storydeck\nversion=0\.13\.2\nnode=22\ncompare=yes\nmode=publish\n$/);
   });
 
   const SUMMARY_FAILS = {

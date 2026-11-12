@@ -47,7 +47,10 @@ for (const [label, options] of [
     assert.deepEqual(chart.result, plain.result);
     assert.deepEqual(nulls(chart.facts), { ...Object.fromEntries(Object.keys(chart.facts).map((n) => [n, null])), ...nulls(plain.facts) });
     assert.deepEqual(causes(chart.causes), causes(plain.causes));
-    assert.deepEqual(chart.context, { commit: plain.context.commit, name: plain.context.name, version: plain.context.version });
+    // The context the plan step reads back (step-common.mjs · reportPlan): the plain one but its
+    // changelog style, which only the changelog look reads, inside the chart.
+    const { changelogStyle, ...reported } = plain.context;
+    assert.deepEqual(chart.context, reported);
   });
 
 test('a malformed GITHUB_SHA stops the charted run as it stops the plain one (input-invalid)', async () => {

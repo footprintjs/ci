@@ -11,6 +11,13 @@ test('every code is kebab-case with a sentence a person can act on', () => {
   }
 });
 
+// N9 of the second read: npm may already hold the version from an earlier attempt (it accepted the
+// package, then the job failed), so a refusal by THIS job cannot say that nothing was published.
+test('plan-stale says what THIS job did, never that nothing was published, and what to do', () => {
+  assert.doesNotMatch(REFUSALS['plan-stale'], /Nothing was published/);
+  assert.match(REFUSALS['plan-stale'], /This job published nothing; start a new run from main \(a push or a dispatch\)\.$/);
+});
+
 test('an unknown code is itself a refusal, keeping the bad code visible', () => {
   const error = new Refusal('no-such-code', 'x');
   assert.equal(error.code, 'unknown-refusal');

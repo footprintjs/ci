@@ -1,5 +1,5 @@
 // The shapes of the route's identifiers, owned once: a commit, a plain version, an npm package
-// name, and "newer than every published version". Anything that fails these shapes is refused
+// name, a Node major, and "newer than every published version". Anything that fails these shapes is refused
 // before it reaches git, a URL or a later job.
 
 export const COMMIT = /^[a-f0-9]{40}$/;
@@ -10,9 +10,15 @@ const NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
 // Any semver npm may hold: x.y.z with an optional prerelease and build part.
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 
+// The Node major a package builds on, as the settings name it: "22" to "99". The settings check it
+// (settings.mjs) and the plan hands it to the build job as an output (report.mjs), which passes it
+// to the Node setup action; one shape, so the two cannot disagree.
+export const NODE_MAJOR = /^(2[2-9]|[3-9][0-9])$/;
+
 export const isCommit = (value) => typeof value === 'string' && COMMIT.test(value) && !/^0+$/.test(value);
 export const isPlainVersion = (value) => typeof value === 'string' && PLAIN_VERSION.test(value);
 export const isPackageName = (value) => typeof value === 'string' && value.length <= 214 && NAME.test(value);
+export const isNodeMajor = (value) => typeof value === 'string' && NODE_MAJOR.test(value);
 
 // The core numbers of any published version, and whether it is a prerelease. null when the text
 // is not semver at all (the caller treats that as "could not read", never as "older").

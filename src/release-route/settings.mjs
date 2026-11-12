@@ -22,6 +22,7 @@
 // passed to npm as odd arguments. Anything more needs an npm script in package.json.
 import allowed from './archive/allowed.cjs';
 import strictJson from './archive/strict-json.cjs';
+import { isNodeMajor } from './identity.mjs';
 import { refuse } from './refusals.mjs';
 
 export const SETTINGS_PATH = '.github/release.json';
@@ -59,7 +60,7 @@ export function readSettings(bytes) {
   for (const key of Object.keys(value)) if (!KEYS.includes(key)) refuse('settings-unknown-key', key);
   for (const key of KEYS) if (!Object.hasOwn(value, key)) refuse('settings-missing-key', key);
   if (value.schema !== 1) refuse('settings-invalid', 'schema');
-  if (typeof value.node !== 'string' || !/^(2[2-9]|[3-9][0-9])$/.test(value.node)) refuse('settings-invalid', 'node');
+  if (!isNodeMajor(value.node)) refuse('settings-invalid', 'node');
   const system = value.systemPackages;
   if (!Array.isArray(system) || system.length > MAX_SYSTEM_PACKAGES || new Set(system).size !== system.length ||
       !system.every((name) => typeof name === 'string' && SYSTEM_PACKAGE.test(name))) refuse('settings-invalid', 'systemPackages');

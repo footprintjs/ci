@@ -1,0 +1,68 @@
+# What would the release route do with this change? A package calls this file from its pull
+# request workflow. It is release-route.yml's plan job with the action fixed to dry-run: the same
+# guarded checkouts, the charted plan, its record kept. Read only: no build, no hold, no secret.
+# test/workflow/release-check.test.mjs holds it equal to that plan job except for those two words.
+#
+# What it answers (docs/RELEASE-ROUTE.md, "The workflows"): a pull request that leaves the version
+# alone reads "dry run: rebuild and compare"; one that raises it reads "would publish x.y.z"; a
+# version with no CHANGELOG section, an invalid settings file or a private package is red with its
+# named refusal. The tool is checked out at THIS file's commit (job.workflow_sha), never at the
+# pull request's: nothing the pull request changes in the package can change the code that checks it.
+name: Release check
+
+on:
+  workflow_call:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # W3: an empty or partial value would check out ci's default branch, an unpinned tool.
+      - name: Refuse a tool commit that is not 40 lowercase hex
+        env:
+          ROUTE_TOOL_SHA: ${{ job.workflow_sha }}
+        run: |
+          [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
+      - name: Check out the caller at the commit being planned
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: source
+          persist-credentials: false
+      - name: Check out the release tool at this workflow's commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: footprintjs/ci
+          ref: ${{ job.workflow_sha }}
+          path: tool
+          persist-credentials: false
+      - name: Node for the tool
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Plan (charted)
+        id: plan
+        env:
+          ROUTE_ACTION: dry-run
+          ROUTE_TOOL_SHA: ${{ job.workflow_sha }}
+          ROUTE_SOURCE: source
+          ROUTE_RECORD_DIR: ${{ runner.temp }}/plan-record
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" plan
+      - name: Keep the plan's record
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-check-plan-record-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/plan-record/
+          retention-days: 90
+          if-no-files-found: warn

@@ -14,6 +14,7 @@ const fromState = (state) => {
   if (state.commit) context.commit = state.commit;
   if (state.packageName) context.name = state.packageName;
   if (state.version) context.version = state.version;
+  if (state.node) context.node = state.node;
   return { facts, causes, context };
 };
 

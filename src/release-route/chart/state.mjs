@@ -9,10 +9,11 @@
 // by the `why` reader, so only bounded, checked values go in):
 // - a cause is { code, detail }: a refusal code from THE table and its detail as it is shown
 //   (step-common.mjs · shownDetail, the one bound for printed and recorded details);
-// - the context is the commit (40 hex), the package name, the plain version and the changelog
-//   style, each checked against its own shape, or left out (the same shapes the plain step needs).
+// - the context is the commit (40 hex), the package name, the plain version, the changelog style
+//   and the settings' Node major, each checked against its own shape, or left out (the same shapes
+//   the plain step needs).
 // The token never enters: it stays inside the doors the stages were built with.
-import { isCommit, isPackageName, isPlainVersion } from '../identity.mjs';
+import { isCommit, isNodeMajor, isPackageName, isPlainVersion } from '../identity.mjs';
 import { Refusal } from '../refusals.mjs';
 import { FACTS } from '../rules.mjs';
 import { CHANGELOG_STYLES } from '../settings.mjs';
@@ -32,6 +33,7 @@ const CONTEXT_CHECKS = Object.freeze({
   packageName: isPackageName,
   version: isPlainVersion,
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
+  node: isNodeMajor,
 });
 
 // The names of the context values a look reads (the keys above), as FACT_NAMES is the facts'.

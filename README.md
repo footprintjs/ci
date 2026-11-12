@@ -19,11 +19,12 @@ Current REST pages remain **history-incomplete**, so a matching comment alone ne
 becomes an admitted verdict or authority to merge or publish. No active ledger is
 seeded and no live release route is changed.
 
-## Shared release route (core scripts, no workflow yet)
+## Shared release route
 
-[`docs/RELEASE-ROUTE.md`](docs/RELEASE-ROUTE.md): the modules in `src/release-route/` and the one
-command `node scripts/release-route.mjs <plan|build|inspect|verify|notes>` that a later workflow
-will call to build, check, publish, verify and release one package. No workflow uses it yet.
+[`docs/RELEASE-ROUTE.md`](docs/RELEASE-ROUTE.md): the modules in `src/release-route/`, the one
+command `node scripts/release-route.mjs <step>`, and the two reusable workflows that wire the steps
+into jobs: `.github/workflows/release-route.yml` (plan, hold, build, publish, verify, release) and
+`.github/workflows/release-check.yml` (a pull request's dry-run plan). No package calls them yet.
 
 ## Try the committed bundle
 

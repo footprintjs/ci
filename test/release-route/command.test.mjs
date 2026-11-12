@@ -24,12 +24,12 @@ const routes = {
   'https://registry.npmjs.org/footprint-storydeck': json(saved('npm/footprint-storydeck.abbrev.json').toString()),
   [`https://api.github.com/repos/footprintjs/ci/compare/main...${TOOL}?per_page=1`]: json(saved('github/compare-behind.json').toString()),
 };
-function doors(env, { files = storydeck, lsRemote = saved('storydeck-today/ls-remote.txt').toString(), fetched = routes } = {}) {
+function doors(env, { files = storydeck, lsRemote = saved('storydeck-today/ls-remote.txt').toString(), fetched = routes, mainTip = COMMIT } = {}) {
   const written = {};
   const printed = [];
   const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print: (l) => printed.push(l),
     append: (p, text) => { written[p] = (written[p] ?? '') + text; }, appendOutputs: (p, text) => { written[p] = (written[p] ?? '') + text; } });
-  return { doors: { env, git: recordedGit({ commit: COMMIT, files, lsRemote }).git, fetcher: fakeFetch(fetched).fetcher, sleep: async () => {}, report }, written, printed };
+  return { doors: { env, git: recordedGit({ commit: COMMIT, files, lsRemote, mainTip }).git, fetcher: fakeFetch(fetched).fetcher, sleep: async () => {}, report }, written, printed };
 }
 const folder = (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'route-cmd-'));
@@ -66,16 +66,32 @@ test('the script writes outputs and summary only to the runner files, and masks 
 test('plan for storydeck today: nothing, exit 0, closed outputs', async () => {
   const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL });
   assert.equal(await runStep('plan', d), 0);
-  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\ncompare=no\nmode=nothing\n`);
+  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=22\ncompare=no\nmode=nothing\n`);
   assert.match(printed.at(-1), /^Decision: rule released gives mode nothing, nothing to do/);
   assert.match(written.summary, /Facts seen: action=publish, .*tagExists=true/);
+});
+
+// The build job sets up the Node major the settings name before it starts (it cannot read the
+// settings itself without running a step first), so the plan hands it on: written with the passing
+// outputs, before compare and mode, and never by a refused plan, even one that read the settings.
+test('plan hands the settings\' Node major to the build job as `node`, only when it passes', async () => {
+  const settings = JSON.parse(storydeck['.github/release.json']);
+  const files = { ...storydeck, '.github/release.json': Buffer.from(JSON.stringify({ ...settings, node: '24' })) };
+  const env = { GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL };
+  const passed = doors(env, { files });
+  assert.equal(await runStep('plan', passed.doors), 0, passed.printed.join('\n'));
+  assert.equal(passed.written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=24\ncompare=no\nmode=nothing\n`);
+  // A refusal by the first row: the settings were read (the build would have had its Node), and still no node.
+  const refused = doors({ ...env, ROUTE_TOOL_SHA: 'main' }, { files });
+  assert.equal(await runStep('plan', refused.doors), 1);
+  assert.equal(refused.written.out, `rule=tool-commit-invalid\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\n`);
 });
 
 test('plan refused: exit 1, no mode written, the unreadable fact and its cause printed', async () => {
   const { '.github/release.json': _, ...noSettings } = storydeck;
   const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL }, { files: noSettings });
   assert.equal(await runStep('plan', d), 1);
-  assert.doesNotMatch(written.out, /mode=/);
+  assert.doesNotMatch(written.out, /mode=|node=/);
   assert.ok(printed.some((l) => l.startsWith('Unreadable fact settingsRead: settings-unreadable')));
   assert.ok(printed.includes('Detail: settingsRead'));
 });
@@ -118,14 +134,50 @@ test('a failing git is git-failed; an exception the route has no name for is une
   assert.equal(await runStep('unknown', broken), 1);
 });
 
+// B1: "Re-run failed jobs" reuses the old plan's outputs. ready measures again, when npm lacks the
+// version, that the planned commit is still the tip of main and the version still the newest; a
+// stale plan is refused by name and writes no `publish`.
+test('ready refuses a stale plan from a re-run: an old commit, a version no longer the newest; npm having the bytes still finishes', async (t) => {
+  const intake = join(folder(t), 'tarball');
+  mkdirSync(intake);
+  const tgz = Buffer.from('built');
+  writeFileSync(join(intake, 'package.tgz'), tgz);
+  const V = 'https://registry.npmjs.org/footprint-storydeck/0.13.2';
+  const P = 'https://registry.npmjs.org/footprint-storydeck';
+  const env = { ROUTE_PACKAGE: 'footprint-storydeck', ROUTE_VERSION: '0.13.2', ROUTE_TARBALL_DIR: intake, ROUTE_COMMIT: COMMIT };
+  const newer = json({ name: 'footprint-storydeck', versions: { '0.13.1': { version: '0.13.1' }, '0.14.0': { version: '0.14.0' } } });
+  for (const [label, options, detail] of [
+    ['main moved on', { mainTip: 'b'.repeat(40), fetched: { [V]: json({}, 404), [P]: routes[P] } }, 'commitIsMainTip'],
+    ['a newer version is on npm', { fetched: { [V]: json({}, 404), [P]: newer } }, 'versionNewer'],
+  ]) {
+    const run = doors(env, options);
+    assert.equal(await runStep('ready', run.doors), 1, label);
+    assert.match(run.printed[0], /^Refused: plan-stale\. /, label);
+    assert.equal(run.printed[1], `Detail: ${detail}`, label);
+    assert.equal(run.written.out, undefined, `${label}: no publish output`);
+  }
+  // npm already has exactly these bytes: publish=no whatever main is now (an unfinished release is finished).
+  const tarball = 'https://registry.npmjs.org/footprint-storydeck/-/footprint-storydeck-0.13.2.tgz';
+  const has = doors(env, { mainTip: 'b'.repeat(40), fetched: { [V]: json({ name: 'footprint-storydeck', version: '0.13.2', dist: { integrity: integrityOf(tgz), tarball } }), [tarball]: bytes(tgz) } });
+  assert.equal(await runStep('ready', has.doors), 0, has.printed.join('\n'));
+  assert.equal(has.written.out, 'publish=no\n');
+  // ROUTE_COMMIT is required.
+  const { ROUTE_COMMIT, ...noCommit } = env;
+  const missing = doors(noCommit, { fetched: { [V]: json({}, 404), [P]: routes[P] } });
+  assert.equal(await runStep('ready', missing.doors), 1);
+  assert.equal(missing.printed.at(-1), 'Detail: ROUTE_COMMIT');
+});
+
 test('ready, tag and npm-tool as steps: closed outputs, and a refusal is exit 1', async (t) => {
   const intake = join(folder(t), 'tarball');
   mkdirSync(intake);
   const tgz = Buffer.from('built');
   writeFileSync(join(intake, 'package.tgz'), tgz);
   const V = 'https://registry.npmjs.org/footprint-storydeck/0.13.2';
-  const r1 = doors({ ROUTE_PACKAGE: 'footprint-storydeck', ROUTE_VERSION: '0.13.2', ROUTE_TARBALL_DIR: intake }, { fetched: { [V]: json({}, 404) } });
-  assert.equal(await runStep('ready', r1.doors), 0);
+  const packument = routes['https://registry.npmjs.org/footprint-storydeck'];
+  const readyEnv = { ROUTE_PACKAGE: 'footprint-storydeck', ROUTE_VERSION: '0.13.2', ROUTE_TARBALL_DIR: intake, ROUTE_COMMIT: COMMIT };
+  const r1 = doors(readyEnv, { fetched: { [V]: json({}, 404), 'https://registry.npmjs.org/footprint-storydeck': packument } });
+  assert.equal(await runStep('ready', r1.doors), 0, r1.printed.join('\n'));
   assert.equal(r1.written.out, 'publish=yes\n');
 
   const releaseUrl = 'https://api.github.com/repos/footprintjs/storydeck/releases/tags/v0.13.1';
