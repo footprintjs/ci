@@ -57,7 +57,7 @@ for (const [label, entries, expected] of [
   ['double slash', ['dist//x'], 'archive-setting:entry-1'],
   ['backslash', ['dist\\x'], 'archive-setting:entry-1'],
   ['space', ['my file'], 'archive-setting:entry-1'],
-  ['non-ASCII', ['dïst/'], 'archive-setting:entry-1'],
+  ['non-ASCII', ['d\u{EF}st/'], 'archive-setting:entry-1'],
   ['two stars', ['*.*'], 'archive-setting:entry-1'],
   ['star in a folder segment', ['*/x.js'], 'archive-setting:entry-1'],
   ['star on a folder entry', ['dist*/'], 'archive-setting:entry-1'],
