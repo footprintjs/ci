@@ -67,3 +67,9 @@ test('the notes folder must be absolute and empty; a link left there is never wr
   writeNotes(fresh, notes);
   assert.equal(code(() => writeNotes(fresh, notes)), 'output-folder not an empty folder');
 });
+
+test('an empty CHANGELOG section gives the "No notes" sentence, not an empty line', () => {
+  const files = { ...storydeck, 'CHANGELOG.md': Buffer.from('# Changelog\n\n## 0.13.1 \u{2014} empty\n\n## 0.13.0 \u{2014} x\n- y\n') };
+  const notes = releaseNotes({ git: recordedGit({ commit: COMMIT, files }).git, commit: COMMIT });
+  assert.deepEqual(notes.lines, ['No notes in CHANGELOG.md for this version.']);
+});

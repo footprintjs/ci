@@ -39,6 +39,12 @@ const closes = (line, fence) => {
   return match !== null && match[1][0] === fence.char && match[1].length >= fence.length;
 };
 
+// An HTML block that holds raw text (CommonMark's first kind, plus <code>): from a line that
+// starts with <pre, <code, <script, <style or <textarea to the line holding its closing tag. A
+// "## " inside one is not a heading (round 2 of the second read).
+const HTML_OPEN = /^ {0,3}<(pre|code|script|style|textarea)(?=[\s>]|$)/i;
+const htmlCloses = (line, tag) => line.toLowerCase().includes(`</${tag}>`);
+
 // bytes -> text: strict UTF-8, bounded. Anything else is changelog-unreadable.
 export function decodeChangelog(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_CHANGELOG_BYTES) refuse('changelog-unreadable');
@@ -57,10 +63,20 @@ export function findSection(text, version, style) {
   const lines = text.split(/\r\n|\n|\r/);
   const found = [];
   let fence = null;
+  let html = null;
   let open = null;
   lines.forEach((line, index) => {
     if (fence) {
       if (closes(line, fence)) fence = null;
+      return;
+    }
+    if (html) {
+      if (htmlCloses(line, html)) html = null;
+      return;
+    }
+    const tag = HTML_OPEN.exec(line);
+    if (tag) {
+      if (!htmlCloses(line, tag[1].toLowerCase())) html = tag[1].toLowerCase();
       return;
     }
     fence = opens(line);
@@ -76,5 +92,6 @@ export function findSection(text, version, style) {
   const body = lines.slice(start, end);
   while (body.length > 0 && (body.at(-1).trim() === '' || LINK_DEFINITION.test(body.at(-1)))) body.pop();
   while (body.length > 0 && body[0].trim() === '') body.shift();
-  return { title: flatten(title, 120), lines: cleanLines(body.join('\n')) };
+  // An empty section has no lines (the notes then say so), not one empty line.
+  return { title: flatten(title, 120), lines: body.length > 0 ? cleanLines(body.join('\n')) : [] };
 }

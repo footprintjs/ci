@@ -93,3 +93,20 @@ test('the bytes must be strict UTF-8 within the bound; an unknown style is a set
   assert.equal(code(() => decodeChangelog('text')), 'changelog-unreadable');
   assert.equal(code(() => findSection('', '1.0.0', 'toString')), 'settings-invalid');
 });
+
+test('a "## " inside an HTML <pre> or <code> block is not a section (round 2 of the second read)', () => {
+  const pre = ['<pre>', `## 1.2.0 ${DASH} FAKE`, '</pre>', `## 1.1.0 ${DASH} old`].join('\n');
+  assert.equal(findSection(pre, '1.2.0', 'titled'), null);
+  const both = ['<PRE class="x">', `## 1.2.0 ${DASH} FAKE`, '- fake', '</Pre>', `## 1.2.0 ${DASH} real`, '- real'].join('\n');
+  assert.deepEqual(findSection(both, '1.2.0', 'titled'), { title: 'real', lines: ['- real'] });
+  const code = ['<code>', `## 1.2.0 ${DASH} FAKE`, '</code>', `## 1.2.0 ${DASH} real`].join('\n');
+  assert.equal(findSection(code, '1.2.0', 'titled').title, 'real');
+  const oneLine = ['<pre>## 1.2.0 x</pre>', `## 1.2.0 ${DASH} real`].join('\n');
+  assert.equal(findSection(oneLine, '1.2.0', 'titled').title, 'real');
+  const preamble = ['<preamble>', `## 1.2.0 ${DASH} real`].join('\n');
+  assert.equal(findSection(preamble, '1.2.0', 'titled').title, 'real');
+});
+
+test('an empty section has no lines, not one empty line', () => {
+  assert.deepEqual(findSection(`## 1.2.0 ${DASH} t\n\n## 1.1.0\n- x\n`, '1.2.0', 'titled'), { title: 't', lines: [] });
+});
