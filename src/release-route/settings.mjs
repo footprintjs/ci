@@ -30,8 +30,9 @@ const KEYS = Object.freeze(['schema', 'node', 'systemPackages', 'install', 'chec
 export const CHANGELOG_STYLES = Object.freeze(['titled', 'keepachangelog']);
 const PROGRAMS = Object.freeze(['npm', 'npx', 'node']);
 const ARGUMENT = /^[A-Za-z0-9@%+=:,./_^~-]{1,100}$/;
-// A Debian package name: lowercase letters, digits, + - . ; starts with a letter or digit.
-const SYSTEM_PACKAGE = /^[a-z0-9][a-z0-9+.-]{1,62}$/;
+// A Debian package name: lowercase letters, digits, + - . ; starts with a letter or digit. It may
+// not END with "-" or ".": apt-get reads "name-" as "remove name".
+const SYSTEM_PACKAGE = /^[a-z0-9][a-z0-9+.-]{0,61}[a-z0-9+]$/;
 const MAX_CHECKS = 20;
 const MAX_SYSTEM_PACKAGES = 10;
 

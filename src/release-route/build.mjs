@@ -7,9 +7,14 @@
 // into a fresh private folder. The single .tgz it leaves becomes <out>/package.tgz, and the
 // archive inspector checks it once here (the publish job checks it again with its own copy).
 //
-// Every command is an argv list run WITHOUT a shell (settings.mjs split it), through the
-// injected `run(argv, { cwd, env })` -> exit status. The environment handed to the repository's
-// commands has the token variables removed, in case a workflow ever sets one in this job.
+// Every command is an argv list started WITHOUT a shell (settings.mjs split it), through the
+// injected `run(argv, { cwd, env })` -> exit status. That stops the settings TEXT from being
+// read as shell; it does not limit what runs: the commands are the repository's own code and can
+// do anything this job can. So the job is the boundary (no secret, no write right), and the
+// environment handed to them is narrowed (commandEnv) so they cannot write this step's outputs,
+// summary or the next steps' environment through the runner's file-command variables.
+// That is not a wall either (code running as the runner user can find those files), which is
+// why no later job reads anything from the build job except the artifact, inspected again.
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,12 +27,19 @@ import { refuse } from './refusals.mjs';
 import { MAX_SETTINGS_BYTES, readSettings, SETTINGS_PATH } from './settings.mjs';
 
 export const COMMAND_TIMEOUT_MS = 60 * 60 * 1000;
-const SECRET_NAMES = ['GITHUB_TOKEN', 'GH_TOKEN', 'NODE_AUTH_TOKEN', 'NPM_TOKEN', 'NPM_CONFIG__AUTH', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN',
-  'ACTIONS_ID_TOKEN_REQUEST_URL', 'ACTIONS_RUNTIME_TOKEN'];
+// The runner's file-command variables (writing to them sets outputs, environment, PATH, state
+// and the summary of THIS step), the route's own inputs, and anything named like a secret.
+const FILE_COMMANDS = Object.freeze(['GITHUB_OUTPUT', 'GITHUB_ENV', 'GITHUB_PATH', 'GITHUB_STATE', 'GITHUB_STEP_SUMMARY']);
+const SECRET_LIKE = /token|secret|password|passwd|key|auth|credential/i;
 
 export function commandEnv(env) {
-  const copy = { ...env };
-  for (const name of Object.keys(copy)) if (SECRET_NAMES.includes(name.toUpperCase())) delete copy[name];
+  const copy = {};
+  for (const [name, value] of Object.entries(env)) {
+    const upper = name.toUpperCase();
+    if (FILE_COMMANDS.includes(upper) || upper.startsWith('ROUTE_') || SECRET_LIKE.test(name)) continue;
+    copy[name] = value;
+  }
+  copy.NPM_CONFIG_UPDATE_NOTIFIER = 'false';
   return copy;
 }
 

@@ -54,7 +54,7 @@ for (const [key, value] of [
   ['schema', 2], ['schema', '1'],
   ['node', 22], ['node', '22.14.0'], ['node', '18'], ['node', 'lts'],
   ['systemPackages', 'ffmpeg'], ['systemPackages', ['FFmpeg']], ['systemPackages', ['-y']], ['systemPackages', ['ffmpeg', 'ffmpeg']],
-  ['systemPackages', ['a; rm']], ['systemPackages', Array.from({ length: 11 }, (_, i) => `pkg${i}`)],
+  ['systemPackages', ['a; rm']], ['systemPackages', ['git-']], ['systemPackages', ['ffmpeg.']], ['systemPackages', Array.from({ length: 11 }, (_, i) => `pkg${i}`)],
   ['install', ['npm', 'ci']], ['install', 'yarn install'],
   ['checks', []], ['checks', 'npm test'], ['checks', Array(21).fill('npm test')],
   ['changelog', 'other'], ['changelog', ['titled']],

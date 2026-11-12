@@ -117,9 +117,14 @@ test('the output folder must be absolute, empty, and outside the checkout', (t) 
   assert.equal(calls.length, 0);
 });
 
-test('the repository\'s commands never see a token variable', (t) => {
-  const env = { PATH: '/bin', GITHUB_TOKEN: 'x', gh_token: 'x', NODE_AUTH_TOKEN: 'x', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'x', ACTIONS_ID_TOKEN_REQUEST_URL: 'x', HOME: '/h' };
-  assert.deepEqual(commandEnv(env), { PATH: '/bin', HOME: '/h' });
+test('the repository\'s commands see no file-command variable, no ROUTE_ input and nothing named like a secret', (t) => {
+  const env = { PATH: '/bin', HOME: '/h', CI: 'true', GITHUB_SHA: 'a',
+    GITHUB_OUTPUT: '/o', GITHUB_ENV: '/e', GITHUB_PATH: '/p', GITHUB_STATE: '/s', GITHUB_STEP_SUMMARY: '/m', github_output: '/o2',
+    ROUTE_OUT: '/x', ROUTE_COMMIT: 'c', route_npm_dir: '/n',
+    GITHUB_TOKEN: 'x', gh_token: 'x', NODE_AUTH_TOKEN: 'x', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'x', ACTIONS_ID_TOKEN_REQUEST_URL: 'x',
+    CLAUDE_CODE_MESSAGING_TOKEN: 'x', AWS_SECRET_ACCESS_KEY: 'x', DB_PASSWORD: 'x', SSH_AUTH_SOCK: 'x', GOOGLE_APPLICATION_CREDENTIALS: 'x',
+    npm_config__authToken: 'x', API_KEY: 'x' };
+  assert.deepEqual(commandEnv(env), { PATH: '/bin', HOME: '/h', CI: 'true', GITHUB_SHA: 'a', NPM_CONFIG_UPDATE_NOTIFIER: 'false' });
   const { run, calls } = runner();
   go(repo(t), run, { env });
   assert.ok(calls.every((c) => !('GITHUB_TOKEN' in c.env) && c.env.PATH === '/bin'));
