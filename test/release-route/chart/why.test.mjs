@@ -3,12 +3,15 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, truncateSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
+import { decide, flowChart } from 'footprintjs';
+import { execute } from '../../../src/release-route/chart/execute.mjs';
+import { MAX_RECORD_BYTES, routeRecord } from '../../../src/release-route/chart/record.mjs';
 import { runChartStep } from '../../../src/release-route/chart/cli.mjs';
-import { explain, readRouteRecord } from '../../../src/release-route/chart/why.mjs';
+import { explain, readRouteRecord, SIDE_BY_SIDE } from '../../../src/release-route/chart/why.mjs';
 import { asRefusal } from '../../../src/release-route/refusals.mjs';
 import { createReport, safeLine } from '../../../src/release-route/report.mjs';
 import { storydeckDoors } from '../storydeck-today.mjs';
@@ -103,4 +106,61 @@ test('the committed bundle runs: why gives the module\'s answer; its metadata is
   assert.ok(metadata.external.every((name) => name.startsWith('node:')));
   const unknown = spawnSync(process.execPath, [bundle, 'ship'], { encoding: 'utf8', env: { PATH: process.env.PATH } });
   assert.equal(unknown.status, 1);
+});
+
+test('why names the decision that governs the value asked about, or says that none does', async () => {
+  // Two decisions: the first lets `y` be written, the second lets `z` be written.
+  const chart = flowChart('Seed', (scope) => { scope.x = 1; }, 'seed')
+    .addDeciderFunction('First', (scope) => decide(scope, [{ when: { x: { eq: 1 } }, then: 'one', label: 'x is one' }], 'other'), 'first')
+    .addFunctionBranch('one', 'One', (scope) => { scope.y = 2; })
+    .addFunctionBranch('other', 'Other', (scope) => { scope.y = 0; })
+    .setDefault('other').end()
+    .addDeciderFunction('Second', (scope) => decide(scope, [{ when: { y: { eq: 2 } }, then: 'two', label: 'y is two' }], 'none'), 'second')
+    .addFunctionBranch('two', 'Two', (scope) => { scope.z = 3; })
+    .addFunctionBranch('none', 'None', (scope) => { scope.z = 0; })
+    .setDefault('none').end()
+    .build();
+  const run = await execute(chart);
+  const record = { ...routeRecord({ step: 'plan', chart, run }) };
+  assert.equal(record.control.decisions.length, 2);
+  assert.deepEqual(explain(record, 'z').slice(1, 3), ['Decision at second#3: rule y is two matched.', 'Fact y eq 2: was 2, holds; read by One (one#2).']);
+  assert.deepEqual(explain(record, 'y').slice(1, 3), ['Decision at first#1: rule x is one matched.', 'Fact x eq 1: was 1, holds; read by Seed (seed#0).']);
+  assert.deepEqual(explain(record, 'x').slice(1, 2), ['No decision governs x: Seed (seed#0) wrote it, and that stage runs whatever is decided.']);
+});
+
+test('why on a fact of the plan: no decision governs it, and no rule is named', async (t) => {
+  const lines = explain(readRouteRecord(await savedPlan(t)), 'tagExists');
+  assert.equal(lines[1], 'No decision governs tagExists: Gather what was seen (gather-second#9) wrote it, and that stage runs whatever is decided.');
+  assert.ok(!lines.some((line) => line.startsWith('Decision at') || line.startsWith('Fact ')), lines.join('\n'));
+});
+
+test('above every walk, one fixed line says side-by-side steps may be shown one under another', async (t) => {
+  const lines = explain(readRouteRecord(await savedPlan(t)));
+  const at = lines.findIndex((line) => line.startsWith('Walk back'));
+  assert.equal(lines[at + 1], SIDE_BY_SIDE);
+  assert.ok(lines[at + 2].startsWith('Walk: '));
+});
+
+test('why refuses, at once and without reading on, anything that is not a regular file within the bound', (t) => {
+  const dir = folder(t);
+  const fifo = join(dir, 'fifo');
+  assert.equal(spawnSync('mkfifo', [fifo]).status, 0);
+  mkdirSync(join(dir, 'folder'));
+  writeFileSync(join(dir, 'big'), '');
+  truncateSync(join(dir, 'big'), MAX_RECORD_BYTES + 1);
+  for (const file of ['/dev/zero', fifo, join(dir, 'folder'), join(dir, 'big')]) {
+    const started = Date.now();
+    assert.equal(code(() => readRouteRecord(file)), 'record-unreadable', file);
+    assert.ok(Date.now() - started < 1000, `${file} took too long`);
+  }
+});
+
+test('the bundle answers why /dev/zero and why <a fifo> with record-unreadable, exit 1, in under a second', (t) => {
+  const fifo = join(folder(t), 'fifo');
+  assert.equal(spawnSync('mkfifo', [fifo]).status, 0);
+  for (const file of ['/dev/zero', fifo]) {
+    const result = spawnSync(process.execPath, [resolve('dist/release-route.cjs'), 'why', file], { encoding: 'utf8', timeout: 5000, env: { PATH: process.env.PATH } });
+    assert.equal(result.status, 1, `${file}: ${result.signal ?? ''}`);
+    assert.match(result.stdout, /^Refused: record-unreadable\./m);
+  }
 });
