@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "format": "cjs",
   "target": "node22",
-  "sha256": "bb178f17b747edad115875b1cd4bf2b7f50e4c2f51d98194ad422c206e2279b1",
+  "sha256": "ddd97d51ef0e84e8610c843e39f96f546b6acae5392f965674391bf3e11b84ae",
   "inputs": [
     {
       "path": "bin/release.mjs",
@@ -14,7 +14,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
-      "bytes": 37219
+      "bytes": 38449
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/anySignal.js",
@@ -26,7 +26,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/call.js",
-      "bytes": 25396
+      "bytes": 27955
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/category.js",
@@ -42,7 +42,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/decision.js",
-      "bytes": 19894
+      "bytes": 19888
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/effect.js",
@@ -57,8 +57,12 @@
       "bytes": 7274
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/evidence.js",
+      "bytes": 13004
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/index.js",
-      "bytes": 3982
+      "bytes": 4488
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/name.js",
@@ -69,8 +73,12 @@
       "bytes": 27827
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/attempt/observerDiagnostics.js",
+      "bytes": 5128
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/policy.js",
-      "bytes": 14298
+      "bytes": 14431
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/record.js",
@@ -82,11 +90,11 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/runner.js",
-      "bytes": 92963
+      "bytes": 93992
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/attempt/standalone.js",
-      "bytes": 21331
+      "bytes": 23335
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/budget/index.js",
@@ -94,23 +102,23 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/budget/timeBudget.js",
-      "bytes": 130412
+      "bytes": 133701
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/FlowChartBuilder.js",
-      "bytes": 355894
+      "bytes": 367486
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/index.js",
-      "bytes": 3274
+      "bytes": 3386
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/retryLoop.js",
-      "bytes": 52053
+      "bytes": 52065
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/structure/StructureRecorderDispatcher.js",
-      "bytes": 24102
+      "bytes": 25447
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/typedFlowChart.js",
@@ -118,15 +126,15 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/builder/types.js",
-      "bytes": 22739
+      "bytes": 22950
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/absentEntries.js",
-      "bytes": 12668
+      "bytes": 12844
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/checkpointCapture.js",
-      "bytes": 14933
+      "bytes": 15505
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/circular.js",
@@ -134,15 +142,19 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/envelope.js",
-      "bytes": 33809
+      "bytes": 35763
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/evidenceInput/index.js",
+      "bytes": 1723
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/historyData.js",
-      "bytes": 16623
+      "bytes": 18905
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/historyNote.js",
-      "bytes": 10406
+      "bytes": 10220
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/historyTarget.js",
@@ -157,8 +169,28 @@
       "bytes": 5970
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/evidence.js",
+      "bytes": 10415
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/format.js",
+      "bytes": 24318
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/invocations.js",
+      "bytes": 3312
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeCoverage.js",
-      "bytes": 23070
+      "bytes": 25165
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeExtent/collector.js",
+      "bytes": 10500
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeExtent/format.js",
+      "bytes": 22626
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/nativeSourceAddress.js",
@@ -206,15 +238,15 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/capture/summarize.js",
-      "bytes": 15641
+      "bytes": 20353
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/contract/schema.js",
-      "bytes": 41270
+      "bytes": 41633
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/decide/decide.js",
-      "bytes": 30775
+      "bytes": 33496
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/decide/evidence.js",
@@ -226,11 +258,11 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/decide/types.js",
-      "bytes": 9328
+      "bytes": 10320
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/detach/spawn.js",
-      "bytes": 11057
+      "bytes": 11759
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/devMode.js",
@@ -238,7 +270,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/graph/prefixNodeTree.js",
-      "bytes": 6079
+      "bytes": 6447
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/graph/StageNode.js",
@@ -246,15 +278,15 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/breakFlag.js",
-      "bytes": 1343
+      "bytes": 3100
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ChildrenExecutor.js",
-      "bytes": 38393
+      "bytes": 38818
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/commitStage.js",
-      "bytes": 4921
+      "bytes": 4947
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ContinuationResolver.js",
@@ -262,19 +294,31 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/DeciderHandler.js",
-      "bytes": 22930
+      "bytes": 24746
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/index.js",
       "bytes": 4406
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/mapperEdits.js",
+      "bytes": 17232
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/mapperScope.js",
+      "bytes": 33453
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/NodeResolver.js",
-      "bytes": 12852
+      "bytes": 13417
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ParallelForEachHandler.js",
-      "bytes": 36014
+      "bytes": 52212
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/plainObject.js",
+      "bytes": 3605
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/ResumeEntry.js",
@@ -282,11 +326,15 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/RuntimeStructureManager.js",
-      "bytes": 28863
+      "bytes": 31196
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/selectionProblem.js",
+      "bytes": 2452
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SelectorHandler.js",
-      "bytes": 24561
+      "bytes": 26831
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/servedPause.js",
@@ -298,19 +346,19 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/stageError.js",
-      "bytes": 9165
+      "bytes": 9647
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/StageRunner.js",
-      "bytes": 27880
+      "bytes": 35755
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowExecutor.js",
-      "bytes": 76476
+      "bytes": 94616
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowInputMapper.js",
-      "bytes": 25846
+      "bytes": 30149
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/handlers/TraversalDepthError.js",
@@ -322,43 +370,47 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/CombinedNarrativeRecorder.js",
-      "bytes": 116612
+      "bytes": 106373
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/FlowRecorderDispatcher.js",
-      "bytes": 31690
+      "bytes": 35501
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/resolveText.js",
       "bytes": 1371
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/ruleEvidence/index.js",
+      "bytes": 16828
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/sentences.js",
-      "bytes": 29549
+      "bytes": 29537
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/NarrativeFlowRecorder.js",
-      "bytes": 25026
+      "bytes": 21703
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/NullControlFlowNarrativeGenerator.js",
-      "bytes": 3197
+      "bytes": 3239
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/AdaptiveNarrativeFlowRecorder.js",
-      "bytes": 5631
+      "bytes": 6138
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ManifestFlowRecorder.js",
-      "bytes": 19471
+      "bytes": 23491
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/MilestoneNarrativeFlowRecorder.js",
-      "bytes": 4531
+      "bytes": 5632
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ProgressiveNarrativeFlowRecorder.js",
-      "bytes": 5494
+      "bytes": 6515
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/RLENarrativeFlowRecorder.js",
@@ -366,7 +418,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/SeparateNarrativeFlowRecorder.js",
-      "bytes": 5861
+      "bytes": 5856
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/SilentNarrativeFlowRecorder.js",
@@ -378,7 +430,11 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/traversal/FlowchartTraverser.js",
-      "bytes": 269300
+      "bytes": 281511
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/engine/traversal/touchesRefusal/index.js",
+      "bytes": 1569
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/traversalContext.js",
@@ -386,23 +442,31 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/types.js",
-      "bytes": 46564
+      "bytes": 48008
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/engine/walkSubflowSpec.js",
       "bytes": 22517
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/errors/callsEnded/index.js",
+      "bytes": 1263
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/errors/errorInfo.js",
       "bytes": 14695
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/errors/RunInFlightError.js",
+      "bytes": 1737
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/errors/terminalFailure.js",
-      "bytes": 7879
+      "bytes": 15864
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/filter/evaluator.js",
-      "bytes": 18207
+      "bytes": 38974
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/ids/branchSegment.js",
@@ -414,39 +478,75 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/ids/reservedIds.js",
-      "bytes": 7691
+      "bytes": 7634
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/attention.js",
-      "bytes": 27966
+      "bytes": 27999
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/borrowedMutation.js",
-      "bytes": 24365
+      "bytes": 33013
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/DiagnosticCollector.js",
       "bytes": 12925
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/hiddenObjectTrail.js",
+      "bytes": 39302
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/keptReads.js",
+      "bytes": 12281
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/logAddress.js",
       "bytes": 1446
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/markPlaces.js",
+      "bytes": 18695
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/pathTargets.js",
+      "bytes": 12062
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/redaction.js",
-      "bytes": 228686
+      "bytes": 293939
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/retainedValue/index.js",
+      "bytes": 5868
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/runAddress.js",
       "bytes": 4368
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/RunComponent.js",
+      "bytes": 4228
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/RunFrame.js",
+      "bytes": 20699
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/runPolicy.js",
-      "bytes": 19001
+      "bytes": 19246
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/selectedObjects.js",
+      "bytes": 102385
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/memory/servedPlaces.js",
+      "bytes": 21058
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/memory/StageContext.js",
-      "bytes": 190761
+      "bytes": 241507
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/deferredDispatcher.js",
@@ -458,7 +558,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/index.js",
-      "bytes": 4936
+      "bytes": 5123
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/observer-queue/mergedQueue.js",
@@ -482,31 +582,31 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/pause/types.js",
-      "bytes": 53917
+      "bytes": 54428
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/allowlist.js",
-      "bytes": 8588
+      "bytes": 9823
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/arrayTraps.js",
-      "bytes": 39925
+      "bytes": 55183
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/createTypedScope.js",
-      "bytes": 50667
+      "bytes": 56364
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/handles.js",
-      "bytes": 14268
+      "bytes": 14081
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/jsonProjection.js",
-      "bytes": 15042
+      "bytes": 14854
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/liveView.js",
-      "bytes": 18361
+      "bytes": 19755
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/pathBuilder.js",
@@ -514,19 +614,19 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/structuralWrite.js",
-      "bytes": 13686
+      "bytes": 16397
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/types.js",
-      "bytes": 20909
+      "bytes": 21669
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/reactive/writeTraps.js",
-      "bytes": 19728
+      "bytes": 31914
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptMetricRows.js",
-      "bytes": 30174
+      "bytes": 30641
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptMetrics.js",
@@ -538,7 +638,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/AttemptRecorder.js",
-      "bytes": 58403
+      "bytes": 58574
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/attemptSeries.js",
@@ -546,19 +646,31 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/BoundaryStateStore.js",
-      "bytes": 20710
+      "bytes": 21442
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/captureSnapshot/index.js",
+      "bytes": 5267
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/CombinedRecorder.js",
-      "bytes": 26275
+      "bytes": 26304
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/ComponentRunControl.js",
+      "bytes": 29114
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/CompositeRecorder.js",
-      "bytes": 15160
+      "bytes": 17351
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/ControlDepRecorder.js",
-      "bytes": 42286
+      "bytes": 42422
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/recorder/FinalizationBook.js",
+      "bytes": 8299
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/hooks.js",
@@ -578,7 +690,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/QualityRecorder.js",
-      "bytes": 30773
+      "bytes": 31586
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/qualityTrace.js",
@@ -594,19 +706,19 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/snapshot.js",
-      "bytes": 5827
+      "bytes": 8183
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/recorder/TopologyRecorder.js",
-      "bytes": 60213
+      "bytes": 61436
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/attach.js",
-      "bytes": 38218
+      "bytes": 40426
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/captureHistory.js",
-      "bytes": 19675
+      "bytes": 24060
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/checkpoint.js",
@@ -614,7 +726,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/deadline.js",
-      "bytes": 16795
+      "bytes": 16955
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/DeferredObserverTier.js",
@@ -622,11 +734,11 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/ExecutionRuntime.js",
-      "bytes": 67621
+      "bytes": 69645
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/FlowChartExecutor.js",
-      "bytes": 134599
+      "bytes": 147175
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/getSubtreeSnapshot.js",
@@ -634,47 +746,91 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/index.js",
-      "bytes": 2425
+      "bytes": 3087
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/cut.js",
+      "bytes": 4809
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/record.js",
+      "bytes": 13630
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/state.js",
+      "bytes": 2212
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/nativeLegSettlement.js",
+      "bytes": 1619
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/NativeRunAdapter.js",
+      "bytes": 15377
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/nativeRunBinding.js",
+      "bytes": 7438
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/NativeRunLifecycle.js",
+      "bytes": 62475
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/options.js",
-      "bytes": 19670
+      "bytes": 25717
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/readStoredCapture.js",
-      "bytes": 8390
+      "bytes": 9002
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/recordMetadata/index.js",
+      "bytes": 4513
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/recordSink.js",
-      "bytes": 58053
+      "bytes": 58689
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/resume.js",
-      "bytes": 52245
+      "bytes": 53330
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/RunCells.js",
+      "bytes": 9511
+    },
+    {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/runCleanup/index.js",
+      "bytes": 2511
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/RunContext.js",
-      "bytes": 8234
+      "bytes": 11719
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/runId.js",
       "bytes": 7393
     },
     {
+      "path": "node_modules/footprintjs/dist/esm/lib/runner/RunLease.js",
+      "bytes": 3195
+    },
+    {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/RunnableChart.js",
-      "bytes": 21768
+      "bytes": 24684
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/snapshot.js",
-      "bytes": 21716
+      "bytes": 23539
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/storedCaptureAdmission.js",
-      "bytes": 19670
+      "bytes": 23148
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/stringifySnapshot.js",
-      "bytes": 15974
+      "bytes": 20432
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/runner/validateInput.js",
@@ -682,7 +838,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/schema/detect.js",
-      "bytes": 7436
+      "bytes": 6874
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/schema/errors.js",
@@ -694,7 +850,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/schema/validate.js",
-      "bytes": 20414
+      "bytes": 23166
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/index.js",
@@ -702,7 +858,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/protection/createProtectedScope.js",
-      "bytes": 7513
+      "bytes": 6752
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/protection/index.js",
@@ -738,7 +894,7 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/recorders/DebugRecorder.js",
-      "bytes": 26042
+      "bytes": 26196
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/recorders/MetricRecorder.js",
@@ -746,11 +902,11 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/runtime.js",
-      "bytes": 12615
+      "bytes": 16922
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/scope/ScopeFacade.js",
-      "bytes": 145614
+      "bytes": 161724
     },
     {
       "path": "node_modules/footprintjs/dist/esm/lib/timers/longTimeout.js",
@@ -758,15 +914,15 @@
     },
     {
       "path": "node_modules/footprintjs/dist/esm/recorders.js",
-      "bytes": 14199
+      "bytes": 14079
     },
     {
       "path": "node_modules/footprintjs/dist/esm/trace.js",
-      "bytes": 5260
+      "bytes": 5297
     },
     {
       "path": "node_modules/foottrace/dist/esm/index.js",
-      "bytes": 1609
+      "bytes": 1744
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/capture/freeze.js",
@@ -786,7 +942,15 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/evidence/codes.js",
-      "bytes": 872
+      "bytes": 1279
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/evidence/marks.js",
+      "bytes": 1819
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/evidence/readAttempts.js",
+      "bytes": 1286
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/evidence/requirements.js",
@@ -797,72 +961,104 @@
       "bytes": 4655
     },
     {
+      "path": "node_modules/foottrace/dist/esm/lib/ids/nativeExecution.js",
+      "bytes": 652
+    },
+    {
       "path": "node_modules/foottrace/dist/esm/lib/ids/runtimeStageId.js",
-      "bytes": 8678
+      "bytes": 8446
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/admission.js",
-      "bytes": 6797
+      "bytes": 7077
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/backtrack.js",
-      "bytes": 22593
+      "bytes": 26353
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/backtrackViews.js",
+      "bytes": 6050
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/builtOn.js",
+      "bytes": 11724
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/commitLogUtils.js",
-      "bytes": 18265
+      "bytes": 20105
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/deltaEncoding.js",
-      "bytes": 5430
+      "bytes": 6103
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/deltaRows.js",
+      "bytes": 8858
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/equality.js",
-      "bytes": 11734
+      "bytes": 15181
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/EventLog.js",
-      "bytes": 18949
+      "bytes": 23348
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/fullRows.js",
+      "bytes": 6391
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/hardWriteCoverage.js",
+      "bytes": 1186
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/honesty.js",
-      "bytes": 10755
+      "bytes": 14428
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/keyPaths.js",
-      "bytes": 10361
+      "bytes": 10149
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/logModel.js",
-      "bytes": 18188
+      "bytes": 18202
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/merge.js",
       "bytes": 2318
     },
     {
-      "path": "node_modules/foottrace/dist/esm/lib/memory/pathOps.js",
-      "bytes": 12342
+      "path": "node_modules/foottrace/dist/esm/lib/memory/parentEdges.js",
+      "bytes": 3666
     },
     {
-      "path": "node_modules/foottrace/dist/esm/lib/memory/paths.js",
-      "bytes": 2597
+      "path": "node_modules/foottrace/dist/esm/lib/memory/pathOps.js",
+      "bytes": 12342
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/placeholders.js",
       "bytes": 2834
     },
     {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/readBack.js",
+      "bytes": 3141
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/readWindow.js",
+      "bytes": 11206
+    },
+    {
       "path": "node_modules/foottrace/dist/esm/lib/memory/recordCommit.js",
-      "bytes": 2160
+      "bytes": 4330
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/RecordFrame.js",
-      "bytes": 18886
+      "bytes": 27862
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/scrub.js",
-      "bytes": 4121
+      "bytes": 3421
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/SharedMemory.js",
@@ -870,31 +1066,39 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/sink.js",
-      "bytes": 4770
+      "bytes": 5863
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/staged.js",
+      "bytes": 3649
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/TransactionBuffer.js",
-      "bytes": 50282
+      "bytes": 34433
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/utils.js",
-      "bytes": 6921
+      "bytes": 7336
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/memory/verbs.js",
-      "bytes": 20555
+      "bytes": 20664
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/windowPlacement.js",
+      "bytes": 15000
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/memory/writerLookup.js",
+      "bytes": 2425
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/prov/encoding.js",
       "bytes": 379
     },
     {
-      "path": "node_modules/foottrace/dist/esm/lib/prov/ids.js",
-      "bytes": 2506
-    },
-    {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/admission.js",
-      "bytes": 3588
+      "bytes": 3599
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/bindings.js",
@@ -902,7 +1106,7 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/capture.js",
-      "bytes": 12159
+      "bytes": 12165
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/codec.js",
@@ -910,7 +1114,7 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/commitFacts.js",
-      "bytes": 2502
+      "bytes": 2508
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/read-sources/format.js",
@@ -929,44 +1133,80 @@
       "bytes": 289
     },
     {
-      "path": "node_modules/foottrace/dist/esm/lib/read-sources/writer.js",
-      "bytes": 1923
+      "path": "node_modules/foottrace/dist/esm/lib/record-paths/codec.js",
+      "bytes": 2965
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/recorder/CommitRangeIndex.js",
-      "bytes": 8915
+      "bytes": 8608
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/recording/readSourceRecord.js",
+      "bytes": 1965
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/admit.js",
+      "bytes": 10477
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/channels.js",
+      "bytes": 3806
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/control.js",
+      "bytes": 6316
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/fields.js",
+      "bytes": 5980
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/kinds.js",
+      "bytes": 8198
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/logFold.js",
+      "bytes": 11663
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/run-evidence/read.js",
+      "bytes": 7474
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/elementProvenance.js",
-      "bytes": 9767
+      "bytes": 9773
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/forwardSliceForKey.js",
-      "bytes": 11846
+      "bytes": 14459
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/index.js",
-      "bytes": 1285
+      "bytes": 1291
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/keyIndex.js",
-      "bytes": 12907
+      "bytes": 14755
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/keysReadSources.js",
-      "bytes": 5949
+      "bytes": 6948
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/keyTimeline.js",
-      "bytes": 5272
+      "bytes": 11318
+    },
+    {
+      "path": "node_modules/foottrace/dist/esm/lib/slice/notes.js",
+      "bytes": 11058
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/serialize.js",
-      "bytes": 13264
+      "bytes": 16914
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/slice/sliceForKey.js",
-      "bytes": 4587
+      "bytes": 5579
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/time-travel/axis.js",
@@ -974,7 +1214,7 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/time-travel/bundles.js",
-      "bytes": 7564
+      "bytes": 7914
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/time-travel/chain.js",
@@ -982,7 +1222,7 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/time-travel/commitStops.js",
-      "bytes": 10644
+      "bytes": 11851
     },
     {
       "path": "node_modules/foottrace/dist/esm/lib/time-travel/index.js",
@@ -1006,11 +1246,11 @@
     },
     {
       "path": "node_modules/foottrace/dist/esm/paths.js",
-      "bytes": 319
+      "bytes": 325
     },
     {
       "path": "node_modules/foottrace/dist/esm/write.js",
-      "bytes": 3146
+      "bytes": 3530
     },
     {
       "path": "src/flow.mjs",

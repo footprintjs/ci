@@ -9,8 +9,8 @@
     "node": ">=22.14.0"
   },
   "dependencies": {
-    "footprintjs": "10.7.1",
-    "foottrace": "1.10.0"
+    "footprintjs": "12.0.0",
+    "foottrace": "1.15.0"
   },
   "devDependencies": {
     "esbuild": "0.28.0"

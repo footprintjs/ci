@@ -349,7 +349,7 @@ var require_release_changes = __commonJS({
       documentation: "Documentation"
     });
     var BUMPS = Object.freeze({ patch: 0, minor: 1, major: 2 });
-    var own4 = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    var own5 = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
     var fail4 = (code) => {
       const e = new Error(code);
       e.code = code;
@@ -363,11 +363,11 @@ var require_release_changes = __commonJS({
       const fields3 = /* @__PURE__ */ Object.create(null);
       for (const line of match[1].split("\n")) {
         const field = /^(type|bump): ([a-z]+)$/.exec(line);
-        if (!field || own4(fields3, field[1])) fail4("invalid-fragment");
+        if (!field || own5(fields3, field[1])) fail4("invalid-fragment");
         fields3[field[1]] = field[2];
       }
       const body = match[2].trim();
-      if (!own4(TYPES, fields3.type) || !own4(BUMPS, fields3.bump) || !body || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(body))
+      if (!own5(TYPES, fields3.type) || !own5(BUMPS, fields3.bump) || !body || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(body))
         fail4("invalid-fragment");
       return { name, type: fields3.type, bump: fields3.bump, body };
     }
@@ -375,7 +375,7 @@ var require_release_changes = __commonJS({
       if (!Array.isArray(fragments)) fail4("invalid-fragment");
       let result3 = null;
       for (const fragment of fragments) {
-        if (!fragment || !own4(BUMPS, fragment.bump) || !own4(TYPES, fragment.type)) fail4("invalid-fragment");
+        if (!fragment || !own5(BUMPS, fragment.bump) || !own5(TYPES, fragment.type)) fail4("invalid-fragment");
         if (result3 === null || BUMPS[fragment.bump] > BUMPS[result3]) result3 = fragment.bump;
       }
       return result3;
@@ -389,7 +389,7 @@ var require_release_changes = __commonJS({
     }
     function nextVersion(version, bump) {
       const p = parseVersion(version);
-      if (!own4(BUMPS, bump)) fail4("invalid-version");
+      if (!own5(BUMPS, bump)) fail4("invalid-version");
       const i = 2 - BUMPS[bump];
       p[i] += 1;
       for (let j = i + 1; j < 3; j++) p[j] = 0;
@@ -941,7 +941,7 @@ var require_release_github = __commonJS({
       "registry-json",
       "registry-latest-json"
     ]);
-    var REASONS = /* @__PURE__ */ new Set([
+    var REASONS2 = /* @__PURE__ */ new Set([
       "app-auth",
       "unexpected",
       "json",
@@ -960,10 +960,10 @@ var require_release_github = __commonJS({
       "github-http-server",
       "github-http-other"
     ]);
-    var CONTEXT_CODES = new Set([...OPERATIONS].flatMap((op) => [...REASONS].map((reason) => `${op}:${reason}`)));
+    var CONTEXT_CODES = new Set([...OPERATIONS].flatMap((op) => [...REASONS2].map((reason) => `${op}:${reason}`)));
     var PRINTABLE_CODES = /* @__PURE__ */ new Set([
       ...LEGACY_CODES,
-      ...REASONS,
+      ...REASONS2,
       ...CONTEXT_CODES,
       "release-unexpected",
       "diagnostic-operation"
@@ -990,7 +990,7 @@ var require_release_github = __commonJS({
       if (!OPERATIONS.has(operation)) return diagnostic("diagnostic-operation");
       const code = refusalCode(error);
       if (LEGACY_CODES.has(code) || CONTEXT_CODES.has(code) || code === "diagnostic-operation") return error;
-      const result3 = diagnostic(`${operation}:${REASONS.has(code) ? code : "unexpected"}`);
+      const result3 = diagnostic(`${operation}:${REASONS2.has(code) ? code : "unexpected"}`);
       const status = ownData5(error, "status");
       if (Number.isSafeInteger(status) && status >= 100 && status <= 599) result3.status = status;
       return result3;
@@ -2393,6 +2393,10 @@ function stageIdOf(runtimeStageId) {
   const hashIdx = runtimeStageId.lastIndexOf(EXECUTION_DELIMITER);
   return hashIdx === -1 ? runtimeStageId : runtimeStageId.slice(0, hashIdx);
 }
+function executionIndexOf(runtimeStageId) {
+  const hashIdx = runtimeStageId.lastIndexOf(EXECUTION_DELIMITER);
+  return hashIdx === -1 ? NaN : Number.parseInt(runtimeStageId.slice(hashIdx + 1), 10);
+}
 function subflowPathOf(runtimeStageId) {
   return splitStageId(stageIdOf(runtimeStageId)).subflowPath;
 }
@@ -2663,7 +2667,7 @@ function mergeContextWins(dst, src) {
   return out;
 }
 
-// node_modules/foottrace/dist/esm/lib/memory/paths.js
+// node_modules/foottrace/dist/esm/lib/record-paths/codec.js
 var DELIM = "";
 function normaliseStateKey(key) {
   return typeof key === "string" ? key : normalisePath([...key]);
@@ -2821,7 +2825,7 @@ function foldKey(touches, segs, options = {}) {
     state[root] = options.start;
   let owned = /* @__PURE__ */ new WeakSet();
   owned.add(state);
-  const observe = options.observe;
+  const observe2 = options.observe;
   const generations = options.generations;
   let kept = -1;
   let keptBefore;
@@ -2848,9 +2852,9 @@ function foldKey(touches, segs, options = {}) {
       atCommit = touch.commitIdx;
     }
     const rowSegs = touch.path === root ? [root] : touch.path.split(DELIM);
-    const watched = observe !== void 0 && (touch.relation !== void 0 || options.everyRow === true);
+    const watched2 = observe2 !== void 0 && (touch.relation !== void 0 || options.everyRow === true);
     let before;
-    if (watched) {
+    if (watched2) {
       before = nativeGet(state, segs);
       if (touch.relation === "inside" && Array.isArray(before))
         before = before.slice();
@@ -2860,8 +2864,8 @@ function foldKey(touches, segs, options = {}) {
     const next = applyVerb(touch.verb, isTotal(touch.verb) ? void 0 : nativeGet(state, rowSegs), at, rowSegs);
     own(next, owned);
     placeVerb(state, rowSegs, next);
-    if (watched)
-      observe(touch, before, nativeGet(state, segs));
+    if (watched2)
+      observe2(touch, before, nativeGet(state, segs));
   }
   if (kept !== -1)
     generations.keep(kept, keptBefore, nativeGet(state, segs));
@@ -2884,7 +2888,7 @@ function rootOf(path) {
   return cut === -1 ? path : path.slice(0, cut);
 }
 function nodeOf(path) {
-  return { path, positions: [], totals: [], writes: [], children: /* @__PURE__ */ new Map() };
+  return { path, positions: [], totals: [], children: /* @__PURE__ */ new Map() };
 }
 function pushOnce(list, i) {
   if (list[list.length - 1] !== i)
@@ -2913,8 +2917,6 @@ function buildWriterIndex(commitLog) {
       pushOnce(node.positions, i);
       if (verb === "set" || verb === "delete")
         pushOnce(node.totals, i);
-      if (verb === "set" || verb === "merge" || verb === "append")
-        pushOnce(node.writes, i);
     }
   }
   return { roots };
@@ -3087,6 +3089,9 @@ function kindOfClone(clone) {
 function deepEqual(a, b, opaque = "identity") {
   return equalPairs(a, b, void 0, opaque);
 }
+var PROVEN = -1;
+var DISPROVEN = -2;
+var LEANING = -3;
 function equalPairs(a, b, seen, opaque) {
   if (a === b)
     return true;
@@ -3125,13 +3130,57 @@ function equalPairs(a, b, seen, opaque) {
   }
 }
 function equalContainers(a, b, kind, seen, opaque) {
-  seen ??= /* @__PURE__ */ new WeakMap();
-  let partners = seen.get(a);
-  if (partners?.has(b))
+  seen ??= { pairs: /* @__PURE__ */ new WeakMap(), depth: 0, low: Infinity, leaning: [], leaningLow: Infinity, met: [] };
+  let partners = seen.pairs.get(a);
+  const state = partners?.get(b);
+  if (state === PROVEN)
     return true;
+  if (state === DISPROVEN)
+    return false;
+  if (state !== void 0) {
+    const reach = state === LEANING ? seen.leaningLow : state;
+    if (state !== LEANING)
+      seen.met[state] = true;
+    if (reach < seen.low)
+      seen.low = reach;
+    return true;
+  }
   if (!partners)
-    seen.set(a, partners = /* @__PURE__ */ new WeakSet());
-  partners.add(b);
+    seen.pairs.set(a, partners = /* @__PURE__ */ new Map());
+  const depth = seen.depth++;
+  const outerLow = seen.low;
+  const leaningFrom = seen.leaning.length;
+  const outerLeaningLow = seen.leaningLow;
+  partners.set(b, depth);
+  seen.low = Infinity;
+  seen.met[depth] = false;
+  const equal = equalParts(a, b, kind, seen, opaque);
+  seen.depth = depth;
+  const closed = seen.low >= depth;
+  if (closed || !equal && seen.met[depth]) {
+    for (let i = leaningFrom; i < seen.leaning.length; i++) {
+      const [states, other] = seen.leaning[i];
+      if (equal)
+        states.set(other, PROVEN);
+      else
+        states.delete(other);
+    }
+    seen.leaning.length = leaningFrom;
+    seen.leaningLow = outerLeaningLow;
+  }
+  if (closed)
+    partners.set(b, equal ? PROVEN : DISPROVEN);
+  else if (equal) {
+    partners.set(b, LEANING);
+    seen.leaning.push([partners, b]);
+    if (seen.low < seen.leaningLow)
+      seen.leaningLow = seen.low;
+  } else
+    partners.delete(b);
+  seen.low = closed ? outerLow : Math.min(outerLow, seen.low);
+  return equal;
+}
+function equalParts(a, b, kind, seen, opaque) {
   if (kind === "map")
     return equalMaps(a, b, seen, opaque);
   if (kind === "set")
@@ -3236,10 +3285,14 @@ function equalMaps(a, b, seen, opaque) {
 function equalSets(a, b, seen, opaque) {
   if (a.size !== b.size)
     return false;
-  const unmatched = [...b];
+  let unmatched;
   for (const member of a) {
-    const at = unmatched.indexOf(member);
-    const found = at >= 0 ? at : unmatched.findIndex((candidate) => equalPairs(member, candidate, seen, opaque));
+    if (b.has(member))
+      continue;
+    if (member === null || typeof member !== "object")
+      return false;
+    unmatched ??= [...b].filter((candidate) => !a.has(candidate));
+    const found = unmatched.findIndex((candidate) => equalPairs(member, candidate, seen, opaque));
     if (found < 0)
       return false;
     unmatched.splice(found, 1);
@@ -3764,7 +3817,7 @@ function mapOpenPaths(root) {
 function copyOpenPaths(root) {
   const copies = /* @__PURE__ */ new Map();
   const shells = [];
-  const copyOf = (value, pending2) => {
+  const copyOf2 = (value, pending2) => {
     const done = copies.get(value);
     if (done !== void 0)
       return done;
@@ -3780,13 +3833,13 @@ function copyOpenPaths(root) {
     return copy;
   };
   const pending = [];
-  const out = copyOf(root, pending);
+  const out = copyOf2(root, pending);
   while (pending.length > 0) {
     const node = pending.pop();
     const copy = copies.get(node);
     for (const name of Object.keys(node)) {
       const child = node[name];
-      putOwn(copy, name, child !== null && typeof child === "object" && (OPEN.has(child) || isUnsealable(child)) ? copyOf(child, pending) : child);
+      putOwn(copy, name, child !== null && typeof child === "object" && (OPEN.has(child) || isUnsealable(child)) ? copyOf2(child, pending) : child);
     }
   }
   for (const shell of shells) {
@@ -3837,10 +3890,12 @@ function containerAt(obj, address = [], path = [], defaultValues) {
   let current = obj;
   for (let i = 0; i < segments3.length; i++) {
     const key = segments3[i];
-    if (!Object.prototype.hasOwnProperty.call(current, key)) {
+    let next = Object.prototype.hasOwnProperty.call(current, key) ? current[key] : void 0;
+    if (next === null || typeof next !== "object") {
       setOwnValue(current, key, i === address.length - 1 && defaultValues ? defaultValues : {});
+      next = current[key];
     }
-    current = current[key];
+    current = next;
   }
   return current;
 }
@@ -3891,17 +3946,39 @@ function isEntryObject(value) {
 function withMeta(meta) {
   return meta === void 0 ? {} : { meta };
 }
+function withCollects(collects) {
+  return collects === void 0 ? {} : { collects };
+}
+function withAbout(about) {
+  return about === void 0 ? {} : { about };
+}
+function withRunNotes(runNotes) {
+  return runNotes === void 0 ? {} : { runNotes };
+}
 function sendEntry(sink, entry) {
   const { address, at } = entry;
   switch (entry.kind) {
     case "opened":
-      return sink.opened({ address, at, initialState: entry.initialState, ...withMeta(entry.meta) });
+      return sink.opened({
+        address,
+        at,
+        initialState: entry.initialState,
+        ...withMeta(entry.meta),
+        ...withCollects(entry.collects)
+      });
     case "commit":
-      return sink.commit({ address, at, bundle: entry.bundle });
+      return sink.commit({ address, at, bundle: entry.bundle, ...withAbout(entry.about) });
     case "note":
       return sink.note({ address, at, kind: entry.note, data: entry.data });
     case "closed":
-      return sink.closed({ address, at, outcome: entry.outcome, commits: entry.commits, ...withMeta(entry.meta) });
+      return sink.closed({
+        address,
+        at,
+        outcome: entry.outcome,
+        commits: entry.commits,
+        ...withMeta(entry.meta),
+        ...withRunNotes(entry.runNotes)
+      });
   }
 }
 
@@ -3929,7 +4006,7 @@ function boundedName(value, maximum, refuse6, path = false) {
     throw refuse6();
   return value;
 }
-function boundedList(value, maximum, read, options) {
+function boundedList(value, maximum, read2, options) {
   const { refuse: refuse6, overflow, freeze: freeze2, descriptors: descriptors2 } = options;
   let array;
   if (options.translateArrayErrors) {
@@ -3951,8 +4028,201 @@ function boundedList(value, maximum, read, options) {
     throw refuse6(overflow);
   const result3 = [];
   for (let index = 0; index < length; index++)
-    result3.push(read(ownData2(value, String(index), refuse6, descriptors2)));
+    result3.push(read2(ownData2(value, String(index), refuse6, descriptors2)));
   return freeze2 ? Object.freeze(result3) : result3;
+}
+
+// node_modules/foottrace/dist/esm/lib/evidence/codes.js
+var GAP_CODES = Object.freeze({
+  "not-collected": true,
+  "untracked-input": false,
+  redacted: true,
+  conservative: false,
+  "scope-boundary": false,
+  "invalid-data": true,
+  unavailable: true,
+  timeout: true,
+  cancelled: false,
+  cycle: false,
+  "node-limit": false,
+  "depth-limit": false,
+  "edge-limit": false,
+  "call-limit": false,
+  truncated: false,
+  "strategy-failed": false,
+  "not-checked": true,
+  "no-match": true,
+  ambiguous: true,
+  stale: true,
+  incompatible: true,
+  unsupported: true,
+  "not-permitted": true
+});
+var ATTENTION_REASONS = /* @__PURE__ */ Object.freeze([
+  "ERROR_RECORDED",
+  "UNKNOWN_EFFECT_RECORDED",
+  "RETRY_STOP_RECORDED",
+  "TIMEOUT_RECORDED",
+  "RETRY_RECORDED",
+  "QUALITY_DROP_RECORDED",
+  "EVIDENCE_NOT_COLLECTED",
+  "OUTLIER_RECORDED",
+  "BUSINESS_RULE_MATCHED"
+]);
+
+// node_modules/foottrace/dist/esm/lib/evidence/marks.js
+var ATTENTION_LIMITS = /* @__PURE__ */ Object.freeze({ marks: 32, refs: 16, refLength: 512 });
+var REASONS = /* @__PURE__ */ new Set(ATTENTION_REASONS);
+function admitMarks(value, admission) {
+  const { refuse: refuse6, descriptors: descriptors2, overflow = "invalid-data" } = admission;
+  const { marks = ATTENTION_LIMITS.marks, refs: refs2 = ATTENTION_LIMITS.refs } = admission;
+  const options = { refuse: refuse6, overflow, freeze: true, descriptors: descriptors2 };
+  const ordinaryList = (list, maximum, read2) => {
+    if (!Array.isArray(list) || Object.getPrototypeOf(list) !== Array.prototype)
+      throw refuse6();
+    return boundedList(list, maximum, read2, options);
+  };
+  return ordinaryList(value, marks, (item) => {
+    if (!item || typeof item !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(item))) {
+      throw refuse6();
+    }
+    const kind = ownData2(item, "kind", refuse6, descriptors2);
+    const reason = ownData2(item, "reason", refuse6, descriptors2);
+    if (typeof kind !== "string" || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(kind))
+      throw refuse6();
+    if (typeof reason !== "string" || !REASONS.has(reason))
+      throw refuse6();
+    const evidence = ordinaryList(ownData2(item, "evidence", refuse6, descriptors2), refs2, (ref) => boundedName(ref, ATTENTION_LIMITS.refLength, refuse6));
+    if (kind !== "not-collected" && evidence.length === 0)
+      throw refuse6();
+    return Object.freeze({ kind, reason, evidence });
+  });
+}
+
+// node_modules/foottrace/dist/esm/lib/run-evidence/kinds.js
+var RUN_EVIDENCE_VERSION = 1;
+var RUN_EVIDENCE_LIMITS = /* @__PURE__ */ Object.freeze({
+  /** Entries of `about.reads` looked at, so the most names kept; the rest are counted in `readsOmitted`, unread. */
+  reads: 256,
+  /** Characters in one read name; a longer one is left out and counted, never cut. */
+  readLength: 256,
+  /** Characters in `about.description`. */
+  description: 512,
+  /** Marks in `about.attention`: the one attention rule's own cap. */
+  marks: ATTENTION_LIMITS.marks,
+  /** Evidence refs on one mark: the one attention rule's own cap. */
+  markRefs: ATTENTION_LIMITS.refs,
+  /** Rules in one decision's evidence. */
+  rules: 256,
+  /** Conditions in one filter rule. */
+  conditions: 64,
+  /** Inputs in one function rule. */
+  inputs: 64,
+  /** Names in `run.decision · chosen` and `evidence.selected`. */
+  chosen: 256,
+  /** Characters in any one text field of a note: label, reason, summary, error message, id. */
+  text: 4096,
+  /**
+   * Items in a threshold the writer stores as written; past it, or non-scalar, it stores a summary. A writer-side
+   * constant: no reader reads it, so raising it for a read changes nothing.
+   */
+  thresholdItems: 16,
+  /** Size of a threshold the reader admits (a forged object, say), counted as {@link RUN_EVIDENCE_LIMITS.payloadSize}. */
+  thresholdSize: 4096,
+  /** Depth of a pause payload the reader admits. */
+  payloadDepth: 32,
+  /** Size of a pause payload the reader admits: characters of its text and keys, plus 8 per scalar and 2 per container. */
+  payloadSize: 1048576,
+  /** Fields one read may admit across every row: one budget per call. */
+  fields: 1048576
+});
+var RUN_NOTE_KINDS = /* @__PURE__ */ new Set([
+  "run.decision",
+  "run.stop",
+  "run.stage"
+]);
+function isRunNoteKind(kind) {
+  return typeof kind === "string" && RUN_NOTE_KINDS.has(kind);
+}
+var ID_GRAMMAR = /^[^#]+#(0|[1-9]\d*)$/;
+function checkedExecutionId(value, maximum, refuse6) {
+  const id = boundedName(value, maximum, refuse6);
+  if (!ID_GRAMMAR.test(id) || !Number.isSafeInteger(executionIndexOf(id)))
+    throw refuse6();
+  return id;
+}
+function isReservedNoteKind(kind) {
+  return typeof kind === "string" && kind.startsWith("run.");
+}
+function isCount(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+function textField(value, name) {
+  if (value !== void 0 && typeof value !== "string")
+    throw new TypeError(`about.${name} must be a string`);
+}
+function idField(value, name) {
+  if (value === void 0)
+    return;
+  textField(value, name);
+  checkedExecutionId(value, RUN_EVIDENCE_LIMITS.text, () => new TypeError(`about.${name} must be a runtimeStageId`));
+}
+var NOT_A_READ_NAME = new TypeError("not a read name");
+function isReadName(name) {
+  try {
+    boundedName(name, RUN_EVIDENCE_LIMITS.readLength, () => NOT_A_READ_NAME, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function boundedReads(reads) {
+  if (!Array.isArray(reads))
+    throw new TypeError("about.reads must be an array of strings");
+  const length = reads.length;
+  if (!isCount(length))
+    throw new TypeError("about.reads must be an array of strings");
+  const looked = Math.min(length, RUN_EVIDENCE_LIMITS.reads);
+  const kept = [];
+  for (let i = 0; i < looked; i++) {
+    const name = reads[i];
+    if (typeof name !== "string")
+      throw new TypeError("about.reads must be an array of strings");
+    if (isReadName(name))
+      kept.push(name);
+  }
+  return { kept, left: length - kept.length };
+}
+var refuseMarks = () => new TypeError("about.attention must hold marks the attention rule admits");
+function copiedMarks(marks) {
+  return admitMarks(marks, { refuse: refuseMarks, descriptors: { translateTrapErrors: true, requireOwnValue: true } });
+}
+function boundedAbout(about) {
+  if (typeof about !== "object" || about === null || Array.isArray(about)) {
+    throw new TypeError("about must be a plain object");
+  }
+  const { parent, resumes, reads, readsOmitted, description, attention } = about;
+  idField(parent, "parent");
+  idField(resumes, "resumes");
+  textField(description, "description");
+  if (readsOmitted !== void 0 && !isCount(readsOmitted))
+    throw new TypeError("about.readsOmitted must be a count");
+  const named = reads === void 0 ? void 0 : boundedReads(reads);
+  const marks = attention === void 0 ? void 0 : copiedMarks(attention);
+  const omitted = (readsOmitted ?? 0) + (named?.left ?? 0);
+  return {
+    ...parent === void 0 ? {} : { parent },
+    ...resumes === void 0 ? {} : { resumes },
+    ...named === void 0 ? {} : { reads: named.kept },
+    ...omitted === 0 ? {} : { readsOmitted: Math.min(omitted, Number.MAX_SAFE_INTEGER) },
+    ...description === void 0 ? {} : { description: description.slice(0, RUN_EVIDENCE_LIMITS.description) },
+    ...marks === void 0 || marks.length === 0 ? {} : { attention: marks }
+  };
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/builtOn.js
+function isViewRow(row) {
+  return row.builtOnView === true && row.verb === "set";
 }
 
 // node_modules/footprintjs/dist/esm/lib/ids/idempotencyKey.js
@@ -4314,9 +4584,9 @@ function isPausedExecution(value) {
   return typeof v?.runId === "string" && v.runId !== "" && typeof v.runtimeStageId === "string" && v.runtimeStageId !== "";
 }
 var PauseSignal = class extends Error {
-  /** Data from $pause() — question, reason, metadata. */
+  /** The pause payload (the pausable stage's return value or the `interrupt()` payload) — question, reason, metadata. */
   pauseData;
-  /** ID of the stage that called $pause(). */
+  /** ID of the stage that paused. */
   stageId;
   /**
    * HOW the pause was raised — `'interrupt'` when a stage body called
@@ -4744,12 +5014,21 @@ function classifyValue(value) {
   if (value instanceof Map || value instanceof Set) {
     return { type: "object", size: value.size };
   }
+  if (ArrayBuffer.isView(value)) {
+    return { type: "object", size: viewKeyCount(value) };
+  }
   if (typeof value === "object") {
     return { type: "object", size: Object.keys(value).length };
   }
   if (typeof value === "function")
     return { type: "function" };
   return { type: typeof value, preview: String(value).slice(0, SUMMARY_PREVIEW_LENGTH) };
+}
+function viewKeyCount(view) {
+  return view instanceof DataView ? 0 : view.length;
+}
+function viewKeys(view, count3) {
+  return Array.from({ length: Math.min(count3, viewKeyCount(view)) }, (_, i) => String(i));
 }
 function summarizeReadValue(value) {
   return { __readSummary: true, ...classifyValue(value) };
@@ -4758,12 +5037,13 @@ function summarizeWriteValue(value) {
   return { __writeSummary: true, ...classifyValue(value) };
 }
 function summarizeValue(value, maxLen) {
+  const limit = maxLen >= 3 ? maxLen : 3;
   if (value === void 0)
     return "undefined";
   if (value === null)
     return "null";
   if (typeof value === "string") {
-    return value.length <= maxLen ? `"${value}"` : `"${value.slice(0, maxLen - 3)}..."`;
+    return value.length <= limit ? `"${value}"` : `"${truncate(value, limit)}"`;
   }
   if (typeof value === "number" || typeof value === "boolean")
     return String(value);
@@ -4771,21 +5051,110 @@ function summarizeValue(value, maxLen) {
     return value.length === 0 ? "[]" : `(${value.length} item${value.length > 1 ? "s" : ""})`;
   }
   if (typeof value === "object") {
-    const keys = Object.keys(value);
-    if (keys.length === 0)
+    const view = ArrayBuffer.isView(value);
+    const keys = view ? viewKeys(value, 4) : Object.keys(value);
+    const count3 = view ? viewKeyCount(value) : keys.length;
+    if (count3 === 0)
       return "{}";
     const preview = keys.slice(0, 4).join(", ");
-    const suffix = keys.length > 4 ? `, ... (${keys.length} keys)` : "";
+    const suffix = count3 > 4 ? `, ... (${count3} keys)` : "";
     const result3 = `{${preview}${suffix}}`;
-    return result3.length <= maxLen ? result3 : `{${keys.length} keys}`;
+    return result3.length <= maxLen ? result3 : `{${count3} keys}`;
   }
-  return String(value);
+  const text = String(value);
+  return text.length <= limit ? text : truncate(text, limit);
+}
+function truncate(text, limit) {
+  return `${text.slice(0, limit - 3)}...`;
 }
 
 // node_modules/footprintjs/dist/esm/lib/devMode.js
 var devModeEnabled = false;
 function isDevMode() {
   return devModeEnabled;
+}
+
+// node_modules/footprintjs/dist/esm/lib/memory/markPlaces.js
+var heapNumbers = /* @__PURE__ */ new WeakMap();
+var heapsNumbered = 0;
+function placeOf(heap, address) {
+  let number = heapNumbers.get(heap);
+  if (number === void 0)
+    heapNumbers.set(heap, number = ++heapsNumbered);
+  return `${number}\0${address.join("")}`;
+}
+var CARRIED_OVER_A_PAUSE = "\0carried over a pause";
+var pendingNumbered = 0;
+function pendingPlace() {
+  return `\0on its way ${++pendingNumbered}`;
+}
+var placesByMarkedSet = /* @__PURE__ */ new WeakMap();
+function notePlace(marked, key, place) {
+  let places = placesByMarkedSet.get(marked);
+  if (places === void 0)
+    placesByMarkedSet.set(marked, places = /* @__PURE__ */ new Map());
+  const at = places.get(key);
+  if (at === void 0)
+    places.set(key, /* @__PURE__ */ new Set([place]));
+  else
+    at.add(place);
+}
+function takePlace(marked, key, place) {
+  const at = placesByMarkedSet.get(marked)?.get(key);
+  if (at === void 0)
+    return { taken: false, held: false };
+  return { taken: at.delete(place), held: at.size > 0 };
+}
+function forgetPlaces(marked, key) {
+  placesByMarkedSet.get(marked)?.delete(key);
+}
+
+// node_modules/footprintjs/dist/esm/lib/memory/pathTargets.js
+var MANY_TARGETS = 16;
+var NO_TARGETS = Object.freeze([]);
+var NO_STEP = Object.freeze({ masked: false, below: NO_TARGETS });
+var noSteps = () => NO_STEP;
+function targetsOf(paths) {
+  const out = [];
+  for (const path of paths ?? []) {
+    out.push([path]);
+    if (path.includes("."))
+      out.push(path.split("."));
+  }
+  return out;
+}
+function signatureOf(targets) {
+  return targets.length === 0 ? "" : targets.map((t) => t.join("")).sort().join("");
+}
+function stepsOf(targets) {
+  if (targets.length === 0)
+    return noSteps;
+  if (targets.length < MANY_TARGETS)
+    return (key) => scan(targets, key);
+  const byKey = /* @__PURE__ */ new Map();
+  for (const target2 of targets) {
+    let step = byKey.get(target2[0]);
+    if (step === void 0)
+      byKey.set(target2[0], step = { masked: false, below: [] });
+    if (target2.length === 1)
+      step.masked = true;
+    else
+      step.below.push(target2.slice(1));
+  }
+  return (key) => byKey.get(key) ?? NO_STEP;
+}
+function scan(targets, key) {
+  const below = [];
+  let masked = false;
+  for (const target2 of targets) {
+    if (target2[0] !== key)
+      continue;
+    if (target2.length === 1)
+      masked = true;
+    else
+      below.push(target2.slice(1));
+  }
+  return { masked, below };
 }
 
 // node_modules/footprintjs/dist/esm/lib/memory/runAddress.js
@@ -4798,12 +5167,24 @@ function runAddress(runId) {
 // node_modules/footprintjs/dist/esm/lib/memory/redaction.js
 var SCOPE_PLACEHOLDER = "[REDACTED]";
 var CLEAR = Object.freeze({ kind: "clear" });
+var THRESHOLD_HOLE = Object.freeze({
+  threshold: SCOPE_PLACEHOLDER,
+  thresholdRedacted: true
+});
 function userKeyOf(path, key) {
   return path.length > 0 ? [...path, key].join(".") : key;
 }
 var MAX_PATTERN_KEY_LEN = 256;
 function declaredFields(fields3, key) {
   return fields3 !== void 0 && Object.prototype.hasOwnProperty.call(fields3, key) ? fields3[key] : void 0;
+}
+function sameList(a, b) {
+  if (a.length !== b.length)
+    return false;
+  for (let i = 0; i < a.length; i++)
+    if (a[i] !== b[i])
+      return false;
+  return true;
 }
 function matchesPattern(value, patterns) {
   if (!patterns)
@@ -4825,6 +5206,7 @@ var RedactionRule = class _RedactionRule {
   /** The policy's patterns that can depend on a whole dotted path ({@link needsPath}) — per `setPolicy`. */
   pathPatterns = [];
   walkLimitWarned = false;
+  pathCapWarned = false;
   /**
    * Keys marked secret for the rest of the run — by a per-call
    * `setValue(key, value, true)`, or by any write the policy redacted whole.
@@ -4839,6 +5221,8 @@ var RedactionRule = class _RedactionRule {
    * Run-wide, by name, like {@link marked}.
    */
   inherited;
+  /** For a key with BOTH declared and inherited fields: the one list of them all ({@link fieldsOf}, why it is kept). */
+  joined;
   /** This run's thrown values served masked (their text selected, or a selected key inside them) → their served form. */
   maskedErrors;
   constructor(policy, marked) {
@@ -4872,14 +5256,51 @@ var RedactionRule = class _RedactionRule {
   useMarkedKeys(shared) {
     this.marked = shared;
   }
-  mark(key) {
+  /**
+   * Mark `key` for the rest of the run. `place`, when the caller knows it, is where the hidden value
+   * landed (`markPlaces.ts · placeOf`); without one the name is marked and its place follows with the write
+   * that lands the value ({@link landed}).
+   */
+  mark(key, place) {
     this.marked.add(key);
+    if (place !== void 0)
+      this.landed(key, place);
   }
-  /** Deleting a key clears its per-call mark and any fields a mapper gave it; a policy verdict survives it. */
-  unmark(key) {
+  /**
+   * Whether this rule ITSELF keeps `key` hidden: a mark, or fields a mapper handed it. Not what the
+   * policy selects: no delete ends that, so it needs no place.
+   */
+  keeps(key) {
+    return this.marked.has(key) || this.inherited?.has(key) === true;
+  }
+  /** A value landed at `place`, at or under `key`. Noted only for a name this rule itself {@link keeps}. */
+  landed(key, place) {
+    if (this.keeps(key))
+      notePlace(this.marked, key, place);
+  }
+  /**
+   * The key is gone: end its mark, and take back any fields a mapper gave it. A policy verdict
+   * survives it.
+   *
+   * With `place` (where the delete landed), only that place is taken away, and the mark ends when it
+   * was the LAST one: another key of the same name, in another sub-flowchart or parallel branch, may
+   * still hold the hidden value. A delete at a place where no value of that name landed takes nothing
+   * and changes nothing — it removed no value this mark stands for (and a value may still be on its
+   * way, `markPlaces.ts · pendingPlace`). Without `place` the caller does not say where, and the mark
+   * ends whatever places it has: that is for a direct caller who knows what it deleted. The engine
+   * always says where.
+   */
+  unmark(key, place) {
+    if (place !== void 0) {
+      const { taken, held } = takePlace(this.marked, key, place);
+      if (!taken || held)
+        return;
+    }
+    forgetPlaces(this.marked, key);
     this.marked.delete(key);
     if (this.inherited?.delete(key) && this.inherited.size === 0)
       this.inherited = void 0;
+    this.joined?.delete(key);
   }
   /** Key-level verdict: marked, listed in `policy.keys`, or matching a pattern. */
   isKeyRedacted(key) {
@@ -4927,20 +5348,85 @@ var RedactionRule = class _RedactionRule {
   }
   /**
    * An idempotency key as records serve it (P3, design §6). The key is a VALUE, and the documented way to make one
-   * is from the input or the state (`order-${args.orderId}`) — so it is selected by its NAME (the diagnostic entry
-   * `{ idempotencyKey }`: a state rule of that name, or `policy.diagnostics` at `logs.idempotencyKey`) AND by its
-   * SOURCES, conservatively, the subflow-mapper taint law's way: when the input it may be derived from holds a
-   * selected key at any depth, or the stage read a selected value before making it (`selectedReads`), it is served
-   * whole as the placeholder. Never value equality. An inert rule never reads it.
+   * is from the input or the state (`order-${args.orderId}`) — so it is text the stage made: {@link retainStageText}.
    */
   retainIdempotencyKey(key, sources) {
+    return this.retainStageText(["logs", "idempotencyKey"], key, sources);
+  }
+  /**
+   * Text a stage's own code made, as records serve it — an idempotency key, the text a decision rule threw, a break
+   * reason. Selected by its NAME (the diagnostic entry at `address`: a state rule of that name, or `policy.diagnostics`)
+   * AND by its SOURCES, conservatively, the subflow-mapper taint law's way ({@link sourcesSelected}): it is then served
+   * whole as the placeholder. Never value equality. An inert rule never reads it.
+   *
+   * It is a string once it is made, so nothing can change it afterwards. An object where the type says text (a JS caller,
+   * an `Error` whose `message` is one) is a hole: turning it into text runs its `toString` AFTER the sources were asked,
+   * and that code can read a selected value.
+   */
+  retainStageText(address, text, sources) {
     if (this.isDiagnosticInert())
-      return key;
-    if (!this.isInert() && ((sources.selectedReads ?? 0) > 0 || this.carriesSelectedKey(sources.input))) {
+      return text;
+    if (this.sourcesSelected(sources) || isWeakKey(text))
       return SCOPE_PLACEHOLDER;
-    }
-    const kept = this.retainDiagnostic(["logs", "idempotencyKey"], key);
-    return typeof kept === "string" ? kept : String(kept);
+    const kept = this.retainDiagnostic(address, text);
+    return typeof kept === "string" ? kept : thrownText(kept);
+  }
+  /**
+   * A filter's threshold as a condition row keeps it. THE ONE LAW for a threshold: every condition row asks it, once. A
+   * threshold is author code's value and may have been copied from anything, so it is served only when nothing says it
+   * holds a selected value:
+   *
+   *   - NAME: its key's verdict is clear (`verdictAt`: keys, patterns, marks AND `fields`, never the marked set alone);
+   *   - SOURCES: the stage has read no selected value so far and its args hold no selected key ({@link sourcesSelected});
+   *   - ONE READ: {@link readThreshold} made a detached copy of it with no author code. The copy is what the next clause
+   *     looks at and what the row keeps, so what the check saw is what every reader gets, and nothing can change it after;
+   *   - SHAPE: the copy holds no selected name at any depth, an object or an `in` element being a record handed out whole
+   *     under its key's name ({@link carriesSelectedKey}), and it was not read from a value this run served masked.
+   *
+   * Otherwise the row serves a hole, never a partial scrub. Conservative: the count is per frame, so once a stage read a
+   * selected value every later threshold in it is hidden. A threshold in a stage with no selected read, under a key
+   * nothing selects, stays visible: it is what makes the decision explainable.
+   *
+   * An inert rule reads nothing and keeps the value itself, the reference, for its whole life. `behind` turns a threshold
+   * that IS a scope handle (`{ in: s.allowed }`) into the state behind it: the library's own Proxy is no reason to hide
+   * state nothing selects. A handle inside an object the stage built stays a Proxy like any other, so a hole.
+   */
+  serveThreshold(key, threshold, sources, behind = (value) => value) {
+    if (this.isInert())
+      return { threshold };
+    if (this.verdictAt([], key).kind !== "clear" || this.sourcesSelected(sources))
+      return THRESHOLD_HOLE;
+    const read2 = readThreshold(threshold, behind);
+    if (!read2)
+      return THRESHOLD_HOLE;
+    if (read2.nodes.some((node) => this.maskedErrors?.has(node)))
+      return THRESHOLD_HOLE;
+    return this.carriesSelectedKey(read2.copy, key) ? THRESHOLD_HOLE : { threshold: read2.copy };
+  }
+  /** The answers one `decide()` / `select()` asks, live, over the stage's sources at each question. */
+  evidenceRule(sources, behind) {
+    return {
+      masksActual: (key) => this.verdictAt([], key).kind !== "clear",
+      serveThreshold: (key, threshold) => this.serveThreshold(key, threshold, sources(), behind),
+      servedMatchError: (text) => this.retainStageText(["errors", "matchError"], text, sources())
+    };
+  }
+  /**
+   * THE TAINT LAW. Could the stage's code hold a selected value? It read one (`selectedReads`), or its input holds a
+   * selected key at any depth (`$getArgs()` reads never count). Per frame, by name, never by value: a value the stage
+   * did not read on this frame, such as a primitive copied under a new name by an earlier stage, is selected by its own
+   * name only.
+   */
+  sourcesSelected(sources) {
+    return !this.isInert() && ((sources.selectedReads ?? 0) > 0 || this.carriesSelectedKey(sources.input));
+  }
+  /**
+   * Does a read with no key hand over something this rule selects? It hands over everything under `path`, a record
+   * handed out whole: the path's own verdict, or a selected name at any depth inside it ({@link carriesSelectedKey}).
+   * A policy that selects nothing present says no. `StageContext · noteKeylessRead` counts the answer for the taint law.
+   */
+  holdsSelected(path, value) {
+    return this.verdict(path).kind !== "clear" || this.carriesSelectedKey(value, path.length > 0 ? path.join(".") : void 0);
   }
   /**
    * Retain flow-message text (`flowMessages.description` / `.rationale`): text
@@ -4992,15 +5478,16 @@ var RedactionRule = class _RedactionRule {
     return { message, structuredError: masked };
   }
   /**
-   * Does a thrown value carry a selected name — an own key, at any depth, that
-   * the policy or a mark selects? Total: a value whose keys cannot be read is
-   * served masked (the safe side), never a second throw from an error path.
+   * Does a value handed out whole carry a selected name — an own key, at any depth, that
+   * the policy or a mark selects? `base` is the name the value sits under, when it has one
+   * (a threshold under its key), so a dotted rule reaches it. Total: a value whose keys cannot
+   * be read is served masked (the safe side), never a second throw from an error path.
    */
-  carriesSelectedKey(value) {
+  carriesSelectedKey(value, base) {
     if (this.isInert() && !this.maskedErrors?.any || value === null || typeof value !== "object")
       return false;
     try {
-      return this.thrownCarries(value, /* @__PURE__ */ new Set());
+      return this.thrownCarries(value, /* @__PURE__ */ new Set(), base);
     } catch {
       return true;
     }
@@ -5011,19 +5498,19 @@ var RedactionRule = class _RedactionRule {
    * NON-enumerable keys no key walk sees — each walked the same way (a cycle
    * among them is followed once).
    */
-  thrownCarries(value, seen) {
+  thrownCarries(value, seen, base) {
     if (seen.has(value))
       return false;
     seen.add(value);
     if (this.maskedErrors?.has(value))
       return true;
-    if (selectsByPath(value, void 0, this.dottedTargets(void 0), this.namesWalk(false), /* @__PURE__ */ new Map(), 0).selected) {
+    if (selectsByPath(value, base, this.dottedTargets(base), this.namesWalk(false), /* @__PURE__ */ new Map(), 0).selected) {
       return true;
     }
-    const own4 = (key) => Object.prototype.hasOwnProperty.call(value, key) ? value[key] : void 0;
-    const errors = own4("errors");
-    for (const part of [own4("cause"), ...Array.isArray(errors) ? errors : []]) {
-      if (part !== null && typeof part === "object" && this.thrownCarries(part, seen))
+    const own5 = (key) => Object.prototype.hasOwnProperty.call(value, key) ? value[key] : void 0;
+    const errors = own5("errors");
+    for (const part of [own5("cause"), ...Array.isArray(errors) ? errors : []]) {
+      if (part !== null && typeof part === "object" && this.thrownCarries(part, seen, base))
         return true;
     }
     return false;
@@ -5043,7 +5530,7 @@ var RedactionRule = class _RedactionRule {
       names: {
         masks: (name) => this.isKeyRedacted(name),
         ...byPath.length > 0 && {
-          pathMasks: (path) => path.length <= MAX_PATTERN_KEY_LEN && matchesPattern(path, byPath)
+          pathMasks: (path) => path.length > MAX_PATTERN_KEY_LEN ? this.maskPastPathCap(path, byPath) : matchesPattern(path, byPath)
         },
         fields: (name) => this.fieldsOf(name)
       },
@@ -5052,6 +5539,18 @@ var RedactionRule = class _RedactionRule {
       budget: walkLimit,
       onLimit: () => this.warnWalkLimit(byPath)
     };
+  }
+  /**
+   * WHY: a path pattern cannot be tested against a path past the cap (the cap bounds the regex's cost), and an
+   * untested path must never be served raw: the value at it is the placeholder, the same safe side the walk
+   * limit takes. Warned once per rule, in dev mode.
+   */
+  maskPastPathCap(path, patterns) {
+    if (!this.pathCapWarned && isDevMode()) {
+      this.pathCapWarned = true;
+      console.warn(`[footprint] RedactionPolicy: a path of ${path.length} characters ('${path.slice(0, 40)}...') exceeds the pattern-matching length cap, so the path pattern(s) ${patterns.map(String).join(", ")} could not be tested and the value there was served as the placeholder. Use policy.keys or fields for values this deep.`);
+    }
+    return true;
   }
   /** Once per rule, in dev mode: a path walk passed its limit and served its remainder as the placeholder. */
   warnWalkLimit(patterns) {
@@ -5137,8 +5636,6 @@ var RedactionRule = class _RedactionRule {
     const fields3 = this.fieldsOf(path[0]);
     if (!fields3 || fields3.length === 0)
       return CLEAR;
-    if (path.length === 1)
-      return { kind: "fields", key: path[0], paths: fields3 };
     const rel = path.slice(1).join(".");
     const inside = [];
     for (const field of fields3) {
@@ -5164,13 +5661,29 @@ var RedactionRule = class _RedactionRule {
     const fields3 = this.fieldsOf(key);
     return fields3 !== void 0 && fields3.length > 0 ? { kind: "fields", key, paths: fields3 } : CLEAR;
   }
-  /** The secret fields of a top key: the policy's, plus any a mapper handed it ({@link MapperTaint}). */
+  /**
+   * The secret fields of a top key: the policy's, plus any it was handed ({@link MapperTaint}, or a
+   * hidden object a stage put below it).
+   *
+   * A key with both gets ONE list of them all, made once for the two lists it is made from. WHY: this
+   * is asked at every read and write of the key, and the search behind it knows a list it has seen by
+   * the list itself (`selectedObjects.ts`). A new list at every ask made each member a stage looked up
+   * through such a key cost all of the key's fields. The policy's list is the caller's and may change,
+   * so it is compared by content each time: it is short, the handed fields are the long list.
+   */
   fieldsOf(key) {
     const declared = declaredFields(this.policy?.fields, key);
     const inherited = this.inherited?.get(key);
     if (inherited === void 0)
       return declared;
-    return declared === void 0 ? inherited : [.../* @__PURE__ */ new Set([...declared, ...inherited])];
+    if (declared === void 0)
+      return inherited;
+    const known = this.joined?.get(key);
+    if (known !== void 0 && known.inherited === inherited && sameList(known.declared, declared))
+      return known.all;
+    const all = Object.freeze([.../* @__PURE__ */ new Set([...declared, ...inherited])]);
+    (this.joined ??= /* @__PURE__ */ new Map()).set(key, { declared: [...declared], inherited, all });
+    return all;
   }
   /**
    * The run's marks and the fields mappers handed to new keys, as NAMES — what
@@ -5190,9 +5703,11 @@ var RedactionRule = class _RedactionRule {
   /** Seed a resumed run's rule with the marks its pause carried ({@link marksForCheckpoint}). */
   restoreMarks(marks) {
     for (const key of marks.keys)
-      this.marked.add(key);
-    for (const [key, paths] of Object.entries(marks.fields ?? {}))
+      this.mark(key, CARRIED_OVER_A_PAUSE);
+    for (const [key, paths] of Object.entries(marks.fields ?? {})) {
       this.inheritFields(key, paths);
+      this.landed(key, CARRIED_OVER_A_PAUSE);
+    }
   }
   /**
    * A subflow mapper's copy inherits the fields of the value it copied:
@@ -5201,7 +5716,7 @@ var RedactionRule = class _RedactionRule {
    */
   inheritFields(target2, paths) {
     const prior = this.inherited?.get(target2) ?? [];
-    (this.inherited ??= /* @__PURE__ */ new Map()).set(target2, [.../* @__PURE__ */ new Set([...prior, ...paths])]);
+    (this.inherited ??= /* @__PURE__ */ new Map()).set(target2, Object.freeze([.../* @__PURE__ */ new Set([...prior, ...paths])]));
   }
   /** The verdict of a key a mapper read — `runs` (the run namespaces, `RUN_NAMESPACE`) is selected when any namespaced key is. */
   verdictOfRead(key, value) {
@@ -5267,10 +5782,10 @@ var RedactionRule = class _RedactionRule {
    * handed out whole.
    */
   retainBoundary(record, placeholder = SCOPE_PLACEHOLDER) {
-    const served = this.maskedErrors?.any ? this.withServedErrors(record) : record;
-    if (this.isInert() || served === null || typeof served !== "object")
-      return served;
-    const top = this.retainRecord(served, placeholder);
+    const served2 = this.maskedErrors?.any ? this.withServedErrors(record) : record;
+    if (this.isInert() || served2 === null || typeof served2 !== "object")
+      return served2;
+    const top = this.retainRecord(served2, placeholder);
     return servedByPath(top, void 0, this.dottedTargets(void 0), this.namesWalk(true), placeholder);
   }
   /**
@@ -5297,22 +5812,22 @@ var RedactionRule = class _RedactionRule {
     if (!reaching.has(value))
       return value;
     const copies = /* @__PURE__ */ new Map();
-    const copyOf = (node) => {
+    const copyOf2 = (node) => {
       const known = copies.get(node);
       if (known !== void 0)
         return known;
       const copy = Array.isArray(node) ? node.slice() : { ...node };
       copies.set(node, copy);
       for (const [key, child] of Object.entries(node)) {
-        const served = this.servedLeaf(child);
-        if (served !== KEEP)
-          copy[key] = served;
+        const served2 = this.servedLeaf(child);
+        if (served2 !== KEEP)
+          copy[key] = served2;
         else if (child !== null && typeof child === "object" && reaching.has(child))
-          copy[key] = copyOf(child);
+          copy[key] = copyOf2(child);
       }
       return copy;
     };
-    return copyOf(value);
+    return copyOf2(value);
   }
   /** A masked error's served form — `KEEP` for anything else (a scalar never swapped, a container). */
   servedLeaf(value) {
@@ -5442,29 +5957,85 @@ function decideWrite(active, path, key, explicit) {
     return { kind: "whole", key: userKeyOf(path, key) };
   return active !== void 0 ? active.verdictAt(path, key) : CLEAR;
 }
-function inheritByIdentity(active, verdict, selected, path, key, value) {
-  const read = active !== void 0 && verdict.kind !== "whole" && value !== null && typeof value === "object" ? selected?.get(value) : void 0;
-  if (read === void 0 || active === void 0)
+function inheritByIdentity(active, verdict, selected, path, key, value, how = {}) {
+  if (active === void 0 || selected === void 0 || verdict.kind === "whole")
     return verdict;
-  if (read.kind === "whole")
-    active.mark(userKeyOf(path, key));
-  else if (read.kind === "fields") {
-    const at = [...path.slice(1), ...path.length > 0 ? [key] : []];
-    active.inheritFields(path[0] ?? key, read.paths.map((field) => [...at, field].join(".")));
+  if (value === null || typeof value !== "object")
+    return verdict;
+  const named = verdict.kind === "fields" ? verdict : void 0;
+  const search = { named, shown: how.shown, patch: how.patch, replaces: how.replaces };
+  const found = how.sameAsBefore === void 0 ? selected.findIn(value, how.base, search) : selected.findPlanted(value, how.base, search, how.sameAsBefore);
+  if (found.length === 0)
+    return verdict;
+  const top = path[0] ?? key;
+  const at = path.length > 0 ? [...path.slice(1), key] : [];
+  const fields3 = [];
+  for (const one of found) {
+    const hidden = fieldsHiddenBy(at.length > 0 ? [...at, ...one.path] : one.path, one.rule, one.whole);
+    if (hidden === void 0)
+      active.mark(top);
+    else
+      for (const field of hidden)
+        fields3.push(field);
   }
+  if (fields3.length > 0)
+    active.inheritFields(top, fields3);
   return active.verdictAt(path, key);
+}
+function fieldsHiddenBy(where, rule, whole) {
+  const bad = where.findIndex((segment) => segment.includes(".") || isDeniedSegment(segment));
+  const lone = bad === 0 && where.length === 1 && !isDeniedSegment(where[0]);
+  const place = bad < 0 || lone ? where : where.slice(0, bad);
+  const all = whole || bad >= 0 || rule.kind === "whole";
+  if (place.length === 0)
+    return all ? void 0 : [...rule.paths];
+  const field = place.join(".");
+  return all ? [field] : rule.paths.map((inner) => `${field}.${inner}`);
+}
+function keptUnder(verdict, found, key) {
+  if (verdict.kind === "whole" || found.length === 0)
+    return verdict;
+  const paths = new Set(verdict.kind === "fields" ? verdict.paths : []);
+  for (const one of found) {
+    const fields3 = fieldsHiddenBy(one.path, one.rule, one.whole);
+    if (fields3 === void 0)
+      return { kind: "whole", key };
+    for (const field of fields3)
+      paths.add(field);
+  }
+  return { kind: "fields", key, paths: [...paths] };
+}
+function sameVerdict(a, b) {
+  if (a === b)
+    return true;
+  if (a.kind !== "fields" || b.kind !== "fields")
+    return a.kind === b.kind;
+  if (a.paths.length !== b.paths.length)
+    return false;
+  const others = new Set(b.paths);
+  return a.paths.every((path) => others.has(path));
 }
 var WHOLE_SCRUB = Object.freeze({ whole: true });
 function scrubOf(verdict) {
   if (verdict.kind === "whole")
     return WHOLE_SCRUB;
-  return verdict.kind === "fields" ? { fields: verdict.paths } : void 0;
+  if (verdict.kind !== "fields")
+    return void 0;
+  return verdict.paths.some(unreachable) ? WHOLE_SCRUB : { fields: verdict.paths };
 }
-function markStagedWrite(active, rule, verdict, path, key, verb) {
-  if (verb === "delete")
-    active?.unmark(userKeyOf(path, key));
-  else if (verdict.kind === "whole")
-    rule?.mark(verdict.key);
+function unreachable(path) {
+  return isDeniedSegment(path) || path.includes(".") && path.split(".").some(isDeniedSegment);
+}
+function markStagedWrite(active, rule, verdict, path, key, verb, place) {
+  if (verb === "delete") {
+    const name = userKeyOf(path, key);
+    return active?.keeps(name) ? { rule: active, key: name, ...place !== void 0 && { place } } : void 0;
+  }
+  if (verdict.kind === "whole")
+    rule?.mark(verdict.key, place);
+  if (place !== void 0)
+    rule?.landed(path[0] ?? key, place);
+  return void 0;
 }
 var WALK_LIMIT = 1e6;
 var walkLimit = WALK_LIMIT;
@@ -5503,34 +6074,13 @@ function closingBracket(source, from) {
   return -1;
 }
 var KEEP = /* @__PURE__ */ Symbol("kept as it is");
-function targetsOf(paths) {
-  const out = [];
-  for (const path of paths ?? []) {
-    out.push([path]);
-    if (path.includes("."))
-      out.push(path.split("."));
-  }
-  return out;
-}
-function signatureOf(targets) {
-  return targets.length === 0 ? "" : targets.map((t) => t.join("")).sort().join("");
-}
-function decideEdge(key, dotted, targets, walk2, depth) {
-  const below = [];
-  let masked = false;
-  for (const target2 of targets) {
-    if (target2[0] !== key)
-      continue;
-    if (target2.length === 1)
-      masked = true;
-    else
-      below.push(target2.slice(1));
-  }
+function decideEdge(key, dotted, step, walk2, depth) {
   const names = walk2.rootDecided && depth === 0 ? void 0 : walk2.names;
-  if (names !== void 0 && !masked) {
-    masked = names.masks(key) || names.pathMasks !== void 0 && dotted !== void 0 && names.pathMasks(`${dotted}.${key}`);
-    below.push(...targetsOf(names.fields(key)));
-  }
+  if (names === void 0 || step.masked)
+    return step;
+  const masked = names.masks(key) || names.pathMasks !== void 0 && dotted !== void 0 && names.pathMasks(`${dotted}.${key}`);
+  const more = targetsOf(names.fields(key));
+  const below = more.length === 0 ? step.below : step.below.length === 0 ? more : [...step.below, ...more];
   return { masked, below };
 }
 function visit(walk2) {
@@ -5541,6 +6091,65 @@ function visit(walk2) {
     walk2.onLimit?.();
   }
   return false;
+}
+function readThreshold(threshold, behind) {
+  const read2 = { copies: /* @__PURE__ */ new Map(), budget: walkLimit };
+  try {
+    const copy = copyHeld(behind(threshold), read2);
+    const nodes = [...read2.copies.keys()];
+    if (nodes.length > 0)
+      structuredClone(nodes);
+    return { copy, nodes };
+  } catch {
+    return void 0;
+  }
+}
+function refuseCopy() {
+  throw new TypeError("a threshold no copy can hold");
+}
+function copyHeld(value, read2) {
+  if (typeof value === "function" || typeof value === "symbol")
+    refuseCopy();
+  if (value === null || typeof value !== "object")
+    return value;
+  return read2.copies.get(value) ?? copyObject(value, read2);
+}
+function copyObject(node, read2) {
+  const prototype = Object.getPrototypeOf(node);
+  const keys = Reflect.ownKeys(node);
+  read2.budget -= keys.length + 1;
+  if (read2.budget < 0)
+    refuseCopy();
+  if (prototype === Date.prototype)
+    return copyDate(node, keys, read2);
+  const list = Array.isArray(node);
+  if (list ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null)
+    refuseCopy();
+  if (list && !keys.slice(0, -1).every((key, index) => key === String(index)))
+    refuseCopy();
+  const copy = list ? [] : Object.create(prototype);
+  read2.copies.set(node, copy);
+  for (const key of keys) {
+    const field = typeof key === "string" ? Reflect.getOwnPropertyDescriptor(node, key) : void 0;
+    if (list && key === "length" && key === keys[keys.length - 1] && field?.value === keys.length - 1)
+      continue;
+    if (!field?.enumerable || !Object.hasOwn(field, "value"))
+      refuseCopy();
+    Object.defineProperty(copy, key, {
+      value: copyHeld(field.value, read2),
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
+  }
+  return Object.freeze(copy);
+}
+function copyDate(node, keys, read2) {
+  if (keys.length > 0)
+    refuseCopy();
+  const copy = Object.freeze(new Date(Date.prototype.getTime.call(node)));
+  read2.copies.set(node, copy);
+  return copy;
 }
 function selectsByPath(node, dotted, targets, walk2, ancestors, depth) {
   if (!visit(walk2))
@@ -5554,8 +6163,9 @@ function selectsByPath(node, dotted, targets, walk2, ancestors, depth) {
   ancestors.set(node, depth);
   let back = Infinity;
   let selected = false;
+  const steps = stepsOf(targets);
   for (const [key, child] of Object.entries(node)) {
-    const edge = decideEdge(key, dotted, targets, walk2, depth);
+    const edge = decideEdge(key, dotted, steps(key), walk2, depth);
     if (edge.masked) {
       selected = true;
       break;
@@ -5600,8 +6210,9 @@ function copyByPath(node, dotted, targets, walk2, placeholder, ancestors, depth,
   ancestors.set(node, frame);
   let changed = false;
   let back = Infinity;
+  const steps = stepsOf(targets);
   for (const [key, child] of Object.entries(node)) {
-    const edge = decideEdge(key, dotted, targets, walk2, depth);
+    const edge = decideEdge(key, dotted, steps(key), walk2, depth);
     if (edge.masked) {
       frame.copy[key] = placeholder;
       changed = true;
@@ -5705,6 +6316,16 @@ var MapperTaint = class _MapperTaint {
     return view;
   }
   /**
+   * The same law for a record that reports its own reads (the view a subflow mapper is handed,
+   * `engine/handlers/mapperScope.ts`): hand each read to the function returned here, and give the
+   * mapper what it returns. No second view is built, so the cost is the keys read, not the keys held.
+   * The record is remembered as one the mapper was handed: passed on whole, it hands on its selected keys.
+   */
+  reads(record) {
+    this.records.set(record, record);
+    return (key, value) => this.served(key, value);
+  }
+  /**
    * The mapper returned `output`: every key it wrote inherits what it copied
    * (see the class). Returns the output to use — the same object unless a view
    * had to be swapped back for the record behind it.
@@ -5740,11 +6361,11 @@ var MapperTaint = class _MapperTaint {
   served(key, value) {
     if (!this.open)
       return value;
-    const read = this.byName.get(key);
-    if (read === void 0)
+    const read2 = this.byName.get(key);
+    if (read2 === void 0)
       this.byName.set(key, [value]);
     else
-      read.push(value);
+      read2.push(value);
     const verdict = this.rule.verdictOfRead(key, value);
     if (value === void 0)
       return value;
@@ -5783,13 +6404,13 @@ var MapperTaint = class _MapperTaint {
     this.views.set(view, { raw: record, verdict });
     return view;
   }
-  viewOf(record, read) {
+  viewOf(record, read2) {
     const view = {};
     for (const key of Object.keys(record)) {
       Object.defineProperty(view, key, {
         enumerable: true,
         configurable: true,
-        get: () => read(key),
+        get: () => read2(key),
         set: (value) => {
           Object.defineProperty(view, key, { value, writable: true, enumerable: true, configurable: true });
         }
@@ -5819,8 +6440,8 @@ var MapperTaint = class _MapperTaint {
       if (known)
         return known;
     }
-    const read = this.byName.get(target2);
-    return read?.some((v) => Object.is(v, value)) ? this.rule.verdictOfRead(target2, value) : void 0;
+    const read2 = this.byName.get(target2);
+    return read2?.some((v) => Object.is(v, value)) ? this.rule.verdictOfRead(target2, value) : void 0;
   }
   /** A whole record's selected keys, as fields of whatever key it is passed on under. */
   selectedFieldsOf(record) {
@@ -5924,30 +6545,96 @@ function isWeakKey(value) {
 }
 
 // node_modules/footprintjs/dist/esm/lib/filter/evaluator.js
-var OPERATOR_HANDLERS = {
-  eq: (a, t) => a === t,
-  ne: (a, t) => a !== t,
-  gt: (a, t) => a > t,
-  gte: (a, t) => a >= t,
-  lt: (a, t) => a < t,
-  lte: (a, t) => a <= t,
-  in: (a, t) => {
-    if (!Array.isArray(t))
+var dateTime = Date.prototype.getTime;
+function timeOf(value) {
+  if (typeof value !== "object" || value === null)
+    return void 0;
+  try {
+    return dateTime.call(value);
+  } catch {
+    return void 0;
+  }
+}
+function sameValue(actual, threshold) {
+  if (actual === threshold || Number.isNaN(actual) && Number.isNaN(threshold))
+    return true;
+  const time = timeOf(actual);
+  return time !== void 0 && sameValue(time, timeOf(threshold));
+}
+function holdsSameValue(list, actual) {
+  if (list.includes(actual))
+    return true;
+  const time = timeOf(actual);
+  if (time === void 0)
+    return false;
+  for (let index = 0; index < list.length; index++) {
+    if (sameValue(time, timeOf(list[index])))
+      return true;
+  }
+  return false;
+}
+function boundedList2(threshold) {
+  if (!Array.isArray(threshold))
+    return void 0;
+  if (threshold.length > MAX_IN_ARRAY_SIZE) {
+    throw new Error(`in/notIn array exceeds maximum size of ${MAX_IN_ARRAY_SIZE}`);
+  }
+  return threshold;
+}
+function ordered(value) {
+  if (typeof value === "number")
+    return { kind: "number", value };
+  if (typeof value === "bigint")
+    return { kind: "bigint", value };
+  if (typeof value === "string")
+    return { kind: "string", value };
+  const time = timeOf(value);
+  return time === void 0 ? void 0 : { kind: "date", value: time };
+}
+function inOrder(holds) {
+  return (actual, threshold) => {
+    const a = ordered(actual);
+    if (a === void 0)
       return false;
-    if (t.length > MAX_IN_ARRAY_SIZE) {
-      throw new Error(`in/notIn array exceeds maximum size of ${MAX_IN_ARRAY_SIZE}`);
-    }
-    return t.includes(a);
+    const t = ordered(threshold);
+    return t !== void 0 && a.kind === t.kind && holds(a.value, t.value);
+  };
+}
+var OPERATOR_HANDLERS = {
+  eq: sameValue,
+  ne: (a, t) => !sameValue(a, t),
+  gt: inOrder((a, t) => a > t),
+  gte: inOrder((a, t) => a >= t),
+  lt: inOrder((a, t) => a < t),
+  lte: inOrder((a, t) => a <= t),
+  in: (a, t) => {
+    const list = boundedList2(t);
+    return list !== void 0 && holdsSameValue(list, a);
   },
   notIn: (a, t) => {
-    if (!Array.isArray(t))
-      return true;
-    if (t.length > MAX_IN_ARRAY_SIZE) {
-      throw new Error(`in/notIn array exceeds maximum size of ${MAX_IN_ARRAY_SIZE}`);
-    }
-    return !t.includes(a);
+    const list = boundedList2(t);
+    return list === void 0 || !holdsSameValue(list, a);
   }
 };
+var ORDERED_OPERATORS = /* @__PURE__ */ new Set(["gt", "gte", "lt", "lte"]);
+function warnIfNoOrder(op, key, actual, threshold, masked) {
+  if (!ORDERED_OPERATORS.has(op) || actual === null || actual === void 0)
+    return;
+  if (threshold === null || threshold === void 0)
+    return;
+  const [a, t] = [ordered(actual), ordered(threshold)];
+  if (a !== void 0 && a.kind === t?.kind)
+    return;
+  const what = masked ? "two values of different kinds" : `${kindName(actual)} with ${kindName(threshold)}`;
+  console.warn(`[footprint] decide()/select() filter: "${op}" on key "${key}" compares ${what} \u2014 not an order, so the condition does not hold (ordered operators compare two numbers, two bigints, two strings or two Dates)`);
+}
+function kindName(value) {
+  if (timeOf(value) !== void 0)
+    return "a Date";
+  if (Array.isArray(value))
+    return "an array";
+  return `${typeof value === "object" ? "an" : "a"} ${typeof value}`;
+}
 var DENIED_KEYS = /* @__PURE__ */ new Set([
   "__proto__",
   "constructor",
@@ -5964,7 +6651,7 @@ var DENIED_KEYS = /* @__PURE__ */ new Set([
 ]);
 var MAX_IN_ARRAY_SIZE = 1e3;
 var MAX_VALUE_LEN = 80;
-function evaluateFilter(getValueFn, isRedactedFn, filter) {
+function evaluateFilter(getValueFn, isRedactedFn, filter, serveThreshold = (key, threshold) => isRedactedFn(key) ? THRESHOLD_HOLE : { threshold }) {
   const conditions = [];
   let allMatched = true;
   for (const [key, ops] of Object.entries(filter)) {
@@ -5978,23 +6665,23 @@ function evaluateFilter(getValueFn, isRedactedFn, filter) {
     const redacted = isRedactedFn(key);
     const displayValue = redacted ? SCOPE_PLACEHOLDER : summarizeValue(actual, MAX_VALUE_LEN);
     for (const [op, threshold] of Object.entries(ops)) {
-      const handler = OPERATOR_HANDLERS[op];
-      if (!handler) {
-        if (isDevMode()) {
-          console.warn(`[footprint] decide()/select() filter: unknown operator "${op}" on key "${key}" \u2014 condition never matches (valid operators: ${Object.keys(OPERATOR_HANDLERS).join(", ")})`);
-        }
-        conditions.push({ key, op, threshold, actualSummary: displayValue, result: false, redacted });
-        allMatched = false;
-        continue;
+      const handler = Object.hasOwn(OPERATOR_HANDLERS, op) ? OPERATOR_HANDLERS[op] : void 0;
+      if (!handler && isDevMode()) {
+        console.warn(`[footprint] decide()/select() filter: unknown operator "${op}" on key "${key}" \u2014 condition never matches (valid operators: ${Object.keys(OPERATOR_HANDLERS).join(", ")})`);
       }
-      const result3 = handler(actual, threshold);
+      const result3 = handler ? handler(actual, threshold) : false;
+      const served2 = serveThreshold(key, threshold);
+      if (handler && isDevMode()) {
+        warnIfNoOrder(op, key, actual, threshold, redacted || served2.thresholdRedacted === true);
+      }
       conditions.push({
         key,
         op,
-        threshold,
+        threshold: served2.threshold,
         actualSummary: displayValue,
         result: result3,
-        redacted
+        redacted,
+        ...served2.thresholdRedacted && { thresholdRedacted: true }
       });
       if (!result3)
         allMatched = false;
@@ -6010,7 +6697,7 @@ var RETRY_DEFAULT = Object.freeze({ branch: "retry", label: "retryable" });
 var MAX_VALUE_LEN2 = 80;
 function retryRules(policy) {
   return [
-    { when: { outcome: { eq: "ok" } }, then: "done", label: "succeeded" },
+    { when: { outcome: { eq: "ok" } }, then: "done", label: "answered" },
     { when: { outcome: { eq: "paused" } }, then: "stop", label: "paused" },
     { when: { aborted: { eq: true } }, then: "stop", label: "aborted" },
     { when: { attempt: { gte: attemptCeiling(policy.attempts) } }, then: "stop", label: "exhausted" },
@@ -6018,10 +6705,10 @@ function retryRules(policy) {
     { when: { timeLeftAfterWaitMs: { lte: 0 } }, then: "stop", label: "no-time-left" }
   ];
 }
-function decideAttempt(rules, read) {
+function decideAttempt(rules, read2) {
   const evaluated = [];
   for (const [index, rule] of rules.entries()) {
-    const evidence = evaluateRule(rule, index, read);
+    const evidence = evaluateRule(rule, index, read2);
     evaluated.push(evidence);
     if (evidence.matched)
       return decided(evaluated, rule.then, rule.label);
@@ -6037,13 +6724,13 @@ function decided(rules, chosen, label) {
   };
   return { evidence, next: chosen, reason: label };
 }
-function evaluateRule(rule, index, read) {
+function evaluateRule(rule, index, read2) {
   if (typeof rule.when === "function") {
     const inputs = [];
     let matched2;
     let matchError2;
     try {
-      matched2 = rule.when(readingView(read, inputs));
+      matched2 = rule.when(readingView(read2, inputs));
     } catch (error) {
       matched2 = false;
       matchError2 = error instanceof Error ? error.message : String(error);
@@ -6063,7 +6750,7 @@ function evaluateRule(rule, index, read) {
   let conditions = [];
   let matchError;
   try {
-    ({ matched, conditions } = evaluateFilter(read, () => false, rule.when));
+    ({ matched, conditions } = evaluateFilter(read2, () => false, rule.when));
   } catch (error) {
     matchError = error instanceof Error ? error.message : String(error);
   }
@@ -6078,12 +6765,12 @@ function evaluateRule(rule, index, read) {
   };
   return evidence;
 }
-function readingView(read, inputs) {
+function readingView(read2, inputs) {
   return new Proxy({}, {
     get(_target, key) {
       if (typeof key !== "string")
         return void 0;
-      const value = read(key);
+      const value = read2(key);
       inputs.push({ key, valueSummary: summarizeValue(value, MAX_VALUE_LEN2), redacted: false });
       return value;
     }
@@ -6091,12 +6778,12 @@ function readingView(read, inputs) {
 }
 
 // node_modules/footprintjs/dist/esm/lib/attempt/record.js
-function recordedError(served) {
+function recordedError(served2) {
   return {
-    message: served.message,
-    ...served.name !== void 0 && { name: served.name },
-    ...served.code !== void 0 && { code: served.code },
-    ...served.issues !== void 0 && { issues: served.issues.map((issue) => ({ ...issue, path: [...issue.path] })) }
+    message: served2.message,
+    ...served2.name !== void 0 && { name: served2.name },
+    ...served2.code !== void 0 && { code: served2.code },
+    ...served2.issues !== void 0 && { issues: served2.issues.map((issue) => ({ ...issue, path: [...issue.path] })) }
   };
 }
 function freezeDeep(value) {
@@ -6133,6 +6820,10 @@ async function runAttempts(run, policy, options) {
       if (live.context.signal.aborted)
         live.abandonStarted();
       value = await (options.raced ? pending : live.race(pending));
+      try {
+        options.onAnswer?.(value);
+      } catch {
+      }
     } catch (error) {
       failure = { error };
     }
@@ -6149,7 +6840,7 @@ async function runAttempts(run, policy, options) {
     const timeLeftMs = deadline === void 0 ? void 0 : inputs.timeLeft();
     const category = inputs.category();
     const terminal = options.onFailure && failure ? terminalCategory(failure.error, category) : category ?? "unknown";
-    const served = inputs.failed ? (options.serve ?? extractErrorInfo)(inputs.failed.error) : void 0;
+    const served2 = inputs.failed ? (options.serve ?? extractErrorInfo)(inputs.failed.error) : void 0;
     const effect = options.effect ? effectOf(inputs.outcome, failure?.error) : void 0;
     const recordedKey = options.effect ? recordedKeyOf(options.effect) : void 0;
     const record = freezeDeep({
@@ -6169,7 +6860,7 @@ async function runAttempts(run, policy, options) {
       ...delayMs !== void 0 && { delayMs },
       ...live.capMs !== void 0 && { timeoutMs: live.capMs },
       ...timeLeftMs !== void 0 && { timeLeftMs },
-      ...served !== void 0 && { error: recordedError(served) },
+      ...served2 !== void 0 && { error: recordedError(served2) },
       ...options.effect !== void 0 && { system: options.effect.system },
       ...recordedKey !== void 0 && { idempotencyKey: recordedKey },
       ...effect !== void 0 && { effect }
@@ -6178,13 +6869,13 @@ async function runAttempts(run, policy, options) {
     if (record.effect === "unknown")
       unknownSoFar = true;
     if (record.next !== "retry")
-      options.onEnd?.(tally.summary(lastOf(record, unknownSoFar)));
-    options.onAttempt?.(record, served);
+      options.onEnd?.(tally.summary(lastOf(record), record.effect === void 0 ? void 0 : unknownSoFar ? "unknown" : record.effect));
+    options.onAttempt?.(record, served2);
     if (record.next === "done")
       return value;
     if (record.next === "stop")
       throw stoppedFailure(options, record, failure, unknownSoFar, terminal);
-    options.onRetry?.(attempt, of, delayMs ?? 0, served);
+    options.onRetry?.(attempt, of, delayMs ?? 0, served2);
     if (delayMs !== void 0 && delayMs > 0) {
       try {
         await sleep(delayMs, options.signal);
@@ -6195,7 +6886,7 @@ async function runAttempts(run, policy, options) {
     }
     const cut = isCancelled(options.signal) ? "aborted" : options.signal?.aborted || deadline !== void 0 && now() >= deadline ? "no-time-left" : void 0;
     if (cut !== void 0) {
-      options.onEnd?.(tally.summary({ ...lastOf(record, unknownSoFar), next: "stop", reason: cut }));
+      options.onEnd?.(tally.summary({ ...lastOf(record), next: "stop", reason: cut, during: "wait" }, record.effect === void 0 ? void 0 : unknownSoFar ? "unknown" : record.effect));
       throw stoppedFailure(options, record, failure, unknownSoFar, terminal);
     }
   }
@@ -6234,15 +6925,15 @@ var LiveAttempt = class {
     const cap = Math.min(ownCap ?? Infinity, left);
     this.capMs = Number.isFinite(cap) ? cap : void 0;
     const ownTimer = this.capMs !== void 0 && (ownCap !== void 0 && ownCap < left || !options.signal);
-    const own4 = ownTimer ? new AbortController() : void 0;
-    if (own4) {
+    const own5 = ownTimer ? new AbortController() : void 0;
+    if (own5) {
       const capMs2 = this.capMs;
       this.cancelTimer = setLongTimeout(() => {
         this.timeoutReason = markTimeLimit(new AttemptTimeoutError(attempt, capMs2));
-        own4.abort(this.timeoutReason);
+        own5.abort(this.timeoutReason);
       }, capMs2);
     }
-    this.composed = anySignal([options.signal, own4?.signal]);
+    this.composed = anySignal([options.signal, own5?.signal]);
     this.composed.signal.addEventListener("abort", this.onAbort, { once: true });
     const signal = this.composed.signal;
     const capMs = this.capMs;
@@ -6450,8 +7141,8 @@ function sleep(ms, signal) {
     signal?.addEventListener("abort", done, { once: true });
   });
 }
-function lastOf(record, unknownSoFar = false) {
-  const effect = record.effect !== void 0 && unknownSoFar && record.outcome !== "ok" ? "unknown" : record.effect;
+function lastOf(record) {
+  const effect = record.effect;
   return {
     next: record.next,
     reason: record.reason,
@@ -6466,8 +7157,8 @@ var SeriesTally = class {
     this.counts.count += 1;
     this.counts[record.outcome] += 1;
   }
-  summary(last) {
-    return freezeDeep({ ...this.counts, last });
+  summary(last, effect) {
+    return freezeDeep({ ...this.counts, ...effect !== void 0 && { effect }, last });
   }
 };
 
@@ -6515,10 +7206,12 @@ function budgetRefusal(report) {
   if (!report.over || report.budgetMs === void 0)
     return void 0;
   const counted = report.criticalPath.filter((step) => contribution(step) > 0);
-  const shownSteps = slowestInPathOrder(counted, 5).map(stepText);
+  const shown2 = slowestInPathOrder(counted, 5);
+  const shownSteps = shown2.map(stepText);
   const more = counted.length > shownSteps.length ? `, and ${counted.length - shownSteps.length} more` : "";
+  const lower = shown2.some(isWaitStep) ? "Lower attempts or timeoutMs on these stages, or the retry loop's backoffMs, or raise the budget." : "Lower attempts or timeoutMs on these stages, or raise the budget.";
   const uncounted = report.unbounded.length > 0 ? ` Not counted, having no bound: ${unboundedText(report.unbounded)}.` : "";
-  return `budget(${report.budgetMs}): its declared policies allow ${report.knownMs} ms, over its budget by ${report.knownMs - report.budgetMs} ms. Slowest path: ${shownSteps.join("; ")}${more}. Lower attempts or timeoutMs on these stages, or raise the budget.${uncounted}`;
+  return `budget(${report.budgetMs}): its declared policies allow ${report.knownMs} ms, over its budget by ${report.knownMs - report.budgetMs} ms. Slowest path: ${shownSteps.join("; ")}${more}. ${lower}${uncounted}`;
 }
 function budgetWarning(report, chartName) {
   if (report.budgetMs === void 0 || report.unbounded.length === 0)
@@ -6526,7 +7219,7 @@ function budgetWarning(report, chartName) {
   return `[footprint] chart '${chartName}' declares a budget of ${report.budgetMs} ms, but the check cannot bound every path: ${unboundedText(report.unbounded)}. Give a stage a retry({ timeoutMs }) and a function backoff a maxBackoffMs; bound a loop, a lazy subflow or a parallelForEach with timeBudget(chart, { assume }).`;
 }
 var warnedAtRunStart = /* @__PURE__ */ new WeakSet();
-function warnDeadlineUnderBudget(chart, deadline, startedAt) {
+function warnDeadlineUnderBudget(chart, deadline, startedAt, rootName) {
   if (deadline === void 0 || !isDevMode())
     return;
   const budgetMs = declaredBudget(chart);
@@ -6536,7 +7229,7 @@ function warnDeadlineUnderBudget(chart, deadline, startedAt) {
   if (leftMs >= budgetMs || warnedAtRunStart.has(chart))
     return;
   warnedAtRunStart.add(chart);
-  console.warn(`[footprint] this run's deadline leaves ${Math.max(0, leftMs)} ms, less than the chart's declared budget of ${budgetMs} ms ('${chart.root.name}'): a run that takes the time the chart declares will be cut short. Give the run its budget, or declare a smaller one.`);
+  console.warn(`[footprint] this run's deadline leaves ${Math.max(0, leftMs)} ms, less than the chart's declared budget of ${budgetMs} ms ('${rootName}'): a run that takes the time the chart declares will be cut short. Give the run its budget, or declare a smaller one.`);
 }
 var IN_PROGRESS = /* @__PURE__ */ Symbol("in-progress");
 var NONE = { kind: "none" };
@@ -6818,8 +7511,7 @@ function helperCost(budget, policy) {
   const ms = budget.role === "control" ? 0 : budget.waitMs;
   return {
     attempts: 1,
-    timeoutMs: ms ?? 0,
-    backoffMs: 0,
+    backoffMs: ms ?? 0,
     knownMs: ms ?? 0,
     worstMs: ms ?? null,
     ...ms === void 0 ? { why: "backoff" } : {}
@@ -6924,9 +7616,10 @@ function slowestInPathOrder(steps, limit) {
   const keep = new Set([...steps].sort((a, b) => contribution(b) - contribution(a)).slice(0, limit).map((s) => s.stageId));
   return steps.filter((s) => keep.has(s.stageId));
 }
+var isWaitStep = (s) => s.timeoutMs === void 0 && s.worstMs !== null;
 function stepText(s) {
-  const own4 = s.timeoutMs === void 0 ? `${s.backoffMs} ms of waits (no timeoutMs)` : `${s.attempts} \xD7 ${s.timeoutMs} ms + ${s.backoffMs} ms of waits = ${add(mul(s.attempts, s.timeoutMs), s.backoffMs)} ms`;
-  return `${s.stageId}: ${own4}${s.passes > 1 ? `, ${s.passes} passes` : ""}`;
+  const own5 = isWaitStep(s) ? `${s.backoffMs} ms of waits` : s.timeoutMs === void 0 ? `${s.backoffMs} ms of waits (no timeoutMs)` : `${s.attempts} \xD7 ${s.timeoutMs} ms + ${s.backoffMs} ms of waits = ${add(mul(s.attempts, s.timeoutMs), s.backoffMs)} ms`;
+  return `${s.stageId}: ${own5}${s.passes > 1 ? `, ${s.passes} passes` : ""}`;
 }
 function unboundedText(stages) {
   const listed = stages.slice(0, 10).map((s) => `${s.stageId} (${s.why})`);
@@ -6997,11 +7690,38 @@ function assumedChart(field, key, chart) {
   });
 }
 
+// node_modules/footprintjs/dist/esm/lib/memory/RunComponent.js
+var canonicalRoots = /* @__PURE__ */ new WeakMap();
+var declaredRoots = /* @__PURE__ */ new WeakSet();
+function canonicalRunComponentRoot(root) {
+  let token = canonicalRoots.get(root);
+  if (!token) {
+    token = Object.freeze({});
+    canonicalRoots.set(root, token);
+  }
+  return token;
+}
+function copyRunComponentRoot(source, clone) {
+  canonicalRoots.set(clone, canonicalRunComponentRoot(source));
+}
+function declareRunComponentRoot(root) {
+  const canonical = canonicalRunComponentRoot(root);
+  declaredRoots.add(canonical);
+  return canonical;
+}
+function declaredRunComponentRoot(root) {
+  if (!root)
+    return void 0;
+  const canonical = canonicalRunComponentRoot(root);
+  return declaredRoots.has(canonical) ? canonical : void 0;
+}
+
 // node_modules/footprintjs/dist/esm/lib/engine/graph/prefixNodeTree.js
 function prefixNodeTree(node, prefix) {
   if (!node)
     return node;
   const clone = { ...node };
+  copyRunComponentRoot(node, clone);
   const budget = retryLoopBudget(node);
   if (budget)
     declareRetryLoopBudget(clone, budget);
@@ -7059,6 +7779,12 @@ function isZod(input) {
 }
 
 // node_modules/footprintjs/dist/esm/lib/contract/schema.js
+function literalJsonType(value) {
+  if (value === null)
+    return "null";
+  const kind = typeof value;
+  return kind === "string" || kind === "number" || kind === "boolean" ? kind : void 0;
+}
 function getDef(zodSchema) {
   if (zodSchema.def && typeof zodSchema.def === "object") {
     return zodSchema.def;
@@ -7173,7 +7899,8 @@ function zodDefToJsonSchema(def, zodSchema) {
     case "literal": {
       const values = def.values;
       if (values && values.length === 1) {
-        return { ...base, type: typeof values[0], enum: values };
+        const type = literalJsonType(values[0]);
+        return { ...base, ...type ? { type } : {}, enum: values };
       }
       return { ...base, enum: values ?? [] };
     }
@@ -7293,975 +8020,385 @@ function normalizeSchema(input) {
   return input;
 }
 
-// node_modules/footprintjs/dist/esm/lib/attempt/correlation.js
-var MAX_HEADER_LENGTH = 256;
-var V00_LENGTH = 55;
-var WHY = {
-  "not-a-string": "it is not a string",
-  length: "its length is not a W3C traceparent length (55 characters for version 00)",
-  version: "its version is not two lowercase hex digits other than ff",
-  characters: "it is not lowercase hex fields in the W3C layout version-traceid-parentid-flags",
-  "zero-trace-id": "its trace-id is all zeros",
-  "zero-parent-id": "its parent-id is all zeros"
+// node_modules/footprintjs/dist/esm/lib/engine/types.js
+var defaultLogger = {
+  info: (message, ...args) => console.info(message, ...args),
+  log: (message, ...args) => console.log(message, ...args),
+  debug: (message, ...args) => console.debug(message, ...args),
+  error: (message, ...args) => console.error(message, ...args),
+  warn: (message, ...args) => console.warn(message, ...args)
 };
-var TraceparentError = class extends Error {
-  reason;
-  constructor(reason) {
-    super(`traceparent refused (${reason}): ${WHY[reason]}`);
-    this.name = "TraceparentError";
-    this.reason = reason;
-  }
-};
-var HEX2 = /^[0-9a-f]{2}$/;
-var HEX16 = /^[0-9a-f]{16}$/;
-var HEX32 = /^[0-9a-f]{32}$/;
-var ZEROS = /^0+$/;
-function parseTraceparent(header) {
-  if (typeof header !== "string")
-    throw new TraceparentError("not-a-string");
-  if (header.length < V00_LENGTH || header.length > MAX_HEADER_LENGTH)
-    throw new TraceparentError("length");
-  const version = header.slice(0, 2);
-  if (!HEX2.test(version) || version === "ff")
-    throw new TraceparentError("version");
-  if (version === "00" && header.length !== V00_LENGTH)
-    throw new TraceparentError("length");
-  const traceId = header.slice(3, 35);
-  const operationId = header.slice(36, 52);
-  const flags = header.slice(53, 55);
-  const laidOut = header[2] === "-" && header[35] === "-" && header[52] === "-";
-  const tailOk = header.length === V00_LENGTH || header[V00_LENGTH] === "-";
-  if (!laidOut || !tailOk || !HEX32.test(traceId) || !HEX16.test(operationId) || !HEX2.test(flags)) {
-    throw new TraceparentError("characters");
-  }
-  if (ZEROS.test(traceId))
-    throw new TraceparentError("zero-trace-id");
-  if (ZEROS.test(operationId))
-    throw new TraceparentError("zero-parent-id");
-  return Object.freeze({ traceId, operationId, sampled: (parseInt(flags, 16) & 1) === 1, flags });
-}
-function formatTraceparent(fields3) {
-  const { traceId, operationId } = fields3;
-  if (typeof traceId !== "string" || typeof operationId !== "string")
-    throw new TraceparentError("not-a-string");
-  if (!HEX32.test(traceId) || !HEX16.test(operationId))
-    throw new TraceparentError("characters");
-  if (ZEROS.test(traceId))
-    throw new TraceparentError("zero-trace-id");
-  if (ZEROS.test(operationId))
-    throw new TraceparentError("zero-parent-id");
-  return `00-${traceId}-${operationId}-${flagsOf(fields3)}`;
-}
-function flagsOf(fields3) {
-  const { flags = "00", sampled } = fields3;
-  if (typeof flags !== "string")
-    throw new TraceparentError("not-a-string");
-  if (!HEX2.test(flags))
-    throw new TraceparentError("characters");
-  if (sampled === void 0)
-    return flags;
-  const byte = sampled ? parseInt(flags, 16) | 1 : parseInt(flags, 16) & 254;
-  return byte.toString(16).padStart(2, "0");
-}
-var EXPLICIT_ID = /^[\x21-\x7e]{1,256}$/;
-function admitRunEnv(env) {
-  if (env === void 0 || env === null)
-    return { env: void 0, correlation: void 0 };
-  const snapshot2 = { ...env };
-  const correlation = resolveParsed(snapshot2);
-  if (correlation?.traceparent !== void 0)
-    snapshot2.traceparent = correlation.traceparent;
-  else if (snapshot2.traceparent !== void 0)
-    delete snapshot2.traceparent;
-  return { env: snapshot2, correlation };
-}
-function resolveParsed(env) {
-  const raw = own3(env, "traceparent");
-  const header = raw === void 0 ? void 0 : parseTraceparent(raw);
-  const traceId = explicitId(own3(env, "traceId"), "traceId") ?? header?.traceId;
-  const sameTrace = header !== void 0 && traceId === header.traceId;
-  const operationId = explicitId(own3(env, "operationId"), "operationId") ?? (sameTrace ? header.operationId : void 0);
-  if (traceId === void 0) {
-    if (operationId !== void 0) {
-      throw new TypeError("env.operationId needs a trace to belong to: give env.traceId or env.traceparent");
+var ArrayMergeMode;
+(function(ArrayMergeMode2) {
+  ArrayMergeMode2["Concat"] = "concat";
+  ArrayMergeMode2["Replace"] = "replace";
+})(ArrayMergeMode || (ArrayMergeMode = {}));
+
+// node_modules/footprintjs/dist/esm/lib/memory/RunFrame.js
+var RunBanks = class {
+  namespaces = /* @__PURE__ */ new Map();
+  bank(namespace) {
+    let cells = this.namespaces.get(namespace);
+    if (!cells) {
+      cells = /* @__PURE__ */ new Map();
+      this.namespaces.set(namespace, cells);
     }
-    return void 0;
+    return cells;
   }
-  const propagable = sameTrace && operationId !== void 0 && HEX16.test(operationId) && !ZEROS.test(operationId);
-  return Object.freeze({
-    traceId,
-    ...operationId !== void 0 && { operationId },
-    ...sameTrace && { sampled: header.sampled },
-    ...propagable && { traceparent: formatTraceparent({ traceId, operationId, flags: header.flags }) }
+};
+var RunFrame = class _RunFrame {
+  leg;
+  runtime;
+  component;
+  origin;
+  constructor(leg, runtime, component, origin) {
+    this.leg = leg;
+    this.runtime = runtime;
+    this.component = component;
+    this.origin = origin;
+  }
+  static open(origin, legBanks = new RunBanks(), runtimeBanks = new RunBanks(), componentBanks = new RunBanks(), componentRoot) {
+    const stamp = Object.freeze({
+      kind: "leg",
+      runId: origin.runId,
+      startedAtMs: origin.startedAtMs,
+      ...origin.correlation && { correlation: Object.freeze({ ...origin.correlation }) }
+    });
+    return new _RunFrame({ origin: stamp, banks: legBanks, active: true, nextComponentOrdinal: 1 }, runtimeBanks, {
+      root: componentRoot,
+      banks: componentBanks,
+      active: true,
+      origin: stamp,
+      entry: Object.freeze({ runId: stamp.runId, ordinal: 0 })
+    }, stamp);
+  }
+  get retired() {
+    return !this.leg.active || !this.component.active;
+  }
+  bank(namespace, lifetime, expectedComponentRoot) {
+    if (lifetime === "component") {
+      if (expectedComponentRoot === void 0 || this.component.root !== expectedComponentRoot) {
+        throw new TypeError("Run slot has no matching captured component boundary");
+      }
+      return this.component.banks.bank(namespace);
+    }
+    return (lifetime === "leg" ? this.leg.banks : this.runtime).bank(namespace);
+  }
+  get legKey() {
+    return this.leg.banks;
+  }
+  get componentKey() {
+    return this.component.banks;
+  }
+  get componentRoot() {
+    return this.component.root;
+  }
+  get componentEntry() {
+    return this.component.entry;
+  }
+  get componentOrigin() {
+    return this.component.origin;
+  }
+  mounted(componentRoot, origin = this.leg.origin) {
+    if ((componentRoot !== void 0 || this.component.root !== void 0) && this.retired)
+      throw new TypeError("Native component parent binding has retired");
+    let component = this.component;
+    if (componentRoot !== void 0) {
+      const ordinal = this.leg.nextComponentOrdinal;
+      if (!Number.isSafeInteger(ordinal) || ordinal >= Number.MAX_SAFE_INTEGER) {
+        throw new TypeError("Native component entry ordinal is exhausted");
+      }
+      this.leg.nextComponentOrdinal = ordinal + 1;
+      component = {
+        root: componentRoot,
+        banks: new RunBanks(),
+        active: true,
+        origin,
+        entry: Object.freeze({ runId: this.leg.origin.runId, ordinal })
+      };
+    }
+    return new _RunFrame(this.leg, new RunBanks(), component, this.leg.origin);
+  }
+  retireComponent() {
+    this.component.active = false;
+  }
+  stage(coordinates) {
+    const origin = Object.freeze({
+      ...this.leg.origin,
+      kind: "stage",
+      runtimeStageId: coordinates.runtimeStageId,
+      ...coordinates.subflowPath !== void 0 && { subflowPath: coordinates.subflowPath },
+      ...coordinates.parentRuntimeStageId !== void 0 && {
+        parentRuntimeStageId: coordinates.parentRuntimeStageId
+      }
+    });
+    return new _RunFrame(this.leg, this.runtime, this.component, origin);
+  }
+  retire() {
+    this.leg.active = false;
+  }
+};
+var contextFrames = /* @__PURE__ */ new WeakMap();
+function bindStageRunFrame(context, frame) {
+  contextFrames.set(context, frame);
+}
+function stageRunFrameFor(context) {
+  return contextFrames.get(context);
+}
+var mappingFrames = /* @__PURE__ */ new WeakMap();
+function createNativeMappingBinding(frame) {
+  if (!frame || frame.origin.kind !== "stage") {
+    throw new TypeError("[footprint] Native mapper requires a captured parent stage frame");
+  }
+  const binding = Object.freeze({ origin: frame.origin });
+  mappingFrames.set(binding, frame);
+  return binding;
+}
+function nativeMappingFrameFor(value) {
+  return typeof value === "object" && value !== null || typeof value === "function" ? mappingFrames.get(value) : void 0;
+}
+
+// node_modules/footprintjs/dist/esm/lib/attempt/observerDiagnostics.js
+var MESSAGES = Object.freeze({
+  onAttempt: "[footprint] attempt(): onAttempt observer failed; operation outcome unchanged",
+  onEnd: "[footprint] attempt(): onEnd observer failed; operation outcome unchanged"
+});
+function observeNativeFailure(value, failed) {
+  if (value === null || typeof value !== "object" && typeof value !== "function")
+    return;
+  try {
+    Promise.prototype.then.call(value, () => void 0, failed);
+  } catch {
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/recorder/FinalizationBook.js
+var FinalizationBook = class {
+  callbacks = [];
+  closed = false;
+  result;
+  get hasCallbacks() {
+    return this.callbacks.length > 0;
+  }
+  register(callback) {
+    if (this.closed)
+      throw new TypeError("Component finalizer registration has closed");
+    if (typeof callback !== "function")
+      throw new TypeError("Component finalizer must be a function");
+    this.callbacks.push(callback);
+  }
+  finish(end) {
+    if (this.result)
+      return this.result;
+    this.closed = true;
+    const terminal = Object.freeze({ kind: end.kind });
+    const callbacks = this.callbacks;
+    this.callbacks = [];
+    this.result = (async () => {
+      let count3 = 0;
+      let first;
+      for (let i = callbacks.length - 1; i >= 0; i -= 1) {
+        try {
+          await callbacks[i](terminal);
+        } catch (reason) {
+          count3 = Math.min(Number.MAX_SAFE_INTEGER, count3 + 1);
+          first ??= { reason };
+        }
+      }
+      callbacks.length = 0;
+      return { count: count3, ...first && { first } };
+    })();
+    return this.result;
+  }
+};
+function reportFinalizationFailures(logger, secondaryPhaseFailures, cleanupFailures) {
+  if (secondaryPhaseFailures === 0 && cleanupFailures === 0)
+    return;
+  try {
+    const returned = logger.warn("Run finalization observed failures", { secondaryPhaseFailures, cleanupFailures });
+    observeNativeFailure(returned, () => void 0);
+  } catch {
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/recorder/ComponentRunControl.js
+var registrations = /* @__PURE__ */ new WeakMap();
+var controls = /* @__PURE__ */ new WeakMap();
+var observationLegs = /* @__PURE__ */ new WeakMap();
+function registerComponentPort(token, namespace, port) {
+  let entries = registrations.get(token);
+  if (!entries) {
+    entries = /* @__PURE__ */ new Set();
+    registrations.set(token, entries);
+  }
+  for (const entry of entries) {
+    const ns = entry.namespace.deref();
+    const existing = entry.port.deref();
+    if (!ns || !existing) {
+      entries.delete(entry);
+      continue;
+    }
+    if (ns === namespace) {
+      if (existing !== port)
+        throw new TypeError("Lifecycle component port cannot change after declaration");
+      return;
+    }
+  }
+  entries.add({ namespace: new WeakRef(namespace), port: new WeakRef(port) });
+}
+function captureComponentControl(frame, finalizers) {
+  if (frame.retired)
+    throw new TypeError("Native component entry has retired");
+  const entries = frame.componentRoot === void 0 ? void 0 : registrations.get(frame.componentRoot);
+  const ports = [];
+  for (const entry of entries ?? []) {
+    const namespace = entry.namespace.deref();
+    const port = entry.port.deref();
+    if (!namespace || !port) {
+      entries.delete(entry);
+      continue;
+    }
+    ports.push(port);
+  }
+  let leg = observationLegs.get(frame.legKey);
+  if (!leg) {
+    leg = /* @__PURE__ */ new Set();
+    observationLegs.set(frame.legKey, leg);
+  }
+  const control3 = {
+    ports,
+    leg,
+    finalizers: finalizers ?? new FinalizationBook(),
+    owned: finalizers !== void 0,
+    binders: [],
+    recorders: [],
+    opened: false
+  };
+  controls.set(frame.componentKey, control3);
+  leg.add(control3);
+}
+function deliveryError() {
+  return Object.assign(new TypeError("Component recorders require inline delivery"), {
+    code: "ERR_COMPONENT_RECORDER_DELIVERY"
   });
 }
-function own3(env, field) {
-  return Object.prototype.hasOwnProperty.call(env, field) ? env[field] : void 0;
-}
-function explicitId(value, field) {
-  if (value === void 0 || value === "")
-    return void 0;
-  if (typeof value !== "string")
-    throw new TypeError(`env.${field} must be a string`);
-  if (!EXPLICIT_ID.test(value)) {
-    throw new TypeError(`env.${field} refused: an id is 1\u2013256 printable ASCII characters with no space`);
+function admitRecorder(value) {
+  if (value === null || typeof value !== "object")
+    throw new TypeError("Component recorder must be an object");
+  let current = value;
+  for (let i = 0; current !== null && i < 32; i += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(current, "delivery");
+    if (descriptor) {
+      if (!Object.hasOwn(descriptor, "value") || descriptor.value !== void 0 && descriptor.value !== "inline")
+        throw deliveryError();
+      return value;
+    }
+    current = Object.getPrototypeOf(current);
   }
+  if (current !== null)
+    throw deliveryError();
   return value;
 }
-
-// node_modules/footprintjs/dist/esm/lib/detach/spawn.js
-var counter = 0;
-function mintRefId(prefix) {
-  counter += 1;
-  return `${prefix}:detach:${counter}`;
-}
-function detachAndJoinLater(driver, child, input, sourcePrefix) {
-  if (!driver || typeof driver.schedule !== "function") {
-    throw new TypeError(`[detach] expected a DetachDriver as the first argument; got ${typeof driver}. Pass e.g. \`microtaskBatchDriver\` from 'footprintjs/detach'.`);
+function admitSetup(value) {
+  const object = value !== null && typeof value === "object";
+  if (!object || ![null, Object.prototype].includes(Object.getPrototypeOf(value))) {
+    observeNativeFailure(value, () => void 0);
+    throw new TypeError("Component setup must return a synchronous own-data configuration");
   }
-  const refId = mintRefId(sourcePrefix);
-  return driver.schedule(child, input, refId);
-}
-function detachAndForget(driver, child, input, sourcePrefix) {
-  detachAndJoinLater(driver, child, input, sourcePrefix);
-}
-
-// node_modules/footprintjs/dist/esm/lib/recorder/attemptSeries.js
-var GAVE_UP = /* @__PURE__ */ new Set(["exhausted", "declined", "no-time-left"]);
-function gaveUp(record) {
-  return record.next === "stop" && GAVE_UP.has(record.reason);
-}
-function isRetryEvidence(record) {
-  if (record.kind !== "stage")
-    return false;
-  return record.attempt > 1 || record.next === "retry" || record.outcome === "timeout" || gaveUp(record) && (record.of ?? 1) > 1;
-}
-function attemptRef(record) {
-  return { series: record.series, attempt: record.attempt };
-}
-function subflowOfAttempt(event) {
-  const segments3 = subflowSegmentsOf(event.traversalContext?.runtimeStageId ?? event.record.series);
-  return segments3.length > 0 ? joinPath(...segments3) : void 0;
-}
-function emptyOutcomeCounts() {
-  return { ok: 0, failed: 0, timeout: 0, aborted: 0, paused: 0 };
-}
-var AttemptSeriesBook = class {
-  bySeries = /* @__PURE__ */ new Map();
-  add(record) {
-    if (!isRetryEvidence(record))
-      return void 0;
-    let entry = this.bySeries.get(record.series);
-    if (!entry) {
-      entry = { refs: [], counts: emptyOutcomeCounts() };
-      this.bySeries.set(record.series, entry);
+  const result3 = /* @__PURE__ */ Object.create(null);
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (key !== "bindScope" && key !== "recorder" || !Object.hasOwn(descriptor, "value")) {
+      throw new TypeError("Unknown or accessor component setup field");
     }
-    entry.refs.push(attemptRef(record));
-    entry.counts[record.outcome] += 1;
-    const attempts = [...entry.refs];
-    if (record.next === "retry")
-      return { series: record.series, attempts };
-    return { series: record.series, attempts, summary: summaryOf(entry.refs.length, entry.counts, record) };
+    Object.defineProperty(result3, key, { value: descriptor.value, enumerable: true });
   }
-  clear() {
-    this.bySeries.clear();
-  }
-};
-function summaryOf(count3, counts, last) {
-  return {
-    count: count3,
-    ...counts,
-    last: {
-      next: last.next,
-      reason: last.reason,
-      ...last.category !== void 0 && { category: last.category },
-      ...last.retryOnThrew && { retryOnThrew: true }
-    }
-  };
+  if (result3.bindScope !== void 0 && typeof result3.bindScope !== "function")
+    throw new TypeError("Component binder must be a function");
+  if (result3.recorder !== void 0)
+    admitRecorder(result3.recorder);
+  return result3;
 }
-
-// node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ManifestFlowRecorder.js
-var ManifestFlowRecorder = class {
-  id;
-  /** Stack tracks nesting depth — current subflow is top of stack. */
-  stack = [];
-  /** Root-level subflows (not nested inside another subflow). */
-  roots = [];
-  /** Full specs stored from dynamic registration events. */
-  specs = /* @__PURE__ */ new Map();
-  /**
-   * Open entries by subflowId — where a stage's row lands. Not the stack: parallel subflow siblings exit out of
-   * stack order, so the entry a row belongs to may no longer be on it.
-   */
-  openEntries = /* @__PURE__ */ new Map();
-  /** Rows of top-level stages — the manifest has no entry for the top-level chart. */
-  rootAttempts = [];
-  /** Per-series tallies of the series that retried, gave up or timed out. */
-  attemptBook = new AttemptSeriesBook();
-  constructor(id) {
-    this.id = id ?? "manifest";
+function openComponentControl(frame) {
+  if (frame.retired)
+    throw new TypeError("Native component setup has retired");
+  const control3 = controls.get(frame.componentKey);
+  if (!control3 || control3.opened)
+    return;
+  control3.opened = true;
+  for (const port of control3.ports) {
+    const setup = admitSetup(port.open(frame, control3.finalizers));
+    if (setup.bindScope)
+      control3.binders.push(setup.bindScope);
+    if (setup.recorder)
+      control3.recorders.push(setup.recorder);
   }
-  onSubflowEntry(event) {
-    const entry = {
-      subflowId: event.subflowId ?? event.name,
-      name: event.name,
-      description: event.description,
-      children: []
-    };
-    this.stack.push(entry);
-    this.openEntries.set(entry.subflowId, entry);
-  }
-  onSubflowExit(event) {
-    this.openEntries.delete(event.subflowId ?? event.name);
-    const completed = this.stack.pop();
-    if (!completed)
-      return;
-    const parent = this.stack[this.stack.length - 1];
-    if (parent) {
-      parent.children.push(completed);
-    } else {
-      this.roots.push(completed);
+}
+function bindComponentScope(frame, scope) {
+  if (!frame)
+    return;
+  if (frame.componentRoot !== void 0 && frame.retired)
+    throw new TypeError("Component scope binding has retired");
+  const control3 = controls.get(frame.componentKey);
+  if (!control3)
+    return;
+  for (const bind of control3.binders) {
+    const returned = bind(scope);
+    if (returned !== null && (typeof returned === "object" || typeof returned === "function")) {
+      observeNativeFailure(returned, () => void 0);
+      throw new TypeError("Component scope binder must be synchronous");
     }
   }
-  /**
-   * A series' row lands once, when it ends, on the open entry of the subflow the stage ran in; a top-level
-   * stage's (or one whose entry this recorder never saw) on the root rows.
-   */
-  onAttempt(event) {
-    const summary = this.attemptBook.add(event.record)?.summary;
-    if (!summary)
-      return;
-    const row = {
-      stageId: event.stageId,
-      stageName: event.stageName,
-      runtimeStageId: event.record.series,
-      attempts: summary
-    };
-    const owner = this.openEntries.get(subflowOfAttempt(event) ?? "");
-    if (owner)
-      (owner.attempts ??= []).push(row);
-    else
-      this.rootAttempts.push(row);
-  }
-  onSubflowRegistered(event) {
-    if (event.specStructure && !this.specs.has(event.subflowId)) {
-      this.specs.set(event.subflowId, event.specStructure);
-    }
-  }
-  /** Returns the manifest tree — lightweight, suitable for snapshot inclusion. */
-  getManifest() {
-    return [...this.roots];
-  }
-  /**
-   * Rows of top-level stages whose series retried, gave up or timed out, in the order the series ended — plus any row of a
-   * subflow stage whose entry this recorder never saw (its path-prefixed `stageId` says where it ran).
-   */
-  getRootAttempts() {
-    return [...this.rootAttempts];
-  }
-  /**
-   * Returns the full spec for a dynamically-registered subflow.
-   * Only populated for subflows auto-registered at runtime (via StageNode
-   * return with subflowDef). Statically-configured subflows are not included
-   * even if they appear in getManifest(). Use FlowChart.buildTimeStructure
-   * to access statically-defined subflow specs.
-   */
-  getSpec(subflowId) {
-    return this.specs.get(subflowId);
-  }
-  /** Returns all stored spec IDs. */
-  getSpecIds() {
-    return Array.from(this.specs.keys());
-  }
-  toSnapshot() {
-    return {
-      name: "Manifest",
-      description: "Translator (FlowRecorder) \u2014 subflow catalog built during traversal",
-      preferredOperation: "translate",
-      data: this.getManifest(),
-      ...this.rootAttempts.length > 0 && { meta: { rootAttempts: this.getRootAttempts() } }
-    };
-  }
-  /** Clears state for reuse. */
-  clear() {
-    this.stack = [];
-    this.roots = [];
-    this.specs.clear();
-    this.openEntries = /* @__PURE__ */ new Map();
-    this.rootAttempts = [];
-    this.attemptBook.clear();
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/scope/protection/readonlyInput.js
-function assertNotReadonly(readOnlyValues, key, operation) {
-  if (readOnlyValues && typeof readOnlyValues === "object" && Object.prototype.hasOwnProperty.call(readOnlyValues, key)) {
-    if (operation === "delete") {
-      throw new Error(`Cannot delete readonly input key "${key}" \u2014 input values are immutable`);
-    }
-    throw new Error(`Cannot write to readonly input key "${key}" \u2014 use getArgs() to read input values`);
-  }
 }
-function createFrozenArgs(readOnlyValues) {
-  if (!readOnlyValues || typeof readOnlyValues !== "object") {
-    return Object.freeze({});
-  }
-  const args = { ...readOnlyValues };
-  const copies = new WeakMap([[readOnlyValues, args]]);
-  copyProperties(args, args, copies);
-  return Object.freeze(args);
+function hasComponentRecorders(frame) {
+  return !!frame && !frame.retired && (controls.get(frame.componentKey)?.recorders.length ?? 0) > 0;
 }
-function snapshotValue(value, copies) {
-  if (value === null || typeof value !== "object")
-    return value;
-  const existing = copies.get(value);
-  if (existing)
-    return existing;
-  if (Object.isFrozen(value))
-    return value;
-  const prototype = Object.getPrototypeOf(value);
-  const isArray = Array.isArray(value);
-  if (prototype !== null && prototype !== (isArray ? Array.prototype : Object.prototype))
-    return value;
-  const copy = isArray ? Object.setPrototypeOf(new Array(value.length), prototype) : Object.create(prototype);
-  copies.set(value, copy);
-  copyProperties(value, copy, copies);
-  return Object.freeze(copy);
+function componentRecorders(frame, external) {
+  const scoped = frame && !frame.retired ? controls.get(frame.componentKey)?.recorders ?? [] : [];
+  if (scoped.length === 0)
+    return external;
+  return joinedRecorders(scoped, external);
 }
-function copyProperties(source, target2, copies) {
-  for (const key of Reflect.ownKeys(source)) {
-    const descriptor = Object.getOwnPropertyDescriptor(source, key);
-    if (!descriptor)
-      continue;
-    if (Array.isArray(target2) && key === "length")
-      continue;
-    const value = snapshotValue(Reflect.get(source, key), copies);
-    Object.defineProperty(target2, key, {
-      value,
-      enumerable: descriptor.enumerable,
-      configurable: true,
-      writable: true
-    });
-  }
-}
-function snapshotRunInput(input) {
-  if (input === null || typeof input !== "object")
-    return input;
-  const owned = snapshotValue(input, /* @__PURE__ */ new WeakMap());
-  if (owned !== input)
-    return owned;
-  const root = {};
-  copyProperties(input, root, new WeakMap([[input, root]]));
-  return Object.freeze(root);
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/graph/StageNode.js
-function isStageNodeReturn(output) {
-  if (!output || typeof output !== "object")
-    return false;
-  try {
-    const obj = output;
-    if (typeof obj.name !== "string")
-      return false;
-    const hasContinuation = Array.isArray(obj.children) && obj.children.length > 0 || obj.next !== void 0 || typeof obj.nextNodeSelector === "function" || obj.isSubflowRoot === true;
-    return hasContinuation;
-  } catch {
-    return false;
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/breakFlag.js
-function createBreakHandler(flag) {
-  return (reason) => {
-    flag.shouldBreak = true;
-    if (reason !== void 0 && flag.reason === void 0)
-      flag.reason = reason;
-  };
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/stageError.js
-function recordStageError(context, error) {
-  captureStageFailure(context, error);
-  const text = thrownText(error);
-  const kept = context.addDiagnostic("errors", "stageExecutionError", text);
-  context.markStageFailure();
-  const rule = context.getRedactionRule();
-  return rule ? rule.retainStageError(error, text, kept) : { message: text, structuredError: extractErrorInfo(error) };
-}
-function captureStageFailure(context, error) {
-  const identity2 = context.failureIdentity;
-  if (identity2 && !context.failureState.owns(error)) {
-    context.failureState.capture(error, terminalCategory(error), identity2);
-  }
-}
-function servedStageError(context, error) {
-  const rule = context.getRedactionRule();
-  return rule ? rule.servedError(error) : extractErrorInfo(error);
-}
-function loggableStageError(context, error) {
-  const rule = context.getRedactionRule();
-  return rule ? rule.loggableError(error) : error;
-}
-function servedIdempotencyKey(context, key, input, readSelected = false) {
-  const rule = context.getRedactionRule();
-  return rule ? rule.retainIdempotencyKey(key, { input, selectedReads: readSelected ? 1 : 0 }) : key;
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/commitStage.js
-function commitStageWrites(context, phase) {
-  try {
-    if (phase === void 0)
-      context.commit();
-    else
-      context.commit(phase);
-  } catch (error) {
-    captureStageFailure(context, error);
-    throw error;
-  }
-}
-function commitStage(context, narrative, stageName, traversalContext) {
-  try {
-    commitStageWrites(context);
-  } catch (error) {
-    const served = recordStageError(context, error);
-    narrative.onError(stageName, served.message, served.structuredError, traversalContext);
-    throw error;
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/TraversalDepthError.js
-var TraversalDepthError = class extends Error {
-  /** The cap that was reached (`RunOptions.maxDepth`, default 500). */
-  maxDepth;
-  /** The stage that would have run past the cap. */
-  stageName;
-  constructor(maxDepth, stageName) {
-    super(`FlowchartTraverser: maximum traversal depth exceeded (${maxDepth}). Depth counts NESTED dispatch (fork children, decider/selector branches, recursive composition) \u2014 linear chains, loop iterations and parallel siblings do not consume it. Last stage: '${stageName}'. Check for unbounded recursive chart composition, or raise the limit via RunOptions.maxDepth.`);
-    this.name = "TraversalDepthError";
-    this.maxDepth = maxDepth;
-    this.stageName = stageName;
-  }
-};
-function isTraversalDepthError(error) {
-  try {
-    return error instanceof TraversalDepthError || error instanceof Error && error.name === "TraversalDepthError";
-  } catch {
-    return false;
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/ChildrenExecutor.js
-function raisePauses(pauses) {
-  const [first, ...others] = pauses;
-  for (const other of others) {
-    first.addPendingPause(other.toPendingPause());
-    for (const waiting of other.pendingPauses)
-      first.addPendingPause(waiting);
-  }
-  return first;
-}
-var ChildrenExecutor = class {
-  deps;
-  executeNode;
-  constructor(deps, executeNode) {
-    this.deps = deps;
-    this.executeNode = executeNode;
-  }
-  /**
-   * Execute all children in parallel. Each child commits on settle.
-   * Uses Promise.allSettled to ensure all children complete even if some fail.
-   */
-  async executeNodeChildren(node, context, parentBreakFlag, branchPath, traversalContext) {
-    let breakCount = 0;
-    const totalChildren = node.children?.length ?? 0;
-    const allChildren = node.children ?? [];
-    const childDisplayNames = allChildren.map((c) => c.name);
-    this.deps.narrativeGenerator.onFork(node.name, childDisplayNames, traversalContext);
-    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "fork");
-    const childContexts = [];
-    const childPromises = allChildren.map((child) => {
-      const childBranchPath = branchPath || child.id;
-      const childContext = context.createChild(childBranchPath, child.id, child.name, child.id);
-      childContexts.push(childContext);
-      const childBreakFlag = { shouldBreak: false };
-      const commitChild = () => {
-        commitStageWrites(childContext, "repeat");
-      };
-      const updateParentBreakFlag = () => {
-        if (childBreakFlag.shouldBreak)
-          breakCount += 1;
-        if (parentBreakFlag && breakCount === totalChildren)
-          parentBreakFlag.shouldBreak = true;
-      };
-      return this.executeNode(child, childContext, childBreakFlag, childBranchPath).then((result3) => {
-        commitChild();
-        updateParentBreakFlag();
-        return { id: child.id, result: result3, isError: false };
-      }).catch((error) => {
-        if (isPauseSignal(error) || isTraversalDepthError(error))
-          throw error;
-        commitChild();
-        updateParentBreakFlag();
-        this.deps.logger.info(`TREE PIPELINE: executeNodeChildren - Error for id: ${child?.id}`, {
-          error: loggableStageError(childContext, error)
-        });
-        if (this.deps.throttlingErrorChecker && this.deps.throttlingErrorChecker(error)) {
-          const served = servedStageError(childContext, error);
-          this.deps.narrativeGenerator.onThrottled?.(child.name, child.id, served, traversalContext);
-        }
-        return { id: child.id, result: error, isError: true };
-      });
-    });
-    const childrenResults = {};
-    const pausedAt = [];
-    let failure;
-    if (node.failFast) {
-      let escaped = false;
-      const escape = (index, error) => {
-        if (!escaped) {
-          escaped = true;
-          context.failureState.adopt(childContexts[index].failureState, error);
-        } else
-          childContexts[index].failureState.complete();
-      };
-      const results = await Promise.all(allChildren.map((child, i) => childPromises[i].then((r) => {
-        if (r.isError) {
-          escape(i, r.result);
-          throw r.result;
-        }
-        childContexts[i].failureState.complete();
-        return r;
-      }, (error) => {
-        if (!isPauseSignal(error)) {
-          escape(i, error);
-          throw error;
-        }
-        childContexts[i].failureState.complete();
-        pausedAt[i] = error;
-        return void 0;
-      })));
-      for (const r of results) {
-        if (r === void 0)
-          continue;
-        childrenResults[r.id] = { id: r.id, result: r.result, isError: r.isError ?? false };
-      }
-    } else {
-      const settled = await Promise.allSettled(childPromises);
-      settled.forEach((s, i) => {
-        if (s.status === "fulfilled") {
-          const { id, result: result3, isError } = s.value;
-          childrenResults[id] = { id, result: result3, isError: isError ?? false };
-        } else if (isPauseSignal(s.reason)) {
-          pausedAt[i] = s.reason;
-        } else {
-          failure ??= { error: s.reason, index: i };
-        }
-      });
-      if (failure)
-        context.failureState.adopt(childContexts[failure.index].failureState, failure.error);
-      for (const child of childContexts)
-        child.failureState.complete();
-    }
-    if (failure)
-      throw failure.error;
-    const pauses = pausedAt.filter((p) => p !== void 0);
-    if (pauses.length > 0)
-      throw raisePauses(pauses);
-    return childrenResults;
-  }
-  /**
-   * Execute selected children based on selector result.
-   * Validates IDs, records selection info, then delegates to executeNodeChildren.
-   */
-  async executeSelectedChildren(selector, children, input, context, branchPath, traversalContext, failFast) {
-    const selectorResult = await selector(input);
-    const selectedIds = Array.isArray(selectorResult) ? selectorResult : [selectorResult];
-    context.addLog("selectedChildIds", selectedIds);
-    context.addLog("selectorPattern", "multi-choice");
-    if (selectedIds.length === 0) {
-      context.addLog("skippedAllChildren", true);
-      return {};
-    }
-    const selectedChildren = children.filter((c) => selectedIds.includes(c.id));
-    if (selectedChildren.length !== selectedIds.length) {
-      const childIds = children.map((c) => c.id);
-      const missing = selectedIds.filter((id) => !childIds.includes(id));
-      const errorMessage = `Selector returned unknown child IDs: ${missing.join(", ")}. Available: ${childIds.join(", ")}`;
-      this.deps.logger.error(`Error in pipeline (${branchPath}):`, { error: errorMessage });
-      context.addError("selectorError", errorMessage);
-      throw new Error(errorMessage);
-    }
-    const skippedIds = children.filter((c) => !selectedIds.includes(c.id)).map((c) => c.id);
-    if (skippedIds.length > 0) {
-      context.addLog("skippedChildIds", skippedIds);
-    }
-    const selectedNames = selectedChildren.map((c) => c.name).join(", ");
-    context.addFlowDebugMessage("selected", `Running ${selectedNames} (${selectedChildren.length} of ${children.length} matched)`, { count: selectedChildren.length, targetStage: selectedChildren.map((c) => c.name) });
-    const selectedDisplayNames = selectedChildren.map((c) => c.name);
-    const selectorName = context.stageName || "selector";
-    this.deps.narrativeGenerator.onSelected(selectorName, selectedDisplayNames, children.length, traversalContext);
-    this.deps.narrativeGenerator.onStageExecuted(selectorName, void 0, traversalContext, "selector");
-    const tempNode = {
-      name: "selector-temp",
-      id: "selector-temp",
-      children: selectedChildren,
-      // Honor the selector node's fan-out error mode (Promise.all vs allSettled).
-      failFast
-    };
-    return await this.executeNodeChildren(tempNode, context, void 0, branchPath, traversalContext);
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/ContinuationResolver.js
-var DEFAULT_MAX_ITERATIONS = 1e3;
-var ContinuationResolver = class {
-  deps;
-  nodeResolver;
-  /**
-   * Iteration counter per node ID.
-   * Key: node.id, Value: visit count (0 = first visit).
-   */
-  iterationCounters = /* @__PURE__ */ new Map();
-  /**
-   * Total fn-bearing dynamic-next hops this traverser has followed.
-   *
-   * Fresh fn-bearing nodes bypass the per-node-id iteration counter (they
-   * are new nodes, often without stable ids — there is no back-edge to
-   * count). Without a bound, a stage that keeps returning a function-bearing
-   * dynamic `next` runs FOREVER on the flat trampoline (no stack overflow
-   * brakes it either). This run-total counter puts such chains under the
-   * same `maxIterations` budget (default 1000, tuned via
-   * `RunOptions.maxIterations`) that bounds loop edges.
-   */
-  dynamicNextHops = 0;
-  onIterationUpdate;
-  maxIterations;
-  constructor(deps, nodeResolver, onIterationUpdate, maxIterations) {
-    this.deps = deps;
-    this.nodeResolver = nodeResolver;
-    this.onIterationUpdate = onIterationUpdate;
-    this.maxIterations = maxIterations ?? DEFAULT_MAX_ITERATIONS;
-  }
-  /**
-   * Resolve a dynamic continuation and execute it immediately.
-   * Equivalent to `executeNode(...resolveTarget(...))` — the traverser's
-   * driver loop calls `resolveTarget` directly instead so the continuation
-   * becomes a flat trampoline hop rather than a retained recursive frame.
-   */
-  async resolve(dynamicNext, node, context, breakFlag, branchPath, executeNode, traversalContext) {
-    const target2 = this.resolveTarget(dynamicNext, node, context, branchPath, traversalContext);
-    return executeNode(target2.node, target2.context, breakFlag, branchPath);
-  }
-  /**
-   * Resolve a dynamic continuation to its target node + next StageContext
-   * WITHOUT executing it. Fires the same side effects `resolve` always did
-   * (iteration counting + limit, `dynamicNext*` logs, loop debug message,
-   * `onLoop` narrative), in the same order.
-   *
-   * Three dynamicNext patterns:
-   * - StageNode with fn → truly dynamic node, returned as-is (no per-node
-   *   iteration tracking — it is a fresh node, not a back-edge — but the
-   *   run-total dynamic-hop budget applies; see `dynamicNextHops`).
-   * - String ID → reference to an existing node, resolved via NodeResolver.
-   * - StageNode without fn → reference by ID, resolved via NodeResolver.
-   */
-  resolveTarget(dynamicNext, currentNode, context, branchPath, traversalContext) {
-    if (typeof dynamicNext !== "string" && dynamicNext.fn) {
-      if (this.dynamicNextHops >= this.maxIterations) {
-        throw new Error(`Maximum dynamic-next continuations (${this.maxIterations}) exceeded at stage '${currentNode.id ?? currentNode.name}' (dynamic target '${dynamicNext.name}'). Set maxIterations to increase the limit.`);
-      }
-      this.dynamicNextHops++;
-      context.addLog("dynamicNextDirect", true);
-      context.addLog("dynamicNextName", dynamicNext.name);
-      context.addFlowDebugMessage("next", `Moving to ${dynamicNext.name} stage (dynamic)`, {
-        targetStage: dynamicNext.name
-      });
-      const nextStageContext2 = context.createNext(branchPath, dynamicNext.name, dynamicNext.id);
-      return { node: dynamicNext, context: nextStageContext2 };
-    }
-    if (typeof dynamicNext !== "string" && !dynamicNext.id) {
-      const errorMessage = "dynamicNext node must have an id when used as reference";
-      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${currentNode.name}]:`, { error: errorMessage });
-      throw new Error(errorMessage);
-    }
-    const nextNodeId = typeof dynamicNext === "string" ? dynamicNext : dynamicNext.id;
-    const targetNode = this.nodeResolver.findNodeById(nextNodeId);
-    if (!targetNode) {
-      const errorMessage = `dynamicNext target node not found: ${nextNodeId}`;
-      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${currentNode.name}]:`, { error: errorMessage });
-      throw new Error(errorMessage);
-    }
-    const iteration = this.getAndIncrementIteration(nextNodeId);
-    const iteratedStageName = this.getIteratedStageName(targetNode.name, iteration);
-    context.addLog("dynamicNextTarget", nextNodeId);
-    context.addLog("dynamicNextIteration", iteration);
-    context.addFlowDebugMessage("loop", `Looping back to ${targetNode.name} (iteration ${iteration + 1})`, {
-      targetStage: targetNode.name,
-      iteration: iteration + 1
-    });
-    this.deps.narrativeGenerator.onLoop(targetNode.name, iteration + 1, targetNode.description, traversalContext);
-    const nextStageContext = context.createNext(branchPath, iteratedStageName, targetNode.id);
-    return { node: targetNode, context: nextStageContext };
-  }
-  /**
-   * Get the next iteration number for a node and increment.
-   * Returns 0 for first visit, 1 for second, etc.
-   * Throws if maxIterations exceeded (infinite loop guard).
-   */
-  getAndIncrementIteration(nodeId) {
-    const current = this.iterationCounters.get(nodeId) ?? 0;
-    if (current >= this.maxIterations) {
-      throw new Error(`Maximum loop iterations (${this.maxIterations}) exceeded for node '${nodeId}'. Set maxIterations to increase the limit.`);
-    }
-    this.iterationCounters.set(nodeId, current + 1);
-    if (this.onIterationUpdate) {
-      this.onIterationUpdate(nodeId, current + 1);
-    }
-    return current;
-  }
-  /**
-   * Generate an iterated stage name for context tree.
-   * First visit: "askLLM", second: "askLLM.1", third: "askLLM.2".
-   */
-  getIteratedStageName(baseName, iteration) {
-    return iteration === 0 ? baseName : `${baseName}.${iteration}`;
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/decide/types.js
-var DECISION_RESULT = /* @__PURE__ */ Symbol("footprint:decide:result");
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/DeciderHandler.js
-var DeciderHandler = class {
-  deps;
-  constructor(deps) {
-    this.deps = deps;
-  }
-  /**
-   * Handle a scope-based decider (created via addDeciderFunction).
-   * The stage function IS the decider — its return value is the branch ID.
-   * Execution order: runStage(fn) → commit → resolve child → log → executeNode(child).
-   */
-  async handleScopeBased(node, stageFunc, context, breakFlag, branchPath, runStage, executeNode, traversalContext) {
-    const dispatch = await this.prepareDispatch(node, stageFunc, context, breakFlag, branchPath, runStage, traversalContext);
-    if (dispatch.kind === "break") {
-      return dispatch.branchId;
-    }
-    try {
-      return await executeNode(dispatch.chosen, dispatch.branchContext, breakFlag, branchPath);
-    } catch (error) {
-      if (isPauseSignal(error)) {
-        error.setInvoker(node.id);
-        throw error;
-      }
-      throw error;
+function* joinedRecorders(scoped, external) {
+  const seen = /* @__PURE__ */ new Set();
+  for (const recorder of scoped) {
+    if (!seen.has(recorder)) {
+      seen.add(recorder);
+      yield recorder;
     }
   }
-  /**
-   * Run the decider stage and resolve the chosen branch WITHOUT executing it.
-   * Everything up to (and including) the `onDecision`/`onStageExecuted`
-   * narrative and the branch context creation happens here — only the
-   * branch execution itself is left to the caller.
-   */
-  async prepareDispatch(node, stageFunc, context, breakFlag, branchPath, runStage, traversalContext) {
-    const breakFn = () => breakFlag.shouldBreak = true;
-    let branchId;
-    let decisionEvidence;
-    try {
-      const stageOutput = await runStage(node, stageFunc, context, breakFn, traversalContext);
-      if (stageOutput && typeof stageOutput === "object" && Reflect.has(stageOutput, DECISION_RESULT)) {
-        branchId = stageOutput.branch;
-        decisionEvidence = stageOutput.evidence;
-      } else {
-        branchId = String(stageOutput);
-      }
-    } catch (error) {
-      if (isPauseSignal(error)) {
-        commitStageWrites(context);
-        throw error;
-      }
-      captureStageFailure(context, error);
-      commitStageWrites(context);
-      const served = recordStageError(context, error);
-      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
-        error: loggableStageError(context, error)
-      });
-      this.deps.narrativeGenerator.onError(node.name, served.message, served.structuredError, traversalContext);
-      throw error;
-    }
-    commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
-    if (breakFlag.shouldBreak) {
-      return { kind: "break", branchId };
-    }
-    const children = node.children;
-    let chosen = children.find((child) => (child.branchId ?? child.id) === branchId);
-    if (!chosen) {
-      const defaultChild = children.find((child) => (child.branchId ?? child.id) === "default");
-      if (defaultChild) {
-        chosen = defaultChild;
-      } else {
-        const errorMessage = `Scope-based decider '${node.name}' returned branch ID '${branchId}' which doesn't match any child and no default branch is set`;
-        context.addError("deciderError", errorMessage);
-        throw new Error(errorMessage);
-      }
-    }
-    const chosenName = chosen.name;
-    const wasDefault = (chosen.branchId ?? chosen.id) !== branchId;
-    const rationale = context.debug?.logContext?.deciderRationale;
-    let branchReason;
-    if (wasDefault) {
-      branchReason = `Returned '${branchId}' (no match), fell back to default \u2192 ${chosenName} path.`;
-    } else if (rationale) {
-      branchReason = `Based on: ${rationale} \u2192 chose ${chosenName} path.`;
-    } else {
-      branchReason = `Evaluated scope and returned '${branchId}' \u2192 chose ${chosenName} path.`;
-    }
-    context.addFlowDebugMessage("branch", branchReason, {
-      targetStage: chosen.name,
-      rationale: rationale || `returned branchId: ${branchId}`
-    });
-    this.deps.narrativeGenerator.onDecision(node.name, chosen.name, rationale, node.description, traversalContext, decisionEvidence);
-    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "decider");
-    const branchContext = context.createChild(branchPath, chosen.id, chosen.name, chosen.id);
-    branchContext.failureState = context.failureState;
-    return { kind: "dispatch", chosen, branchContext };
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/NodeResolver.js
-var NodeResolver = class {
-  deps;
-  nodeIdMap;
-  getEffectiveChildren;
-  constructor(deps, nodeIdMap, getEffectiveChildren) {
-    this.deps = deps;
-    this.nodeIdMap = nodeIdMap ?? /* @__PURE__ */ new Map();
-    this.getEffectiveChildren = getEffectiveChildren;
-  }
-  /**
-   * O(1) node lookup via pre-built ID map.
-   * Falls back to DFS from startNode (for dynamic nodes added at runtime
-   * or subflow-local lookups that use an explicit startNode).
-   */
-  findNodeById(nodeId, startNode) {
-    if (!startNode) {
-      const mapped = this.nodeIdMap.get(nodeId);
-      if (mapped)
-        return mapped;
-    }
-    return this._dfs(nodeId, startNode ?? this.deps.root);
-  }
-  /**
-   * DFS search for a node by ID.
-   * Used as fallback when the node is not in the pre-built map.
-   */
-  _dfs(nodeId, node) {
-    if (node.id === nodeId)
-      return node;
-    const children = this.getEffectiveChildren ? this.getEffectiveChildren(node) : node.children;
-    if (children) {
-      for (const child of children) {
-        const found = this._dfs(nodeId, child);
-        if (found)
-          return found;
-      }
-    }
-    if (node.next) {
-      const found = this._dfs(nodeId, node.next);
-      if (found)
-        return found;
-    }
-    return void 0;
-  }
-  /**
-   * Resolve a subflow reference node to its actual structure.
-   *
-   * Reference nodes are lightweight placeholders (isSubflowRoot but no fn/children).
-   * The actual structure lives in the subflows dictionary.
-   */
-  resolveSubflowReference(node) {
-    if (node.fn || node.children && node.children.length > 0)
-      return node;
-    if (!this.deps.subflows)
-      return node;
-    const keysToTry = [node.subflowId, node.subflowName, node.name].filter(Boolean);
-    let subflowDef;
-    for (const key of keysToTry) {
-      if (this.deps.subflows[key]) {
-        subflowDef = this.deps.subflows[key];
-        break;
-      }
-    }
-    if (!subflowDef) {
-      this.deps.logger.info(`Subflow not found in dictionary for node '${node.name}' (tried keys: ${keysToTry.join(", ")})`);
-      return node;
-    }
-    return {
-      ...subflowDef.root,
-      isSubflowRoot: node.isSubflowRoot,
-      subflowId: node.subflowId,
-      subflowName: node.subflowName,
-      id: subflowDef.root.id || node.id,
-      subflowMountOptions: node.subflowMountOptions || subflowDef.root.subflowMountOptions
-    };
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/reactive/handles.js
-var LIVE = /* @__PURE__ */ new WeakMap();
-function rememberHandle(handle, live) {
-  LIVE.set(handle, live);
-  return handle;
+  for (const recorder of external)
+    if (!seen.has(recorder))
+      yield recorder;
 }
-function isPlainContainer(value) {
-  if (value === null || typeof value !== "object")
-    return false;
-  if (Array.isArray(value))
-    return true;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+function clearObservation(control3) {
+  control3.binders.length = 0;
+  control3.recorders.length = 0;
+  control3.ports.length = 0;
 }
-function unwrapHandles(value) {
-  return walk(value, /* @__PURE__ */ new Set());
+function retireLegComponentObservations(frame) {
+  const leg = observationLegs.get(frame.legKey);
+  if (!leg)
+    return;
+  observationLegs.delete(frame.legKey);
+  for (const control3 of leg)
+    clearObservation(control3);
+  leg.clear();
 }
-function walk(value, onPath) {
-  if (value === null || typeof value !== "object")
-    return value;
-  const live = LIVE.get(value);
-  if (live !== void 0)
-    return live();
-  if (!isPlainContainer(value) || onPath.has(value))
-    return value;
-  onPath.add(value);
-  const out = Array.isArray(value) ? walkArray(value, onPath) : walkObject(value, onPath);
-  onPath.delete(value);
-  return out;
-}
-function walkArray(value, onPath) {
-  let copy;
-  for (let i = 0; i < value.length; i++) {
-    const next = walk(value[i], onPath);
-    if (next === value[i])
-      continue;
-    copy ??= [...value];
-    copy[i] = next;
-  }
-  return copy ?? value;
-}
-function walkObject(value, onPath) {
-  let copy;
-  for (const key of Object.keys(value)) {
-    const next = walk(value[key], onPath);
-    if (next === value[key])
-      continue;
-    copy ??= { ...value };
-    copy[key] = next;
-  }
-  return copy ?? value;
+function retireComponentControl(frame, end) {
+  const control3 = controls.get(frame.componentKey);
+  controls.delete(frame.componentKey);
+  frame.retireComponent();
+  if (!control3)
+    return;
+  control3.leg.delete(control3);
+  clearObservation(control3);
+  return control3.owned || !control3.finalizers.hasCallbacks ? void 0 : control3.finalizers.finish(end);
 }
 
 // node_modules/footprintjs/dist/esm/lib/scope/runtime.js
 var runtimes = /* @__PURE__ */ new WeakMap();
+var nativeFrames = /* @__PURE__ */ new WeakMap();
 function isObject(value) {
   return typeof value === "object" && value !== null || typeof value === "function";
 }
@@ -8274,11 +8411,17 @@ function registerScopeRuntime(scope, runtime) {
   if (runtime.setBreak !== void 0 && typeof runtime.setBreak !== "function") {
     throw new TypeError("registerScopeRuntime: setBreak must be a function when supplied");
   }
-  runtimes.set(scope, Object.freeze({
+  const binding = Object.freeze({
     target: runtime.target,
     handlesAssignments: runtime.handlesAssignments,
     setBreak: runtime.setBreak
-  }));
+  });
+  runtimes.set(scope, binding);
+  if (!nativeFrames.has(scope)) {
+    const frame = nativeFrames.get(binding.target);
+    if (frame)
+      nativeFrames.set(scope, frame);
+  }
   return scope;
 }
 function scopeRuntimeFor(scope) {
@@ -8299,1260 +8442,21 @@ var nativeTargets = /* @__PURE__ */ new WeakMap();
 function registerNativeCaptureTarget(target2, context) {
   nativeTargets.set(target2, context);
 }
+function registerNativeRunTarget(target2, context) {
+  const frame = stageRunFrameFor(context);
+  if (frame)
+    nativeFrames.set(target2, frame);
+  else
+    nativeFrames.delete(target2);
+}
 function hasNativeCaptureTarget(target2, context) {
   return nativeTargets.get(target2) === context;
 }
-
-// node_modules/footprintjs/dist/esm/lib/scope/protection/createProtectedScope.js
-function createErrorMessage(propertyName, stageName) {
-  return `[Scope Access Error] Direct property assignment detected in stage "${stageName}".
-
-Incorrect: scope.${propertyName} = value
-
-Correct: scope.setValue('${propertyName}', value)
-
-Why this matters:
-Each stage receives a NEW scope instance from ScopeFactory. Direct property
-assignments are lost when the next stage executes. Use setValue()
-to persist data to the shared GlobalStore.`;
-}
-function createProtectedScope(scope, options = {}) {
-  const { mode = "error", stageName = "unknown", logger = console.warn, allowedInternalProperties = [
-    "writeBuffer",
-    "next",
-    "children",
-    "parent",
-    "executionHistory",
-    "branchId",
-    "isDecider",
-    "isFork",
-    "debug",
-    "stageName",
-    "pipelineId",
-    "globalStore"
-  ] } = options;
-  if (mode === "off") {
-    return scope;
-  }
-  const allowedInternals = new Set(allowedInternalProperties);
-  const proxy = new Proxy(scope, {
-    get(target2, prop, receiver) {
-      return Reflect.get(target2, prop, receiver);
-    },
-    set(target2, prop, value, receiver) {
-      if (allowedInternals.has(prop)) {
-        return Reflect.set(target2, prop, value, receiver);
-      }
-      const propName = String(prop);
-      const message = createErrorMessage(propName, stageName);
-      if (mode === "error") {
-        throw new Error(message);
-      } else if (mode === "warn") {
-        logger(message);
-        return Reflect.set(target2, prop, value, receiver);
-      }
-      return Reflect.set(target2, prop, value, receiver);
-    }
-  });
-  const runtime = scopeRuntimeFor(scope);
-  return runtime ? registerScopeRuntime(proxy, runtime) : proxy;
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/ParallelForEachHandler.js
-var ParallelForEachHandler = class {
-  deps;
-  childrenExecutor;
-  hooks;
-  constructor(deps, childrenExecutor, hooks) {
-    this.deps = deps;
-    this.childrenExecutor = childrenExecutor;
-    this.hooks = hooks;
-  }
-  /**
-   * Run the fan-out to completion and commit the ordered results.
-   * Returns the results array (the stage's output).
-   */
-  async run(node, context, branchPath, traversalContext) {
-    const config = node.parallelForEach;
-    const rawScope = this.deps.scopeFactory(context, node.name, this.deps.readOnlyContext, this.deps.executionEnv);
-    const runtime = requireScopeRuntime(rawScope);
-    const scope = runtime.handlesAssignments ? rawScope : createProtectedScope(rawScope, {
-      mode: this.deps.scopeProtectionMode,
-      stageName: node.name
-    });
-    runtime.target.notifyStageStart?.();
-    const selectedBefore = context.selectedReads;
-    const items = this.resolveItems(config, scope, node);
-    if (context.selectedReads > selectedBefore) {
-      const rule = context.getRedactionRule();
-      rule?.mark("item");
-      rule?.mark(config.into);
-    }
-    const total = items.length;
-    const branchCount = Math.min(total, config.maxBranches);
-    const truncated = total > branchCount;
-    context.addLog("parallelForEach", {
-      items: total,
-      branches: branchCount,
-      maxBranches: config.maxBranches,
-      truncated,
-      into: config.into
-    });
-    if (truncated) {
-      context.addFlowDebugMessage("children", `maxBranches reached: running ${branchCount} of ${total} items (${total - branchCount} not run)`, { count: branchCount });
-    }
-    let results;
-    if (branchCount === 0) {
-      results = [];
-    } else {
-      const branches = this.buildBranches(node, items, branchCount);
-      this.hooks.recordBranchStructure(node.id, branches);
-      const forkView = {
-        ...node,
-        children: branches,
-        ...config.failFast !== void 0 && { failFast: config.failFast }
-      };
-      const childResults = await this.childrenExecutor.executeNodeChildren(forkView, context, void 0, branchPath, traversalContext);
-      results = this.collectOrdered(node, branchCount, childResults);
-    }
-    this.writeResults(runtime.target, context, config.into, results);
-    runtime.target.notifyStageEnd?.();
-    context.commit();
-    return results;
-  }
-  /**
-   * Evaluate the items selector against the live scope. A non-array return is
-   * a chart bug, not a runtime condition — it fails loudly, naming the stage.
-   *
-   * The selector reads the typed scope, so what it returns is usually the
-   * scope's own array HANDLE (a Proxy bound to the parent stage) and every
-   * `items[index]` an element handle. The items are about to cross into
-   * branch runtimes — closed over by `branch(item, index)` and seeded as the
-   * branch's `item` — so they are taken as VALUES here (`unwrapHandles`,
-   * reactive/handles.ts). 9.22.0–9.23.2 seeded the handle itself and every
-   * branch over an object item failed at its seed commit (DataCloneError).
-   */
-  resolveItems(config, scope, node) {
-    const items = unwrapHandles(config.items(scope));
-    if (items === void 0 || items === null)
-      return [];
-    if (!Array.isArray(items)) {
-      throw new Error(`parallelForEach '${node.id}': items() must return an array (got ${typeof items}). Return [] to run zero branches.`);
-    }
-    return items;
-  }
-  /** Generate one subflow-mount node per branch, registering each branch chart. */
-  buildBranches(node, items, branchCount) {
-    const config = node.parallelForEach;
-    const branches = [];
-    for (let index = 0; index < branchCount; index++) {
-      const item = items[index];
-      const subflowId = buildBranchSegment(node.id, index);
-      const chart = config.branch(item, index);
-      if (!chart || !chart.root) {
-        throw new Error(`parallelForEach '${node.id}': branch(item, ${index}) must return a built chart (the result of flowChart(...).build()).`);
-      }
-      const prefixedRoot = this.hooks.prefixNodeTree(chart.root, subflowId);
-      this.hooks.registerBranchSubflow(subflowId, prefixedRoot, chart);
-      branches.push({
-        name: `${node.name} [${index}]`,
-        id: subflowId,
-        isSubflowRoot: true,
-        subflowId,
-        subflowName: `${node.name} [${index}]`,
-        subflowMountOptions: {
-          // D1's "inputMapper seam for feeding the item in": the item is
-          // visible IN the branch's scope (and so in its commit log) as well as
-          // closed over by the factory — provenance beats a hidden closure.
-          inputMapper: () => ({ item, index })
-        }
-      });
-    }
-    return branches;
-  }
-  /**
-   * Assemble results in ITEMS order — never completion order.
-   *
-   * The branch's value is its subflow output, falling back to the branch's
-   * final shared state (the TypedScope case, where stage functions return
-   * void) — the same `subflowOutput ?? sharedState` rule `SubflowExecutor`
-   * applies to an outputMapper.
-   */
-  collectOrdered(node, branchCount, childResults) {
-    const ordered = [];
-    for (let index = 0; index < branchCount; index++) {
-      const subflowId = buildBranchSegment(node.id, index);
-      const entry = childResults[subflowId];
-      if (entry === void 0 || entry.isError) {
-        ordered.push(void 0);
-        continue;
-      }
-      ordered.push(entry.result ?? this.hooks.branchSharedState(subflowId));
-    }
-    return ordered;
-  }
-  /**
-   * Write the ordered array as ONE value on the parent scope.
-   *
-   * Use the provider's explicit state-write port, never a user proxy probe.
-   * A declared data-only port has no setter; its results go to the frame.
-   */
-  writeResults(target2, context, into, results) {
-    if (target2.setValue) {
-      target2.setValue(into, results);
-      return;
-    }
-    context.setGlobal(into, results);
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/capture/nativeCoverage.js
-var CAPTURE_RETENTION_MODES = Object.freeze(["full", "summary", "off", "unknown"]);
-var CAPTURE_COMMIT_VALUE_MODES = Object.freeze(["full", "delta", "unknown"]);
-var CAPTURE_PROVENANCE_MODES = Object.freeze(["off", "reads-prefix", "unknown"]);
-var CAPTURE_CHANNEL_STATUSES = Object.freeze([
-  "captured",
-  "disabled",
-  "partial",
-  "failed",
-  "unknown"
-]);
-var RECORDER_CONTROL_STATUSES = Object.freeze(["captured", "partial", "unknown"]);
-function isCaptureValue(value, vocabulary) {
-  return typeof value === "string" && vocabulary.includes(value);
-}
-var CAPTURE_BASE_LIMITATIONS = Object.freeze([
-  "tracked-state-only",
-  "final-attempt-views",
-  "read-sources-not-collected",
-  "child-scopes-not-attested",
-  "storage-not-attested"
-]);
-var CAPTURE_LIMITATIONS = Object.freeze([
-  ...CAPTURE_BASE_LIMITATIONS,
-  "resumed-segment",
-  "redacted-export",
-  "redaction-active",
-  "custom-scope",
-  "read-retention-failed",
-  "commit-retention-failed",
-  "attention-omitted",
-  "recorder-snapshot-failed",
-  "identity-omitted",
-  "execution-broken",
-  "modes-unavailable",
-  "checkpoint-history-not-included",
-  "source-history-not-included"
-]);
-var NativeCapture = class {
-  runId;
-  logAddress;
-  from;
-  gaps = new Set(CAPTURE_BASE_LIMITATIONS);
-  boundary = { status: "running" };
-  modes;
-  constructor(runId, logAddress, from, modes) {
-    this.runId = runId;
-    this.logAddress = logAddress;
-    this.from = from;
-    const retention = (value) => isCaptureValue(value, CAPTURE_RETENTION_MODES) ? value : "unknown";
-    this.modes = {
-      readTracking: retention(modes.readTracking),
-      writeTracking: retention(modes.writeTracking),
-      commitValues: isCaptureValue(modes.commitValues, CAPTURE_COMMIT_VALUE_MODES) ? modes.commitValues : "unknown",
-      writeProvenance: isCaptureValue(modes.writeProvenance, CAPTURE_PROVENANCE_MODES) ? modes.writeProvenance : "unknown"
-    };
-    if (Object.values(this.modes).includes("unknown"))
-      this.limit("modes-unavailable");
-  }
-  limit(gap) {
-    this.gaps.add(gap);
-  }
-  end(status, failure) {
-    if (this.boundary.status !== "running")
-      return;
-    if (failure?.stage && failure.stage.runtimeStageId.length > 1024) {
-      this.limit("identity-omitted");
-      failure = Object.freeze({ category: failure.category });
-    }
-    this.boundary = { status, ...failure && { failure } };
-  }
-  snapshot(to, control3 = "unknown", redacted = false) {
-    const gaps = new Set(this.gaps);
-    if (redacted)
-      gaps.add("redacted-export");
-    const failed = gaps.has("commit-retention-failed");
-    const custom = gaps.has("custom-scope") || gaps.has("modes-unavailable");
-    return Object.freeze({
-      version: 1,
-      runId: this.runId,
-      scope: "root-log",
-      logAddress: Object.freeze({
-        logRunId: this.logAddress.logRunId,
-        drillPath: Object.freeze([...this.logAddress.drillPath])
-      }),
-      commits: Object.freeze({ from: this.from, to }),
-      boundary: Object.freeze({ ...this.boundary }),
-      modes: Object.freeze({
-        readTracking: this.modes.readTracking,
-        writeTracking: this.modes.writeTracking,
-        commitValues: this.modes.commitValues,
-        writeProvenance: this.modes.writeProvenance
-      }),
-      channels: Object.freeze({
-        reads: this.modes.readTracking === "off" ? "disabled" : gaps.has("read-retention-failed") ? "failed" : custom ? "unknown" : "captured",
-        writes: this.modes.writeTracking === "off" ? "disabled" : failed ? "failed" : custom ? "unknown" : "captured",
-        attention: failed || gaps.has("attention-omitted") ? "partial" : custom ? "unknown" : "captured",
-        control: gaps.has("recorder-snapshot-failed") ? "failed" : control3,
-        readSources: "not-collected"
-      }),
-      persistence: "memory-only",
-      limitations: Object.freeze([...gaps])
-    });
-  }
-};
-function copyCaptureAcknowledgement(value) {
-  try {
-    if (!value || typeof value !== "object" || Object.getPrototypeOf(value) !== Object.prototype)
-      return void 0;
-    const data = (key) => Object.getOwnPropertyDescriptor(value, key)?.value;
-    const version = data("version");
-    const runId = data("runId");
-    const control3 = data("control");
-    if (version !== 1 || typeof runId !== "string" || runId.length === 0 || runId.length > 2048 || !isCaptureValue(control3, RECORDER_CONTROL_STATUSES))
-      return void 0;
-    return Object.freeze({ version, runId, control: control3 });
-  } catch {
-    return void 0;
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/capture/noteShape.js
-function ownData3(record, key) {
-  if (!record || typeof record !== "object" || Object.getPrototypeOf(record) !== Object.prototype)
-    return void 0;
-  return Object.getOwnPropertyDescriptor(record, key)?.value;
-}
-function captureIdentifier(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 2048;
-}
-function count(value) {
-  return Number.isSafeInteger(value) && value >= 0;
-}
-function shapeKeys(value, fields3, exact) {
-  return !exact || !!value && typeof value === "object" && Object.keys(value).length === fields3.length;
-}
-function copyIdentity(value, exact = false, version = 1) {
-  const runId = ownData3(value, "runId");
-  const address = ownData3(value, "logAddress");
-  const logRunId = ownData3(address, "logRunId");
-  const drill = ownData3(address, "drillPath");
-  const commits = ownData3(value, "commits");
-  const from = ownData3(commits, "from");
-  const to = ownData3(commits, "to");
-  if (ownData3(value, "version") !== version || !captureIdentifier(runId) || !captureIdentifier(logRunId) || !Array.isArray(drill) || Object.getPrototypeOf(drill) !== Array.prototype || Object.getOwnPropertyDescriptor(drill, "length")?.value !== 0 || !count(from) || !count(to) || from > to || !shapeKeys(address, ["logRunId", "drillPath"], exact) || !shapeKeys(commits, ["from", "to"], exact))
-    return void 0;
-  return {
-    runId,
-    logAddress: Object.freeze({ logRunId, drillPath: Object.freeze([]) }),
-    commits: Object.freeze({ from, to })
-  };
-}
-function copyModes(value, exact = false) {
-  const readTracking = ownData3(value, "readTracking");
-  const writeTracking = ownData3(value, "writeTracking");
-  const commitValues = ownData3(value, "commitValues");
-  const writeProvenance = ownData3(value, "writeProvenance");
-  if (!isCaptureValue(readTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(writeTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(commitValues, CAPTURE_COMMIT_VALUE_MODES) || !isCaptureValue(writeProvenance, CAPTURE_PROVENANCE_MODES) || !shapeKeys(value, ["readTracking", "writeTracking", "commitValues", "writeProvenance"], exact))
-    return void 0;
-  return Object.freeze({ readTracking, writeTracking, commitValues, writeProvenance });
-}
-function copyChannels(value, exact = false) {
-  const observed = copyObservedChannels(value);
-  if (!observed || ownData3(value, "readSources") !== "not-collected" || !shapeKeys(value, ["reads", "writes", "attention", "control", "readSources"], exact))
-    return void 0;
-  return Object.freeze({ ...observed, readSources: "not-collected" });
-}
-function copyObservedChannels(value) {
-  const reads = ownData3(value, "reads");
-  const writes = ownData3(value, "writes");
-  const attention = ownData3(value, "attention");
-  const control3 = ownData3(value, "control");
-  if (!isCaptureValue(reads, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(writes, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(attention, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(control3, CAPTURE_CHANNEL_STATUSES))
-    return void 0;
-  return Object.freeze({ reads, writes, attention, control: control3 });
-}
-function copyLimitations(value) {
-  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype)
-    return void 0;
-  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
-  if (!count(length) || length > 32)
-    return void 0;
-  const limitations = [];
-  for (let index = 0; index < length; index++) {
-    const entry = Object.getOwnPropertyDescriptor(value, String(index))?.value;
-    if (!isCaptureValue(entry, CAPTURE_LIMITATIONS))
-      return void 0;
-    limitations.push(entry);
-  }
-  return Object.freeze(limitations);
-}
-
-// node_modules/footprintjs/dist/esm/lib/capture/checkpointCapture.js
-function captureRefusal() {
-  return new Error("Invalid checkpoint: capture must be a bounded paused root-log observation.");
-}
-function copyCheckpointCapture(value) {
-  try {
-    if (ownData3(value, "scope") !== "root-log" || ownData3(value, "persistence") !== "memory-only" || ownData3(ownData3(value, "boundary"), "status") !== "paused")
-      return void 0;
-    const version = ownData3(value, "version") === 2 ? 2 : 1;
-    const identity2 = copyIdentity(value, false, version);
-    if (!identity2)
-      return void 0;
-    const modes = copyModes(ownData3(value, "modes"));
-    if (!modes)
-      return void 0;
-    const storedChannels = ownData3(value, "channels");
-    const channels = version === 1 ? copyChannels(storedChannels) : copyObservedChannels(storedChannels);
-    if (!channels)
-      return void 0;
-    if (version === 2 && !isCaptureValue(ownData3(storedChannels, "readSources"), CAPTURE_CHANNEL_STATUSES))
-      return void 0;
-    const limitations = copyLimitations(ownData3(value, "limitations"));
-    if (!limitations)
-      return void 0;
-    const common = {
-      runId: identity2.runId,
-      scope: "root-log",
-      logAddress: identity2.logAddress,
-      commits: identity2.commits,
-      boundary: Object.freeze({ status: "paused" }),
-      modes,
-      channels: {
-        ...channels,
-        // Recorder history is absent; reads/writes describe the paused segment's native funnels.
-        control: channels.control === "failed" || channels.control === "partial" || channels.control === "disabled" ? channels.control : "unknown"
-      },
-      persistence: "memory-only"
-    };
-    if (version === 2)
-      return Object.freeze({
-        ...common,
-        version: 2,
-        scope: "root-log",
-        channels: Object.freeze({ ...common.channels, readSources: "unknown" }),
-        limitations: Object.freeze([
-          .../* @__PURE__ */ new Set([...limitations, "checkpoint-history-not-included", "source-history-not-included"])
-        ])
-      });
-    return Object.freeze({
-      version: 1,
-      ...common,
-      scope: "root-log",
-      channels: Object.freeze({ ...common.channels, readSources: "not-collected" }),
-      limitations: Object.freeze([
-        .../* @__PURE__ */ new Set([...CAPTURE_BASE_LIMITATIONS, ...limitations, "checkpoint-history-not-included"])
-      ])
-    });
-  } catch {
-    return void 0;
-  }
-}
-function readCheckpointCapture(stored) {
-  try {
-    const descriptor = Object.getOwnPropertyDescriptor(stored, "capture");
-    if (!descriptor)
-      return void 0;
-    if (!Object.hasOwn(descriptor, "value"))
-      throw captureRefusal();
-    if (descriptor.value === void 0)
-      return void 0;
-    const note = copyCheckpointCapture(descriptor.value);
-    if (!note)
-      throw captureRefusal();
-    return note;
-  } catch {
-    throw captureRefusal();
-  }
-}
-function withoutCheckpointCapture(stored) {
-  try {
-    const descriptors2 = Object.getOwnPropertyDescriptors(stored);
-    delete descriptors2.capture;
-    return Object.defineProperties(Object.create(Object.getPrototypeOf(stored)), descriptors2);
-  } catch {
-    throw captureRefusal();
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/pause/record.js
-var CHECKPOINT_VERSION = 2;
-var READABLE_VERSIONS = [1, CHECKPOINT_VERSION];
-function refuse(what) {
-  throw new Error(`Invalid checkpoint: ${what}.`);
-}
-function isPlainRecord2(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function upcastCheckpoint(stored) {
-  const version = stored.checkpointVersion;
-  if (version !== void 0 && !READABLE_VERSIONS.includes(version)) {
-    refuse(`checkpointVersion ${JSON.stringify(version) ?? String(version)} is not one this release reads (${READABLE_VERSIONS.join(" or ")}, or none for a checkpoint written before 9.39.0)`);
-  }
-  const { checkpointVersion: _version, continuationStageId: _invokerNext, executionTree: _tree, subflowResults: _finishedSubflows, ...current } = stored;
-  return { checkpointVersion: CHECKPOINT_VERSION, ...current };
-}
-function decodePauseRecord(raw, at = "") {
-  const field = (name) => at ? `${at}.${name}` : name;
-  if (!isPlainRecord2(raw))
-    refuse(`${at || "the checkpoint"} must be an object`);
-  if (typeof raw.pausedStageId !== "string" || raw.pausedStageId === "") {
-    refuse(`${field("pausedStageId")} must be a non-empty string`);
-  }
-  const subflowPath = raw.subflowPath;
-  if (!Array.isArray(subflowPath) || !subflowPath.every((s) => typeof s === "string")) {
-    refuse(`${field("subflowPath")} must be an array of strings`);
-  }
-  const states = raw.subflowStates;
-  if (states !== void 0 && !isPlainRecord2(states))
-    refuse(`${field("subflowStates")} must be an object`);
-  for (const [subflowId, capture2] of Object.entries(states ?? {})) {
-    if (!isPlainRecord2(capture2))
-      refuse(`${field("subflowStates")}[${JSON.stringify(subflowId)}] must be an object`);
-  }
-  if (raw.pausedBy !== void 0 && raw.pausedBy !== "interrupt") {
-    refuse(`${field("pausedBy")} must be 'interrupt' when present`);
-  }
-  if (raw.idempotencyKey !== void 0) {
-    const problem = idempotencyKeyProblem(raw.idempotencyKey);
-    if (problem !== void 0)
-      refuse(`${field("idempotencyKey")} ${problem}`);
-  }
-  return {
-    pausedStageId: raw.pausedStageId,
-    subflowPath,
-    subflowStates: states ?? {},
-    ...raw.pauseData !== void 0 && { pauseData: raw.pauseData },
-    ...raw.pausedBy === "interrupt" && { pausedBy: "interrupt" },
-    // A record, never a plan input: kept only when well-formed (an older or
-    // hand-edited entry simply resumes without a link).
-    ...isPausedExecution(raw.pausedExecution) && {
-      pausedExecution: { runId: raw.pausedExecution.runId, runtimeStageId: raw.pausedExecution.runtimeStageId }
-    },
-    ...raw.idempotencyKey !== void 0 && { idempotencyKey: raw.idempotencyKey }
-  };
-}
-function decodeCheckpoint(stored) {
-  if (!isPlainRecord2(stored))
-    refuse("the checkpoint must be an object");
-  const capture2 = readCheckpointCapture(stored);
-  const checkpoint = upcastCheckpoint(withoutCheckpointCapture(stored));
-  if (capture2)
-    checkpoint.capture = capture2;
-  else
-    delete checkpoint.capture;
-  if (!isPlainRecord2(checkpoint.sharedState))
-    refuse("sharedState must be a plain object");
-  decodePauseRecord(checkpoint);
-  if (checkpoint.pausedExecution !== void 0 && !isPausedExecution(checkpoint.pausedExecution)) {
-    delete checkpoint.pausedExecution;
-  }
-  if (checkpoint.executionCount !== void 0 && !isCount(checkpoint.executionCount)) {
-    refuse("executionCount must be a non-negative integer");
-  }
-  const visits = checkpoint.visitCounts;
-  if (visits !== void 0 && (!isPlainRecord2(visits) || !Object.values(visits).every(isCount))) {
-    refuse("visitCounts must map stage ids to non-negative integers");
-  }
-  if (checkpoint.pendingPauses !== void 0)
-    checkpoint.pendingPauses = decodePendingPauses(checkpoint.pendingPauses);
-  if (checkpoint.redactionMarks !== void 0)
-    decodeRedactionMarks(checkpoint.redactionMarks);
-  return checkpoint;
-}
-function decodeRedactionMarks(marks) {
-  if (!isPlainRecord2(marks))
-    refuse("redactionMarks must be an object");
-  if (!isStrings(marks.keys))
-    refuse("redactionMarks.keys must be an array of strings");
-  const fields3 = marks.fields;
-  if (fields3 !== void 0 && (!isPlainRecord2(fields3) || !Object.values(fields3).every(isStrings))) {
-    refuse("redactionMarks.fields must map keys to arrays of strings");
-  }
-}
-function isStrings(value) {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-function decodePendingPauses(pending) {
-  if (!Array.isArray(pending))
-    refuse("pendingPauses must be an array");
-  return pending.map((raw, n) => decodePauseRecord(raw, `pendingPauses[${n}]`));
-}
-function isCount(value) {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/ResumeEntry.js
-var ResumeEntry = class _ResumeEntry {
-  /**
-   * Where the resumed TOP-LEVEL traversal starts: the stand-in (a top-level
-   * pause) or the mount of the first subflow on the path — each with its
-   * dispatcher's continuation attached. `undefined` for a seed-only entry —
-   * the traversal starts at its root.
-   */
-  start;
-  /** Sibling pauses whose fan-out sits at the TOP level — raised once `start`'s chain ends. */
-  startPendingPauses;
-  /**
-   * How many stage executions the resumed run makes before the stand-in runs
-   * — one per subflow on the path, each entered at its mount — so the
-   * executor's `onResume` names the stand-in's own `runtimeStageId`.
-   * `undefined` when it cannot be known before the run: an outer subflow
-   * missing its capture re-runs from its root.
-   */
-  stepsBeforeStandIn;
-  /** Hops not taken yet, by subflow id. A hop leaves this map when it is taken. */
-  pending;
-  constructor(start, hops, startPendingPauses, stepsBeforeStandIn) {
-    this.start = start;
-    this.startPendingPauses = startPendingPauses;
-    this.stepsBeforeStandIn = stepsBeforeStandIn;
-    this.pending = new Map(hops.map((hop) => [hop.subflowId, hop]));
-  }
-  /**
-   * Plan the re-entry of a paused chart. Every mount on the path, every
-   * dispatcher continuation and every waiting sibling is resolved HERE,
-   * against the chart as built, before a single stage runs — so a checkpoint
-   * whose path the chart cannot walk is refused up front instead of resuming
-   * into the wrong shape.
-   *
-   * @param args - `root` and `subflows`: the chart as built
-   *   (`FlowChart.root`, `FlowChart.subflows`); `path`:
-   *   `checkpoint.subflowPath`, outermost first; `captures`:
-   *   `checkpoint.subflowStates` (a detached copy); `standIn`: the node that
-   *   runs the resume half — the paused stage's own node, function swapped
-   *   (its continuation is attached here); `pendingPauses`:
-   *   `checkpoint.pendingPauses` (a detached copy).
-   * @throws when a subflow on the path is missing, mounted more than once, or
-   *   its mount cannot be reached from the enclosing graph; or when a pending
-   *   pause is malformed or is not a parallel sibling of the paused stage
-   */
-  static plan(args) {
-    const { root, subflows, path, captures, standIn } = args;
-    const chart = new ChartIndex();
-    const graphs = [root];
-    const mounts = [];
-    for (let i = 0; i < path.length; i++) {
-      const subflowId = path[i];
-      mounts.push(chart.onlyMount(graphs[i], subflowId, i === 0 ? "the flowchart" : `subflow '${path[i - 1]}'`));
-      const definition = ownEntry(subflows, subflowId);
-      if (!definition) {
-        throw new Error(`Cannot resume: subflow '${subflowId}' is not registered in the flowchart. The chart may have changed since the checkpoint was created.`);
-      }
-      graphs.push(definition.root);
-    }
-    const leafLevel = path.length;
-    const paused = chart.stage(graphs[leafLevel], standIn.id);
-    const queues = queueSiblingPauses(args.pendingPauses, { chart, subflows, root, path, graphs, mounts, paused });
-    const childAt = (level) => level < leafLevel ? mounts[level] : paused;
-    const entryAt = (level) => {
-      const child = childAt(level);
-      const replacement = level < leafLevel ? mounts[level] : standIn;
-      if (!child)
-        return replacement;
-      return chart.entry(graphs[level], child, replacement, queues[level]?.fanOut);
-    };
-    const hops = [];
-    let everyLevelAtItsEntry = true;
-    for (let i = 0; i < path.length; i++) {
-      const subflowId = path[i];
-      const seed = ownEntry(captures, subflowId);
-      const isLeafHop = i === path.length - 1;
-      if (seed === void 0 && !isLeafHop) {
-        everyLevelAtItsEntry = false;
-        hops.push({ subflowId });
-        continue;
-      }
-      const waiting = queues[i + 1]?.pauses;
-      hops.push({
-        subflowId,
-        ...seed !== void 0 && { seed },
-        entry: entryAt(i + 1),
-        ...waiting && { pendingPauses: waiting }
-      });
-    }
-    return new _ResumeEntry(entryAt(0), hops, queues[0]?.pauses, everyLevelAtItsEntry ? path.length : void 0);
-  }
-  /**
-   * A seed-only entry: each capture seeds the FIRST entry into its subflow,
-   * which then starts at its own root. Pass it explicitly as `resume` to
-   * TraverserOptions or HandlerDeps — the same one-shot law, without a
-   * stand-in or a path. Prefer `plan` when resuming a checkpoint.
-   */
-  static fromCaptures(captures) {
-    return new _ResumeEntry(void 0, Object.entries(captures).map(([subflowId, seed]) => ({ subflowId, seed })));
-  }
-  /**
-   * The re-entry into `subflowId`, taken — or `undefined` when this entry is
-   * an ordinary one (the subflow is off the pause path, or its hop was already
-   * taken). ONE-SHOT: a hop is returned at most once, so a second entry into
-   * the same subflow (a loop passing its mount again) runs the real subflow
-   * from its real root with its inputMapper.
-   */
-  enterSubflow(subflowId) {
-    const hop = this.pending.get(subflowId);
-    if (hop !== void 0)
-      this.pending.delete(subflowId);
-    return hop;
-  }
-  /** `true` once every hop has been taken — the rest of the run is ordinary. */
-  get spent() {
-    return this.pending.size === 0;
-  }
-};
-function queueBehind(signal, queue) {
-  for (const { pause, level } of queue) {
-    signal.addPendingPause({ ...pause, subflowPath: pause.subflowPath.slice(level) });
-  }
-}
-function raiseQueuedPause(queue) {
-  const [first, ...rest] = queue;
-  const { pause, level } = first;
-  const signal = new PauseSignal(pause.pauseData, pause.pausedStageId, pause.pausedBy);
-  if (isPausedExecution(pause.pausedExecution)) {
-    signal.stampExecution(pause.pausedExecution.runtimeStageId, pause.pausedExecution.runId);
-  }
-  signal.stampIdempotencyKey(pause.idempotencyKey);
-  const below = pause.subflowPath.slice(level);
-  for (let i = below.length - 1; i >= 0; i--) {
-    const state = ownEntry(pause.subflowStates, below[i]);
-    if (state !== void 0)
-      signal.captureSubflowScope(below[i], state);
-    signal.prependSubflow(below[i]);
-  }
-  queueBehind(signal, rest);
-  return signal;
-}
-function dispatcherIndex(root) {
-  const index = /* @__PURE__ */ new Map();
-  const stack = [[root, void 0]];
-  for (let top = stack.pop(); top !== void 0; top = stack.pop()) {
-    const [node, dispatcher] = top;
-    if (node.isLoopRef || index.has(node))
-      continue;
-    index.set(node, dispatcher);
-    if (node.next)
-      stack.push([node.next, dispatcher]);
-    if (node.children) {
-      for (let i = node.children.length - 1; i >= 0; i--)
-        stack.push([node.children[i], node]);
-    }
-  }
-  return index;
-}
-var ChartIndex = class {
-  indexes = /* @__PURE__ */ new Map();
-  of(root) {
-    let index = this.indexes.get(root);
-    if (!index) {
-      index = dispatcherIndex(root);
-      this.indexes.set(root, index);
-    }
-    return index;
-  }
-  /** Every mount of `subflowId` in `root`'s graph, in DFS pre-order. */
-  mountsOf(root, subflowId) {
-    return [...this.of(root).keys()].filter((node) => node.subflowId === subflowId);
-  }
-  /** The one mount of `subflowId` in `root`'s graph — refused when absent or ambiguous. */
-  onlyMount(root, subflowId, graphName) {
-    const found = this.mountsOf(root, subflowId);
-    if (found.length === 0) {
-      throw new Error(`Cannot resume: the mount of subflow '${subflowId}' is not reachable from ${graphName}. The checkpoint's subflowPath does not match this chart \u2014 it may have changed since the checkpoint was created.`);
-    }
-    if (found.length > 1) {
-      throw new Error(`Cannot resume: subflow '${subflowId}' is mounted more than once in ${graphName} (${found.map((node) => `'${node.name}'`).join(", ")}), and a checkpoint's subflowPath cannot say which mount paused. Give each mount its own subflow id to make a pause inside it resumable.`);
-    }
-    return found[0];
-  }
-  /** The real stage `id` in `root`'s graph (first in DFS pre-order), if any. */
-  stage(root, id) {
-    for (const node of this.of(root).keys())
-      if (node.id === id)
-        return node;
-    return void 0;
-  }
-  /** The dispatcher whose child-chain holds `node` in `root`'s graph (`undefined` on the spine). */
-  dispatcherOf(root, node) {
-    return this.of(root).get(node);
-  }
-  /**
-   * The one-shot entry for `child` (a mount on the path, or the paused stage)
-   * in `root`'s graph: `replacement` (the node that runs — the mount itself,
-   * or the stand-in) with what ran after `child`'s chain on the original run
-   * attached where that chain ends — `{ ...child, next: dispatcher.next }` for
-   * a chart the builder made:
-   *
-   *   • on the level's spine: nothing to attach — the spine goes on by itself;
-   *   • a DECIDER's or SELECTOR's branch: the dispatcher's `next`;
-   *   • a FORK child: the fork's `next` — its join.
-   *
-   * Past a dispatcher with no `next`, the walk goes on OUTWARD to the one
-   * enclosing it. It stops at `stopAt` — the fan-out where siblings still
-   * wait, whose join must not run yet. Nothing to attach: `replacement`
-   * itself.
-   */
-  entry(root, child, replacement, stopAt) {
-    return appendAtChainEnd(replacement, this.after(root, child, stopAt));
-  }
-  /**
-   * What runs once `node`'s chain ends: its dispatcher's `next` chain, then —
-   * where THAT ends — the continuation of the dispatcher enclosing it, outward,
-   * up to `stopAt` (exclusive). `undefined` on the spine.
-   */
-  after(root, node, stopAt) {
-    const dispatcher = this.dispatcherOf(root, node);
-    if (dispatcher === void 0 || dispatcher === stopAt)
-      return void 0;
-    const outer = this.after(root, dispatcher, stopAt);
-    return dispatcher.next ? appendAtChainEnd(dispatcher.next, outer) : outer;
-  }
-};
-function appendAtChainEnd(start, after) {
-  if (after === void 0)
-    return start;
-  const chain = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (let node = start; node !== void 0; node = node.next) {
-    if (node.isLoopRef || seen.has(node))
-      return start;
-    seen.add(node);
-    chain.push(node);
-  }
-  let next = after;
-  for (let i = chain.length - 1; i >= 0; i--)
-    next = { ...chain[i], next };
-  return next;
-}
-function queueSiblingPauses(pending, at) {
-  const queues = [];
-  if (pending === void 0)
-    return queues;
-  const decoded = decodePendingPauses(pending);
-  const { chart, subflows, root, path, graphs, mounts, paused } = at;
-  const seen = /* @__PURE__ */ new Set();
-  decoded.forEach((pause, n) => {
-    const key = JSON.stringify([pause.subflowPath, pause.pausedStageId]);
-    if (seen.has(key)) {
-      throw new Error(`Cannot resume: checkpoint.pendingPauses[${n}] ('${pause.pausedStageId}') repeats an earlier entry.`);
-    }
-    seen.add(key);
-    let level = 0;
-    while (level < path.length && level < pause.subflowPath.length && path[level] === pause.subflowPath[level])
-      level++;
-    const graph = graphs[level];
-    const ours = level < path.length ? mounts[level] : paused;
-    const theirMounts = level < pause.subflowPath.length ? chart.mountsOf(graph, pause.subflowPath[level]) : [];
-    const theirs = level < pause.subflowPath.length ? theirMounts.length === 1 ? theirMounts[0] : void 0 : chart.stage(graph, pause.pausedStageId);
-    const fanOut = ours ? chart.dispatcherOf(graph, ours) : void 0;
-    const isSibling = ours !== void 0 && theirs !== void 0 && ours !== theirs && fanOut !== void 0 && chart.dispatcherOf(graph, theirs) === fanOut && !fanOut.deciderFn && (queues[level] === void 0 || queues[level].fanOut === fanOut);
-    if (!isSibling || !walksToItsStage(chart, subflows, graph, pause, level)) {
-      throw new Error(`Cannot resume: checkpoint.pendingPauses[${n}] ('${pause.pausedStageId}') is not a parallel sibling of the paused stage '${paused?.id ?? "?"}' in this chart \u2014 no fork or selector runs them both, or its path does not lead to that stage. The chart may have changed since the checkpoint was created.`);
-    }
-    const leafRoot = pause.subflowPath.length === 0 ? root : ownEntry(subflows, pause.subflowPath[pause.subflowPath.length - 1])?.root;
-    const stageName = (leafRoot && chart.stage(leafRoot, pause.pausedStageId)?.name) ?? pause.pausedStageId;
-    const queue = queues[level] ??= { fanOut, pauses: [] };
-    queue.pauses.push({ pause, level, stageName });
-  });
-  return queues;
-}
-function walksToItsStage(chart, subflows, fanOutGraph, pause, level) {
-  let graph = fanOutGraph;
-  for (let i = level; i < pause.subflowPath.length; i++) {
-    if (chart.mountsOf(graph, pause.subflowPath[i]).length !== 1)
-      return false;
-    const definition = ownEntry(subflows, pause.subflowPath[i]);
-    if (!definition)
-      return false;
-    graph = definition.root;
-  }
-  return chart.stage(graph, pause.pausedStageId) !== void 0;
-}
-function ownEntry(record, key) {
-  return record && Object.prototype.hasOwnProperty.call(record, key) ? record[key] : void 0;
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/RuntimeStructureManager.js
-function computeNodeType(node) {
-  if (node.isLoopRef)
-    return "loop";
-  if (node.isSubflowRoot)
-    return "subflow";
-  if (node.isDynamicParallel)
-    return "fork";
-  if (node.selectorFn)
-    return "selector";
-  if (node.nextNodeSelector || node.deciderFn)
-    return "decider";
-  if (node.isStreaming)
-    return "streaming";
-  const hasDynamicChildren = Boolean(node.children?.length && !node.nextNodeSelector && node.fn);
-  if (node.children && node.children.length > 0 && !hasDynamicChildren)
-    return "fork";
-  return "stage";
-}
-var RuntimeStructureManager = class _RuntimeStructureManager {
-  runtimePipelineStructure;
-  structureNodeMap = /* @__PURE__ */ new Map();
-  /** Initialize from build-time structure. Deep-clones via JSON round-trip. */
-  init(buildTimeStructure) {
-    if (!buildTimeStructure)
-      return;
-    try {
-      this.runtimePipelineStructure = JSON.parse(JSON.stringify(buildTimeStructure));
-    } catch {
-      return;
-    }
-    this.buildNodeMap(this.runtimePipelineStructure);
-  }
-  /** Returns the current runtime structure (mutated during execution). */
-  getStructure() {
-    return this.runtimePipelineStructure;
-  }
-  static MAX_NODE_MAP_DEPTH = 500;
-  /** Recursively registers all nodes in the O(1) lookup map. */
-  buildNodeMap(node, depth = 0) {
-    if (depth > _RuntimeStructureManager.MAX_NODE_MAP_DEPTH) {
-      return;
-    }
-    this.structureNodeMap.set(node.id, node);
-    if (node.children) {
-      for (const child of node.children) {
-        this.buildNodeMap(child, depth + 1);
-      }
-    }
-    if (node.next) {
-      this.buildNodeMap(node.next, depth + 1);
-    }
-    if (node.subflowStructure) {
-      this.buildNodeMap(node.subflowStructure, depth + 1);
-    }
-  }
-  /** Convert a runtime StageNode into a SerializedPipelineStructure node. */
-  stageNodeToStructure(node) {
-    const structure = {
-      name: node.name,
-      id: node.id,
-      type: computeNodeType(node),
-      description: node.description
-    };
-    if (node.isStreaming) {
-      structure.isStreaming = true;
-      structure.streamId = node.streamId;
-    }
-    if (node.tags?.length)
-      structure.tags = [...node.tags];
-    if (node.isSubflowRoot) {
-      structure.isSubflowRoot = true;
-      structure.subflowId = node.subflowId;
-      structure.subflowName = node.subflowName;
-    }
-    if (node.deciderFn) {
-      structure.hasDecider = true;
-      structure.branchIds = node.children?.map((c) => c.id);
-    }
-    if (node.selectorFn || node.nextNodeSelector) {
-      structure.hasSelector = true;
-      structure.branchIds = node.children?.map((c) => c.id);
-    }
-    if (node.children?.length) {
-      structure.children = node.children.map((c) => this.stageNodeToStructure(c));
-    }
-    if (node.next) {
-      structure.next = this.stageNodeToStructure(node.next);
-    }
-    if (node.subflowDef?.buildTimeStructure) {
-      structure.subflowStructure = node.subflowDef.buildTimeStructure;
-    }
-    return structure;
-  }
-  /** Update structure when dynamic children are discovered at runtime. */
-  updateDynamicChildren(parentNodeId, dynamicChildren, hasSelector, hasDecider) {
-    if (!this.runtimePipelineStructure)
-      return;
-    const parentStructure = this.structureNodeMap.get(parentNodeId);
-    if (!parentStructure) {
-      if (isDevMode()) {
-        console.warn(`[footprint] RuntimeStructureManager: node '${parentNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
-      }
-      return;
-    }
-    const childStructures = dynamicChildren.map((child) => this.stageNodeToStructure(child));
-    parentStructure.children = childStructures;
-    for (const childStructure of childStructures) {
-      this.buildNodeMap(childStructure);
-    }
-    if (hasSelector) {
-      parentStructure.hasSelector = true;
-      parentStructure.branchIds = childStructures.map((c) => c.id);
-    }
-    if (hasDecider) {
-      parentStructure.hasDecider = true;
-      parentStructure.branchIds = childStructures.map((c) => c.id);
-    }
-  }
-  /** Update structure when a dynamic subflow is registered at runtime. */
-  updateDynamicSubflow(mountNodeId, subflowId, subflowName, subflowBuildTimeStructure) {
-    if (!this.runtimePipelineStructure)
-      return;
-    const mountStructure = this.structureNodeMap.get(mountNodeId);
-    if (!mountStructure) {
-      if (isDevMode()) {
-        console.warn(`[footprint] RuntimeStructureManager: node '${mountNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
-      }
-      return;
-    }
-    mountStructure.isSubflowRoot = true;
-    mountStructure.subflowId = subflowId;
-    if (subflowName !== void 0) {
-      mountStructure.subflowName = subflowName;
-    }
-    if (subflowBuildTimeStructure) {
-      try {
-        mountStructure.subflowStructure = JSON.parse(JSON.stringify(subflowBuildTimeStructure));
-        this.buildNodeMap(mountStructure.subflowStructure);
-      } catch {
-      }
-    }
-  }
-  /** Update structure when a dynamic next chain is discovered at runtime. */
-  updateDynamicNext(currentNodeId, dynamicNext) {
-    if (!this.runtimePipelineStructure)
-      return;
-    const currentStructure = this.structureNodeMap.get(currentNodeId);
-    if (!currentStructure) {
-      if (isDevMode()) {
-        console.warn(`[footprint] RuntimeStructureManager: node '${currentNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
-      }
-      return;
-    }
-    const nextStructure = this.stageNodeToStructure(dynamicNext);
-    currentStructure.next = nextStructure;
-    this.buildNodeMap(nextStructure);
-  }
-  /** Update the iteration count for a node (loop support). */
-  updateIterationCount(nodeId, count3) {
-    if (!this.runtimePipelineStructure)
-      return;
-    const nodeStructure = this.structureNodeMap.get(nodeId);
-    if (!nodeStructure)
-      return;
-    nodeStructure.iterationCount = count3;
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/SelectorHandler.js
-var SelectorHandler = class {
-  deps;
-  childrenExecutor;
-  constructor(deps, childrenExecutor) {
-    this.deps = deps;
-    this.childrenExecutor = childrenExecutor;
-  }
-  /**
-   * Handle a scope-based selector node (created via addSelectorFunction).
-   * The stage function IS the selector — its return value contains branch IDs.
-   * Execution order: runStage(fn) → commit → resolve children → parallel execute.
-   */
-  async handleScopeBased(node, stageFunc, context, breakFlag, branchPath, runStage, executeNode, traversalContext) {
-    const breakFn = createBreakHandler(breakFlag);
-    let selectedIds;
-    let selectionEvidence;
-    try {
-      const stageOutput = await runStage(node, stageFunc, context, breakFn, traversalContext);
-      if (stageOutput && typeof stageOutput === "object" && Reflect.has(stageOutput, DECISION_RESULT) && Array.isArray(stageOutput.branches)) {
-        selectedIds = stageOutput.branches;
-        selectionEvidence = stageOutput.evidence;
-      } else {
-        selectedIds = Array.isArray(stageOutput) ? stageOutput.map(String) : [String(stageOutput)];
-      }
-    } catch (error) {
-      if (isPauseSignal(error)) {
-        commitStageWrites(context);
-        throw error;
-      }
-      captureStageFailure(context, error);
-      commitStageWrites(context);
-      const served = recordStageError(context, error);
-      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
-        error: loggableStageError(context, error)
-      });
-      this.deps.narrativeGenerator.onError(node.name, served.message, served.structuredError, traversalContext);
-      throw error;
-    }
-    commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
-    if (breakFlag.shouldBreak) {
-      this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
-      this.deps.narrativeGenerator.onBreak(node.name, traversalContext, breakFlag.reason);
-      return void 0;
-    }
-    context.addLog("selectedChildIds", selectedIds);
-    context.addLog("selectorPattern", "scope-based-multi-choice");
-    if (selectedIds.length === 0) {
-      context.addLog("skippedAllChildren", true);
-      context.addFlowDebugMessage("selected", "No children selected \u2014 skipping all branches.", {
-        count: 0,
-        targetStage: []
-      });
-      this.deps.narrativeGenerator.onSelected(node.name, [], (node.children ?? []).length, traversalContext);
-      this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
-      return {};
-    }
-    const children = node.children;
-    const selectedChildren = children.filter((c) => selectedIds.includes(c.branchId ?? c.id));
-    if (selectedChildren.length !== selectedIds.length) {
-      const childIds = children.map((c) => c.branchId ?? c.id);
-      const missing = selectedIds.filter((id) => !childIds.includes(id));
-      const errorMessage = `Scope-based selector '${node.name}' returned unknown child IDs: ${missing.join(", ")}. Available: ${childIds.join(", ")}`;
-      this.deps.logger.error(`Error in pipeline (${branchPath}):`, { error: errorMessage });
-      context.addError("selectorError", errorMessage);
-      throw new Error(errorMessage);
-    }
-    const skippedIds = children.filter((c) => !selectedIds.includes(c.branchId ?? c.id)).map((c) => c.branchId ?? c.id);
-    if (skippedIds.length > 0) {
-      context.addLog("skippedChildIds", skippedIds);
-    }
-    const selectedNames = selectedChildren.map((c) => c.name).join(", ");
-    context.addFlowDebugMessage("selected", `Running ${selectedNames} (${selectedChildren.length} of ${children.length} matched)`, { count: selectedChildren.length, targetStage: selectedChildren.map((c) => c.name) });
-    const selectedDisplayNames = selectedChildren.map((c) => c.name);
-    this.deps.narrativeGenerator.onSelected(node.name, selectedDisplayNames, children.length, traversalContext, selectionEvidence);
-    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
-    const tempNode = {
-      name: "selector-temp",
-      id: "selector-temp",
-      children: selectedChildren,
-      // Propagate the selector's fan-out error mode. Without this, ChildrenExecutor
-      // reads `tempNode.failFast` (undefined) and always uses Promise.allSettled —
-      // silently swallowing a required branch's error. See builder `failFast` option.
-      failFast: node.failFast
-    };
-    try {
-      return await this.childrenExecutor.executeNodeChildren(tempNode, context, void 0, branchPath, traversalContext);
-    } catch (error) {
-      if (isPauseSignal(error)) {
-        error.setInvoker(node.id);
-        throw error;
-      }
-      throw error;
-    }
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/servedPause.js
-function servedPause(context, pauseData) {
-  const rule = context.getRedactionRule();
-  if (!rule)
-    return pauseData;
-  try {
-    return rule.retainBoundary(pauseData);
-  } catch {
-    return SCOPE_PLACEHOLDER;
-  }
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/handlers/StageRunner.js
-var StageRunner = class {
-  deps;
-  constructor(deps) {
-    this.deps = deps;
-  }
-  /**
-   * Run one stage function. `attempt` is the attempt runner's (P1b) — present when the stage runs under a retry
-   * policy, a `timeoutMs` or a run deadline: the scope hands it out (`$attempt()`) and is fenced to it, and the
-   * race below is against ITS signal (the run's, composed with the attempt's cap). Without one, the race is
-   * against the run's signal, as it always was.
-   */
-  async run(node, stageFunc, context, breakFn, attempt) {
-    context.useAttempt(attempt, this.deps.signal);
-    const raceSignal = attempt && (this.deps.signal !== void 0 || attempt.timeoutMs !== void 0) ? attempt.signal : this.deps.signal;
-    const rawScope = this.deps.scopeFactory(context, node.name, this.deps.readOnlyContext, this.deps.executionEnv);
-    const runtime = requireScopeRuntime(rawScope);
-    const scope = runtime.handlesAssignments ? rawScope : createProtectedScope(rawScope, {
-      mode: this.deps.scopeProtectionMode,
-      stageName: node.name
-    });
-    let streamCallback;
-    let accumulatedText = "";
-    if (node.isStreaming) {
-      const streamId = node.streamId ?? node.name;
-      streamCallback = (token) => {
-        accumulatedText += token;
-        this.deps.streamHandlers?.onToken?.(streamId, token);
-      };
-      this.deps.streamHandlers?.onStart?.(streamId);
-    }
-    runtime.setBreak?.(breakFn);
-    runtime.target.notifyStageStart?.();
-    let result3;
-    try {
-      context.beginSourceInvocation(attempt);
-      const output = stageFunc(scope, breakFn, streamCallback);
-      if (output instanceof Promise) {
-        if (raceSignal) {
-          result3 = await raceAbort(output, raceSignal);
-        } else {
-          result3 = await output;
-        }
-      } else {
-        result3 = output;
-      }
-    } catch (error) {
-      if (isInterruptSignal(error)) {
-        const refusal = interruptProblem(node.touches) ?? (context.hasKeylessEffect ? "made a touching $call with no idempotencyKey, and a resume after interrupt() re-runs the stage from its top \u2014 the call would be sent again without a key. Give the call a key, or interrupt before it." : void 0);
-        if (refusal !== void 0)
-          throw new Error(`[footprint] stage '${node.id}' ${refusal}`);
-        runtime.target.notifyPause?.(servedPause(context, error.payload));
-        throw stampedPause(new PauseSignal(error.payload, node.id, "interrupt"), context, attempt);
-      }
-      if (isPauseSignal(error) && error instanceof PauseSignal)
-        stampedPause(error, context, attempt);
-      throw error;
-    }
-    runtime.target.notifyStageEnd?.();
-    if (node.isStreaming) {
-      const streamId = node.streamId ?? node.name;
-      this.deps.streamHandlers?.onEnd?.(streamId, accumulatedText);
-    }
-    if (node.isPausable && result3 !== void 0) {
-      const pauseData = isPauseResult(result3) ? result3.data : result3;
-      runtime.target.notifyPause?.(servedPause(context, pauseData));
-      throw stampedPause(new PauseSignal(pauseData, node.id), context, attempt);
-    }
-    return result3;
-  }
-};
-function stampedPause(signal, context, attempt) {
-  signal.stampExecution(context.runtimeStageId);
-  signal.stampIdempotencyKey(attempt?.idempotencyKey);
-  return signal;
-}
-function raceAbort(promise, signal) {
-  if (signal.aborted) {
-    promise.catch(() => void 0);
-    return Promise.reject(signal.reason instanceof Error ? signal.reason : new Error(signal.reason ?? "Aborted"));
-  }
-  return new Promise((resolve2, reject) => {
-    const onAbort = () => reject(signal.reason instanceof Error ? signal.reason : new Error(signal.reason ?? "Aborted"));
-    signal.addEventListener("abort", onAbort, { once: true });
-    promise.then((val) => {
-      signal.removeEventListener("abort", onAbort);
-      resolve2(val);
-    }, (err) => {
-      signal.removeEventListener("abort", onAbort);
-      reject(err);
-    });
-  });
+function scopeRunFrame(scope) {
+  const mapping = nativeMappingFrameFor(scope);
+  if (mapping)
+    return mapping;
+  return isObject(scope) ? nativeFrames.get(scope) : void 0;
 }
 
 // node_modules/foottrace/dist/esm/lib/read-sources/bindings.js
@@ -9605,12 +8509,36 @@ function withCopiedMeta(entry) {
     return { ready: rest, dropped: error };
   }
 }
+function servedCommit(entry) {
+  const { about, ...commit } = entry;
+  const ready = { ...commit, bundle: serveRecord(commit.bundle) };
+  if (about === void 0)
+    return { ready };
+  try {
+    return { ready: { ...ready, about: boundedAbout(about) } };
+  } catch (error) {
+    return { ready, dropped: error };
+  }
+}
+function declaredCollects(given) {
+  const reads = isEntryObject(given) ? given.reads : void 0;
+  if (reads !== "keys" && reads !== "off")
+    throw new TypeError("EventLog: collects.reads must be 'keys' or 'off'");
+  return Object.freeze({ v: RUN_EVIDENCE_VERSION, reads });
+}
+function stamped(data, seq) {
+  if (!isEntryObject(data))
+    throw new TypeError("EventLog.noteRun: data must be a plain object");
+  const note = { seq, ...data };
+  note.seq = seq;
+  return note;
+}
 function detached2(entry) {
   switch (entry.kind) {
     case "opened":
       return withCopiedMeta(entry);
     case "commit":
-      return { ready: { ...entry, bundle: serveRecord(entry.bundle) } };
+      return servedCommit(entry);
     case "note":
       if (typeof entry.note !== "string")
         throw new TypeError("EventLog.note: kind must be a string");
@@ -9635,10 +8563,11 @@ var EventLog = class {
    * @param initialMemory The fold base — the state before the first commit (copied).
    * @param options With a `sink`: every entry goes to it as it lands, under `address` — which also
    *   becomes this log's {@link address} — and `meta` rides the `opened` entry. The sink is told
-   *   `opened` before the constructor returns.
-   * @throws TypeError when `options` names no sink, a malformed address, or a base that is not a plain
-   *   object (the `opened` entry carries it) — a writer's mistake, refused at the door. Nothing the sink
-   *   itself does is ever thrown.
+   *   `opened` before the constructor returns. With `collects`, the log keeps run evidence (the module
+   *   doc) and says so on `opened`, stamped with the version.
+   * @throws TypeError when `options` names no sink, a malformed address, a malformed `collects`, or a
+   *   base that is not a plain object (the `opened` entry carries it) — a writer's mistake, refused at the
+   *   door. Nothing the sink itself does is ever thrown.
    */
   constructor(initialMemory, options) {
     this.base = initialMemory === void 0 ? {} : structuredClone(initialMemory);
@@ -9650,15 +8579,21 @@ var EventLog = class {
       throw new TypeError("EventLog: a log that writes to a sink needs a plain-object base \u2014 its opened entry carries it");
     }
     const address = frozenAddress(options.address);
+    const collects = options.collects === void 0 ? void 0 : declaredCollects(options.collects);
     this.sourceAddress = address;
     this.sink = options.sink;
     this.lostEntries = 0;
+    if (collects !== void 0) {
+      this.collects = collects;
+      this.runNotes = 0;
+    }
     this.send({
       kind: "opened",
       address,
       at: Date.now(),
       initialState: this.getInitialState(),
-      ...options.meta === void 0 ? {} : { meta: options.meta }
+      ...options.meta === void 0 ? {} : { meta: options.meta },
+      ...collects === void 0 ? {} : { collects }
     });
   }
   /**
@@ -9711,13 +8646,47 @@ var EventLog = class {
    * is stamped with its position, then deep-frozen, then appended. The engine hands it a bundle
    * built for the log alone; a caller of this class (`foottrace/write`) hands over a bundle it
    * will no longer edit — its own object is the one frozen.
+   *
+   * `about` rides the sink's entry beside the bundle (on a log that keeps evidence), and never touches it.
    */
-  record(bundle) {
+  record(bundle, about) {
     bundle.idx = this.steps.length;
     freezeRecord(bundle, "indices");
     this.steps.push(bundle);
-    if (this.sink !== void 0)
-      this.send({ kind: "commit", address: this.sourceAddress, at: Date.now(), bundle });
+    if (this.sink === void 0)
+      return;
+    const said = about !== void 0 && this.keepsEvidence ? { about } : {};
+    this.send({ kind: "commit", address: this.sourceAddress, at: Date.now(), bundle, ...said });
+  }
+  /** Does this log keep run evidence? True only with a sink and a declared `collects`. What a writer's seam asks first. */
+  get keepsEvidence() {
+    return this.collects !== void 0;
+  }
+  /**
+   * Note one `run.*` fact beside the log, stamped with the next `seq` — the twin of `record` stamping `idx`, so a note
+   * lost on the way is a hole the reader sees. Inert on a log that keeps no evidence.
+   *
+   * Never throws. A kind outside the closed list is a writer's mistake: counted and reported, no `seq` spent. Data
+   * that is not a plain object surviving `structuredClone`, or a sink that fails, is the same — and spends its `seq`.
+   */
+  noteRun(kind, data) {
+    if (this.collects === void 0)
+      return;
+    const entry = { kind: "note", address: this.sourceAddress, at: Date.now(), note: kind };
+    if (!isRunNoteKind(kind)) {
+      this.lost(this.sink, { ...entry, data: {} }, new TypeError("EventLog.noteRun: not a run note kind"));
+      return;
+    }
+    const seq = this.runNotes;
+    this.runNotes = seq + 1;
+    let note;
+    try {
+      note = stamped(data, seq);
+    } catch (error) {
+      this.lost(this.sink, { ...entry, data: { seq } }, error);
+      return;
+    }
+    this.send({ ...entry, data: note });
   }
   /**
    * Note something beside the log, in the sink, as it happens — for evidence that must survive a run
@@ -9725,19 +8694,25 @@ var EventLog = class {
    * writer's: opaque to the record. Notes never enter the log's bundles, so the log's bytes are the
    * same with or without them. Without a sink, nothing happens.
    *
-   * Never throws: a `kind` that is not a string, `data` that is not a plain object surviving
-   * `structuredClone`, or a sink that fails is counted in {@link sinkFailures} and reported to
-   * `sink.onFailure`. The sink keeps its own copy of `data`.
+   * Never throws: a `kind` that is not a string, a `kind` that takes the reserved `run.` prefix (only
+   * {@link noteRun} writes those), `data` that is not a plain object surviving `structuredClone`, or a
+   * sink that fails is counted in {@link sinkFailures} and reported to `sink.onFailure`. The sink keeps
+   * its own copy of `data`.
    */
   note(kind, data) {
     if (this.sink === void 0)
       return;
-    this.send({ kind: "note", address: this.sourceAddress, at: Date.now(), note: kind, data });
+    const entry = { kind: "note", address: this.sourceAddress, at: Date.now(), note: kind };
+    if (isReservedNoteKind(kind)) {
+      this.lost(this.sink, { ...entry, data: {} }, new TypeError("EventLog.note: the run. prefix is reserved"));
+      return;
+    }
+    this.send({ ...entry, data });
   }
   /**
    * Tell the sink this log ended — `outcome` and, for the reader's check that the stored log is
-   * whole, how many commits it holds now. `meta` rides the entry, copied. Without a sink, nothing
-   * happens. The log itself stays as it is: a later `record` still lands, and still reaches the sink
+   * whole, how many commits it holds now, and how many `run.*` notes it wrote when it keeps evidence.
+   * `meta` rides the entry, copied. Without a sink, nothing happens. The log itself stays as it is: a later `record` still lands, and still reaches the sink
    * (a reader then reads the log as not complete until it is closed again).
    *
    * Never throws: an unknown outcome, a `meta` that is not a plain object surviving `structuredClone`,
@@ -9752,7 +8727,8 @@ var EventLog = class {
       at: Date.now(),
       outcome,
       commits: this.steps.length,
-      ...meta === void 0 ? {} : { meta }
+      ...meta === void 0 ? {} : { meta },
+      ...this.collects === void 0 ? {} : { runNotes: this.runNotes }
     });
   }
   /**
@@ -9971,6 +8947,9 @@ var SharedMemory = class {
   }
 };
 
+// node_modules/foottrace/dist/esm/lib/evidence/readAttempts.js
+var READ_ATTEMPT_LIMIT = 32;
+
 // node_modules/foottrace/dist/esm/lib/read-sources/format.js
 var READ_SOURCE_V1_CEILINGS = Object.freeze({
   maxOccurrences: 65536,
@@ -9980,7 +8959,7 @@ var READ_SOURCE_V1_CEILINGS = Object.freeze({
   maxStaging: 16384
 });
 
-// node_modules/foottrace/dist/esm/lib/prov/ids.js
+// node_modules/foottrace/dist/esm/lib/ids/nativeExecution.js
 function nativeExecution(runtimeStageId) {
   if (!isExecutionKey(runtimeStageId))
     return void 0;
@@ -10001,25 +8980,25 @@ function utf8Bytes(value) {
 }
 
 // node_modules/foottrace/dist/esm/lib/read-sources/admission.js
-var refuse2 = () => new TypeError("read sources: invalid data");
+var refuse = () => new TypeError("read sources: invalid data");
 var descriptors = { translateTrapErrors: true, requireOwnValue: true };
-var sourceOwn = (value, key) => ownData2(value, key, refuse2, descriptors);
-var sourceList = (value, maximum, read) => boundedList(value, maximum, read, {
-  refuse: refuse2,
+var sourceOwn = (value, key) => ownData2(value, key, refuse, descriptors);
+var sourceList = (value, maximum, read2) => boundedList(value, maximum, read2, {
+  refuse,
   overflow: "node-limit",
   freeze: true,
   descriptors,
   translateArrayErrors: true
 });
 function sourceName(value) {
-  const name = boundedName(value, 1024, refuse2);
+  const name = boundedName(value, 1024, refuse);
   if (utf8Bytes(JSON.stringify(name)) > 1026)
-    throw refuse2();
+    throw refuse();
   return name;
 }
 function sourceKey(value) {
   if (typeof value !== "string" || value.length > 1024 || utf8Bytes(JSON.stringify(value)) > 1026)
-    throw refuse2();
+    throw refuse();
   return value;
 }
 function sourceAddress(value, name = sourceName) {
@@ -10031,13 +9010,13 @@ function sourceAddress(value, name = sourceName) {
 function sourceOwner(value) {
   const runtimeStageId = sourceName(sourceOwn(value, "runtimeStageId"));
   if (!nativeExecution(runtimeStageId))
-    throw refuse2();
+    throw refuse();
   const attempt = sourceOwn(value, "attemptId");
   if (attempt === void 0)
     return { runtimeStageId };
   const attemptId = sourceName(attempt);
   if (parseAttemptId(attemptId)?.runtimeStageId !== runtimeStageId)
-    throw refuse2();
+    throw refuse();
   return { runtimeStageId, attemptId };
 }
 var READ_SOURCE_DEFAULTS = Object.freeze({
@@ -10062,7 +9041,7 @@ function sourceLimits(value, defaults = READ_SOURCE_DEFAULTS) {
 var sourceBytes = (value) => utf8Bytes(JSON.stringify(value));
 function sourceInteger(value, minimum = 0) {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum)
-    throw refuse2();
+    throw refuse();
   return value;
 }
 function sourceNamespaces(value, limits) {
@@ -10101,12 +9080,14 @@ function scrubPatch(patch, redactedPaths) {
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/recordCommit.js
-function recordCommit(payload, stamp, into) {
+function recordCommit(payload, stamp, into, beganAt, sawUntil, viewAt) {
+  const names = namesOf(stamp);
+  const about = stamp.about;
+  const seen = seenOf(into.log?.length, beganAt, sawUntil);
   if (payload === void 0) {
-    into.log?.record(bundleOf({}, {}, [], [], namesOf(stamp)));
+    into.log?.record(bundleOf({}, {}, [], [], names, seen, void 0), about);
     return;
   }
-  const names = namesOf(stamp);
   const { redactedPaths, trace } = payload;
   into.state.applyPatch(payload.overwrite, payload.updates, trace);
   const capture2 = captureFor(into.state);
@@ -10116,13 +9097,21 @@ function recordCommit(payload, stamp, into) {
   into.mirror?.applyPatch(overwrite, updates, trace);
   if (!into.log)
     return;
-  const bundle = bundleOf(overwrite, updates, [...redactedPaths], trace, names);
-  into.log.record(bundle);
+  const bundle = bundleOf(overwrite, updates, [...redactedPaths], trace, names, seen, viewOf(into.log.length, viewAt));
+  into.log.record(bundle, about);
   if (capture2 && capture2 === captureFor(into.log) && sourceClock !== void 0 && bundle.idx !== void 0) {
     capture2.confirm(sourceClock, bundle.idx, trace, redactedPaths);
   }
 }
-function bundleOf(overwrite, updates, redactedPaths, trace, names) {
+function seenOf(length, beganAt, sawUntil) {
+  if (length === void 0 || beganAt === void 0 || beganAt >= length)
+    return void 0;
+  return sawUntil !== void 0 && sawUntil > beganAt ? { beganAt, sawUntil } : { beganAt };
+}
+function viewOf(length, viewAt) {
+  return viewAt === void 0 || viewAt >= length ? void 0 : viewAt;
+}
+function bundleOf(overwrite, updates, redactedPaths, trace, names, seen, viewAt) {
   const { stage, stageId, runtimeStageId, untrackedSources, tags, phase } = names;
   const bundle = { overwrite, updates, redactedPaths, trace, stage, stageId, runtimeStageId };
   if (untrackedSources)
@@ -10131,6 +9120,13 @@ function bundleOf(overwrite, updates, redactedPaths, trace, names) {
     bundle.tags = tags;
   if (phase)
     bundle.phase = phase;
+  if (seen) {
+    bundle.beganAt = seen.beganAt;
+    if (seen.sawUntil !== void 0)
+      bundle.sawUntil = seen.sawUntil;
+  }
+  if (viewAt !== void 0)
+    bundle.viewAt = viewAt;
   return bundle;
 }
 function namesOf({ stage, stageId, runtimeStageId, untrackedSources, tags, phase }) {
@@ -10160,17 +9156,22 @@ function foldsBack(fold, workingCopy, family, address) {
   if (!spineHeld(fold, workingCopy, segments3, address))
     return false;
   const folded = nativeGet(fold, segments3);
-  const read = nativeGet(workingCopy, segments3);
-  if (deepEqual(folded, read, "copies"))
+  const read2 = nativeGet(workingCopy, segments3);
+  if (deepEqual(folded, read2, "copies"))
     return true;
-  family.held = { value: structuredClone(read) };
+  family.held = { value: structuredClone(read2) };
   return deepEqual(folded, family.held.value, "copies");
 }
 function touchedFamilies(ops) {
   const touches = /* @__PURE__ */ new Map();
   for (let i = 0; i < ops.length; i++) {
     touches.delete(ops[i].path);
-    touches.set(ops[i].path, { last: i, readKeys: ops[i].readKeys });
+    touches.set(ops[i].path, {
+      last: i,
+      readKeys: ops[i].readKeys,
+      readAttempts: ops[i].readAttempts,
+      readAttemptsOmitted: ops[i].readAttemptsOmitted
+    });
   }
   const rootOf2 = /* @__PURE__ */ new Map();
   const families = /* @__PURE__ */ new Map();
@@ -10182,7 +9183,12 @@ function touchedFamilies(ops) {
       family = { root, rootSegments: root.split(DELIM), members: [], slot: touch.last };
       families.set(root, family);
     }
-    family.members.push({ path, readKeys: touch.readKeys });
+    family.members.push({
+      path,
+      readKeys: touch.readKeys,
+      readAttempts: touch.readAttempts,
+      readAttemptsOmitted: touch.readAttemptsOmitted
+    });
     if (touch.last > family.slot)
       family.slot = touch.last;
   }
@@ -10236,12 +9242,12 @@ function shallowestIn(path, touched) {
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/deltaEncoding.js
-function pushValueRow(rows, path, segments3, before, value, prov, marked = false) {
+function pushValueRow(rows, path, segments3, before, value, prov, marked = false, whenSet = {}) {
   if (!marked && isStrictArrayPrefix(before, value)) {
     rows.trace.push({ path, verb: "append", ...prov });
     nativeSet(rows.overwrite, segments3, structuredClone(value.slice(before.length)));
   } else {
-    rows.trace.push({ path, verb: "set", ...prov });
+    rows.trace.push({ path, verb: "set", ...prov, ...whenSet });
     nativeSet(rows.overwrite, segments3, structuredClone(value));
   }
 }
@@ -10293,11 +9299,250 @@ function isStrictArrayPrefix(before, after) {
   return isIndexOnly(before) && isIndexOnly(after);
 }
 function isIndexOnly(arr) {
-  return Object.keys(arr).length === arr.length;
+  const keys = Object.keys(arr);
+  if (keys.length !== arr.length)
+    return false;
+  return keys.length === 0 || keys[keys.length - 1] === String(arr.length - 1);
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/hardWriteCoverage.js
+function hardWriteCovers(keys, path) {
+  let prefix = "";
+  for (let index = 0; index < path.length; index++) {
+    prefix += (index === 0 ? "" : DELIM) + String(path[index]);
+    if (keys.has(prefix))
+      return true;
+  }
+  return false;
+}
+function viewMark(keys, path) {
+  return hardWriteCovers(keys, path) ? {} : { builtOnView: true };
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/staged.js
+function changedSinceBase(staged, segments3) {
+  return !deepEqual(nativeGet(staged.base, segments3), nativeGet(staged.final, segments3));
+}
+function provenance(readKeys, readAttempts, readAttemptsOmitted) {
+  if (readKeys === void 0 && !readAttempts?.length)
+    return void 0;
+  return {
+    ...readKeys !== void 0 && { readKeys },
+    ...readAttempts?.length && { readAttempts },
+    ...readAttemptsOmitted && { readAttemptsOmitted }
+  };
+}
+function markedBelow(redactedPaths, path) {
+  const prefix = path + DELIM;
+  for (const marked of redactedPaths) {
+    if (!marked.startsWith(prefix))
+      continue;
+    const next = marked.slice(prefix.length).split(DELIM)[0];
+    if (/^(0|[1-9]\d*)$/.test(next))
+      return true;
+  }
+  return false;
+}
+function survivingRedactedPaths(redactedPaths, survivingPaths) {
+  const out = /* @__PURE__ */ new Set();
+  for (const path of redactedPaths) {
+    if (survivingPaths.has(path)) {
+      out.add(path);
+      continue;
+    }
+    for (const op of survivingPaths) {
+      if (path.startsWith(op + DELIM)) {
+        out.add(path);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/readBack.js
+function emitReadBack(staged, family, rows, encoding) {
+  let root = family.members[0];
+  let changed = 0;
+  for (const m of family.members) {
+    if (m.path === family.root) {
+      root = m;
+      continue;
+    }
+    const segments3 = m.path.split(DELIM);
+    if (!changedSinceBase(staged, segments3))
+      continue;
+    rows.trace.push({
+      path: m.path,
+      verb: "set",
+      ...provenance(m.readKeys, m.readAttempts, m.readAttemptsOmitted),
+      ...viewMark(staged.hardWriteKeys, segments3)
+    });
+    changed++;
+  }
+  const after = nativeGet(staged.final, family.rootSegments);
+  if (encoding === "delta" && changed === 0 && after !== void 0) {
+    const before = nativeGet(staged.base, family.rootSegments);
+    pushValueRow(rows, family.root, family.rootSegments, before, after, provenance(root.readKeys, root.readAttempts, root.readAttemptsOmitted), markedBelow(staged.redactedPaths, family.root), viewMark(staged.hardWriteKeys, family.rootSegments));
+    return;
+  }
+  rows.trace.push({
+    path: family.root,
+    verb: "set",
+    ...provenance(root.readKeys, root.readAttempts, root.readAttemptsOmitted),
+    ...viewMark(staged.hardWriteKeys, family.rootSegments)
+  });
+  nativeSet(rows.overwrite, family.rootSegments, family.held !== void 0 ? family.held.value : structuredClone(after));
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/deltaRows.js
+function deltaRows(staged, lossy, fullValueAt) {
+  const rows = { overwrite: {}, updates: {}, trace: [] };
+  const { overwrite, updates, trace } = rows;
+  const inLossy = (path) => lossy?.families.has(lossy.rootOf.get(path)) === true;
+  const survivors = netChangeSurvivors(staged, opsByPath(staged.ops)).filter((s) => !inLossy(s.path));
+  const { rootOf: rootOf2, byRoot } = groupIntoFamilies(survivors, new Set(survivors.map((s) => s.path)));
+  const emit = (s) => {
+    const { path, segments: segments3, verbs, before } = s;
+    const prov = provenance(s.readKeys, s.readAttempts, s.readAttemptsOmitted);
+    if (byRoot.get(rootOf2.get(path)).length > 1) {
+      trace.push({ path, verb: "set", ...prov, ...viewMark(staged.hardWriteKeys, segments3) });
+      nativeSet(overwrite, segments3, structuredClone(fullValueAt(segments3)));
+      return;
+    }
+    const lastVerb = verbs[verbs.length - 1];
+    if (lastVerb === "delete" && s.after === void 0 && deleteReplaysAsFlattening(staged.base, segments3)) {
+      trace.push({ path, verb: "delete", ...prov });
+      nativeSet(overwrite, segments3, void 0);
+    } else if (verbs.every((v) => v === "merge")) {
+      trace.push({ path, verb: "merge", ...prov });
+      nativeSet(updates, segments3, structuredClone(nativeGet(staged.updatePatch, segments3)));
+    } else {
+      pushValueRow(rows, path, segments3, before, fullValueAt(segments3), prov, markedBelow(staged.redactedPaths, path));
+    }
+  };
+  const pending = lossy === void 0 ? [] : [...lossy.families.values()].sort((a, b) => a.slot - b.slot);
+  let next = 0;
+  const flushBefore = (touch) => {
+    while (next < pending.length && pending[next].slot < touch)
+      emitReadBack(staged, pending[next++], rows, "delta");
+  };
+  emitInFamilyOrder(survivors, rootOf2, byRoot, emit, flushBefore);
+  flushBefore(Infinity);
+  return rows;
+}
+function opsByPath(ops) {
+  const byPath = /* @__PURE__ */ new Map();
+  for (let i = 0; i < ops.length; i++) {
+    const op = ops[i];
+    const prev = byPath.get(op.path);
+    if (prev) {
+      prev.verbs.push(op.verb);
+      prev.last = i;
+      if (op.readKeys !== void 0)
+        prev.readKeys = op.readKeys;
+      prev.readAttempts = op.readAttempts;
+      prev.readAttemptsOmitted = op.readAttemptsOmitted;
+      byPath.delete(op.path);
+      byPath.set(op.path, prev);
+    } else {
+      byPath.set(op.path, {
+        verbs: [op.verb],
+        last: i,
+        ...provenance(op.readKeys, op.readAttempts, op.readAttemptsOmitted)
+      });
+    }
+  }
+  return byPath;
+}
+function netChangeSurvivors(staged, byPath) {
+  const survivors = [];
+  for (const [path, { verbs, readKeys, readAttempts, readAttemptsOmitted, last }] of byPath) {
+    const segments3 = path.split(DELIM);
+    if (!changedSinceBase(staged, segments3))
+      continue;
+    const before = nativeGet(staged.base, segments3);
+    const after = nativeGet(staged.final, segments3);
+    survivors.push({ path, segments: segments3, verbs, readKeys, readAttempts, readAttemptsOmitted, last, before, after });
+  }
+  return survivors;
+}
+function deleteReplaysAsFlattening(base, segments3) {
+  if (segments3.length === 1)
+    return true;
+  const parent = nativeGet(base, segments3.slice(0, -1));
+  return parent !== null && typeof parent === "object";
+}
+
+// node_modules/foottrace/dist/esm/lib/memory/fullRows.js
+function changeOnlyRows(staged, lossy) {
+  const rows = { overwrite: {}, updates: {}, trace: [] };
+  const { overwrite, updates, trace } = rows;
+  const survives = /* @__PURE__ */ new Map();
+  let lastSetPath;
+  let lastMergePath;
+  for (let i = 0; i < staged.ops.length; i++) {
+    const op = staged.ops[i];
+    const family = lossy?.families.get(lossy.rootOf.get(op.path));
+    if (family !== void 0) {
+      if (i === family.slot) {
+        emitReadBack(staged, family, rows, "full");
+        lastSetPath = lastMergePath = void 0;
+      }
+      continue;
+    }
+    let keep = survives.get(op.path);
+    if (keep === void 0) {
+      keep = changedSinceBase(staged, op.path.split(DELIM));
+      survives.set(op.path, keep);
+    }
+    if (!keep)
+      continue;
+    trace.push(flattenedTraceRow(op));
+    if (op.verb === "merge") {
+      if (lastMergePath === op.path)
+        continue;
+      lastMergePath = op.path;
+      const segments3 = op.path.split(DELIM);
+      nativeSet(updates, segments3, structuredClone(nativeGet(staged.updatePatch, segments3)));
+    } else {
+      if (lastSetPath === op.path)
+        continue;
+      lastSetPath = op.path;
+      const segments3 = op.path.split(DELIM);
+      nativeSet(overwrite, segments3, structuredClone(nativeGet(staged.overwritePatch, segments3)));
+    }
+  }
+  return rows;
+}
+function fullRowsValue(staged) {
+  if (!staged.needsFold)
+    return (segments3) => nativeGet(staged.overwritePatch, segments3);
+  let fold;
+  return (segments3) => {
+    fold ??= dryFold(staged.base, staged.updatePatch, staged.overwritePatch, fullRows(staged));
+    return nativeGet(fold, segments3);
+  };
+}
+function fullRows(staged) {
+  const keep = /* @__PURE__ */ new Map();
+  const rows = [];
+  for (const op of staged.ops) {
+    let k = keep.get(op.path);
+    if (k === void 0)
+      keep.set(op.path, k = changedSinceBase(staged, op.path.split(DELIM)));
+    if (k)
+      rows.push({ path: op.path, verb: op.verb === "merge" ? "merge" : "set" });
+  }
+  return rows;
+}
+function flattenedTraceRow(op) {
+  return op.verb === "delete" ? { path: op.path, verb: "set", ...provenance(op.readKeys, op.readAttempts, op.readAttemptsOmitted) } : op;
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/TransactionBuffer.js
 var TransactionBuffer = class {
+  readAttemptsProvider;
   /**
    * The net-change diff base: the committed generation the stage first
    * touched, by reference — except where {@link detachBase} replaced a path
@@ -10310,6 +9555,7 @@ var TransactionBuffer = class {
   updatePatch = {};
   opTrace = [];
   redactedPaths = /* @__PURE__ */ new Set();
+  hardWriteKeys = /* @__PURE__ */ new Set();
   /**
    * Paths whose `overwritePatch` value is the caller's own object (9.23.0):
    * a `set` of a container stores the reference, and this is the ledger of
@@ -10373,7 +9619,8 @@ var TransactionBuffer = class {
   stagedMerges = 0;
   /** Ops staged deeper than one key below the stage's address — see {@link admit}. */
   nestedOps = 0;
-  constructor(base, commitValues = "full", readKeysProvider, address = [], sourceStaging) {
+  constructor(base, commitValues = "full", readKeysProvider, address = [], sourceStaging, readAttemptsProvider) {
+    this.readAttemptsProvider = readAttemptsProvider;
     this.baseSnapshot = base;
     this.workingCopy = ownedRootOf(base, this.owned);
     this.commitValues = commitValues;
@@ -10388,6 +9635,12 @@ var TransactionBuffer = class {
   stampReadKeys(op) {
     if (this.readKeysProvider)
       op.readKeys = this.readKeysProvider();
+    const attempts = this.readAttemptsProvider?.();
+    if (attempts?.readAttempts?.length) {
+      op.readAttempts = [...attempts.readAttempts];
+      if (attempts.readAttemptsOmitted)
+        op.readAttemptsOmitted = attempts.readAttemptsOmitted;
+    }
     return op;
   }
   /** Stage an op into `opTrace`, counting what decides whether {@link admit} must fold. */
@@ -10398,6 +9651,8 @@ var TransactionBuffer = class {
       this.nestedOps++;
     this.sourceStaging?.write(path, verb, this.redactedPaths.has(key));
     this.opTrace.push(this.stampReadKeys({ path: key, verb }));
+    if (verb === "set" || verb === "delete")
+      this.hardWriteKeys.add(key);
   }
   /**
    * Hard overwrite at the specified path. Stores the REFERENCE in both trees
@@ -10461,7 +9716,7 @@ var TransactionBuffer = class {
    *
    * Stages EXACTLY the same buffer mutations as `set(path, undefined)` —
    * `workingCopy`/`overwritePatch` get an own `undefined` at the path (the
-   * historical flattening, preserving read behavior and the dedup diff base
+   * historical flattening, preserving patch bytes and the dedup diff base
    * across modes) — but records the op verb as `'delete'`. At commit:
    * `'full'` mode maps it back to a `'set'` trace entry (byte-identical to
    * today); `'delta'` mode emits a real `'delete'` entry whose replay
@@ -10547,45 +9802,6 @@ var TransactionBuffer = class {
     }
   }
   /**
-   * Does a redaction mark address an array ELEMENT right below `path`
-   * (`list.1.token`)? An `append` row re-bases the indices onto the tail, so
-   * such a path takes the whole-value `set` (`deltaEncoding · pushValueRow`).
-   * A mark by NAME below an array (`obj.y`) means the same thing on the tail
-   * as on the whole value, so the compact row stays (byte-identical).
-   */
-  markedBelow(path) {
-    const prefix = path + DELIM;
-    for (const marked of this.redactedPaths) {
-      if (!marked.startsWith(prefix))
-        continue;
-      const next = marked.slice(prefix.length).split(DELIM)[0];
-      if (/^(0|[1-9]\d*)$/.test(next))
-        return true;
-    }
-    return false;
-  }
-  /**
-   * The redacted paths that survive the net-change filter: a path survives
-   * when it IS a surviving op path (a whole-key redaction) or sits UNDER one
-   * (a field inside a surviving write). A dropped op takes its fields with it.
-   */
-  survivingRedactedPaths(survivingPaths) {
-    const out = /* @__PURE__ */ new Set();
-    for (const path of this.redactedPaths) {
-      if (survivingPaths.has(path)) {
-        out.add(path);
-        continue;
-      }
-      for (const op of survivingPaths) {
-        if (path.startsWith(op + DELIM)) {
-          out.add(path);
-          break;
-        }
-      }
-    }
-    return out;
-  }
-  /**
    * Read current value at path (includes uncommitted changes). The value is
    * the stage's own — private to it, as the whole-state clone made every read
    * after the first write before 9.29.0 (`privatise`).
@@ -10605,27 +9821,18 @@ var TransactionBuffer = class {
   /**
    * Keep the diff base exact under a read the working copy cannot answer.
    *
-   * When `workingCopy` holds nothing at `path` — the stage deleted or unset
-   * it, or a write replaced a container above it — `RecordFrame · read`
-   * serves the read from LIVE committed state, exactly as 9.28.0
-   * did, so the value it hands out is committed state itself. On 9.28.0 the
-   * diff base was a whole-state clone taken at the stage's first write, and
-   * an in-place edit of that value (out of contract — reads are borrowed)
-   * could not move it: written back, the edit was recorded. Here the diff
-   * base IS a committed generation, and it very often holds that same
-   * container at `path` — the edit would move the base with it, and the
-   * write-back would commit no change. So before the value goes out, the
-   * base's value at `path` is replaced by a private deep copy (the base's
-   * root and the containers on the way copied shallowly) — what 9.28.0's
-   * base held there. The commit's net-change test compares against it and
-   * the delta encoder replays from it; the value handed out stays the live
-   * one, so whatever else an edit of it reaches (live state, the next
-   * generation) behaves as on 9.28.0 too.
+   * Only an unresolved path not covered by a staged hard set/delete may
+   * fall back to LIVE state. Its returned container can also be held in
+   * the diff base. A borrowed in-place edit would then move that base and
+   * make a later write-back appear unchanged. Replace the base's value at
+   * `path` with a private deep copy before the live value goes out, copying
+   * its root and ancestors shallowly. The net-change test and delta replay
+   * use that private base, as the old whole-state clone did. The returned
+   * value remains live, preserving the existing borrowed-read behavior.
    *
-   * Not `privatise`: a private copy handed to the stage would also keep the
-   * edit out of live state, where 9.28.0 let it in — a run-namespaced read
-   * that falls back to a global key would then end differently (the
-   * differential's NESTED family fails within 100 programs that way).
+   * Not `privatise`: returning a private copy would also keep the edit out
+   * of live state. A namespace read falling back to a global key retains
+   * the existing borrowed-reference behavior.
    *
    * Copies nothing when the base holds no container at `path`, and nothing
    * twice: a path at or below an earlier detach is already private. O(path)
@@ -10746,6 +9953,10 @@ var TransactionBuffer = class {
     this.privateTrees.add(copy);
     return copy;
   }
+  /** Does a successful staged hard set/delete own this path or an ancestor? */
+  hasHardWrite(path) {
+    return hardWriteCovers(this.hardWriteKeys, path);
+  }
   /**
    * Did any staged op touch `path`, or a path above or below it?
    *
@@ -10788,7 +9999,7 @@ var TransactionBuffer = class {
    * At commit we hold BOTH `baseSnapshot` (state when the stage began) and
    * `workingCopy` (state after all its writes). For each path the stage touched
    * we keep it in the bundle ONLY if its final value differs from the base
-   * value ({@link deepEqual}). No-op AND write-revert paths drop out, because
+   * value (`deepEqual`, asked by `staged.ts · changedSinceBase`). No-op AND write-revert paths drop out, because
    * both compare equal to base. This is a single net-delta diff at commit time
    * — one deep compare per touched path, O(changed state), paid once per stage
    * (NOT per write). A naive per-write deep-equal skip would be more expensive
@@ -10824,11 +10035,12 @@ var TransactionBuffer = class {
    */
   commit() {
     const rows = this.commitValues === "delta" ? this.toDeltaPayload() : this.toChangeOnlyPayload();
-    const redactedPaths = this.survivingRedactedPaths(new Set(rows.trace.map((t) => t.path)));
+    const redactedPaths = survivingRedactedPaths(this.redactedPaths, new Set(rows.trace.map((t) => t.path)));
     const payload = { overwrite: rows.overwrite, updates: rows.updates, redactedPaths, trace: rows.trace };
     this.overwritePatch = {};
     this.updatePatch = {};
     this.opTrace.length = 0;
+    this.hardWriteKeys.clear();
     this.redactedPaths.clear();
     this.heldRefs.clear();
     this.workingCopy = {};
@@ -10841,151 +10053,40 @@ var TransactionBuffer = class {
     return payload;
   }
   /**
-   * Rebuild overwrite / updates / trace keeping ONLY paths whose final value
-   * differs from the base value — i.e. the stage's net change. See
-   * {@link TransactionBuffer.commit} for the rationale.
-   *
-   * Paths are compared at the exact granularity they were written (each trace
-   * entry's path), against `workingCopy` (final) vs `baseSnapshot` (start).
-   * Surviving `set` paths copy their final value from `overwritePatch`;
-   * surviving `merge` paths copy their accumulated delta from `updatePatch`,
-   * keeping the set-vs-merge verb — and the result is ADMITTED ({@link admit}):
-   * a family of rows whose replay does not give back what the stage read is
-   * recorded as `set` rows of the read-back instead (9.30.0).
-   *
-   * This is the DEFAULT (`commitValues: 'full'`) payload, including the
-   * historical flattening of staged `delete` ops into `set`-of-`undefined`
-   * trace entries. The delta encoding lives in {@link toDeltaPayload}.
-   *
-   * Work, not bytes (9.22.1): the net-change verdict is paid once per PATH
-   * and the clone once per CONSECUTIVE run of ops on a path, not once per op
-   * — see the two memos inside. Pinned by
-   * test/lib/memory/scenario/repeated-path-byte-identity.test.ts against the
-   * 9.22.0 bytes. Since 9.23.0 that clone is THE clone: the patch trees hold
-   * the caller's references (see the class header), so this loop is the one
-   * place the record is detached from them.
+   * What the stage staged, as the encoders read it (`staged.ts · Staged`). Built once per commit, out of
+   * the buffer's own objects by reference. Nothing is staged while a commit lays its rows out, so
+   * the view stays true until the reset at the end of {@link commit}.
    */
-  toChangeOnlyPayload() {
-    return this.admit((lossy) => this.changeOnlyRows(lossy));
-  }
-  /** The 'full' rows; a family in `lossy` is written as its read-back, at its last touch ({@link emitReadBack}). */
-  changeOnlyRows(lossy) {
-    const rows = { overwrite: {}, updates: {}, trace: [] };
-    const { overwrite, updates, trace } = rows;
-    const survives = /* @__PURE__ */ new Map();
-    let lastSetPath;
-    let lastMergePath;
-    for (let i = 0; i < this.opTrace.length; i++) {
-      const op = this.opTrace[i];
-      const family = lossy?.families.get(lossy.rootOf.get(op.path));
-      if (family !== void 0) {
-        if (i === family.slot) {
-          this.emitReadBack(family, rows, "full");
-          lastSetPath = lastMergePath = void 0;
-        }
-        continue;
-      }
-      let keep = survives.get(op.path);
-      if (keep === void 0) {
-        keep = this.changedSinceBase(op.path.split(DELIM));
-        survives.set(op.path, keep);
-      }
-      if (!keep)
-        continue;
-      trace.push(flattenedTraceRow(op));
-      if (op.verb === "merge") {
-        if (lastMergePath === op.path)
-          continue;
-        lastMergePath = op.path;
-        const segments3 = op.path.split(DELIM);
-        nativeSet(updates, segments3, structuredClone(nativeGet(this.updatePatch, segments3)));
-      } else {
-        if (lastSetPath === op.path)
-          continue;
-        lastSetPath = op.path;
-        const segments3 = op.path.split(DELIM);
-        nativeSet(overwrite, segments3, structuredClone(nativeGet(this.overwritePatch, segments3)));
-      }
-    }
-    return rows;
+  atCommit() {
+    return {
+      base: this.baseSnapshot,
+      final: this.workingCopy,
+      overwritePatch: this.overwritePatch,
+      updatePatch: this.updatePatch,
+      ops: this.opTrace,
+      hardWriteKeys: this.hardWriteKeys,
+      redactedPaths: this.redactedPaths,
+      needsFold: this.stagedMerges !== 0 || this.nestedOps !== 0
+    };
   }
   /**
-   * Delta-encoded payload (`commitValues: 'delta'`, #13c-B) — same net-change
-   * filter as {@link toChangeOnlyPayload}, three encoding differences:
-   *
-   * 1. **One trace entry per surviving path** (the §2.5 dedup rule — `append`
-   *    is NOT idempotent on replay, so duplicate entries would multiply
-   *    tails). The verb is resolved from the path's op mix + base→final
-   *    relationship; entries are ordered by each path's LAST touch,
-   *    preserving last-writer-wins for nested/overlapping paths.
-   * 2. **Verb resolution per path** — for a path with NO surviving relative
-   *    (see 3):
-   *    - last op `'delete'` AND final value gone → `delete` (the path stays
-   *      enumerated in `overwrite` with `undefined` for key-set consumers).
-   *      Requires the parent to be a real container in the base — replay uses
-   *      `nativeDelete`, which is inert on a primitive/absent parent, whereas
-   *      the `'full'` flattening (`_set` of `undefined`) COERCES that parent
-   *      into an object; when they would disagree we keep the flattening;
-   *    - ONLY `'merge'` ops → `merge` with the accumulated `updatePatch`
-   *      delta;
-   *    - otherwise (`set`/mixed): the value the stage's 'full' rows give the
-   *      path ({@link fullRowsValue}). If base and that value are arrays and
-   *      base is a STRICT PREFIX → `append` storing only the tail; else `set`
-   *      storing the full value.
-   * 3. **OVERLAP FAMILIES take the full-value fallback.** `overwrite` /
-   *    `updates` are nested path TREES, so two surviving paths where one is
-   *    an ancestor of the other (`a` and `a.p`) share storage. Delta's
-   *    per-path encodings would clobber each other there (an `append`
-   *    ancestor stores only a TAIL, a `delete` ancestor `undefined`), so every
-   *    path that has a surviving ancestor/descendant is committed as a plain
-   *    `set` of the value the 'full' rows give it, and the family's
-   *    shallowest path (whose set covers the whole subtree) is emitted LAST.
-   *
-   * The result is ADMITTED ({@link admit}) like the 'full' payload: a compact
-   * row is kept only where the bundle provably folds back, and a family that
-   * does not is recorded as what the stage read. So both encodings commit the
-   * value the stage read; before 9.30.0 they shared a replay that did not
-   * (`replayPathVerbs` / `replayFamilyVerbs`, deleted).
+   * The DEFAULT (`commitValues: 'full'`) payload: the stage's net change, one row per surviving op,
+   * ADMITTED ({@link admit}). The layout is `fullRows.ts · changeOnlyRows`.
+   */
+  toChangeOnlyPayload() {
+    const staged = this.atCommit();
+    return this.admit((lossy) => changeOnlyRows(staged, lossy));
+  }
+  /**
+   * The delta-encoded payload (`commitValues: 'delta'`, #13c-B): one row per surviving path, its verb
+   * chosen per path, ADMITTED ({@link admit}) like the 'full' payload. The layout is
+   * `deltaRows.ts · deltaRows`; the values it encodes come from the one replay of the stage's 'full'
+   * rows (`fullRows.ts · fullRowsValue`), taken once and shared by both layouts of an admission.
    */
   toDeltaPayload() {
-    const fullValueAt = this.fullRowsValue();
-    return this.admit((lossy) => this.deltaRows(lossy, fullValueAt));
-  }
-  /** The delta rows; a family in `lossy` is written as its read-back, at its last touch ({@link emitReadBack}). */
-  deltaRows(lossy, fullValueAt) {
-    const rows = { overwrite: {}, updates: {}, trace: [] };
-    const { overwrite, updates, trace } = rows;
-    const inLossy = (path) => lossy?.families.has(lossy.rootOf.get(path)) === true;
-    const survivors = this.netChangeSurvivors(this.opsByPath()).filter((s) => !inLossy(s.path));
-    const { rootOf: rootOf2, byRoot } = groupIntoFamilies(survivors, new Set(survivors.map((s) => s.path)));
-    const emit = (s) => {
-      const { path, segments: segments3, verbs, before } = s;
-      const prov = provenance(s.readKeys);
-      if (byRoot.get(rootOf2.get(path)).length > 1) {
-        trace.push({ path, verb: "set", ...prov });
-        nativeSet(overwrite, segments3, structuredClone(fullValueAt(segments3)));
-        return;
-      }
-      const lastVerb = verbs[verbs.length - 1];
-      if (lastVerb === "delete" && s.after === void 0 && this.deleteReplaysAsFlattening(segments3)) {
-        trace.push({ path, verb: "delete", ...prov });
-        nativeSet(overwrite, segments3, void 0);
-      } else if (verbs.every((v) => v === "merge")) {
-        trace.push({ path, verb: "merge", ...prov });
-        nativeSet(updates, segments3, structuredClone(nativeGet(this.updatePatch, segments3)));
-      } else {
-        pushValueRow(rows, path, segments3, before, fullValueAt(segments3), prov, this.markedBelow(path));
-      }
-    };
-    const pending = lossy === void 0 ? [] : [...lossy.families.values()].sort((a, b) => a.slot - b.slot);
-    let next = 0;
-    const flushBefore = (touch) => {
-      while (next < pending.length && pending[next].slot < touch)
-        this.emitReadBack(pending[next++], rows, "delta");
-    };
-    emitInFamilyOrder(survivors, rootOf2, byRoot, emit, flushBefore);
-    flushBefore(Infinity);
-    return rows;
+    const staged = this.atCommit();
+    const fullValueAt = fullRowsValue(staged);
+    return this.admit((lossy) => deltaRows(staged, lossy, fullValueAt));
   }
   // ── The admitted record (9.30.0) ───────────────────────────────────────
   /**
@@ -10994,8 +10095,8 @@ var TransactionBuffer = class {
    * lays the rows out (one encoder: `'full'` or `'delta'`); the candidate is
    * checked ({@link lossyFamilies}), and when some family's rows do not fold
    * back the rows are laid out again with those families written as what the
-   * stage read ({@link emitReadBack}) — every other family's bytes exactly as
-   * the first layout made them.
+   * stage read (`readBack.ts · emitReadBack`) — every other family's bytes
+   * exactly as the first layout made them.
    */
   admit(build) {
     const candidate = build(void 0);
@@ -11021,143 +10122,7 @@ var TransactionBuffer = class {
       return void 0;
     return lossyFamilies(candidate, this.baseSnapshot, this.workingCopy, this.opTrace, this.address);
   }
-  /**
-   * A family whose rows did not fold back, written as what the stage read:
-   * one `set` row per member that changed (descendants by last touch, each
-   * with its own read prefix), the ROOT last, and the root's read-back value
-   * in `overwrite` — one coherent tree, so no row can clobber another. The
-   * root's row is written even when the root itself did not change: it is the
-   * row that carries the family's read-back (and the containers L-1's dropped
-   * op left). A lone root under `'delta'` keeps the compact `append` when the
-   * value it read is its base plus a tail.
-   */
-  emitReadBack(family, rows, encoding) {
-    let root = family.members[0];
-    let changed = 0;
-    for (const m of family.members) {
-      if (m.path === family.root) {
-        root = m;
-        continue;
-      }
-      if (!this.changedSinceBase(m.path.split(DELIM)))
-        continue;
-      rows.trace.push({ path: m.path, verb: "set", ...provenance(m.readKeys) });
-      changed++;
-    }
-    const after = nativeGet(this.workingCopy, family.rootSegments);
-    if (encoding === "delta" && changed === 0 && after !== void 0) {
-      const before = nativeGet(this.baseSnapshot, family.rootSegments);
-      pushValueRow(rows, family.root, family.rootSegments, before, after, provenance(root.readKeys), this.markedBelow(family.root));
-      return;
-    }
-    rows.trace.push({ path: family.root, verb: "set", ...provenance(root.readKeys) });
-    nativeSet(rows.overwrite, family.rootSegments, family.held !== void 0 ? family.held.value : structuredClone(after));
-  }
-  /**
-   * The value the stage's 'full' rows give a path — what the delta encoder
-   * commits for a family member or a path with a `set` — read from ONE
-   * {@link dryFold} of those rows over the patch trees themselves, taken the
-   * first time it is asked. By reference, as the stage held them: an element
-   * a `set` and a `merge` of one path share stays one element. A stage that
-   * staged no `merge` and no nested op needs no fold — a path's value is its
-   * last staged value. (Before 9.30.0: two replicas of the verb law,
-   * `replayPathVerbs` and `replayFamilyVerbs`.)
-   */
-  fullRowsValue() {
-    if (this.stagedMerges === 0 && this.nestedOps === 0)
-      return (segments3) => nativeGet(this.overwritePatch, segments3);
-    let fold;
-    return (segments3) => {
-      fold ??= dryFold(this.baseSnapshot, this.updatePatch, this.overwritePatch, this.fullRows());
-      return nativeGet(fold, segments3);
-    };
-  }
-  /** The stage's 'full' rows: every op on a path the net-change filter keeps, a `delete` spelled `set`. */
-  fullRows() {
-    const keep = /* @__PURE__ */ new Map();
-    const rows = [];
-    for (const op of this.opTrace) {
-      let k = keep.get(op.path);
-      if (k === void 0)
-        keep.set(op.path, k = this.changedSinceBase(op.path.split(DELIM)));
-      if (k)
-        rows.push({ path: op.path, verb: op.verb === "merge" ? "merge" : "set" });
-    }
-    return rows;
-  }
-  /**
-   * Did the stage change the value at `segments`? Base and final value are
-   * fixed at commit, so this is the ONE net-change verdict both payload
-   * encodings apply (a no-op write and a write-then-revert both fail it).
-   */
-  changedSinceBase(segments3) {
-    return !deepEqual(nativeGet(this.baseSnapshot, segments3), nativeGet(this.workingCopy, segments3));
-  }
-  /**
-   * Path → its op-verb sequence, ordered by LAST touch (delete + re-insert
-   * moves a re-touched path to the end of the Map's insertion order —
-   * preserving last-writer-wins for nested/overlapping paths). Per-write
-   * provenance (#P1): the LAST op's readKeys is kept — read prefixes only grow
-   * within a stage, so last == union across the path.
-   */
-  opsByPath() {
-    const byPath = /* @__PURE__ */ new Map();
-    for (let i = 0; i < this.opTrace.length; i++) {
-      const op = this.opTrace[i];
-      const prev = byPath.get(op.path);
-      if (prev) {
-        prev.verbs.push(op.verb);
-        prev.last = i;
-        if (op.readKeys !== void 0)
-          prev.readKeys = op.readKeys;
-        byPath.delete(op.path);
-        byPath.set(op.path, prev);
-      } else {
-        byPath.set(op.path, {
-          verbs: [op.verb],
-          last: i,
-          ...op.readKeys !== void 0 && { readKeys: op.readKeys }
-        });
-      }
-    }
-    return byPath;
-  }
-  /** The net-change filter — identical to 'full' ({@link changedSinceBase}). Survivors keep last-touch order. */
-  netChangeSurvivors(byPath) {
-    const survivors = [];
-    for (const [path, { verbs, readKeys, last }] of byPath) {
-      const segments3 = path.split(DELIM);
-      if (!this.changedSinceBase(segments3))
-        continue;
-      const before = nativeGet(this.baseSnapshot, segments3);
-      const after = nativeGet(this.workingCopy, segments3);
-      survivors.push({ path, segments: segments3, verbs, readKeys, last, before, after });
-    }
-    return survivors;
-  }
-  /**
-   * May a staged `delete` at this path commit as the `'delete'` verb?
-   *
-   * Only when removing the key and the `'full'` mode's flattening (`_set` of
-   * `undefined`) land in the same place. They diverge when the parent is not
-   * a container: `nativeDelete` walks away untouched, while `nativeSet`
-   * COERCES the primitive parent into an object to hold the key. Committing
-   * `delete` there would silently drop a state change the stage really made,
-   * so those (pathological) deletes keep the historical flattening.
-   */
-  deleteReplaysAsFlattening(segments3) {
-    if (segments3.length === 1)
-      return true;
-    const parent = nativeGet(this.baseSnapshot, segments3.slice(0, -1));
-    return parent !== null && typeof parent === "object";
-  }
 };
-function flattenedTraceRow(op) {
-  return op.verb === "delete" ? { path: op.path, verb: "set", ...op.readKeys !== void 0 && { readKeys: op.readKeys } } : op;
-}
-function provenance(readKeys) {
-  return readKeys !== void 0 ? { readKeys } : void 0;
-}
 
 // node_modules/foottrace/dist/esm/lib/memory/RecordFrame.js
 var RecordFrame = class {
@@ -11185,7 +10150,22 @@ var RecordFrame = class {
    * "last write's prefix == union" hold in delta mode.
    */
   readKeys;
+  /** Bounded recency window, independent of the monotonic state readKeys prefix. */
+  readAttempts;
+  readAttemptsOmitted;
   #sourceFrame;
+  /**
+   * What this round of the frame has READ of committed state (law 2): the log's length at the
+   * earliest moment one of its reads saw, and at the latest. Every read passes {@link sawAt}.
+   * `commit` hands both to `recordCommit`, which puts them on the bundle when they say something a
+   * reader needs (`CommitBundle.beganAt` / `sawUntil`).
+   */
+  #beganAt;
+  #sawUntil;
+  /** The log's length when the first-touch view was pinned: what a read answered from the view saw. */
+  #pinnedAt;
+  /** A commit ended the round of staging: the next write starts a new one ({@link getTransactionBuffer}). */
+  #committed = false;
   constructor(state, log, address = []) {
     this.state = state;
     this.log = log;
@@ -11256,14 +10236,15 @@ var RecordFrame = class {
    * Anchoring the view at first touch restores the EXACT eager semantics — sequential AND parallel —
    * at zero clone cost.
    *
-   * Read visibility is two-tier, matching eager byte-for-byte: keys present in the view at first
-   * touch read repeatably from it; keys ABSENT from it fall back to LIVE state (the eager engine's
-   * exact fallback — a mid-flight sibling root-key write was always visible to reads, and stays
-   * visible; only the DIFF BASE is pinned).
+   * Read visibility is two-tier: first-touch values read repeatably unless overwritten. An unresolved
+   * key falls back to LIVE state only when no staged hard set/delete owns its path or an ancestor.
+   * Mid-flight sibling root-key writes remain visible at those unshadowed paths; the diff base stays
+   * pinned at first touch.
    */
   firstTouch() {
     if (!this.base) {
       this.base = this.state.getState();
+      this.#pinnedAt = this.log?.length;
       const capture2 = captureFor(this.state);
       if (capture2 && capture2 === captureFor(this.log)) {
         try {
@@ -11294,6 +10275,8 @@ var RecordFrame = class {
    * Private since C4: every write goes through {@link write}, so the scrub travels with the op.
    */
   getTransactionBuffer() {
+    if (this.#committed)
+      this.release();
     if (!this.buffer) {
       const readKeysProvider = this.encoding?.writeProvenance === "reads-prefix" ? () => [...this.readKeys ?? []] : void 0;
       const base = this.firstTouch();
@@ -11301,7 +10284,10 @@ var RecordFrame = class {
       source?.beginMutation();
       let succeeded = false;
       try {
-        const buffer = new TransactionBuffer(base, this.encoding?.commitValues, readKeysProvider, this._address, source);
+        const buffer = new TransactionBuffer(base, this.encoding?.commitValues, readKeysProvider, this._address, source, readKeysProvider ? () => this.readAttempts?.size ? {
+          readAttempts: [...this.readAttempts],
+          ...this.readAttemptsOmitted && { readAttemptsOmitted: this.readAttemptsOmitted }
+        } : void 0 : void 0);
         if (this.buffer || this.#sourceFrame?.staging !== source) {
           source?.fail();
           this.#sourceFrame?.staging.fail();
@@ -11341,18 +10327,20 @@ var RecordFrame = class {
     return this.buffer !== void 0;
   }
   /**
-   * The frame's read, mirroring the eager engine's read order byte-for-byte (law 3):
+   * The frame's read order (law 3):
    *
    *    1. staged writes + first-touch snapshot — `buffer.get` over its workingCopy when the buffer
    *       exists, else `nativeGet` over the zero-clone first-touch base (the buffer's base IS that
-   *       view, so the two tiers agree on content);
-   *    2. LIVE state via `SharedMemory · getValue` for keys absent from the snapshot — including its
-   *       address→root fallback. The eager engine had this exact live fallback for snapshot-missing
-   *       keys; byte-identity over purity. After the frame's first write such a value can be the very
-   *       container the buffer's diff base holds at the path (the stage deleted or unset it, or
-   *       replaced a container above it), so the base is detached there first
-   *       (`TransactionBuffer · detachBase`): an in-place edit of the value (out of contract) written
-   *       back is recorded, as on 9.28.0, whose base was a clone taken at the first write.
+   *       view). A defined value or a path covered by a hard set/delete returns from this tier,
+   *       including undefined. Merges alone do not mask unresolved reads;
+   *    2. LIVE state via `SharedMemory · getValue` for unresolved, unshadowed keys, including its
+   *       address→root fallback. After the first write, a returned live container may share the diff
+   *       base, so `TransactionBuffer · detachBase` protects that base before it goes out: a borrowed
+   *       in-place edit (out of contract) written back is still recorded.
+   *
+   * At the root, deletion stays undefined in the next stage unless rewritten. In a namespace,
+   * release ends the stage's mask and the next stage may read an existing global value. This is
+   * the existing namespace fallback, not a persistent tombstone.
    *
    * Reads never construct the buffer (#13): a frame that never writes performs zero clones of the
    * shared state.
@@ -11422,10 +10410,13 @@ var RecordFrame = class {
   readValue(path, key, observation) {
     const at = this.at(path, key);
     const fromSnapshot = this.buffer ? this.buffer.get(at, void 0, observation) : nativeGet(this.firstTouch(), at, void 0, observation);
-    if (typeof fromSnapshot !== "undefined")
+    if (typeof fromSnapshot !== "undefined" || this.buffer?.hasHardWrite(at)) {
+      this.sawAt(this.#pinnedAt);
       return fromSnapshot;
+    }
     if (observation)
       observation.live = true;
+    this.sawAt(this.log?.length);
     const live = this.state.getValue(this._address, path, key, observation);
     if (this.buffer && live !== null && typeof live === "object")
       this.buffer.detachBase(at);
@@ -11437,16 +10428,63 @@ var RecordFrame = class {
       (this.readKeys ??= /* @__PURE__ */ new Set()).add(path.length > 0 ? [...path, key].join(".") : key);
     }
   }
+  /** Record a delivered answer's native identity under the existing reads-prefix dial.
+   * The producer owns live-stage/attempt attribution; this port checks canonical grammar only. */
+  noteReadAttempt(attemptId) {
+    if (this.encoding?.writeProvenance !== "reads-prefix")
+      return;
+    if (!parseAttemptId(attemptId))
+      throw new TypeError("noteReadAttempt requires a canonical attempt id");
+    const window = this.readAttempts ??= /* @__PURE__ */ new Set();
+    if (!window.delete(attemptId) && window.size === READ_ATTEMPT_LIMIT) {
+      window.delete(window.values().next().value);
+      const omitted = this.readAttemptsOmitted ?? 0;
+      this.readAttemptsOmitted = omitted < Number.MAX_SAFE_INTEGER ? omitted + 1 : omitted;
+    }
+    window.add(attemptId);
+  }
   /**
    * Live committed state at `key`: at the frame's address, else at the root — never the stage's own
    * view. Typed as `SharedMemory · getValue` types it, which `StageContext · getRoot` hands on.
    */
   readLive(key) {
+    this.sawAt(this.log?.length);
     return this.state.getValue(this._address, [], key);
   }
   /** Live committed state at `key` at the root — typed as `SharedMemory · getValue` (`StageContext · getGlobal`). */
   readGlobal(key) {
+    this.sawAt(this.log?.length);
     return this.state.getValue([], [], key);
+  }
+  /**
+   * Note what one READ of committed state saw: the log's length at the moment the value it was
+   * answered with was current. For a read answered from the first-touch view that is the moment the
+   * view was pinned, however much later the read is made; for a read of live state it is now.
+   *
+   * WHY ONE DOOR: a reader dates this step's reads from these two numbers alone (`readWindow.ts`).
+   * A read that did not pass here could be of a commit the record says the step never saw, and the
+   * walk back would leave out the step that really wrote what was read. So the places this frame
+   * hands out a value of `state` to be read are the callers, and
+   * `test/lib/memory/read-window-writer.test.ts` pins that there is no other.
+   *
+   * WHY A READ, NOT A TOUCH. The view is also pinned by the frame's first WRITE (the buffer diffs
+   * against it) and by a report that only compares (`peek`, `baseAt`). Neither is a read of the
+   * step. Counted as one, a step that read a key early and wrote late (a subflow mount: its input
+   * mapping reads when it starts, its output mapping writes when the subflow has run) looked as if
+   * it had read again at its write, and every sibling that committed in between became a possible
+   * source of what it had read before. Counted as one, a report that runs only in development would
+   * also change the bytes of the record.
+   *
+   * The reads are not always in the order of what they saw (a live read, then a read answered from
+   * a view pinned earlier by a write), so the earliest and the latest are kept as such.
+   */
+  sawAt(length) {
+    if (length === void 0)
+      return;
+    if (this.#beganAt === void 0 || length < this.#beganAt)
+      this.#beganAt = length;
+    if (this.#sawUntil === void 0 || length > this.#sawUntil)
+      this.#sawUntil = length;
   }
   /** Did a staged op touch `path` — on it, above it or below it? (A report's question; never the hot path.) */
   wasStaged(path) {
@@ -11472,16 +10510,21 @@ var RecordFrame = class {
    */
   commit(stampOf) {
     const payload = this.buffer?.commit();
-    recordCommit(payload, stampOf(), { state: this.state, mirror: this._mirror, log: this.log });
+    const viewAt = payload?.trace.some(isViewRow) ? this.#pinnedAt : void 0;
+    const into = { state: this.state, mirror: this._mirror, log: this.log };
+    recordCommit(payload, stampOf(), into, this.#beganAt, this.#sawUntil, viewAt);
+    this.#committed = true;
   }
   /**
    * End the frame's hold on state (#13b, law 6): drop the buffer (its working copy and whatever private
    * copies its reads took) and the first-touch base (a reference that pins one committed-state
    * GENERATION). Both re-create lazily: a later read re-anchors on the CURRENT committed state, and a
    * later write builds a fresh buffer on it — so a second commit diffs against the state after the
-   * first. Without the release, the execution tree — which retains every frame for the lifetime of
-   * the run — retains one state generation per executed stage (measured O(N²) before copy-on-write;
-   * a 500-iteration agent OOMed a default Node heap, backlog #18).
+   * first. (A write after a commit releases first if the caller did not, so that holds either way;
+   * what the caller's own release adds is WHEN the hold ends.) Without the release, the execution
+   * tree — which retains every frame for the lifetime of the run — retains one state generation per
+   * executed stage (measured O(N²) before copy-on-write; a 500-iteration agent OOMed a default Node
+   * heap, backlog #18).
    */
   release() {
     if (this.#sourceFrame) {
@@ -11494,6 +10537,10 @@ var RecordFrame = class {
     }
     this.buffer = void 0;
     this.base = void 0;
+    this.#pinnedAt = void 0;
+    this.#beganAt = void 0;
+    this.#sawUntil = void 0;
+    this.#committed = false;
   }
   /**
    * Throw away everything the frame staged and read (law 6): the buffer, the first-touch base (the next
@@ -11511,6 +10558,8 @@ var RecordFrame = class {
       captureFor(this.log)?.poison();
     }
     this.readKeys = void 0;
+    this.readAttempts = void 0;
+    this.readAttemptsOmitted = void 0;
   }
 };
 
@@ -11900,13 +10949,13 @@ var ReadSourceCapture = class {
   get clock() {
     return this.index.clock;
   }
-  gap(reason, exact = true) {
+  gap(reason, exact3 = true) {
     const previous = this.gaps.get(reason);
     if (!previous)
-      this.gaps.set(reason, { reason, count: 1, exact });
+      this.gaps.set(reason, { reason, count: 1, exact: exact3 });
     else if (previous.count < Number.MAX_SAFE_INTEGER) {
       previous.count++;
-      previous.exact &&= exact;
+      previous.exact &&= exact3;
     } else
       previous.exact = false;
     if (reason === "capture-failed")
@@ -12131,7 +11180,7 @@ var ReadSourceCapture = class {
   }
 };
 
-// node_modules/foottrace/dist/esm/lib/read-sources/writer.js
+// node_modules/foottrace/dist/esm/lib/recording/readSourceRecord.js
 function createReadSourceRecord(state, addressInput, options) {
   const address = sourceAddress(addressInput);
   const limits = sourceLimits(options === void 0 ? void 0 : sourceOwn(options, "limits"));
@@ -12267,13 +11316,13 @@ function decodeReadSourceSnapshot(value) {
       if (!READ_SOURCE_GAPS.includes(reason) || seen.has(reason))
         throw new TypeError("read sources: invalid gap");
       seen.add(reason);
-      const exact = sourceOwn(input, "exact");
-      if (typeof exact !== "boolean")
+      const exact3 = sourceOwn(input, "exact");
+      if (typeof exact3 !== "boolean")
         throw new TypeError("read sources: invalid gap");
       const gap = Object.freeze({
         reason,
         count: sourceInteger(sourceOwn(input, "count"), 1),
-        exact
+        exact: exact3
       });
       spend(sourceBytes(gap) + 1);
       return gap;
@@ -12297,9 +11346,2462 @@ function decodeReadSourceSnapshot(value) {
   }
 }
 
+// node_modules/footprintjs/dist/esm/lib/attempt/correlation.js
+var MAX_HEADER_LENGTH = 256;
+var V00_LENGTH = 55;
+var WHY = {
+  "not-a-string": "it is not a string",
+  length: "its length is not a W3C traceparent length (55 characters for version 00)",
+  version: "its version is not two lowercase hex digits other than ff",
+  characters: "it is not lowercase hex fields in the W3C layout version-traceid-parentid-flags",
+  "zero-trace-id": "its trace-id is all zeros",
+  "zero-parent-id": "its parent-id is all zeros"
+};
+var TraceparentError = class extends Error {
+  reason;
+  constructor(reason) {
+    super(`traceparent refused (${reason}): ${WHY[reason]}`);
+    this.name = "TraceparentError";
+    this.reason = reason;
+  }
+};
+var HEX2 = /^[0-9a-f]{2}$/;
+var HEX16 = /^[0-9a-f]{16}$/;
+var HEX32 = /^[0-9a-f]{32}$/;
+var ZEROS = /^0+$/;
+function parseTraceparent(header) {
+  if (typeof header !== "string")
+    throw new TraceparentError("not-a-string");
+  if (header.length < V00_LENGTH || header.length > MAX_HEADER_LENGTH)
+    throw new TraceparentError("length");
+  const version = header.slice(0, 2);
+  if (!HEX2.test(version) || version === "ff")
+    throw new TraceparentError("version");
+  if (version === "00" && header.length !== V00_LENGTH)
+    throw new TraceparentError("length");
+  const traceId = header.slice(3, 35);
+  const operationId = header.slice(36, 52);
+  const flags = header.slice(53, 55);
+  const laidOut = header[2] === "-" && header[35] === "-" && header[52] === "-";
+  const tailOk = header.length === V00_LENGTH || header[V00_LENGTH] === "-";
+  if (!laidOut || !tailOk || !HEX32.test(traceId) || !HEX16.test(operationId) || !HEX2.test(flags)) {
+    throw new TraceparentError("characters");
+  }
+  if (ZEROS.test(traceId))
+    throw new TraceparentError("zero-trace-id");
+  if (ZEROS.test(operationId))
+    throw new TraceparentError("zero-parent-id");
+  return Object.freeze({ traceId, operationId, sampled: (parseInt(flags, 16) & 1) === 1, flags });
+}
+function formatTraceparent(fields3) {
+  const { traceId, operationId } = fields3;
+  if (typeof traceId !== "string" || typeof operationId !== "string")
+    throw new TraceparentError("not-a-string");
+  if (!HEX32.test(traceId) || !HEX16.test(operationId))
+    throw new TraceparentError("characters");
+  if (ZEROS.test(traceId))
+    throw new TraceparentError("zero-trace-id");
+  if (ZEROS.test(operationId))
+    throw new TraceparentError("zero-parent-id");
+  return `00-${traceId}-${operationId}-${flagsOf(fields3)}`;
+}
+function flagsOf(fields3) {
+  const { flags = "00", sampled } = fields3;
+  if (typeof flags !== "string")
+    throw new TraceparentError("not-a-string");
+  if (!HEX2.test(flags))
+    throw new TraceparentError("characters");
+  if (sampled === void 0)
+    return flags;
+  const byte = sampled ? parseInt(flags, 16) | 1 : parseInt(flags, 16) & 254;
+  return byte.toString(16).padStart(2, "0");
+}
+var EXPLICIT_ID = /^[\x21-\x7e]{1,256}$/;
+function admitRunEnv(env) {
+  if (env === void 0 || env === null)
+    return { env: void 0, correlation: void 0 };
+  const snapshot2 = { ...env };
+  const correlation = resolveParsed(snapshot2);
+  if (correlation?.traceparent !== void 0)
+    snapshot2.traceparent = correlation.traceparent;
+  else if (snapshot2.traceparent !== void 0)
+    delete snapshot2.traceparent;
+  return { env: snapshot2, correlation };
+}
+function resolveParsed(env) {
+  const raw = own3(env, "traceparent");
+  const header = raw === void 0 ? void 0 : parseTraceparent(raw);
+  const traceId = explicitId(own3(env, "traceId"), "traceId") ?? header?.traceId;
+  const sameTrace = header !== void 0 && traceId === header.traceId;
+  const operationId = explicitId(own3(env, "operationId"), "operationId") ?? (sameTrace ? header.operationId : void 0);
+  if (traceId === void 0) {
+    if (operationId !== void 0) {
+      throw new TypeError("env.operationId needs a trace to belong to: give env.traceId or env.traceparent");
+    }
+    return void 0;
+  }
+  const propagable = sameTrace && operationId !== void 0 && HEX16.test(operationId) && !ZEROS.test(operationId);
+  return Object.freeze({
+    traceId,
+    ...operationId !== void 0 && { operationId },
+    ...sameTrace && { sampled: header.sampled },
+    ...propagable && { traceparent: formatTraceparent({ traceId, operationId, flags: header.flags }) }
+  });
+}
+function own3(env, field) {
+  return Object.prototype.hasOwnProperty.call(env, field) ? env[field] : void 0;
+}
+function explicitId(value, field) {
+  if (value === void 0 || value === "")
+    return void 0;
+  if (typeof value !== "string")
+    throw new TypeError(`env.${field} must be a string`);
+  if (!EXPLICIT_ID.test(value)) {
+    throw new TypeError(`env.${field} refused: an id is 1\u2013256 printable ASCII characters with no space`);
+  }
+  return value;
+}
+
+// node_modules/footprintjs/dist/esm/lib/detach/spawn.js
+var counter = 0;
+function mintRefId(prefix) {
+  counter += 1;
+  return `${prefix}:detach:${counter}`;
+}
+function detachAndJoinLater(driver, child, input, sourcePrefix) {
+  if (!driver || typeof driver.schedule !== "function") {
+    throw new TypeError(`[detach] expected a DetachDriver as the first argument; got ${typeof driver}. Pass e.g. \`microtaskBatchDriver\` from 'footprintjs/detach'.`);
+  }
+  const refId = mintRefId(sourcePrefix);
+  return driver.schedule(child, input, refId);
+}
+function detachAndForget(driver, child, input, sourcePrefix) {
+  detachAndJoinLater(driver, child, input, sourcePrefix);
+}
+function detachKey(child) {
+  const id = child?.root?.id;
+  return typeof id === "string" ? `detach:${id}` : "detach";
+}
+
+// node_modules/footprintjs/dist/esm/lib/scope/protection/readonlyInput.js
+function assertNotReadonly(readOnlyValues, key, operation) {
+  if (readOnlyValues && typeof readOnlyValues === "object" && Object.prototype.hasOwnProperty.call(readOnlyValues, key)) {
+    if (operation === "delete") {
+      throw new Error(`Cannot delete readonly input key "${key}" \u2014 input values are immutable`);
+    }
+    throw new Error(`Cannot write to readonly input key "${key}" \u2014 use getArgs() to read input values`);
+  }
+}
+function createFrozenArgs(readOnlyValues) {
+  if (!readOnlyValues || typeof readOnlyValues !== "object") {
+    return Object.freeze({});
+  }
+  const args = { ...readOnlyValues };
+  const copies = new WeakMap([[readOnlyValues, args]]);
+  copyProperties(args, args, copies);
+  return Object.freeze(args);
+}
+function snapshotValue(value, copies) {
+  if (value === null || typeof value !== "object")
+    return value;
+  const existing = copies.get(value);
+  if (existing)
+    return existing;
+  if (Object.isFrozen(value))
+    return value;
+  const prototype = Object.getPrototypeOf(value);
+  const isArray = Array.isArray(value);
+  if (prototype !== null && prototype !== (isArray ? Array.prototype : Object.prototype))
+    return value;
+  const copy = isArray ? Object.setPrototypeOf(new Array(value.length), prototype) : Object.create(prototype);
+  copies.set(value, copy);
+  copyProperties(value, copy, copies);
+  return Object.freeze(copy);
+}
+function copyProperties(source, target2, copies) {
+  for (const key of Reflect.ownKeys(source)) {
+    const descriptor = Object.getOwnPropertyDescriptor(source, key);
+    if (!descriptor)
+      continue;
+    if (Array.isArray(target2) && key === "length")
+      continue;
+    const value = snapshotValue(Reflect.get(source, key), copies);
+    Object.defineProperty(target2, key, {
+      value,
+      enumerable: descriptor.enumerable,
+      configurable: true,
+      writable: true
+    });
+  }
+}
+function snapshotRunInput(input) {
+  if (input === null || typeof input !== "object")
+    return input;
+  const owned = snapshotValue(input, /* @__PURE__ */ new WeakMap());
+  if (owned !== input)
+    return owned;
+  const root = {};
+  copyProperties(input, root, new WeakMap([[input, root]]));
+  return Object.freeze(root);
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/graph/StageNode.js
+function isStageNodeReturn(output) {
+  if (!output || typeof output !== "object")
+    return false;
+  try {
+    const obj = output;
+    if (typeof obj.name !== "string")
+      return false;
+    const hasContinuation = Array.isArray(obj.children) && obj.children.length > 0 || obj.next !== void 0 || typeof obj.nextNodeSelector === "function" || obj.isSubflowRoot === true;
+    return hasContinuation;
+  } catch {
+    return false;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/breakFlag.js
+function createBreakHandler(flag, context, input) {
+  return (reason) => {
+    flag.shouldBreak = true;
+    if (reason === void 0 || flag.reason !== void 0)
+      return;
+    const rule = context.getRedactionRule();
+    flag.reason = rule ? rule.retainStageText(["logs", "breakReason"], reason, { input, selectedReads: context.taintedReads }) : reason;
+  };
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/stageError.js
+function recordStageError(context, error) {
+  captureStageFailure(context, error);
+  const text = thrownText(error);
+  const kept = context.addDiagnostic("errors", "stageExecutionError", text);
+  context.markStageFailure();
+  const rule = context.getRedactionRule();
+  return rule ? rule.retainStageError(error, text, kept) : { message: text, structuredError: extractErrorInfo(error) };
+}
+function captureStageFailure(context, error, commit = false) {
+  const identity2 = context.failureIdentity;
+  if (identity2 && !context.failureState.owns(error)) {
+    context.failureState.capture(error, terminalCategory(error), identity2);
+  }
+  if (identity2 && commit && context.captureClosureTracking)
+    context.failureState.selectCommit(error, identity2);
+}
+function servedStageError(context, error) {
+  const rule = context.getRedactionRule();
+  return rule ? rule.servedError(error) : extractErrorInfo(error);
+}
+function loggableStageError(context, error) {
+  const rule = context.getRedactionRule();
+  return rule ? rule.loggableError(error) : error;
+}
+function servedIdempotencyKey(context, key, input, readSelected = false) {
+  const rule = context.getRedactionRule();
+  return rule ? rule.retainIdempotencyKey(key, { input, selectedReads: readSelected ? 1 : 0 }) : key;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/commitStage.js
+function commitStageWrites(context, phase) {
+  try {
+    if (phase === void 0)
+      context.commit();
+    else
+      context.commit(phase);
+  } catch (error) {
+    captureStageFailure(context, error, true);
+    throw error;
+  }
+}
+function commitStage(context, narrative, stageName, traversalContext) {
+  try {
+    commitStageWrites(context);
+  } catch (error) {
+    const served2 = recordStageError(context, error);
+    narrative.onError(stageName, served2.message, served2.structuredError, traversalContext);
+    throw error;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/selectionProblem.js
+function selectionProblem(selectedIds, unknownIds) {
+  if (unknownIds.length > 0)
+    return `unknown child IDs: ${unknownIds.join(", ")}`;
+  const duplicated = new Set(selectedIds.filter((id, index) => selectedIds.indexOf(id) !== index));
+  return `duplicate child IDs: ${[...duplicated].join(", ")}`;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/TraversalDepthError.js
+var TraversalDepthError = class extends Error {
+  /** The cap that was reached (`RunOptions.maxDepth`, default 500). */
+  maxDepth;
+  /** The stage that would have run past the cap. */
+  stageName;
+  constructor(maxDepth, stageName) {
+    super(`FlowchartTraverser: maximum traversal depth exceeded (${maxDepth}). Depth counts NESTED dispatch (fork children, decider/selector branches, recursive composition) \u2014 linear chains, loop iterations and parallel siblings do not consume it. Last stage: '${stageName}'. Check for unbounded recursive chart composition, or raise the limit via RunOptions.maxDepth.`);
+    this.name = "TraversalDepthError";
+    this.maxDepth = maxDepth;
+    this.stageName = stageName;
+  }
+};
+function isTraversalDepthError(error) {
+  try {
+    return error instanceof TraversalDepthError || error instanceof Error && error.name === "TraversalDepthError";
+  } catch {
+    return false;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/ChildrenExecutor.js
+function raisePauses(pauses) {
+  const [first, ...others] = pauses;
+  for (const other of others) {
+    first.addPendingPause(other.toPendingPause());
+    for (const waiting of other.pendingPauses)
+      first.addPendingPause(waiting);
+  }
+  return first;
+}
+var ChildrenExecutor = class {
+  deps;
+  executeNode;
+  constructor(deps, executeNode) {
+    this.deps = deps;
+    this.executeNode = executeNode;
+  }
+  /**
+   * Execute all children in parallel. Each child commits on settle.
+   * Uses Promise.allSettled to ensure all children complete even if some fail.
+   */
+  async executeNodeChildren(node, context, parentBreakFlag, branchPath, traversalContext) {
+    context.captureExtent?.limit("fanout-work-not-attested");
+    let breakCount = 0;
+    const totalChildren = node.children?.length ?? 0;
+    const allChildren = node.children ?? [];
+    const childDisplayNames = allChildren.map((c) => c.name);
+    this.deps.narrativeGenerator.onFork(node.name, childDisplayNames, traversalContext);
+    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "fork");
+    const childContexts = [];
+    const childPromises = allChildren.map((child) => {
+      const childBranchPath = branchPath || child.id;
+      const childContext = context.createChild(childBranchPath, child.id, child.name, child.id);
+      childContexts.push(childContext);
+      const childBreakFlag = { shouldBreak: false };
+      const commitChild = () => {
+        commitStageWrites(childContext, "repeat");
+      };
+      const updateParentBreakFlag = () => {
+        if (childBreakFlag.shouldBreak)
+          breakCount += 1;
+        if (parentBreakFlag && breakCount === totalChildren)
+          parentBreakFlag.shouldBreak = true;
+      };
+      return this.executeNode(child, childContext, childBreakFlag, childBranchPath).then((result3) => {
+        commitChild();
+        updateParentBreakFlag();
+        return { id: child.id, result: result3, isError: false };
+      }).catch((error) => {
+        if (isPauseSignal(error) || isTraversalDepthError(error))
+          throw error;
+        commitChild();
+        updateParentBreakFlag();
+        this.deps.logger.info(`TREE PIPELINE: executeNodeChildren - Error for id: ${child?.id}`, {
+          error: loggableStageError(childContext, error)
+        });
+        if (this.deps.throttlingErrorChecker && this.deps.throttlingErrorChecker(error)) {
+          const served2 = servedStageError(childContext, error);
+          this.deps.narrativeGenerator.onThrottled?.(child.name, child.id, served2, traversalContext);
+        }
+        return { id: child.id, result: error, isError: true };
+      });
+    });
+    const childrenResults = {};
+    const pausedAt = [];
+    let failure;
+    if (node.failFast) {
+      let escaped = false;
+      const escape = (index, error) => {
+        if (!escaped) {
+          escaped = true;
+          context.failureState.adopt(childContexts[index].failureState, error);
+        } else
+          childContexts[index].failureState.complete();
+      };
+      const results = await Promise.all(allChildren.map((child, i) => childPromises[i].then((r) => {
+        if (r.isError) {
+          escape(i, r.result);
+          throw r.result;
+        }
+        childContexts[i].failureState.complete();
+        return r;
+      }, (error) => {
+        if (!isPauseSignal(error)) {
+          escape(i, error);
+          throw error;
+        }
+        childContexts[i].failureState.complete();
+        pausedAt[i] = error;
+        return void 0;
+      })));
+      for (const r of results) {
+        if (r === void 0)
+          continue;
+        childrenResults[r.id] = { id: r.id, result: r.result, isError: r.isError ?? false };
+      }
+    } else {
+      const settled = await Promise.allSettled(childPromises);
+      settled.forEach((s, i) => {
+        if (s.status === "fulfilled") {
+          const { id, result: result3, isError } = s.value;
+          childrenResults[id] = { id, result: result3, isError: isError ?? false };
+        } else if (isPauseSignal(s.reason)) {
+          pausedAt[i] = s.reason;
+        } else {
+          failure ??= { error: s.reason, index: i };
+        }
+      });
+      if (failure)
+        context.failureState.adopt(childContexts[failure.index].failureState, failure.error);
+      for (const child of childContexts)
+        child.failureState.complete();
+    }
+    if (failure)
+      throw failure.error;
+    const pauses = pausedAt.filter((p) => p !== void 0);
+    if (pauses.length > 0)
+      throw raisePauses(pauses);
+    return childrenResults;
+  }
+  /**
+   * Execute selected children based on selector result.
+   * Validates IDs, records selection info, then delegates to executeNodeChildren.
+   */
+  async executeSelectedChildren(selector, children, input, context, branchPath, traversalContext, failFast) {
+    const selectorResult = await selector(input);
+    const selectedIds = Array.isArray(selectorResult) ? selectorResult : [selectorResult];
+    context.addLog("selectedChildIds", selectedIds);
+    context.addLog("selectorPattern", "multi-choice");
+    if (selectedIds.length === 0) {
+      context.addLog("skippedAllChildren", true);
+      return {};
+    }
+    const selectedChildren = children.filter((c) => selectedIds.includes(c.id));
+    if (selectedChildren.length !== selectedIds.length) {
+      const childIds = children.map((c) => c.id);
+      const missing = selectedIds.filter((id) => !childIds.includes(id));
+      const errorMessage = `Selector returned ${selectionProblem(selectedIds, missing)}. Available: ${childIds.join(", ")}`;
+      this.deps.logger.error(`Error in pipeline (${branchPath}):`, { error: errorMessage });
+      context.addError("selectorError", errorMessage);
+      throw new Error(errorMessage);
+    }
+    const skippedIds = children.filter((c) => !selectedIds.includes(c.id)).map((c) => c.id);
+    if (skippedIds.length > 0) {
+      context.addLog("skippedChildIds", skippedIds);
+    }
+    const selectedNames = selectedChildren.map((c) => c.name).join(", ");
+    context.addFlowDebugMessage("selected", `Running ${selectedNames} (${selectedChildren.length} of ${children.length} matched)`, { count: selectedChildren.length, targetStage: selectedChildren.map((c) => c.name) });
+    const selectedDisplayNames = selectedChildren.map((c) => c.name);
+    const selectorName = context.stageName || "selector";
+    this.deps.narrativeGenerator.onSelected(selectorName, selectedDisplayNames, children.length, traversalContext);
+    this.deps.narrativeGenerator.onStageExecuted(selectorName, void 0, traversalContext, "selector");
+    const tempNode = {
+      name: "selector-temp",
+      id: "selector-temp",
+      children: selectedChildren,
+      // Honor the selector node's fan-out error mode (Promise.all vs allSettled).
+      failFast
+    };
+    return await this.executeNodeChildren(tempNode, context, void 0, branchPath, traversalContext);
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/ContinuationResolver.js
+var DEFAULT_MAX_ITERATIONS = 1e3;
+var ContinuationResolver = class {
+  deps;
+  nodeResolver;
+  /**
+   * Iteration counter per node ID.
+   * Key: node.id, Value: visit count (0 = first visit).
+   */
+  iterationCounters = /* @__PURE__ */ new Map();
+  /**
+   * Total fn-bearing dynamic-next hops this traverser has followed.
+   *
+   * Fresh fn-bearing nodes bypass the per-node-id iteration counter (they
+   * are new nodes, often without stable ids — there is no back-edge to
+   * count). Without a bound, a stage that keeps returning a function-bearing
+   * dynamic `next` runs FOREVER on the flat trampoline (no stack overflow
+   * brakes it either). This run-total counter puts such chains under the
+   * same `maxIterations` budget (default 1000, tuned via
+   * `RunOptions.maxIterations`) that bounds loop edges.
+   */
+  dynamicNextHops = 0;
+  onIterationUpdate;
+  maxIterations;
+  constructor(deps, nodeResolver, onIterationUpdate, maxIterations) {
+    this.deps = deps;
+    this.nodeResolver = nodeResolver;
+    this.onIterationUpdate = onIterationUpdate;
+    this.maxIterations = maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  }
+  /**
+   * Resolve a dynamic continuation and execute it immediately.
+   * Equivalent to `executeNode(...resolveTarget(...))` — the traverser's
+   * driver loop calls `resolveTarget` directly instead so the continuation
+   * becomes a flat trampoline hop rather than a retained recursive frame.
+   */
+  async resolve(dynamicNext, node, context, breakFlag, branchPath, executeNode, traversalContext) {
+    const target2 = this.resolveTarget(dynamicNext, node, context, branchPath, traversalContext);
+    return executeNode(target2.node, target2.context, breakFlag, branchPath);
+  }
+  /**
+   * Resolve a dynamic continuation to its target node + next StageContext
+   * WITHOUT executing it. Fires the same side effects `resolve` always did
+   * (iteration counting + limit, `dynamicNext*` logs, loop debug message,
+   * `onLoop` narrative), in the same order.
+   *
+   * Three dynamicNext patterns:
+   * - StageNode with fn → truly dynamic node, returned as-is (no per-node
+   *   iteration tracking — it is a fresh node, not a back-edge — but the
+   *   run-total dynamic-hop budget applies; see `dynamicNextHops`).
+   * - String ID → reference to an existing node, resolved via NodeResolver.
+   * - StageNode without fn → reference by ID, resolved via NodeResolver.
+   */
+  resolveTarget(dynamicNext, currentNode, context, branchPath, traversalContext) {
+    if (typeof dynamicNext !== "string" && dynamicNext.fn) {
+      if (this.dynamicNextHops >= this.maxIterations) {
+        throw new Error(`Maximum dynamic-next continuations (${this.maxIterations}) exceeded at stage '${currentNode.id ?? currentNode.name}' (dynamic target '${dynamicNext.name}'). Set maxIterations to increase the limit.`);
+      }
+      this.dynamicNextHops++;
+      context.addLog("dynamicNextDirect", true);
+      context.addLog("dynamicNextName", dynamicNext.name);
+      context.addFlowDebugMessage("next", `Moving to ${dynamicNext.name} stage (dynamic)`, {
+        targetStage: dynamicNext.name
+      });
+      const nextStageContext2 = context.createNext(branchPath, dynamicNext.name, dynamicNext.id);
+      return { node: dynamicNext, context: nextStageContext2 };
+    }
+    if (typeof dynamicNext !== "string" && !dynamicNext.id) {
+      const errorMessage = "dynamicNext node must have an id when used as reference";
+      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${currentNode.name}]:`, { error: errorMessage });
+      throw new Error(errorMessage);
+    }
+    const nextNodeId = typeof dynamicNext === "string" ? dynamicNext : dynamicNext.id;
+    const targetNode = this.nodeResolver.findNodeById(nextNodeId);
+    if (!targetNode) {
+      const errorMessage = `dynamicNext target node not found: ${nextNodeId}`;
+      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${currentNode.name}]:`, { error: errorMessage });
+      throw new Error(errorMessage);
+    }
+    const iteration = this.getAndIncrementIteration(nextNodeId);
+    const iteratedStageName = this.getIteratedStageName(targetNode.name, iteration);
+    context.addLog("dynamicNextTarget", nextNodeId);
+    context.addLog("dynamicNextIteration", iteration);
+    context.addFlowDebugMessage("loop", `Looping back to ${targetNode.name} (iteration ${iteration + 1})`, {
+      targetStage: targetNode.name,
+      iteration: iteration + 1
+    });
+    this.deps.narrativeGenerator.onLoop(targetNode.name, iteration + 1, targetNode.description, traversalContext);
+    const nextStageContext = context.createNext(branchPath, iteratedStageName, targetNode.id);
+    return { node: targetNode, context: nextStageContext };
+  }
+  /**
+   * Get the next iteration number for a node and increment.
+   * Returns 0 for first visit, 1 for second, etc.
+   * Throws if maxIterations exceeded (infinite loop guard).
+   */
+  getAndIncrementIteration(nodeId) {
+    const current = this.iterationCounters.get(nodeId) ?? 0;
+    if (current >= this.maxIterations) {
+      throw new Error(`Maximum loop iterations (${this.maxIterations}) exceeded for node '${nodeId}'. Set maxIterations to increase the limit.`);
+    }
+    this.iterationCounters.set(nodeId, current + 1);
+    if (this.onIterationUpdate) {
+      this.onIterationUpdate(nodeId, current + 1);
+    }
+    return current;
+  }
+  /**
+   * Generate an iterated stage name for context tree.
+   * First visit: "askLLM", second: "askLLM.1", third: "askLLM.2".
+   */
+  getIteratedStageName(baseName, iteration) {
+    return iteration === 0 ? baseName : `${baseName}.${iteration}`;
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/decide/types.js
+var DECISION_RESULT = /* @__PURE__ */ Symbol("footprint:decide:result");
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/servedPause.js
+function servedPause(context, pauseData) {
+  const rule = context.getRedactionRule();
+  if (!rule)
+    return pauseData;
+  try {
+    return rule.retainBoundary(pauseData);
+  } catch {
+    return SCOPE_PLACEHOLDER;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/DeciderHandler.js
+var DeciderHandler = class {
+  deps;
+  constructor(deps) {
+    this.deps = deps;
+  }
+  /**
+   * Handle a scope-based decider (created via addDeciderFunction).
+   * The stage function IS the decider — its return value is the branch ID.
+   * Execution order: runStage(fn) → commit → resolve child → log → executeNode(child).
+   */
+  async handleScopeBased(node, stageFunc, context, breakFlag, branchPath, runStage, executeNode, traversalContext) {
+    const dispatch = await this.prepareDispatch(node, stageFunc, context, breakFlag, branchPath, runStage, traversalContext);
+    if (dispatch.kind === "break") {
+      return dispatch.branchId;
+    }
+    try {
+      return await executeNode(dispatch.chosen, dispatch.branchContext, breakFlag, branchPath);
+    } catch (error) {
+      if (isPauseSignal(error)) {
+        error.setInvoker(node.id);
+        throw error;
+      }
+      throw error;
+    }
+  }
+  /**
+   * Run the decider stage and resolve the chosen branch WITHOUT executing it.
+   * Everything up to (and including) the `onDecision`/`onStageExecuted`
+   * narrative and the branch context creation happens here — only the
+   * branch execution itself is left to the caller.
+   */
+  async prepareDispatch(node, stageFunc, context, breakFlag, branchPath, runStage, traversalContext) {
+    const breakFn = () => breakFlag.shouldBreak = true;
+    let branchId;
+    let decisionEvidence;
+    try {
+      const stageOutput = await runStage(node, stageFunc, context, breakFn, traversalContext);
+      if (stageOutput && typeof stageOutput === "object" && Reflect.has(stageOutput, DECISION_RESULT)) {
+        branchId = stageOutput.branch;
+        decisionEvidence = stageOutput.evidence;
+      } else {
+        branchId = String(stageOutput);
+      }
+    } catch (error) {
+      if (isPauseSignal(error)) {
+        commitStageWrites(context);
+        this.deps.narrativeGenerator.onPause(node.name, node.id, servedPause(context, error.pauseData), error.subflowPath, traversalContext);
+        throw error;
+      }
+      captureStageFailure(context, error);
+      commitStageWrites(context);
+      const served2 = recordStageError(context, error);
+      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
+        error: loggableStageError(context, error)
+      });
+      this.deps.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
+      throw error;
+    }
+    commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
+    if (breakFlag.shouldBreak) {
+      return { kind: "break", branchId };
+    }
+    const children = node.children;
+    let chosen = children.find((child) => (child.branchId ?? child.id) === branchId);
+    if (!chosen) {
+      const defaultChild = children.find((child) => (child.branchId ?? child.id) === "default");
+      if (defaultChild) {
+        chosen = defaultChild;
+      } else {
+        const errorMessage = `Scope-based decider '${node.name}' returned branch ID '${branchId}' which doesn't match any child and no default branch is set`;
+        context.addError("deciderError", errorMessage);
+        const error = new Error(errorMessage);
+        const served2 = recordStageError(context, error);
+        this.deps.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
+        throw error;
+      }
+    }
+    const chosenName = chosen.name;
+    const wasDefault = (chosen.branchId ?? chosen.id) !== branchId;
+    const rationale = context.debug?.logContext?.deciderRationale;
+    let branchReason;
+    if (wasDefault) {
+      branchReason = `Returned '${branchId}' (no match), fell back to default \u2192 ${chosenName} path.`;
+    } else if (rationale) {
+      branchReason = `Based on: ${rationale} \u2192 chose ${chosenName} path.`;
+    } else {
+      branchReason = `Evaluated scope and returned '${branchId}' \u2192 chose ${chosenName} path.`;
+    }
+    context.addFlowDebugMessage("branch", branchReason, {
+      targetStage: chosen.name,
+      rationale: rationale || `returned branchId: ${branchId}`
+    });
+    this.deps.narrativeGenerator.onDecision(node.name, chosen.name, rationale, node.description, traversalContext, decisionEvidence);
+    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "decider");
+    const branchContext = context.createChild(branchPath, chosen.id, chosen.name, chosen.id);
+    branchContext.failureState = context.failureState;
+    return { kind: "dispatch", chosen, branchContext };
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/NodeResolver.js
+var NodeResolver = class {
+  deps;
+  nodeIdMap;
+  getEffectiveChildren;
+  constructor(deps, nodeIdMap, getEffectiveChildren) {
+    this.deps = deps;
+    this.nodeIdMap = nodeIdMap ?? /* @__PURE__ */ new Map();
+    this.getEffectiveChildren = getEffectiveChildren;
+  }
+  /**
+   * O(1) node lookup via pre-built ID map.
+   * Falls back to DFS from startNode (for dynamic nodes added at runtime
+   * or subflow-local lookups that use an explicit startNode).
+   */
+  findNodeById(nodeId, startNode) {
+    if (!startNode) {
+      const mapped = this.nodeIdMap.get(nodeId);
+      if (mapped)
+        return mapped;
+    }
+    return this._dfs(nodeId, startNode ?? this.deps.root);
+  }
+  /**
+   * DFS search for a node by ID.
+   * Used as fallback when the node is not in the pre-built map.
+   */
+  _dfs(nodeId, node) {
+    if (node.id === nodeId)
+      return node;
+    const children = this.getEffectiveChildren ? this.getEffectiveChildren(node) : node.children;
+    if (children) {
+      for (const child of children) {
+        const found = this._dfs(nodeId, child);
+        if (found)
+          return found;
+      }
+    }
+    if (node.next) {
+      const found = this._dfs(nodeId, node.next);
+      if (found)
+        return found;
+    }
+    return void 0;
+  }
+  /**
+   * Resolve a subflow reference node to its actual structure.
+   *
+   * Reference nodes are lightweight placeholders (isSubflowRoot but no fn/children).
+   * The actual structure lives in the subflows dictionary.
+   */
+  resolveSubflowReference(node) {
+    if (node.fn || node.children && node.children.length > 0)
+      return node;
+    if (!this.deps.subflows)
+      return node;
+    const keysToTry = [node.subflowId, node.subflowName, node.name].filter(Boolean);
+    let subflowDef;
+    for (const key of keysToTry) {
+      if (this.deps.subflows[key]) {
+        subflowDef = this.deps.subflows[key];
+        break;
+      }
+    }
+    if (!subflowDef) {
+      this.deps.logger.info(`Subflow not found in dictionary for node '${node.name}' (tried keys: ${keysToTry.join(", ")})`);
+      return node;
+    }
+    return this.mountOf(node, subflowDef.root);
+  }
+  /**
+   * The node a mount runs: the definition's `root` under the mount's own identity.
+   * `resolveSubflowReference` builds it from the dictionary; a stage that RETURNS a
+   * sub-flowchart hands its definition's root here directly (`FlowchartTraverser`, Phase 0).
+   *
+   * `id` comes from the inner root (the actual stage identity for trace matching),
+   * not the mount node (which is the subflow entry point in the parent).
+   */
+  mountOf(node, root) {
+    return {
+      ...root,
+      isSubflowRoot: node.isSubflowRoot,
+      subflowId: node.subflowId,
+      subflowName: node.subflowName,
+      id: root.id || node.id,
+      subflowMountOptions: node.subflowMountOptions || root.subflowMountOptions
+    };
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/reactive/allowlist.js
+var NON_PROXY_TAGS = /* @__PURE__ */ new Set([
+  "Date",
+  "RegExp",
+  "Map",
+  "Set",
+  "WeakMap",
+  "WeakSet",
+  "ArrayBuffer",
+  "SharedArrayBuffer",
+  "DataView",
+  "Error",
+  "EvalError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "TypeError",
+  "URIError",
+  "Promise",
+  "Int8Array",
+  "Uint8Array",
+  "Uint8ClampedArray",
+  "Int16Array",
+  "Uint16Array",
+  "Int32Array",
+  "Uint32Array",
+  "Float32Array",
+  "Float64Array",
+  "BigInt64Array",
+  "BigUint64Array",
+  "WeakRef",
+  "FinalizationRegistry"
+]);
+function isPlainObject(value) {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+function shouldWrapWithProxy(value) {
+  if (value === null || typeof value !== "object")
+    return false;
+  if (Object.isFrozen(value) || Object.isSealed(value))
+    return false;
+  if (Array.isArray(value))
+    return true;
+  if (isPlainObject(value))
+    return true;
+  const tag = Object.prototype.toString.call(value).slice(8, -1);
+  if (NON_PROXY_TAGS.has(tag))
+    return false;
+  return false;
+}
+
+// node_modules/footprintjs/dist/esm/lib/reactive/handles.js
+var LIVE = /* @__PURE__ */ new WeakMap();
+function rememberHandle(handle, live) {
+  LIVE.set(handle, live);
+  return handle;
+}
+function valueBehind(value) {
+  if (value === null || typeof value !== "object")
+    return value;
+  const live = LIVE.get(value);
+  return live === void 0 ? value : live();
+}
+function isPlainContainer(value) {
+  if (value === null || typeof value !== "object")
+    return false;
+  return Array.isArray(value) || isPlainObject(value);
+}
+function unwrapHandles(value) {
+  return walk(value, /* @__PURE__ */ new Set());
+}
+function walk(value, onPath) {
+  if (value === null || typeof value !== "object")
+    return value;
+  const live = LIVE.get(value);
+  if (live !== void 0)
+    return live();
+  if (!isPlainContainer(value) || onPath.has(value))
+    return value;
+  onPath.add(value);
+  const out = Array.isArray(value) ? walkArray(value, onPath) : walkObject(value, onPath);
+  onPath.delete(value);
+  return out;
+}
+function walkArray(value, onPath) {
+  let copy;
+  for (let i = 0; i < value.length; i++) {
+    const next = walk(value[i], onPath);
+    if (next === value[i])
+      continue;
+    copy ??= [...value];
+    copy[i] = next;
+  }
+  return copy ?? value;
+}
+function walkObject(value, onPath) {
+  let copy;
+  for (const key of Object.keys(value)) {
+    const next = walk(value[key], onPath);
+    if (next === value[key])
+      continue;
+    copy ??= { ...value };
+    copy[key] = next;
+  }
+  return copy ?? value;
+}
+
+// node_modules/footprintjs/dist/esm/lib/scope/protection/createProtectedScope.js
+function createErrorMessage(propertyName, stageName) {
+  return `[Scope Access Error] Direct property assignment detected in stage "${stageName}".
+
+Incorrect: scope.${propertyName} = value
+
+Correct: scope.setValue('${propertyName}', value)
+
+Why this matters:
+Each stage receives a NEW scope instance from ScopeFactory. Direct property
+assignments are lost when the next stage executes. Use setValue()
+to persist data to the shared state.`;
+}
+function createProtectedScope(scope, options = {}) {
+  const {
+    mode = "error",
+    stageName = "unknown",
+    logger = console.warn,
+    // Names a direct assignment may set without a refusal. None by default: a raw scope has no field
+    // the engine sets through this proxy.
+    allowedInternalProperties = []
+  } = options;
+  if (mode === "off") {
+    return scope;
+  }
+  const allowedInternals = new Set(allowedInternalProperties);
+  const proxy = new Proxy(scope, {
+    set(target2, prop, value, receiver) {
+      if (allowedInternals.has(prop)) {
+        return Reflect.set(target2, prop, value, receiver);
+      }
+      const propName = String(prop);
+      const message = createErrorMessage(propName, stageName);
+      if (mode === "error") {
+        throw new Error(message);
+      } else if (mode === "warn") {
+        logger(message);
+        return Reflect.set(target2, prop, value, receiver);
+      }
+      return Reflect.set(target2, prop, value, receiver);
+    }
+  });
+  const runtime = scopeRuntimeFor(scope);
+  return runtime ? registerScopeRuntime(proxy, runtime) : proxy;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/ParallelForEachHandler.js
+var ParallelForEachHandler = class {
+  deps;
+  childrenExecutor;
+  hooks;
+  constructor(deps, childrenExecutor, hooks) {
+    this.deps = deps;
+    this.childrenExecutor = childrenExecutor;
+    this.hooks = hooks;
+  }
+  /**
+   * Run the fan-out to completion and commit the ordered results.
+   * Returns the results array (the stage's output).
+   */
+  async run(node, context, branchPath, traversalContext) {
+    const config = node.parallelForEach;
+    let results;
+    let branchCount = 0;
+    let inBranches = false;
+    try {
+      const rawScope = this.deps.scopeFactory(context, node.name, this.deps.readOnlyContext, this.deps.executionEnv);
+      const runtime = requireScopeRuntime(rawScope);
+      const scope = runtime.handlesAssignments ? rawScope : createProtectedScope(rawScope, {
+        mode: this.deps.scopeProtectionMode,
+        stageName: node.name
+      });
+      bindComponentScope(stageRunFrameFor(context), scope);
+      runtime.target.notifyStageStart?.();
+      const selectedBefore = context.selectedReads;
+      const items = this.resolveItems(config, scope, node);
+      const hidden = context.selectedReads > selectedBefore ? context.getRedactionRule() : void 0;
+      const onItsWay = hidden && pendingPlace();
+      if (hidden && onItsWay) {
+        hidden.mark("item", onItsWay);
+        hidden.mark(config.into, onItsWay);
+      }
+      const total = items.length;
+      branchCount = Math.min(total, config.maxBranches);
+      const truncated = total > branchCount;
+      context.addLog("parallelForEach", {
+        items: total,
+        branches: branchCount,
+        maxBranches: config.maxBranches,
+        truncated,
+        into: config.into
+      });
+      if (truncated) {
+        context.addFlowDebugMessage("children", `maxBranches reached: running ${branchCount} of ${total} items (${total - branchCount} not run)`, { count: branchCount });
+      }
+      if (branchCount === 0) {
+        results = [];
+      } else {
+        const branches = this.buildBranches(node, items, branchCount);
+        this.hooks.recordBranchStructure(node.id, branches);
+        const forkView = {
+          ...node,
+          children: branches,
+          ...config.failFast !== void 0 && { failFast: config.failFast }
+        };
+        inBranches = true;
+        const childResults = await this.childrenExecutor.executeNodeChildren(forkView, context, void 0, branchPath, traversalContext);
+        inBranches = false;
+        results = this.collectOrdered(node, branchCount, childResults);
+      }
+      this.writeResults(runtime.target, context, config.into, results);
+      if (hidden && onItsWay) {
+        hidden.unmark("item", onItsWay);
+        hidden.unmark(config.into, onItsWay);
+      }
+      runtime.target.notifyStageEnd?.();
+    } catch (error) {
+      this.endFailed(node, context, branchPath, traversalContext, error, inBranches);
+      throw error;
+    }
+    commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
+    if (branchCount === 0) {
+      this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "fork");
+    }
+    return results;
+  }
+  /**
+   * The stage's error path — see "A stage that fails still leaves its bundle"
+   * in the file header. The caller rethrows the original value.
+   */
+  endFailed(node, context, branchPath, traversalContext, error, fromBranch) {
+    if (isPauseSignal(error))
+      return;
+    if (fromBranch) {
+      commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
+      return;
+    }
+    captureStageFailure(context, error);
+    commitStageWrites(context);
+    const served2 = recordStageError(context, error);
+    this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
+      error: loggableStageError(context, error)
+    });
+    this.deps.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
+  }
+  /**
+   * Evaluate the items selector against the live scope. A non-array return is
+   * a chart bug, not a runtime condition — it fails loudly, naming the stage.
+   *
+   * The selector reads the typed scope, so what it returns is usually the
+   * scope's own array HANDLE (a Proxy bound to the parent stage) and every
+   * `items[index]` an element handle. The items are about to cross into
+   * branch runtimes — closed over by `branch(item, index)` and seeded as the
+   * branch's `item` — so they are taken as VALUES here (`unwrapHandles`,
+   * reactive/handles.ts). 9.22.0–9.23.2 seeded the handle itself and every
+   * branch over an object item failed at its seed commit (DataCloneError).
+   */
+  resolveItems(config, scope, node) {
+    let selected;
+    try {
+      selected = config.items(scope);
+    } catch (error) {
+      if (isInterruptSignal(error)) {
+        throw new Error(`[footprint] parallelForEach '${node.id}': interrupt() cannot be called inside the items selector. Ask in a stage before the fan-out`);
+      }
+      throw error;
+    }
+    const items = unwrapHandles(selected);
+    if (items === void 0 || items === null)
+      return [];
+    if (!Array.isArray(items)) {
+      throw new Error(`parallelForEach '${node.id}': items() must return an array (got ${typeof items}). Return [] to run zero branches.`);
+    }
+    return items;
+  }
+  /** Generate one subflow-mount node per branch, registering each branch chart. */
+  buildBranches(node, items, branchCount) {
+    const config = node.parallelForEach;
+    const branches = [];
+    for (let index = 0; index < branchCount; index++) {
+      const item = items[index];
+      const subflowId = buildBranchSegment(node.id, index);
+      const chart = config.branch(item, index);
+      if (!chart || !chart.root) {
+        throw new Error(`parallelForEach '${node.id}': branch(item, ${index}) must return a built chart (the result of flowChart(...).build()).`);
+      }
+      const prefixedRoot = this.hooks.prefixNodeTree(chart.root, subflowId);
+      this.hooks.registerBranchSubflow(subflowId, prefixedRoot, chart);
+      branches.push({
+        name: `${node.name} [${index}]`,
+        id: subflowId,
+        isSubflowRoot: true,
+        subflowId,
+        subflowName: `${node.name} [${index}]`,
+        subflowMountOptions: {
+          // D1's "inputMapper seam for feeding the item in": the item is
+          // visible IN the branch's scope (and so in its commit log) as well as
+          // closed over by the factory — provenance beats a hidden closure.
+          inputMapper: () => ({ item, index })
+        }
+      });
+    }
+    return branches;
+  }
+  /**
+   * Assemble results in ITEMS order — never completion order.
+   *
+   * The branch's value is its subflow output, falling back to the branch's
+   * final shared state (the TypedScope case, where stage functions return
+   * void) — the same `subflowOutput ?? sharedState` rule `SubflowExecutor`
+   * applies to an outputMapper.
+   */
+  collectOrdered(node, branchCount, childResults) {
+    const ordered2 = [];
+    for (let index = 0; index < branchCount; index++) {
+      const subflowId = buildBranchSegment(node.id, index);
+      const entry = childResults[subflowId];
+      if (entry === void 0 || entry.isError) {
+        ordered2.push(void 0);
+        continue;
+      }
+      ordered2.push(entry.result ?? this.hooks.branchSharedState(subflowId));
+    }
+    return ordered2;
+  }
+  /**
+   * Write the ordered array as ONE value on the parent scope.
+   *
+   * Use the provider's explicit state-write port, never a user proxy probe.
+   * A declared data-only port has no setter; its results go to the frame.
+   */
+  writeResults(target2, context, into, results) {
+    if (target2.setValue) {
+      target2.setValue(into, results);
+      return;
+    }
+    context.setGlobal(into, results);
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/capture/nativeCoverage.js
+var CAPTURE_RETENTION_MODES = Object.freeze(["full", "summary", "off", "unknown"]);
+var CAPTURE_COMMIT_VALUE_MODES = Object.freeze(["full", "delta", "unknown"]);
+var CAPTURE_PROVENANCE_MODES = Object.freeze(["off", "reads-prefix", "unknown"]);
+var CAPTURE_CHANNEL_STATUSES = Object.freeze([
+  "captured",
+  "disabled",
+  "partial",
+  "failed",
+  "unknown"
+]);
+var RECORDER_CONTROL_STATUSES = Object.freeze(["captured", "partial", "unknown"]);
+function isCaptureValue(value, vocabulary) {
+  return typeof value === "string" && vocabulary.includes(value);
+}
+var CAPTURE_BASE_LIMITATIONS = Object.freeze([
+  "tracked-state-only",
+  "final-attempt-views",
+  "read-sources-not-collected",
+  "child-scopes-not-attested",
+  "storage-not-attested"
+]);
+var VERSION_2_BASE_LIMITATIONS = Object.freeze(CAPTURE_BASE_LIMITATIONS.filter((gap) => gap !== "read-sources-not-collected"));
+function baseLimitationsFor(version) {
+  return version === 1 ? CAPTURE_BASE_LIMITATIONS : VERSION_2_BASE_LIMITATIONS;
+}
+var CAPTURE_LIMITATIONS = Object.freeze([
+  ...CAPTURE_BASE_LIMITATIONS,
+  "resumed-segment",
+  "redacted-export",
+  "redaction-active",
+  "custom-scope",
+  "read-retention-failed",
+  "commit-retention-failed",
+  "attention-omitted",
+  "recorder-snapshot-failed",
+  "identity-omitted",
+  "execution-broken",
+  "modes-unavailable",
+  "checkpoint-history-not-included",
+  "source-history-not-included"
+]);
+var NativeCapture = class {
+  runId;
+  logAddress;
+  from;
+  gaps = new Set(CAPTURE_BASE_LIMITATIONS);
+  boundary = { status: "running" };
+  modes;
+  constructor(runId, logAddress, from, modes) {
+    this.runId = runId;
+    this.logAddress = logAddress;
+    this.from = from;
+    const retention = (value) => isCaptureValue(value, CAPTURE_RETENTION_MODES) ? value : "unknown";
+    this.modes = {
+      readTracking: retention(modes.readTracking),
+      writeTracking: retention(modes.writeTracking),
+      commitValues: isCaptureValue(modes.commitValues, CAPTURE_COMMIT_VALUE_MODES) ? modes.commitValues : "unknown",
+      writeProvenance: isCaptureValue(modes.writeProvenance, CAPTURE_PROVENANCE_MODES) ? modes.writeProvenance : "unknown"
+    };
+    if (Object.values(this.modes).includes("unknown"))
+      this.limit("modes-unavailable");
+  }
+  limit(gap) {
+    this.gaps.add(gap);
+  }
+  end(status, failure) {
+    if (this.boundary.status !== "running")
+      return;
+    if (failure?.stage && failure.stage.runtimeStageId.length > 1024) {
+      this.limit("identity-omitted");
+      failure = Object.freeze({ category: failure.category });
+    }
+    this.boundary = { status, ...failure && { failure } };
+  }
+  snapshot(to, control3 = "unknown", redacted = false) {
+    const gaps = new Set(this.gaps);
+    if (redacted)
+      gaps.add("redacted-export");
+    const failed = gaps.has("commit-retention-failed");
+    const custom = gaps.has("custom-scope") || gaps.has("modes-unavailable");
+    return Object.freeze({
+      version: 1,
+      runId: this.runId,
+      scope: "root-log",
+      logAddress: Object.freeze({
+        logRunId: this.logAddress.logRunId,
+        drillPath: Object.freeze([...this.logAddress.drillPath])
+      }),
+      commits: Object.freeze({ from: this.from, to }),
+      boundary: Object.freeze({ ...this.boundary }),
+      modes: Object.freeze({
+        readTracking: this.modes.readTracking,
+        writeTracking: this.modes.writeTracking,
+        commitValues: this.modes.commitValues,
+        writeProvenance: this.modes.writeProvenance
+      }),
+      channels: Object.freeze({
+        reads: this.modes.readTracking === "off" ? "disabled" : gaps.has("read-retention-failed") ? "failed" : custom ? "unknown" : "captured",
+        writes: this.modes.writeTracking === "off" ? "disabled" : failed ? "failed" : custom ? "unknown" : "captured",
+        attention: failed || gaps.has("attention-omitted") ? "partial" : custom ? "unknown" : "captured",
+        control: gaps.has("recorder-snapshot-failed") ? "failed" : control3,
+        readSources: "not-collected"
+      }),
+      persistence: "memory-only",
+      limitations: Object.freeze([...gaps])
+    });
+  }
+};
+function copyCaptureAcknowledgement(value) {
+  try {
+    if (!value || typeof value !== "object" || Object.getPrototypeOf(value) !== Object.prototype)
+      return void 0;
+    const data = (key) => Object.getOwnPropertyDescriptor(value, key)?.value;
+    const version = data("version");
+    const runId = data("runId");
+    const control3 = data("control");
+    if (version !== 1 || typeof runId !== "string" || runId.length === 0 || runId.length > 2048 || !isCaptureValue(control3, RECORDER_CONTROL_STATUSES))
+      return void 0;
+    return Object.freeze({ version, runId, control: control3 });
+  } catch {
+    return void 0;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/capture/noteShape.js
+function ownData3(record, key) {
+  if (!record || typeof record !== "object" || Object.getPrototypeOf(record) !== Object.prototype)
+    return void 0;
+  return Object.getOwnPropertyDescriptor(record, key)?.value;
+}
+function captureIdentifier(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 2048;
+}
+function count(value) {
+  return Number.isSafeInteger(value) && value >= 0;
+}
+function shapeKeys(value, fields3, exact3) {
+  return !exact3 || !!value && typeof value === "object" && Object.keys(value).length === fields3.length;
+}
+function copyIdentity(value, exact3 = false, version = 1) {
+  const runId = ownData3(value, "runId");
+  const address = ownData3(value, "logAddress");
+  const logRunId = ownData3(address, "logRunId");
+  const drill = ownData3(address, "drillPath");
+  const commits = ownData3(value, "commits");
+  const from = ownData3(commits, "from");
+  const to = ownData3(commits, "to");
+  if (ownData3(value, "version") !== version || !captureIdentifier(runId) || !captureIdentifier(logRunId) || !Array.isArray(drill) || Object.getPrototypeOf(drill) !== Array.prototype || Object.getOwnPropertyDescriptor(drill, "length")?.value !== 0 || !count(from) || !count(to) || from > to || !shapeKeys(address, ["logRunId", "drillPath"], exact3) || !shapeKeys(commits, ["from", "to"], exact3))
+    return void 0;
+  return {
+    runId,
+    logAddress: Object.freeze({ logRunId, drillPath: Object.freeze([]) }),
+    commits: Object.freeze({ from, to })
+  };
+}
+function copyModes(value, exact3 = false) {
+  const readTracking = ownData3(value, "readTracking");
+  const writeTracking = ownData3(value, "writeTracking");
+  const commitValues = ownData3(value, "commitValues");
+  const writeProvenance = ownData3(value, "writeProvenance");
+  if (!isCaptureValue(readTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(writeTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(commitValues, CAPTURE_COMMIT_VALUE_MODES) || !isCaptureValue(writeProvenance, CAPTURE_PROVENANCE_MODES) || !shapeKeys(value, ["readTracking", "writeTracking", "commitValues", "writeProvenance"], exact3))
+    return void 0;
+  return Object.freeze({ readTracking, writeTracking, commitValues, writeProvenance });
+}
+function copyChannels(value, exact3 = false) {
+  const observed = copyObservedChannels(value);
+  if (!observed || ownData3(value, "readSources") !== "not-collected" || !shapeKeys(value, ["reads", "writes", "attention", "control", "readSources"], exact3))
+    return void 0;
+  return Object.freeze({ ...observed, readSources: "not-collected" });
+}
+function copyObservedChannels(value) {
+  const reads = ownData3(value, "reads");
+  const writes = ownData3(value, "writes");
+  const attention = ownData3(value, "attention");
+  const control3 = ownData3(value, "control");
+  if (!isCaptureValue(reads, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(writes, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(attention, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(control3, CAPTURE_CHANNEL_STATUSES))
+    return void 0;
+  return Object.freeze({ reads, writes, attention, control: control3 });
+}
+function copyLimitations(value) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype)
+    return void 0;
+  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
+  if (!count(length) || length > 32)
+    return void 0;
+  const limitations = [];
+  for (let index = 0; index < length; index++) {
+    const entry = Object.getOwnPropertyDescriptor(value, String(index))?.value;
+    if (!isCaptureValue(entry, CAPTURE_LIMITATIONS))
+      return void 0;
+    limitations.push(entry);
+  }
+  return Object.freeze(limitations);
+}
+
+// node_modules/footprintjs/dist/esm/lib/capture/checkpointCapture.js
+function captureRefusal() {
+  return new Error("Invalid checkpoint: capture must be a bounded paused root-log observation.");
+}
+function copyCheckpointCapture(value) {
+  try {
+    if (ownData3(value, "scope") !== "root-log" || ownData3(value, "persistence") !== "memory-only" || ownData3(ownData3(value, "boundary"), "status") !== "paused")
+      return void 0;
+    const version = ownData3(value, "version") === 2 ? 2 : 1;
+    const identity2 = copyIdentity(value, false, version);
+    if (!identity2)
+      return void 0;
+    const modes = copyModes(ownData3(value, "modes"));
+    if (!modes)
+      return void 0;
+    const storedChannels = ownData3(value, "channels");
+    const channels = version === 1 ? copyChannels(storedChannels) : copyObservedChannels(storedChannels);
+    if (!channels)
+      return void 0;
+    if (version === 2 && !isCaptureValue(ownData3(storedChannels, "readSources"), CAPTURE_CHANNEL_STATUSES))
+      return void 0;
+    const limitations = copyLimitations(ownData3(value, "limitations"));
+    if (!limitations)
+      return void 0;
+    const common = {
+      runId: identity2.runId,
+      scope: "root-log",
+      logAddress: identity2.logAddress,
+      commits: identity2.commits,
+      boundary: Object.freeze({ status: "paused" }),
+      modes,
+      channels: {
+        ...channels,
+        // Recorder history is absent; reads/writes describe the paused segment's native funnels.
+        control: channels.control === "failed" || channels.control === "partial" || channels.control === "disabled" ? channels.control : "unknown"
+      },
+      persistence: "memory-only"
+    };
+    if (version === 2)
+      return Object.freeze({
+        ...common,
+        version: 2,
+        scope: "root-log",
+        channels: Object.freeze({ ...common.channels, readSources: "unknown" }),
+        limitations: Object.freeze([
+          .../* @__PURE__ */ new Set([
+            ...baseLimitationsFor(2),
+            ...limitations,
+            "checkpoint-history-not-included",
+            "source-history-not-included"
+          ])
+        ])
+      });
+    return Object.freeze({
+      version: 1,
+      ...common,
+      scope: "root-log",
+      channels: Object.freeze({ ...common.channels, readSources: "not-collected" }),
+      limitations: Object.freeze([
+        .../* @__PURE__ */ new Set([...baseLimitationsFor(1), ...limitations, "checkpoint-history-not-included"])
+      ])
+    });
+  } catch {
+    return void 0;
+  }
+}
+function readCheckpointCapture(stored) {
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(stored, "capture");
+    if (!descriptor)
+      return void 0;
+    if (!Object.hasOwn(descriptor, "value"))
+      throw captureRefusal();
+    if (descriptor.value === void 0)
+      return void 0;
+    const note = copyCheckpointCapture(descriptor.value);
+    if (!note)
+      throw captureRefusal();
+    return note;
+  } catch {
+    throw captureRefusal();
+  }
+}
+function withoutCheckpointCapture(stored) {
+  try {
+    const descriptors2 = Object.getOwnPropertyDescriptors(stored);
+    delete descriptors2.capture;
+    return Object.defineProperties(Object.create(Object.getPrototypeOf(stored)), descriptors2);
+  } catch {
+    throw captureRefusal();
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/pause/record.js
+var CHECKPOINT_VERSION = 2;
+var READABLE_VERSIONS = [1, CHECKPOINT_VERSION];
+function refuse2(what) {
+  throw new Error(`Invalid checkpoint: ${what}.`);
+}
+function isPlainRecord2(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function upcastCheckpoint(stored) {
+  const version = stored.checkpointVersion;
+  if (version !== void 0 && !READABLE_VERSIONS.includes(version)) {
+    refuse2(`checkpointVersion ${JSON.stringify(version) ?? String(version)} is not one this release reads (${READABLE_VERSIONS.join(" or ")}, or none for a checkpoint written before 9.39.0)`);
+  }
+  const { checkpointVersion: _version, continuationStageId: _invokerNext, executionTree: _tree, subflowResults: _finishedSubflows, ...current } = stored;
+  return { checkpointVersion: CHECKPOINT_VERSION, ...current };
+}
+function decodePauseRecord(raw, at = "") {
+  const field = (name) => at ? `${at}.${name}` : name;
+  if (!isPlainRecord2(raw))
+    refuse2(`${at || "the checkpoint"} must be an object`);
+  if (typeof raw.pausedStageId !== "string" || raw.pausedStageId === "") {
+    refuse2(`${field("pausedStageId")} must be a non-empty string`);
+  }
+  const subflowPath = raw.subflowPath;
+  if (!Array.isArray(subflowPath) || !subflowPath.every((s) => typeof s === "string")) {
+    refuse2(`${field("subflowPath")} must be an array of strings`);
+  }
+  const states = raw.subflowStates;
+  if (states !== void 0 && !isPlainRecord2(states))
+    refuse2(`${field("subflowStates")} must be an object`);
+  for (const [subflowId, capture2] of Object.entries(states ?? {})) {
+    if (!isPlainRecord2(capture2))
+      refuse2(`${field("subflowStates")}[${JSON.stringify(subflowId)}] must be an object`);
+  }
+  if (raw.pausedBy !== void 0 && raw.pausedBy !== "interrupt") {
+    refuse2(`${field("pausedBy")} must be 'interrupt' when present`);
+  }
+  if (raw.idempotencyKey !== void 0) {
+    const problem = idempotencyKeyProblem(raw.idempotencyKey);
+    if (problem !== void 0)
+      refuse2(`${field("idempotencyKey")} ${problem}`);
+  }
+  return {
+    pausedStageId: raw.pausedStageId,
+    subflowPath,
+    subflowStates: states ?? {},
+    ...raw.pauseData !== void 0 && { pauseData: raw.pauseData },
+    ...raw.pausedBy === "interrupt" && { pausedBy: "interrupt" },
+    // A record, never a plan input: kept only when well-formed (an older or
+    // hand-edited entry simply resumes without a link).
+    ...isPausedExecution(raw.pausedExecution) && {
+      pausedExecution: { runId: raw.pausedExecution.runId, runtimeStageId: raw.pausedExecution.runtimeStageId }
+    },
+    ...raw.idempotencyKey !== void 0 && { idempotencyKey: raw.idempotencyKey }
+  };
+}
+function decodeCheckpoint(stored) {
+  if (!isPlainRecord2(stored))
+    refuse2("the checkpoint must be an object");
+  const capture2 = readCheckpointCapture(stored);
+  const checkpoint = upcastCheckpoint(withoutCheckpointCapture(stored));
+  if (capture2)
+    checkpoint.capture = capture2;
+  else
+    delete checkpoint.capture;
+  if (!isPlainRecord2(checkpoint.sharedState))
+    refuse2("sharedState must be a plain object");
+  decodePauseRecord(checkpoint);
+  if (checkpoint.pausedExecution !== void 0 && !isPausedExecution(checkpoint.pausedExecution)) {
+    delete checkpoint.pausedExecution;
+  }
+  if (checkpoint.executionCount !== void 0 && !isCount2(checkpoint.executionCount)) {
+    refuse2("executionCount must be a non-negative integer");
+  }
+  const visits = checkpoint.visitCounts;
+  if (visits !== void 0 && (!isPlainRecord2(visits) || !Object.values(visits).every(isCount2))) {
+    refuse2("visitCounts must map stage ids to non-negative integers");
+  }
+  if (checkpoint.pendingPauses !== void 0)
+    checkpoint.pendingPauses = decodePendingPauses(checkpoint.pendingPauses);
+  if (checkpoint.redactionMarks !== void 0)
+    decodeRedactionMarks(checkpoint.redactionMarks);
+  return checkpoint;
+}
+function decodeRedactionMarks(marks) {
+  if (!isPlainRecord2(marks))
+    refuse2("redactionMarks must be an object");
+  if (!isStrings(marks.keys))
+    refuse2("redactionMarks.keys must be an array of strings");
+  const fields3 = marks.fields;
+  if (fields3 !== void 0 && (!isPlainRecord2(fields3) || !Object.values(fields3).every(isStrings))) {
+    refuse2("redactionMarks.fields must map keys to arrays of strings");
+  }
+}
+function isStrings(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function decodePendingPauses(pending) {
+  if (!Array.isArray(pending))
+    refuse2("pendingPauses must be an array");
+  return pending.map((raw, n) => decodePauseRecord(raw, `pendingPauses[${n}]`));
+}
+function isCount2(value) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/ResumeEntry.js
+var ResumeEntry = class _ResumeEntry {
+  /**
+   * Where the resumed TOP-LEVEL traversal starts: the stand-in (a top-level
+   * pause) or the mount of the first subflow on the path — each with its
+   * dispatcher's continuation attached. `undefined` for a seed-only entry —
+   * the traversal starts at its root.
+   */
+  start;
+  /** Sibling pauses whose fan-out sits at the TOP level — raised once `start`'s chain ends. */
+  startPendingPauses;
+  /**
+   * How many stage executions the resumed run makes before the stand-in runs
+   * — one per subflow on the path, each entered at its mount — so the
+   * executor's `onResume` names the stand-in's own `runtimeStageId`.
+   * `undefined` when it cannot be known before the run: an outer subflow
+   * missing its capture re-runs from its root.
+   */
+  stepsBeforeStandIn;
+  /** Hops not taken yet, by subflow id. A hop leaves this map when it is taken. */
+  pending;
+  constructor(start, hops, startPendingPauses, stepsBeforeStandIn) {
+    this.start = start;
+    this.startPendingPauses = startPendingPauses;
+    this.stepsBeforeStandIn = stepsBeforeStandIn;
+    this.pending = new Map(hops.map((hop) => [hop.subflowId, hop]));
+  }
+  /**
+   * Plan the re-entry of a paused chart. Every mount on the path, every
+   * dispatcher continuation and every waiting sibling is resolved HERE,
+   * against the chart as built, before a single stage runs — so a checkpoint
+   * whose path the chart cannot walk is refused up front instead of resuming
+   * into the wrong shape.
+   *
+   * @param args - `root` and `subflows`: the chart as built
+   *   (`FlowChart.root`, `FlowChart.subflows`); `path`:
+   *   `checkpoint.subflowPath`, outermost first; `captures`:
+   *   `checkpoint.subflowStates` (a detached copy); `standIn`: the node that
+   *   runs the resume half — the paused stage's own node, function swapped
+   *   (its continuation is attached here); `pendingPauses`:
+   *   `checkpoint.pendingPauses` (a detached copy).
+   * @throws when a subflow on the path is missing, mounted more than once, or
+   *   its mount cannot be reached from the enclosing graph; or when a pending
+   *   pause is malformed or is not a parallel sibling of the paused stage
+   */
+  static plan(args) {
+    const { root, subflows, path, captures, standIn } = args;
+    const chart = new ChartIndex();
+    const graphs = [root];
+    const mounts = [];
+    for (let i = 0; i < path.length; i++) {
+      const subflowId = path[i];
+      mounts.push(chart.onlyMount(graphs[i], subflowId, i === 0 ? "the flowchart" : `subflow '${path[i - 1]}'`));
+      const definition = ownEntry(subflows, subflowId);
+      if (!definition) {
+        throw new Error(`Cannot resume: subflow '${subflowId}' is not registered in the flowchart. The chart may have changed since the checkpoint was created.`);
+      }
+      graphs.push(definition.root);
+    }
+    const leafLevel = path.length;
+    const paused = chart.stage(graphs[leafLevel], standIn.id);
+    const queues = queueSiblingPauses(args.pendingPauses, { chart, subflows, root, path, graphs, mounts, paused });
+    const childAt = (level) => level < leafLevel ? mounts[level] : paused;
+    const entryAt = (level) => {
+      const child = childAt(level);
+      const replacement = level < leafLevel ? mounts[level] : standIn;
+      if (!child)
+        return replacement;
+      return chart.entry(graphs[level], child, replacement, queues[level]?.fanOut);
+    };
+    const hops = [];
+    let everyLevelAtItsEntry = true;
+    for (let i = 0; i < path.length; i++) {
+      const subflowId = path[i];
+      const seed = ownEntry(captures, subflowId);
+      const isLeafHop = i === path.length - 1;
+      if (seed === void 0 && !isLeafHop) {
+        everyLevelAtItsEntry = false;
+        hops.push({ subflowId });
+        continue;
+      }
+      const waiting = queues[i + 1]?.pauses;
+      hops.push({
+        subflowId,
+        ...seed !== void 0 && { seed },
+        entry: entryAt(i + 1),
+        ...waiting && { pendingPauses: waiting }
+      });
+    }
+    return new _ResumeEntry(entryAt(0), hops, queues[0]?.pauses, everyLevelAtItsEntry ? path.length : void 0);
+  }
+  /**
+   * A seed-only entry: each capture seeds the FIRST entry into its subflow,
+   * which then starts at its own root. Pass it explicitly as `resume` to
+   * TraverserOptions or HandlerDeps — the same one-shot law, without a
+   * stand-in or a path. Prefer `plan` when resuming a checkpoint.
+   */
+  static fromCaptures(captures) {
+    return new _ResumeEntry(void 0, Object.entries(captures).map(([subflowId, seed]) => ({ subflowId, seed })));
+  }
+  /**
+   * The re-entry into `subflowId`, taken — or `undefined` when this entry is
+   * an ordinary one (the subflow is off the pause path, or its hop was already
+   * taken). ONE-SHOT: a hop is returned at most once, so a second entry into
+   * the same subflow (a loop passing its mount again) runs the real subflow
+   * from its real root with its inputMapper.
+   */
+  enterSubflow(subflowId) {
+    const hop = this.pending.get(subflowId);
+    if (hop !== void 0)
+      this.pending.delete(subflowId);
+    return hop;
+  }
+  /** `true` once every hop has been taken — the rest of the run is ordinary. */
+  get spent() {
+    return this.pending.size === 0;
+  }
+};
+function queueBehind(signal, queue) {
+  for (const { pause, level } of queue) {
+    signal.addPendingPause({ ...pause, subflowPath: pause.subflowPath.slice(level) });
+  }
+}
+function raiseQueuedPause(queue) {
+  const [first, ...rest] = queue;
+  const { pause, level } = first;
+  const signal = new PauseSignal(pause.pauseData, pause.pausedStageId, pause.pausedBy);
+  if (isPausedExecution(pause.pausedExecution)) {
+    signal.stampExecution(pause.pausedExecution.runtimeStageId, pause.pausedExecution.runId);
+  }
+  signal.stampIdempotencyKey(pause.idempotencyKey);
+  const below = pause.subflowPath.slice(level);
+  for (let i = below.length - 1; i >= 0; i--) {
+    const state = ownEntry(pause.subflowStates, below[i]);
+    if (state !== void 0)
+      signal.captureSubflowScope(below[i], state);
+    signal.prependSubflow(below[i]);
+  }
+  queueBehind(signal, rest);
+  return signal;
+}
+function dispatcherIndex(root) {
+  const index = /* @__PURE__ */ new Map();
+  const stack = [[root, void 0]];
+  for (let top = stack.pop(); top !== void 0; top = stack.pop()) {
+    const [node, dispatcher] = top;
+    if (node.isLoopRef || index.has(node))
+      continue;
+    index.set(node, dispatcher);
+    if (node.next)
+      stack.push([node.next, dispatcher]);
+    if (node.children) {
+      for (let i = node.children.length - 1; i >= 0; i--)
+        stack.push([node.children[i], node]);
+    }
+  }
+  return index;
+}
+var ChartIndex = class {
+  indexes = /* @__PURE__ */ new Map();
+  of(root) {
+    let index = this.indexes.get(root);
+    if (!index) {
+      index = dispatcherIndex(root);
+      this.indexes.set(root, index);
+    }
+    return index;
+  }
+  /** Every mount of `subflowId` in `root`'s graph, in DFS pre-order. */
+  mountsOf(root, subflowId) {
+    return [...this.of(root).keys()].filter((node) => node.subflowId === subflowId);
+  }
+  /** The one mount of `subflowId` in `root`'s graph — refused when absent or ambiguous. */
+  onlyMount(root, subflowId, graphName) {
+    const found = this.mountsOf(root, subflowId);
+    if (found.length === 0) {
+      throw new Error(`Cannot resume: the mount of subflow '${subflowId}' is not reachable from ${graphName}. The checkpoint's subflowPath does not match this chart \u2014 it may have changed since the checkpoint was created.`);
+    }
+    if (found.length > 1) {
+      throw new Error(`Cannot resume: subflow '${subflowId}' is mounted more than once in ${graphName} (${found.map((node) => `'${node.name}'`).join(", ")}), and a checkpoint's subflowPath cannot say which mount paused. Give each mount its own subflow id to make a pause inside it resumable.`);
+    }
+    return found[0];
+  }
+  /** The real stage `id` in `root`'s graph (first in DFS pre-order), if any. */
+  stage(root, id) {
+    for (const node of this.of(root).keys())
+      if (node.id === id)
+        return node;
+    return void 0;
+  }
+  /** The dispatcher whose child-chain holds `node` in `root`'s graph (`undefined` on the spine). */
+  dispatcherOf(root, node) {
+    return this.of(root).get(node);
+  }
+  /**
+   * The one-shot entry for `child` (a mount on the path, or the paused stage)
+   * in `root`'s graph: `replacement` (the node that runs — the mount itself,
+   * or the stand-in) with what ran after `child`'s chain on the original run
+   * attached where that chain ends — `{ ...child, next: dispatcher.next }` for
+   * a chart the builder made:
+   *
+   *   • on the level's spine: nothing to attach — the spine goes on by itself;
+   *   • a DECIDER's or SELECTOR's branch: the dispatcher's `next`;
+   *   • a FORK child: the fork's `next` — its join.
+   *
+   * Past a dispatcher with no `next`, the walk goes on OUTWARD to the one
+   * enclosing it. It stops at `stopAt` — the fan-out where siblings still
+   * wait, whose join must not run yet. Nothing to attach: `replacement`
+   * itself.
+   */
+  entry(root, child, replacement, stopAt) {
+    return appendAtChainEnd(replacement, this.after(root, child, stopAt));
+  }
+  /**
+   * What runs once `node`'s chain ends: its dispatcher's `next` chain, then —
+   * where THAT ends — the continuation of the dispatcher enclosing it, outward,
+   * up to `stopAt` (exclusive). `undefined` on the spine.
+   */
+  after(root, node, stopAt) {
+    const dispatcher = this.dispatcherOf(root, node);
+    if (dispatcher === void 0 || dispatcher === stopAt)
+      return void 0;
+    const outer = this.after(root, dispatcher, stopAt);
+    return dispatcher.next ? appendAtChainEnd(dispatcher.next, outer) : outer;
+  }
+};
+function appendAtChainEnd(start, after) {
+  if (after === void 0)
+    return start;
+  const chain = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (let node = start; node !== void 0; node = node.next) {
+    if (node.isLoopRef || seen.has(node))
+      return start;
+    seen.add(node);
+    chain.push(node);
+  }
+  let next = after;
+  for (let i = chain.length - 1; i >= 0; i--)
+    next = { ...chain[i], next };
+  return next;
+}
+function queueSiblingPauses(pending, at) {
+  const queues = [];
+  if (pending === void 0)
+    return queues;
+  const decoded = decodePendingPauses(pending);
+  const { chart, subflows, root, path, graphs, mounts, paused } = at;
+  const seen = /* @__PURE__ */ new Set();
+  decoded.forEach((pause, n) => {
+    const key = JSON.stringify([pause.subflowPath, pause.pausedStageId]);
+    if (seen.has(key)) {
+      throw new Error(`Cannot resume: checkpoint.pendingPauses[${n}] ('${pause.pausedStageId}') repeats an earlier entry.`);
+    }
+    seen.add(key);
+    let level = 0;
+    while (level < path.length && level < pause.subflowPath.length && path[level] === pause.subflowPath[level])
+      level++;
+    const graph = graphs[level];
+    const ours = level < path.length ? mounts[level] : paused;
+    const theirMounts = level < pause.subflowPath.length ? chart.mountsOf(graph, pause.subflowPath[level]) : [];
+    const theirs = level < pause.subflowPath.length ? theirMounts.length === 1 ? theirMounts[0] : void 0 : chart.stage(graph, pause.pausedStageId);
+    const fanOut = ours ? chart.dispatcherOf(graph, ours) : void 0;
+    const isSibling = ours !== void 0 && theirs !== void 0 && ours !== theirs && fanOut !== void 0 && chart.dispatcherOf(graph, theirs) === fanOut && !fanOut.deciderFn && (queues[level] === void 0 || queues[level].fanOut === fanOut);
+    if (!isSibling || !walksToItsStage(chart, subflows, graph, pause, level)) {
+      throw new Error(`Cannot resume: checkpoint.pendingPauses[${n}] ('${pause.pausedStageId}') is not a parallel sibling of the paused stage '${paused?.id ?? "?"}' in this chart \u2014 no fork or selector runs them both, or its path does not lead to that stage. The chart may have changed since the checkpoint was created.`);
+    }
+    const leafRoot = pause.subflowPath.length === 0 ? root : ownEntry(subflows, pause.subflowPath[pause.subflowPath.length - 1])?.root;
+    const stageName = (leafRoot && chart.stage(leafRoot, pause.pausedStageId)?.name) ?? pause.pausedStageId;
+    const queue = queues[level] ??= { fanOut, pauses: [] };
+    queue.pauses.push({ pause, level, stageName });
+  });
+  return queues;
+}
+function walksToItsStage(chart, subflows, fanOutGraph, pause, level) {
+  let graph = fanOutGraph;
+  for (let i = level; i < pause.subflowPath.length; i++) {
+    if (chart.mountsOf(graph, pause.subflowPath[i]).length !== 1)
+      return false;
+    const definition = ownEntry(subflows, pause.subflowPath[i]);
+    if (!definition)
+      return false;
+    graph = definition.root;
+  }
+  return chart.stage(graph, pause.pausedStageId) !== void 0;
+}
+function ownEntry(record, key) {
+  return record && Object.prototype.hasOwnProperty.call(record, key) ? record[key] : void 0;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/RuntimeStructureManager.js
+function computeNodeType(node) {
+  if (node.isLoopRef)
+    return "loop";
+  if (node.isSubflowRoot)
+    return "subflow";
+  if (node.isDynamicParallel)
+    return "fork";
+  if (node.selectorFn)
+    return "selector";
+  if (node.nextNodeSelector || node.deciderFn)
+    return "decider";
+  if (node.isStreaming)
+    return "streaming";
+  const hasDynamicChildren = Boolean(node.children?.length && node.fn);
+  if (node.children && node.children.length > 0 && !hasDynamicChildren)
+    return "fork";
+  return "stage";
+}
+var RuntimeStructureManager = class _RuntimeStructureManager {
+  runtimePipelineStructure;
+  structureNodeMap = /* @__PURE__ */ new Map();
+  /** Initialize from build-time structure. Deep-clones via JSON round-trip. */
+  init(buildTimeStructure) {
+    if (!buildTimeStructure)
+      return;
+    try {
+      this.runtimePipelineStructure = JSON.parse(JSON.stringify(buildTimeStructure));
+    } catch {
+      return;
+    }
+    this.buildNodeMap(this.runtimePipelineStructure);
+  }
+  /** Returns the current runtime structure (mutated during execution). */
+  getStructure() {
+    return this.runtimePipelineStructure;
+  }
+  static MAX_NODE_MAP_DEPTH = 500;
+  /**
+   * Registers all nodes in the O(1) lookup map. Walks with an explicit stack
+   * (like the traverser's `buildNodeIdMap`), in pre-order: a node, its
+   * children, its `next`, then its subflow structure. A later node with the
+   * same id replaces an earlier one. A `next` hop adds no depth, so a chain
+   * of any length is mapped; children and subflow structures nest one level
+   * each, capped at MAX_NODE_MAP_DEPTH. A node object already visited is
+   * skipped, so a cyclic structure ends.
+   */
+  buildNodeMap(root) {
+    const visited = /* @__PURE__ */ new Set();
+    const stack = [{ node: root, depth: 0 }];
+    while (stack.length > 0) {
+      const { node, depth } = stack.pop();
+      if (depth > _RuntimeStructureManager.MAX_NODE_MAP_DEPTH || visited.has(node))
+        continue;
+      visited.add(node);
+      this.structureNodeMap.set(node.id, node);
+      if (node.subflowStructure)
+        stack.push({ node: node.subflowStructure, depth: depth + 1 });
+      if (node.next)
+        stack.push({ node: node.next, depth });
+      if (node.children) {
+        for (let i = node.children.length - 1; i >= 0; i--)
+          stack.push({ node: node.children[i], depth: depth + 1 });
+      }
+    }
+  }
+  /** Convert a runtime StageNode into a SerializedPipelineStructure node. */
+  stageNodeToStructure(node) {
+    const structure = {
+      name: node.name,
+      id: node.id,
+      type: computeNodeType(node),
+      description: node.description
+    };
+    if (node.isStreaming) {
+      structure.isStreaming = true;
+      structure.streamId = node.streamId;
+    }
+    if (node.tags?.length)
+      structure.tags = [...node.tags];
+    if (node.isSubflowRoot) {
+      structure.isSubflowRoot = true;
+      structure.subflowId = node.subflowId;
+      structure.subflowName = node.subflowName;
+    }
+    if (node.deciderFn) {
+      structure.hasDecider = true;
+      structure.branchIds = node.children?.map((c) => c.id);
+    }
+    if (node.selectorFn || node.nextNodeSelector) {
+      structure.hasSelector = true;
+      structure.branchIds = node.children?.map((c) => c.id);
+    }
+    if (node.children?.length) {
+      structure.children = node.children.map((c) => this.stageNodeToStructure(c));
+    }
+    if (node.next) {
+      structure.next = this.stageNodeToStructure(node.next);
+    }
+    if (node.subflowDef?.buildTimeStructure) {
+      structure.subflowStructure = node.subflowDef.buildTimeStructure;
+    }
+    return structure;
+  }
+  /** Update structure when dynamic children are discovered at runtime. */
+  updateDynamicChildren(parentNodeId, dynamicChildren, hasSelector, hasDecider) {
+    if (!this.runtimePipelineStructure)
+      return;
+    const parentStructure = this.structureNodeMap.get(parentNodeId);
+    if (!parentStructure) {
+      if (isDevMode()) {
+        console.warn(`[footprint] RuntimeStructureManager: node '${parentNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
+      }
+      return;
+    }
+    const childStructures = dynamicChildren.map((child) => this.stageNodeToStructure(child));
+    parentStructure.children = childStructures;
+    for (const childStructure of childStructures) {
+      this.buildNodeMap(childStructure);
+    }
+    if (hasSelector) {
+      parentStructure.hasSelector = true;
+      parentStructure.branchIds = childStructures.map((c) => c.id);
+    }
+    if (hasDecider) {
+      parentStructure.hasDecider = true;
+      parentStructure.branchIds = childStructures.map((c) => c.id);
+    }
+  }
+  /** Update structure when a dynamic subflow is registered at runtime. */
+  updateDynamicSubflow(mountNodeId, subflowId, subflowName, subflowBuildTimeStructure) {
+    if (!this.runtimePipelineStructure)
+      return;
+    const mountStructure = this.structureNodeMap.get(mountNodeId);
+    if (!mountStructure) {
+      if (isDevMode()) {
+        console.warn(`[footprint] RuntimeStructureManager: node '${mountNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
+      }
+      return;
+    }
+    mountStructure.isSubflowRoot = true;
+    mountStructure.subflowId = subflowId;
+    if (subflowName !== void 0) {
+      mountStructure.subflowName = subflowName;
+    }
+    if (subflowBuildTimeStructure) {
+      try {
+        mountStructure.subflowStructure = JSON.parse(JSON.stringify(subflowBuildTimeStructure));
+        this.buildNodeMap(mountStructure.subflowStructure);
+      } catch {
+      }
+    }
+  }
+  /** Update structure when a dynamic next chain is discovered at runtime. */
+  updateDynamicNext(currentNodeId, dynamicNext) {
+    if (!this.runtimePipelineStructure)
+      return;
+    const currentStructure = this.structureNodeMap.get(currentNodeId);
+    if (!currentStructure) {
+      if (isDevMode()) {
+        console.warn(`[footprint] RuntimeStructureManager: node '${currentNodeId}' not found in structure map \u2014 snapshot visualization may be incomplete`);
+      }
+      return;
+    }
+    const nextStructure = this.stageNodeToStructure(dynamicNext);
+    currentStructure.next = nextStructure;
+    this.buildNodeMap(nextStructure);
+  }
+  /** Update the iteration count for a node (loop support). */
+  updateIterationCount(nodeId, count3) {
+    if (!this.runtimePipelineStructure)
+      return;
+    const nodeStructure = this.structureNodeMap.get(nodeId);
+    if (!nodeStructure)
+      return;
+    nodeStructure.iterationCount = count3;
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/SelectorHandler.js
+var SelectorHandler = class {
+  deps;
+  childrenExecutor;
+  constructor(deps, childrenExecutor) {
+    this.deps = deps;
+    this.childrenExecutor = childrenExecutor;
+  }
+  /**
+   * Handle a scope-based selector node (created via addSelectorFunction).
+   * The stage function IS the selector — its return value contains branch IDs.
+   * Execution order: runStage(fn) → commit → resolve children → parallel execute.
+   */
+  async handleScopeBased(node, stageFunc, context, breakFlag, branchPath, runStage, executeNode, traversalContext) {
+    const breakFn = createBreakHandler(breakFlag, context, this.deps.readOnlyContext);
+    let selectedIds;
+    let selectionEvidence;
+    try {
+      const stageOutput = await runStage(node, stageFunc, context, breakFn, traversalContext);
+      if (stageOutput && typeof stageOutput === "object" && Reflect.has(stageOutput, DECISION_RESULT) && Array.isArray(stageOutput.branches)) {
+        selectedIds = stageOutput.branches;
+        selectionEvidence = stageOutput.evidence;
+      } else {
+        selectedIds = Array.isArray(stageOutput) ? stageOutput.map(String) : [String(stageOutput)];
+      }
+    } catch (error) {
+      if (isPauseSignal(error)) {
+        commitStageWrites(context);
+        this.deps.narrativeGenerator.onPause(node.name, node.id, servedPause(context, error.pauseData), error.subflowPath, traversalContext);
+        throw error;
+      }
+      captureStageFailure(context, error);
+      commitStageWrites(context);
+      const served2 = recordStageError(context, error);
+      this.deps.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
+        error: loggableStageError(context, error)
+      });
+      this.deps.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
+      throw error;
+    }
+    commitStage(context, this.deps.narrativeGenerator, node.name, traversalContext);
+    if (breakFlag.shouldBreak) {
+      this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
+      this.deps.narrativeGenerator.onBreak(node.name, traversalContext, breakFlag.reason);
+      return void 0;
+    }
+    context.addLog("selectedChildIds", selectedIds);
+    context.addLog("selectorPattern", "scope-based-multi-choice");
+    if (selectedIds.length === 0) {
+      context.addLog("skippedAllChildren", true);
+      context.addFlowDebugMessage("selected", "No children selected \u2014 skipping all branches.", {
+        count: 0,
+        targetStage: []
+      });
+      this.deps.narrativeGenerator.onSelected(node.name, [], (node.children ?? []).length, traversalContext, selectionEvidence);
+      this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
+      return {};
+    }
+    const children = node.children;
+    const selectedChildren = children.filter((c) => selectedIds.includes(c.branchId ?? c.id));
+    if (selectedChildren.length !== selectedIds.length) {
+      const childIds = children.map((c) => c.branchId ?? c.id);
+      const missing = selectedIds.filter((id) => !childIds.includes(id));
+      const errorMessage = `Scope-based selector '${node.name}' returned ${selectionProblem(selectedIds, missing)}. Available: ${childIds.join(", ")}`;
+      this.deps.logger.error(`Error in pipeline (${branchPath}):`, { error: errorMessage });
+      context.addError("selectorError", errorMessage);
+      const error = new Error(errorMessage);
+      const served2 = recordStageError(context, error);
+      this.deps.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
+      throw error;
+    }
+    const skippedIds = children.filter((c) => !selectedIds.includes(c.branchId ?? c.id)).map((c) => c.branchId ?? c.id);
+    if (skippedIds.length > 0) {
+      context.addLog("skippedChildIds", skippedIds);
+    }
+    const selectedNames = selectedChildren.map((c) => c.name).join(", ");
+    context.addFlowDebugMessage("selected", `Running ${selectedNames} (${selectedChildren.length} of ${children.length} matched)`, { count: selectedChildren.length, targetStage: selectedChildren.map((c) => c.name) });
+    const selectedDisplayNames = selectedChildren.map((c) => c.name);
+    this.deps.narrativeGenerator.onSelected(node.name, selectedDisplayNames, children.length, traversalContext, selectionEvidence);
+    this.deps.narrativeGenerator.onStageExecuted(node.name, node.description, traversalContext, "selector");
+    const tempNode = {
+      name: "selector-temp",
+      id: "selector-temp",
+      children: selectedChildren,
+      // Propagate the selector's fan-out error mode. Without this, ChildrenExecutor
+      // reads `tempNode.failFast` (undefined) and always uses Promise.allSettled —
+      // silently swallowing a required branch's error. See builder `failFast` option.
+      failFast: node.failFast
+    };
+    try {
+      return await this.childrenExecutor.executeNodeChildren(tempNode, context, void 0, branchPath, traversalContext);
+    } catch (error) {
+      if (isPauseSignal(error)) {
+        error.setInvoker(node.id);
+        throw error;
+      }
+      throw error;
+    }
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/StageRunner.js
+var StageRunner = class {
+  deps;
+  constructor(deps) {
+    this.deps = deps;
+  }
+  /**
+   * Run one stage function. `attempt` is the attempt runner's (P1b) — present when the stage runs under a retry
+   * policy, a `timeoutMs` or a run deadline: the scope hands it out (`$attempt()`) and is fenced to it, and the
+   * race below is against ITS signal (the run's, composed with the attempt's cap). Without one, the race is
+   * against the run's signal, as it always was.
+   */
+  async run(node, stageFunc, context, breakFn, attempt) {
+    context.useAttempt(attempt, this.deps.signal);
+    const raceSignal = attempt && (this.deps.signal !== void 0 || attempt.timeoutMs !== void 0) ? attempt.signal : this.deps.signal;
+    const rawScope = this.deps.scopeFactory(context, node.name, this.deps.readOnlyContext, this.deps.executionEnv);
+    const runtime = requireScopeRuntime(rawScope);
+    const scope = runtime.handlesAssignments ? rawScope : createProtectedScope(rawScope, {
+      mode: this.deps.scopeProtectionMode,
+      stageName: node.name
+    });
+    bindComponentScope(stageRunFrameFor(context), scope);
+    let streamCallback;
+    let accumulatedText = "";
+    if (node.isStreaming) {
+      const streamId = node.streamId ?? node.name;
+      streamCallback = (token) => {
+        accumulatedText += token;
+        this.deps.streamHandlers?.onToken?.(streamId, token);
+      };
+      this.deps.streamHandlers?.onStart?.(streamId);
+    }
+    runtime.setBreak?.(breakFn);
+    runtime.target.notifyStageStart?.();
+    let result3;
+    let observation;
+    let invocation;
+    let raced = false;
+    try {
+      context.beginSourceInvocation(attempt);
+      observation = context.captureExtent?.begin();
+      if (context.captureClosureTracking)
+        invocation = context.beginClosureInvocation(attempt);
+      const output = stageFunc(scope, breakFn, streamCallback);
+      if (output instanceof Promise) {
+        if (raceSignal) {
+          raced = true;
+          result3 = await raceAbort(output, raceSignal, observation, invocation && invocationFailureObserver(context.failureState, invocation));
+        } else {
+          result3 = await output;
+          observation?.settle();
+        }
+      } else {
+        result3 = output;
+        observation?.settle();
+      }
+    } catch (error) {
+      if (!raced)
+        observation?.settle();
+      if (isInterruptSignal(error)) {
+        const refusal = interruptProblem(node.touches) ?? (context.hasKeylessEffect ? "made a touching $call with no idempotencyKey, and a resume after interrupt() re-runs the stage from its top \u2014 the call would be sent again without a key. Give the call a key, or interrupt before it." : void 0);
+        if (refusal !== void 0)
+          throw new Error(`[footprint] stage '${node.id}' ${refusal}`);
+        runtime.target.notifyPause?.(servedPause(context, error.payload));
+        throw stampedPause(new PauseSignal(error.payload, node.id, "interrupt"), context, attempt);
+      }
+      const paused = isPauseSignal(error);
+      if (paused && error instanceof PauseSignal)
+        stampedPause(error, context, attempt);
+      if (invocation && !paused && !raced)
+        context.failureState.observeInvocationFailure(error, invocation);
+      throw error;
+    }
+    runtime.target.notifyStageEnd?.();
+    if (node.isStreaming) {
+      const streamId = node.streamId ?? node.name;
+      this.deps.streamHandlers?.onEnd?.(streamId, accumulatedText);
+    }
+    if (node.isPausable && result3 !== void 0) {
+      const pauseData = isPauseResult(result3) ? result3.data : result3;
+      runtime.target.notifyPause?.(servedPause(context, pauseData));
+      throw stampedPause(new PauseSignal(pauseData, node.id), context, attempt);
+    }
+    return result3;
+  }
+};
+function stampedPause(signal, context, attempt) {
+  signal.stampExecution(context.runtimeStageId);
+  signal.stampIdempotencyKey(attempt?.idempotencyKey);
+  return signal;
+}
+function raceAbort(promise, signal, observation, observeRejection) {
+  if (signal.aborted) {
+    observeRejection = void 0;
+    observation?.abandon();
+    promise.catch(() => {
+      observation?.settle();
+    });
+    return Promise.reject(signal.reason instanceof Error ? signal.reason : new Error(signal.reason ?? "Aborted"));
+  }
+  return new Promise((resolve2, reject) => {
+    const onAbort = () => {
+      observeRejection = void 0;
+      observation?.abandon();
+      reject(signal.reason instanceof Error ? signal.reason : new Error(signal.reason ?? "Aborted"));
+    };
+    try {
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then((val) => {
+        observeRejection = void 0;
+        observation?.settle();
+        signal.removeEventListener("abort", onAbort);
+        resolve2(val);
+      }, (err) => {
+        const observe2 = observeRejection;
+        observeRejection = void 0;
+        observation?.settle();
+        observe2?.(err);
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      });
+    } catch (error) {
+      observeRejection = void 0;
+      throw error;
+    }
+  });
+}
+function invocationFailureObserver(state, invocation) {
+  return (error) => {
+    try {
+      state.observeInvocationFailure(error, invocation);
+    } catch {
+    }
+  };
+}
+
 // node_modules/footprintjs/dist/esm/lib/memory/logAddress.js
 function childLogAddress(parent, mountRuntimeStageId) {
   return parent && mountRuntimeStageId ? { logRunId: parent.logRunId, drillPath: [...parent.drillPath, mountRuntimeStageId] } : void 0;
+}
+
+// node_modules/footprintjs/dist/esm/lib/memory/borrowedMutation.js
+function joinSegment(prefix, segment, intoArray) {
+  if (intoArray)
+    return `${prefix}[${segment}]`;
+  return prefix === "" ? segment : `${prefix}.${segment}`;
+}
+function firstDifferingPath(before, after, prefix = "", depth = 0) {
+  if (deepEqual(before, after, "copies"))
+    return void 0;
+  if (depth >= 24)
+    return prefix;
+  if (before === null || after === null || typeof before !== "object" || typeof after !== "object")
+    return prefix;
+  const beforeIsArray = Array.isArray(before);
+  if (beforeIsArray !== Array.isArray(after))
+    return prefix;
+  if (beforeIsArray) {
+    const a2 = before;
+    const b2 = after;
+    if (a2.length !== b2.length)
+      return prefix;
+    for (let i = 0; i < a2.length; i++) {
+      const deeper = firstDifferingPath(a2[i], b2[i], joinSegment(prefix, String(i), true), depth + 1);
+      if (deeper !== void 0)
+        return deeper;
+    }
+    return prefix;
+  }
+  const a = before;
+  const b = after;
+  const keys = /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    const deeper = firstDifferingPath(a[key], b[key], joinSegment(prefix, key, false), depth + 1);
+    if (deeper !== void 0)
+      return deeper;
+  }
+  return prefix;
+}
+function deadFrameMessage(stageName, runtimeStageId, key) {
+  const from = runtimeStageId ? `"${stageName}" (${runtimeStageId})` : `"${stageName}"`;
+  return `[footprint] Stage ${from} has already committed \u2014 its scope is dead, and a write to \`${key}\` just reached it from a later stage (this error is raised in that stage). A scope, and anything read out of it (\`scope.k\`, \`scope.k.arr[0]\`), belongs to the stage it was handed to; held past that stage's commit it has no frame to land in, so the write would vanish with no trace row. Read the key again through the CURRENT stage's scope and write there.`;
+}
+function lateAttemptMessage(stageName, series, attempt, key) {
+  return `[footprint] Stage "${stageName}" (${series}): attempt ${attempt} has already ended, and \`${key}\` was touched through its scope afterwards \u2014 refused. The engine stopped waiting for this attempt (its cap, the run's deadline, a cancellation, or its own error); its work must not land beside a later attempt. Pass \`scope.$attempt().signal\` to the calls it makes, so they stop when the attempt does.`;
+}
+function committedMutationMessage(stageName, key, path) {
+  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
+  return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE on the committed value it read before its first write, then wrote the key. The commit compares the written value with committed state \u2014 which the in-place change also moved \u2014 so it records NO change: live state keeps the edit, the commit log and every reader that folds it do not. Reads are BORROWED. Build the next value instead (\`scope.$setValue('${key}', { ...value, \u2026 })\`), or read the key again after the stage's first write \u2014 that read is the stage's own copy.`;
+}
+function mapperMutationMessage(mountName, mapper, key, path, holds) {
+  const where = path === void 0 || path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
+  const hidden = path === void 0 ? " (where inside it is not shown: this run has a redaction rule)" : "";
+  const how = holds === "list" ? `A list handed back is ADDED to the list that is there, so return only the new items (\`({ ${key}: [item] })\`), or set \`arrayMerge: ArrayMergeMode.Replace\` on the mount (the enum is on 'footprintjs/advanced') and return the whole list. ` : holds === "object" ? `An object handed back is MERGED into the one that is there (\`({ ${key}: { field: value } })\`), for the object itself and the objects directly inside it. A list inside it is added to, and anything deeper is replaced, so return such a value whole. ` : `A value of this kind (a Map, a Set, a Date, a class instance) is not merged: what is handed back REPLACES the one that is there, so return the whole new value (\`({ ${key}: next })\`). `;
+  return `[footprint] Subflow mount "${mountName}": its ${mapper} changed \`${where}\` IN PLACE${hidden}, on the parent's state it was handed. footprint never saw that write: there is no trace row for it, so the commit log, the causal chain and every reader that folds the log will disagree with final state. A mapper only reads. To change the parent's state, return the change from the outputMapper: it is written as a recorded write. ${how}Nothing can be removed that way: use a stage after the mount. See docs/guides/patterns.md ("Input/Output Mapping").`;
+}
+function borrowedMutationMessage(stageName, key, path) {
+  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
+  return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE, on a value it only read. footprint never saw that write: there is no trace row for it, so the commit log, the causal chain and every reader that folds the log will disagree with final state \u2014 and under a different write order the change is dropped entirely. Reads are BORROWED. Write through the scope instead (\`scope.` + where + ` = \u2026\` \u2014 property and indexed access are both tracked), or hand back the whole value with \`scope.$setValue('${key}', next)\`. This usually comes from mutating an element reached by \`find\`/\`filter\`/\`for\u2026of\`/\`forEach\`, which the scope proxy cannot intercept.`;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/plainObject.js
+function isPlainObject2(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/mapperEdits.js
+function watchForEdits(mount, mapper) {
+  if (!isDevMode())
+    return void 0;
+  let handed = /* @__PURE__ */ new Map();
+  return {
+    saw(key, value) {
+      if (handed === void 0 || value === null || typeof value !== "object" || handed.has(key))
+        return;
+      try {
+        handed.set(key, { value, copy: structuredClone(value) });
+      } catch {
+      }
+    },
+    report() {
+      if (handed === void 0)
+        return;
+      const judged = handed;
+      handed = void 0;
+      const rule = mount.getPolicy().redaction;
+      const nameThePlace = rule === void 0 || rule.isInert();
+      for (const [key, { value, copy }] of judged) {
+        const path = firstDifferingPath(copy, value);
+        if (path === void 0)
+          continue;
+        const holds = Array.isArray(value) ? "list" : isPlainObject2(value) ? "object" : "other";
+        console.warn(mapperMutationMessage(mount.stageName, mapper, key, nameThePlace ? path : void 0, holds));
+      }
+    }
+  };
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/handlers/mapperScope.js
+var WATCH = /* @__PURE__ */ new WeakMap();
+function isMapperView(scope) {
+  return scope !== null && typeof scope === "object" && WATCH.has(scope);
+}
+function watchMapperReads(scope, watcher) {
+  WATCH.get(scope)?.(watcher);
+}
+var INSPECT = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
+var CLOSED = "[parent state: readable only while the mapper runs]";
+var isIndexKey = (key) => typeof key === "string" && /^(0|[1-9]\d*)$/.test(key) && Number(key) < 2 ** 32 - 1;
+function inObjectOrder(keys) {
+  const numbered = keys.filter(isIndexKey).sort((a, b) => Number(a) - Number(b));
+  const named = keys.filter((key) => typeof key === "string" && !isIndexKey(key));
+  return [...numbered, ...named, ...keys.filter((key) => typeof key === "symbol")];
+}
+function mapperScope(mount, mapper) {
+  let open2 = true;
+  const edits = watchForEdits(mount, mapper);
+  const own5 = {};
+  let hidden;
+  const fromState = (key) => typeof key === "string" && !hidden?.has(key) && mount.hasRootKey(key);
+  let watcher;
+  const read2 = (key) => {
+    if (!open2)
+      throw new Error(closedMessage(mount.stageName, key));
+    const value = mount.readLiveRoot(key);
+    edits?.saw(key, value);
+    if (watcher === void 0)
+      return value;
+    const handed = watcher(key, value);
+    if (handed !== value)
+      mount.sameRuleFor(handed, value);
+    return handed;
+  };
+  const scope = new Proxy(own5, {
+    get(target2, key, receiver) {
+      if (Object.hasOwn(target2, key))
+        return Reflect.get(target2, key, receiver);
+      if (fromState(key))
+        return read2(key);
+      return Reflect.get(target2, key, receiver);
+    },
+    has: (target2, key) => Object.hasOwn(target2, key) || fromState(key) || Reflect.has(target2, key),
+    ownKeys: () => keysOf(),
+    getOwnPropertyDescriptor(target2, key) {
+      if (Object.hasOwn(target2, key))
+        return Reflect.getOwnPropertyDescriptor(target2, key);
+      if (!fromState(key))
+        return void 0;
+      return { enumerable: true, configurable: true, get: () => read2(key), set: (value) => assign(key, value) };
+    },
+    set: (_target, key, value) => assign(key, value),
+    defineProperty(target2, key, descriptor) {
+      if (typeof key === "string")
+        hidden?.delete(key);
+      return Reflect.defineProperty(target2, key, descriptor);
+    },
+    deleteProperty(target2, key) {
+      if (typeof key === "string" && mount.hasRootKey(key))
+        (hidden ??= /* @__PURE__ */ new Set()).add(key);
+      return Reflect.deleteProperty(target2, key);
+    },
+    // The view's keys are the state's, which a frozen or sealed object could not follow.
+    preventExtensions: () => false
+  });
+  function keysOf() {
+    const fromRoot = mount.rootKeys();
+    const keys = hidden === void 0 ? fromRoot : fromRoot.filter((key) => !hidden?.has(key));
+    const mine = Reflect.ownKeys(own5);
+    if (mine.length === 1)
+      return keys;
+    const seen = new Set(keys).add(INSPECT);
+    const added = mine.filter((key) => !seen.has(key));
+    return added.length === 0 ? keys : inObjectOrder([...keys, ...added]);
+  }
+  function whole() {
+    const record = {};
+    for (const key of keysOf()) {
+      if (!Object.hasOwn(own5, key))
+        record[key] = read2(key);
+      else if (Object.getOwnPropertyDescriptor(own5, key)?.enumerable)
+        record[key] = Reflect.get(own5, key, scope);
+    }
+    return record;
+  }
+  function assign(key, value) {
+    if (typeof key === "string")
+      hidden?.delete(key);
+    return Reflect.set(own5, key, value, own5);
+  }
+  rememberHandle(scope, whole);
+  WATCH.set(scope, (seenBy) => {
+    watcher = seenBy;
+  });
+  Object.defineProperty(own5, INSPECT, { value: () => open2 ? printed(scope) : CLOSED, configurable: true });
+  return {
+    scope,
+    close: () => {
+      open2 = false;
+      edits?.report();
+    }
+  };
+}
+function printed(scope) {
+  const names = Reflect.ownKeys(scope).filter((key) => typeof key === "string");
+  return `[parent state, keys: ${names.join(", ")}. Read a key, or spread it, to see values.]`;
+}
+function closedMessage(mount, key) {
+  return `[footprint] Subflow mount "${mount}": the parent state handed to its mapper was read ('${key}') after the mapper returned. That state can be read only while the mapper runs: a later read would be on no step's record. Return what is needed from the mapper instead of keeping the object.`;
 }
 
 // node_modules/footprintjs/dist/esm/lib/capture/sourceOwnershipFormat.js
@@ -12555,7 +14057,7 @@ function servedSubflowResults(results, redact) {
   if (!redact)
     return Object.fromEntries(results);
   const servedByRaw = /* @__PURE__ */ new Map();
-  const served = {};
+  const served2 = {};
   for (const [key, result3] of results) {
     let entry = servedByRaw.get(result3);
     if (entry === void 0) {
@@ -12571,32 +14073,32 @@ function servedSubflowResults(results, redact) {
       };
       servedByRaw.set(result3, entry);
     }
-    served[key] = entry;
+    served2[key] = entry;
   }
-  return served;
+  return served2;
 }
 
 // node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowInputMapper.js
-function isPlainObject(value) {
-  if (value === null || typeof value !== "object" || Array.isArray(value))
-    return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+function watched(taint, parentScope) {
+  if (!isMapperView(parentScope))
+    return taint.watch(parentScope);
+  watchMapperReads(parentScope, taint.reads(parentScope));
+  return parentScope;
 }
-function extractParentScopeValues(parentScope, options, rule) {
+function extractParentScopeValues(parentScope, options, rule, binding) {
   if (!options?.inputMapper) {
     return {};
   }
   const taint = MapperTaint.of(rule);
-  const raw = options.inputMapper(taint ? taint.watch(parentScope) : parentScope);
+  const raw = options.inputMapper(taint ? watched(taint, parentScope) : parentScope, binding);
   const result3 = taint ? taint.inherit(raw) : raw;
   if (result3 === null || result3 === void 0) {
     return {};
   }
   return unwrapHandles(result3);
 }
-function getInitialScopeValues(parentScope, options, rule) {
-  return extractParentScopeValues(parentScope, options, rule);
+function getInitialScopeValues(parentScope, options, rule, binding) {
+  return extractParentScopeValues(parentScope, options, rule, binding);
 }
 function seedSubflowGlobalStore(subflowRuntime, initialValues, mount) {
   const rootContext = subflowRuntime.rootStageContext;
@@ -12606,7 +14108,7 @@ function seedSubflowGlobalStore(subflowRuntime, initialValues, mount) {
     rootContext.runtimeStageId = mount.runtimeStageId;
   }
   for (const [key, value] of Object.entries(initialValues)) {
-    if (isPlainObject(value) && Object.keys(value).length > 0) {
+    if (isPlainObject2(value) && Object.keys(value).length > 0) {
       for (const [nestedKey, nestedValue] of Object.entries(value)) {
         rootContext.setObject([key], nestedKey, nestedValue);
       }
@@ -12616,21 +14118,28 @@ function seedSubflowGlobalStore(subflowRuntime, initialValues, mount) {
   }
   rootContext.commit();
 }
-function applyOutputMapping(subflowOutput, parentScope, parentContext, options, rule) {
+function applyOutputMapping(subflowOutput, parentScope, parentContext, options, rule, binding) {
   if (!options?.outputMapper) {
     return void 0;
   }
   const taint = MapperTaint.of(rule);
-  const mappedOutput = unwrapHandles(taint ? taint.inherit(options.outputMapper(taint.watch(subflowOutput), taint.watch(parentScope))) : options.outputMapper(subflowOutput, parentScope));
+  const mappedOutput = unwrapHandles(taint ? taint.inherit(options.outputMapper(taint.watch(subflowOutput), watched(taint, parentScope), binding)) : options.outputMapper(subflowOutput, parentScope, binding));
   if (mappedOutput === null || mappedOutput === void 0) {
     return void 0;
   }
   for (const [key, value] of Object.entries(mappedOutput)) {
-    if (isPlainObject(value)) {
-      for (const [nestedKey, nestedValue] of Object.entries(value)) {
+    if (isPlainObject2(value)) {
+      const fields3 = Object.entries(value);
+      if (fields3.length === 0)
+        continue;
+      parentContext.readOwnView(key);
+      parentContext.inheritRule([], key, value);
+      for (const [nestedKey, nestedValue] of fields3) {
         if (Array.isArray(nestedValue)) {
+          parentContext.inheritRule([key], nestedKey, nestedValue);
           parentContext.appendToArray([key], nestedKey, nestedValue);
         } else if (typeof nestedValue === "object" && nestedValue !== null) {
+          parentContext.inheritRule([key], nestedKey, nestedValue);
           parentContext.mergeObject([key], nestedKey, nestedValue);
         } else {
           parentContext.setObject([key], nestedKey, nestedValue);
@@ -12640,8 +14149,9 @@ function applyOutputMapping(subflowOutput, parentScope, parentContext, options, 
       if (options?.arrayMerge === "replace") {
         parentContext.setGlobal(key, value);
       } else {
-        const existing = parentContext.getGlobal(key);
+        const existing = parentContext.readLiveRoot(key);
         if (Array.isArray(existing)) {
+          parentContext.inheritRule([], key, value);
           parentContext.setGlobal(key, [...existing, ...value]);
         } else {
           parentContext.setGlobal(key, value);
@@ -12656,13 +14166,27 @@ function applyOutputMapping(subflowOutput, parentScope, parentContext, options, 
 
 // node_modules/footprintjs/dist/esm/lib/engine/handlers/SubflowExecutor.js
 function detachMappedInput(input) {
-  let out;
-  for (const [key, value] of Object.entries(input)) {
+  let out = withGettersRead(input);
+  for (const [key, value] of Object.entries(out ?? input)) {
     if (!isDetachable(value))
       continue;
     (out ??= { ...input })[key] = structuredClone(value);
   }
   return out ?? input;
+}
+function withGettersRead(record) {
+  const hasGetter = Reflect.ownKeys(record).some((key) => Object.getOwnPropertyDescriptor(record, key)?.get);
+  if (!hasGetter)
+    return void 0;
+  const descriptors2 = Object.getOwnPropertyDescriptors(record);
+  for (const key of Reflect.ownKeys(descriptors2)) {
+    const own5 = descriptors2[key];
+    if (own5.get === void 0)
+      continue;
+    const value = Reflect.get(record, key, record);
+    descriptors2[key] = { value, writable: true, enumerable: own5.enumerable, configurable: true };
+  }
+  return Object.create(Object.getPrototypeOf(record), descriptors2);
 }
 function isDetachable(value) {
   if (value === null || typeof value !== "object")
@@ -12694,168 +14218,210 @@ var SubflowExecutor = class {
    * 4. Applies output mapping to write results back to parent scope
    * 5. Stores execution data for debugging/visualization
    */
-  async executeSubflow(node, parentContext, breakFlag, branchPath, subflowResultsMap, parentTraversalContext) {
-    const subflowId = node.subflowId;
-    const subflowName = node.subflowName ?? node.name;
-    parentContext.addFlowDebugMessage("subflow", `Entering ${subflowName} subflow`, {
-      targetStage: subflowId
-    });
-    const resumeHop = this.resume?.enterSubflow(subflowId);
-    const mountOptions = node.subflowMountOptions;
-    let mappedInput = {};
-    const resumeCapture = resumeHop?.seed;
-    const isResumeForThisSubflow = resumeCapture !== void 0;
-    const policy = parentContext.getPolicy();
-    const redactionRule = policy.redaction;
-    if (mountOptions) {
-      try {
-        const parentScope = parentContext.getScope();
-        mappedInput = detachMappedInput(getInitialScopeValues(parentScope, mountOptions, redactionRule));
-        if (Object.keys(mappedInput).length > 0) {
-        }
-      } catch (error) {
-        parentContext.addError("inputMapperError", thrownText(error));
-        this.deps.logger.error(`Error in inputMapper for subflow (${subflowId}):`, {
-          error: loggableStageError(parentContext, error)
-        });
-        throw error;
-      }
-    }
-    const narrativeInput = redactionRule ? redactionRule.retainBoundary(mappedInput) : mappedInput;
-    const rootDescription = this.deps.subflows?.[subflowId]?.root?.description;
-    this.deps.narrativeGenerator.onSubflowEntry(subflowName, subflowId, rootDescription ?? node.description, parentTraversalContext, narrativeInput);
-    this.deps.narrativeGenerator.onStageExecuted(node.name, rootDescription ?? node.description, parentTraversalContext, "subflow-mount");
-    const ExecutionRuntimeClass = this.deps.executionRuntime.constructor;
-    const firstNode = resumeHop?.entry ?? node;
-    const mountRuntimeStageId = parentTraversalContext?.runtimeStageId;
-    const parentLogAddress = this.deps.executionRuntime.executionHistory.address;
-    const sourceAddress2 = policy.readSources ? childLogAddress(parentLogAddress, mountRuntimeStageId) : void 0;
-    const record = mountRuntimeStageId === void 0 ? void 0 : this.deps.executionRuntime.recordFor?.(mountRuntimeStageId, { subflowId });
-    const nestedRuntime = new ExecutionRuntimeClass(firstNode.name, firstNode.id, void 0, void 0, policy, record, parentTraversalContext?.runId ? {
-      runId: parentTraversalContext.runId,
-      ...sourceAddress2 ? { address: sourceAddress2 } : { unavailable: "child-source-ownership" },
-      ...isResumeForThisSubflow && { historyOmitted: true }
-    } : void 0);
-    const seedValues = isResumeForThisSubflow ? resumeCapture : mappedInput;
-    if (Object.keys(seedValues).length > 0) {
-      try {
-        seedSubflowGlobalStore(nestedRuntime, seedValues, parentContext);
-      } catch (error) {
-        nestedRuntime.closeRecord?.("failed");
-        throw error;
-      }
-      nestedRuntime.rootStageContext = nestedRuntime.newRoot(firstNode.name, firstNode.id);
-    }
-    const subflowNode = {
-      ...node,
-      isSubflowRoot: false
-    };
-    let subflowOutput;
-    let subflowError;
-    let traverserHandle;
+  async executeSubflow(node, parentContext, breakFlag, branchPath, subflowResultsMap, parentTraversalContext, returned) {
+    const mappingFrame = stageRunFrameFor(parentContext);
+    const definition = returned ?? this.deps.subflows?.[node.subflowId];
+    const componentRoot = declaredRunComponentRoot(definition?.root);
+    const childRunFrame = this.deps.executionRuntime.runFrame?.mounted(componentRoot, mappingFrame?.origin);
+    const ownsComponent = componentRoot !== void 0 && childRunFrame !== void 0;
+    let componentEnd = { kind: "failed" };
+    let escaped;
+    let cleanupFailure;
+    let componentOutput;
     try {
-      traverserHandle = this.traverserFactory({
-        // The REAL subflow graph — every id inside the subflow (loop targets,
-        // a re-visit of the paused stage) resolves against it, re-entry or not.
-        root: subflowNode,
-        // Where this traversal starts on a resume re-entry; visited once —
-        // and the sibling pauses it raises once that entry's chain ends.
-        ...resumeHop?.entry && { entry: resumeHop.entry },
-        ...resumeHop?.pendingPauses && { pendingPauses: resumeHop.pendingPauses },
-        executionRuntime: nestedRuntime,
-        readOnlyContext: mappedInput,
-        subflowId,
-        // RFC-003 D1: the mount stage's runtimeStageId — the subflow root
-        // stage's `parentRuntimeStageId` so ancestor chains cross the mount.
-        parentMountRuntimeStageId: parentTraversalContext?.runtimeStageId
+      if (ownsComponent) {
+        captureComponentControl(childRunFrame);
+        openComponentControl(childRunFrame);
+      }
+      const mappingOptions = node.subflowMountOptions;
+      if ((mappingOptions?.inputMapper || mappingOptions?.outputMapper) && (!mappingFrame || mappingFrame.origin.kind !== "stage")) {
+        throw new TypeError("[footprint] Native mapper requires a captured parent stage frame");
+      }
+      const subflowId = node.subflowId;
+      const subflowName = node.subflowName ?? node.name;
+      parentContext.addFlowDebugMessage("subflow", `Entering ${subflowName} subflow`, {
+        targetStage: subflowId
       });
-      subflowOutput = await traverserHandle.execute();
-    } catch (error) {
-      if (isPauseSignal(error)) {
-        error.captureSubflowScope(subflowId, nestedRuntime.globalStore.getState());
-        error.prependSubflow(subflowId);
-        nestedRuntime.closeRecord?.("paused");
-        throw error;
-      }
-      subflowError = { error };
-      parentContext.addError("subflowError", thrownText(error));
-      this.deps.logger.error(`Error in subflow (${subflowId}):`, { error: loggableStageError(parentContext, error) });
-    }
-    nestedRuntime.closeRecord?.(subflowError ? "failed" : "ok");
-    if (traverserHandle) {
-      for (const [key, value] of traverserHandle.getSubflowResults()) {
-        subflowResultsMap.set(key, value);
-      }
-    }
-    if (traverserHandle && mountOptions?.propagateBreak === true) {
-      const innerBreak = traverserHandle.getBreakState();
-      if (innerBreak.shouldBreak) {
-        breakFlag.shouldBreak = true;
-        if (innerBreak.reason !== void 0 && breakFlag.reason === void 0) {
-          breakFlag.reason = innerBreak.reason;
+      const resumeHop = this.resume?.enterSubflow(subflowId);
+      const mountOptions = node.subflowMountOptions;
+      let mappedInput = {};
+      const resumeCapture = resumeHop?.seed;
+      const isResumeForThisSubflow = resumeCapture !== void 0;
+      const policy = parentContext.getPolicy();
+      const redactionRule = policy.redaction;
+      if (mountOptions) {
+        const parentView = mapperScope(parentContext, "inputMapper");
+        try {
+          mappedInput = detachMappedInput(getInitialScopeValues(parentView.scope, mountOptions, redactionRule, mountOptions.inputMapper ? createNativeMappingBinding(mappingFrame) : void 0));
+        } catch (error) {
+          parentContext.addError("inputMapperError", thrownText(error));
+          this.deps.logger.error(`Error in inputMapper for subflow (${subflowId}):`, {
+            error: loggableStageError(parentContext, error)
+          });
+          throw error;
+        } finally {
+          parentView.close();
         }
-        this.deps.narrativeGenerator.onBreak(subflowName, parentTraversalContext, innerBreak.reason, subflowId);
       }
-    }
-    const subflowTreeContext = nestedRuntime.getSnapshot();
-    if (!subflowError && mountOptions?.outputMapper) {
+      const narrativeInput = redactionRule ? redactionRule.retainBoundary(mappedInput) : mappedInput;
+      const rootDescription = definition?.root?.description;
+      this.deps.narrativeGenerator.onSubflowEntry(subflowName, subflowId, rootDescription ?? node.description, parentTraversalContext, narrativeInput);
+      this.deps.narrativeGenerator.onStageExecuted(node.name, rootDescription ?? node.description, parentTraversalContext, "subflow-mount");
+      const ExecutionRuntimeClass = this.deps.executionRuntime.constructor;
+      const firstNode = resumeHop?.entry ?? node;
+      const mountRuntimeStageId = parentTraversalContext?.runtimeStageId;
+      const parentLogAddress = this.deps.executionRuntime.executionHistory.address;
+      const sourceAddress2 = policy.readSources ? childLogAddress(parentLogAddress, mountRuntimeStageId) : void 0;
+      const record = mountRuntimeStageId === void 0 ? void 0 : this.deps.executionRuntime.recordFor?.(mountRuntimeStageId, { subflowId });
+      const nestedRuntime = new ExecutionRuntimeClass(firstNode.name, firstNode.id, void 0, void 0, policy, record, parentTraversalContext?.runId ? {
+        runId: parentTraversalContext.runId,
+        ...sourceAddress2 ? { address: sourceAddress2 } : { unavailable: "child-source-ownership" },
+        ...isResumeForThisSubflow && { historyOmitted: true }
+      } : void 0);
+      nestedRuntime.runFrame = childRunFrame;
+      const seedValues = isResumeForThisSubflow ? resumeCapture : mappedInput;
+      if (Object.keys(seedValues).length > 0) {
+        try {
+          seedSubflowGlobalStore(nestedRuntime, seedValues, parentContext);
+        } catch (error) {
+          nestedRuntime.closeRecord?.("failed");
+          throw error;
+        }
+        nestedRuntime.rootStageContext = nestedRuntime.newRoot(firstNode.name, firstNode.id);
+      }
+      const subflowNode = {
+        ...node,
+        isSubflowRoot: false
+      };
+      let subflowOutput;
+      let subflowError;
+      let traverserHandle;
       try {
-        const outputContext = parentContext;
-        if (parentContext.branchId && parentContext.parent) {
-          outputContext.useAddressOf(parentContext.parent);
-        }
-        const parentScope = outputContext.getScope();
-        const effectiveOutput = subflowOutput ?? { ...subflowTreeContext.sharedState };
-        const mappedOutput = applyOutputMapping(effectiveOutput, parentScope, outputContext, mountOptions, redactionRule);
-        outputContext.commit();
-      } catch (error) {
-        if (parentContext.branchId && parentContext.parent)
-          parentContext.discardStaged();
-        parentContext.addError("outputMapperError", thrownText(error));
-        this.deps.logger.error(`Error in outputMapper for subflow (${subflowId}):`, {
-          error: loggableStageError(parentContext, error)
+        traverserHandle = this.traverserFactory({
+          // The REAL subflow graph — every id inside the subflow (loop targets,
+          // a re-visit of the paused stage) resolves against it, re-entry or not.
+          root: subflowNode,
+          ...returned && { definition: returned },
+          // Where this traversal starts on a resume re-entry; visited once —
+          // and the sibling pauses it raises once that entry's chain ends.
+          ...resumeHop?.entry && { entry: resumeHop.entry },
+          ...resumeHop?.pendingPauses && { pendingPauses: resumeHop.pendingPauses },
+          executionRuntime: nestedRuntime,
+          readOnlyContext: mappedInput,
+          subflowId,
+          // RFC-003 D1: the mount stage's runtimeStageId — the subflow root
+          // stage's `parentRuntimeStageId` so ancestor chains cross the mount.
+          parentMountRuntimeStageId: parentTraversalContext?.runtimeStageId
         });
+        subflowOutput = await traverserHandle.execute();
+      } catch (error) {
+        if (isPauseSignal(error)) {
+          error.captureSubflowScope(subflowId, nestedRuntime.globalStore.getState());
+          error.prependSubflow(subflowId);
+          nestedRuntime.closeRecord?.("paused");
+          throw error;
+        }
+        subflowError = { error };
+        parentContext.addError("subflowError", thrownText(error));
+        this.deps.logger.error(`Error in subflow (${subflowId}):`, { error: loggableStageError(parentContext, error) });
+      }
+      nestedRuntime.closeRecord?.(subflowError ? "failed" : "ok");
+      if (traverserHandle) {
+        for (const [key, value] of traverserHandle.getSubflowResults()) {
+          subflowResultsMap.set(key, value);
+        }
+      }
+      if (traverserHandle && mountOptions?.propagateBreak === true) {
+        const innerBreak = traverserHandle.getBreakState();
+        if (innerBreak.shouldBreak) {
+          breakFlag.shouldBreak = true;
+          if (innerBreak.reason !== void 0 && breakFlag.reason === void 0) {
+            breakFlag.reason = innerBreak.reason;
+          }
+          this.deps.narrativeGenerator.onBreak(subflowName, parentTraversalContext, innerBreak.reason, subflowId);
+        }
+      }
+      const subflowTreeContext = nestedRuntime.getSnapshot();
+      if (!subflowError && mountOptions?.outputMapper) {
+        let parentView;
+        try {
+          const outputContext = parentContext;
+          if (parentContext.branchId && parentContext.parent) {
+            outputContext.useAddressOf(parentContext.parent);
+          }
+          parentView = mapperScope(outputContext, "outputMapper");
+          const effectiveOutput = subflowOutput ?? { ...subflowTreeContext.sharedState };
+          applyOutputMapping(effectiveOutput, parentView.scope, outputContext, mountOptions, redactionRule, createNativeMappingBinding(mappingFrame));
+          outputContext.commit();
+        } catch (error) {
+          if (parentContext.branchId && parentContext.parent)
+            parentContext.discardStaged();
+          parentContext.addError("outputMapperError", thrownText(error));
+          this.deps.logger.error(`Error in outputMapper for subflow (${subflowId}):`, {
+            error: loggableStageError(parentContext, error)
+          });
+        } finally {
+          parentView?.close();
+        }
+      }
+      const subflowResult = {
+        subflowId,
+        subflowName,
+        treeContext: {
+          globalContext: subflowTreeContext.sharedState,
+          stageContexts: subflowTreeContext.executionTree,
+          history: subflowTreeContext.commitLog,
+          ...subflowTreeContext.readSources && { readSources: subflowTreeContext.readSources },
+          ...subflowTreeContext.logAddress === void 0 ? {} : { logAddress: subflowTreeContext.logAddress },
+          // The subflow's own fold base travels with its own log — same
+          // contract as the run-level `RuntimeSnapshot.initialState`.
+          initialState: subflowTreeContext.initialState
+        },
+        parentStageId: parentContext.getStageId()
+      };
+      if (definition?.buildTimeStructure) {
+        subflowResult.pipelineStructure = definition.buildTimeStructure;
+      }
+      const rawState = subflowResult.treeContext.globalContext;
+      const mirrorState = nestedRuntime.redactedStore?.getState();
+      if (mirrorState !== void 0)
+        rememberRedactedSubflowState(subflowResult, mirrorState);
+      const exitState = !redactionRule ? mirrorState ?? rawState : mirrorState !== void 0 ? redactionRule.retainBoundary(mirrorState, LOG_PLACEHOLDER) : redactionRule.retainBoundary(rawState);
+      subflowResultsMap.set(subflowId, subflowResult);
+      if (mountRuntimeStageId && mountRuntimeStageId !== subflowId) {
+        subflowResultsMap.set(mountRuntimeStageId, subflowResult);
+      }
+      parentContext.addFlowDebugMessage("subflow", `Exiting ${subflowName} subflow`, {
+        targetStage: subflowId
+      });
+      this.deps.narrativeGenerator.onSubflowExit(subflowName, subflowId, parentTraversalContext, exitState);
+      commitStageWrites(parentContext, "exit");
+      if (subflowError) {
+        parentContext.failureState.adopt(nestedRuntime.rootStageContext.failureState, subflowError.error);
+        throw subflowError.error;
+      }
+      nestedRuntime.rootStageContext.failureState.complete();
+      componentEnd = { kind: "completed" };
+      componentOutput = subflowOutput;
+    } catch (error) {
+      escaped = { reason: error };
+      componentEnd = { kind: isPauseSignal(error) ? "paused" : "failed" };
+    } finally {
+      if (ownsComponent) {
+        const pending = retireComponentControl(childRunFrame, componentEnd);
+        if (pending) {
+          const failures = await pending;
+          reportFinalizationFailures(this.deps.logger, 0, failures.count);
+          if (componentEnd.kind !== "paused")
+            cleanupFailure = failures.first;
+        }
       }
     }
-    const subflowResult = {
-      subflowId,
-      subflowName,
-      treeContext: {
-        globalContext: subflowTreeContext.sharedState,
-        stageContexts: subflowTreeContext.executionTree,
-        history: subflowTreeContext.commitLog,
-        ...subflowTreeContext.readSources && { readSources: subflowTreeContext.readSources },
-        ...subflowTreeContext.logAddress === void 0 ? {} : { logAddress: subflowTreeContext.logAddress },
-        // The subflow's own fold base travels with its own log — same
-        // contract as the run-level `RuntimeSnapshot.initialState`.
-        initialState: subflowTreeContext.initialState
-      },
-      parentStageId: parentContext.getStageId()
-    };
-    const subflowDef = this.deps.subflows?.[subflowId];
-    if (subflowDef && subflowDef.buildTimeStructure) {
-      subflowResult.pipelineStructure = subflowDef.buildTimeStructure;
-    }
-    const rawState = subflowResult.treeContext.globalContext;
-    const mirrorState = nestedRuntime.redactedStore?.getState();
-    if (mirrorState !== void 0)
-      rememberRedactedSubflowState(subflowResult, mirrorState);
-    const exitState = !redactionRule ? mirrorState ?? rawState : mirrorState !== void 0 ? redactionRule.retainBoundary(mirrorState, LOG_PLACEHOLDER) : redactionRule.retainBoundary(rawState);
-    subflowResultsMap.set(subflowId, subflowResult);
-    if (mountRuntimeStageId && mountRuntimeStageId !== subflowId) {
-      subflowResultsMap.set(mountRuntimeStageId, subflowResult);
-    }
-    parentContext.addFlowDebugMessage("subflow", `Exiting ${subflowName} subflow`, {
-      targetStage: subflowId
-    });
-    this.deps.narrativeGenerator.onSubflowExit(subflowName, subflowId, parentTraversalContext, exitState);
-    commitStageWrites(parentContext, "exit");
-    if (subflowError) {
-      parentContext.failureState.adopt(nestedRuntime.rootStageContext.failureState, subflowError.error);
-      throw subflowError.error;
-    }
-    nestedRuntime.rootStageContext.failureState.complete();
-    return subflowOutput;
+    if (escaped)
+      throw escaped.reason;
+    if (cleanupFailure)
+      throw cleanupFailure.reason;
+    return componentOutput;
   }
 };
 
@@ -12960,8 +14526,25 @@ function fire(recorders, hook, event, onFailure = SWALLOW) {
 
 // node_modules/footprintjs/dist/esm/lib/engine/narrative/FlowRecorderDispatcher.js
 var FLOW_FAILURE = warnInDevMode("FlowRecorderDispatcher");
-var FlowRecorderDispatcher = class {
-  recorders = [];
+var FlowRecorderDispatcher = class _FlowRecorderDispatcher {
+  backend = { recorders: [] };
+  #producer;
+  get recorders() {
+    return this.backend.recorders;
+  }
+  set recorders(value) {
+    this.backend.recorders = value;
+  }
+  /** Bind one immutable producer view; children rebind the SAME backend. */
+  bindProducer(frame) {
+    const view = new _FlowRecorderDispatcher();
+    view.backend = this.backend;
+    view.#producer = frame;
+    return view;
+  }
+  hasRecorders() {
+    return this.recorders.length > 0 || hasComponentRecorders(this.#producer);
+  }
   /** Attach a FlowRecorder. Duplicate IDs are allowed (same as scope ScopeRecorder). */
   attach(recorder) {
     this.recorders.push(recorder);
@@ -12980,19 +14563,19 @@ var FlowRecorderDispatcher = class {
   }
   // ── IControlFlowNarrative implementation ──────────────────────────────────
   onStageExecuted(stageName, description, traversalContext, stageType) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { stageName, description, traversalContext, stageType };
-    fire(this.recorders, "onStageExecuted", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onStageExecuted", event, FLOW_FAILURE);
   }
   onNext(fromStage, toStage, description, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { from: fromStage, to: toStage, description, traversalContext };
-    fire(this.recorders, "onNext", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onNext", event, FLOW_FAILURE);
   }
   onDecision(deciderName, chosenBranch, rationale, deciderDescription, traversalContext, evidence) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = {
       decider: deciderName,
@@ -13002,46 +14585,46 @@ var FlowRecorderDispatcher = class {
       traversalContext,
       evidence
     };
-    fire(this.recorders, "onDecision", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onDecision", event, FLOW_FAILURE);
   }
   onFork(parentStage, childNames, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { parent: parentStage, children: childNames, traversalContext };
-    fire(this.recorders, "onFork", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onFork", event, FLOW_FAILURE);
   }
   onSelected(parentStage, selectedNames, totalCount, traversalContext, evidence) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { parent: parentStage, selected: selectedNames, total: totalCount, traversalContext, evidence };
-    fire(this.recorders, "onSelected", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onSelected", event, FLOW_FAILURE);
   }
   onSubflowEntry(subflowName, subflowId, description, traversalContext, mappedInput) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { name: subflowName, subflowId, description, traversalContext, mappedInput };
-    fire(this.recorders, "onSubflowEntry", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onSubflowEntry", event, FLOW_FAILURE);
   }
   onSubflowExit(subflowName, subflowId, traversalContext, outputState) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { name: subflowName, subflowId, traversalContext, outputState };
-    fire(this.recorders, "onSubflowExit", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onSubflowExit", event, FLOW_FAILURE);
   }
   onSubflowRegistered(subflowId, name, description, specStructure) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { subflowId, name, description, specStructure };
-    fire(this.recorders, "onSubflowRegistered", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onSubflowRegistered", event, FLOW_FAILURE);
   }
   onLoop(targetStage, iteration, description, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { target: targetStage, iteration, description, traversalContext };
-    fire(this.recorders, "onLoop", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onLoop", event, FLOW_FAILURE);
   }
   onBreak(stageName, traversalContext, reason, propagatedFromSubflow) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = {
       stageName,
@@ -13049,16 +14632,16 @@ var FlowRecorderDispatcher = class {
       ...reason !== void 0 && { reason },
       ...propagatedFromSubflow !== void 0 && { propagatedFromSubflow }
     };
-    fire(this.recorders, "onBreak", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onBreak", event, FLOW_FAILURE);
   }
   onError(stageName, errorMessage, structuredError, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { stageName, message: errorMessage, structuredError, traversalContext, channel: "flow" };
-    fire(this.recorders, "onError", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onError", event, FLOW_FAILURE);
   }
   onAttempt(stageName, stageId, record, structuredError, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = {
       stageName,
@@ -13068,10 +14651,10 @@ var FlowRecorderDispatcher = class {
       traversalContext,
       channel: "flow"
     };
-    fire(this.recorders, "onAttempt", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onAttempt", event, FLOW_FAILURE);
   }
   onStageRetry(stageName, stageId, attempt, maxAttempts, delayMs, structuredError, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = {
       stageName,
@@ -13084,10 +14667,10 @@ var FlowRecorderDispatcher = class {
       traversalContext,
       channel: "flow"
     };
-    fire(this.recorders, "onStageRetry", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onStageRetry", event, FLOW_FAILURE);
   }
   onThrottled(stageName, stageId, structuredError, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = {
       stageName,
@@ -13097,39 +14680,39 @@ var FlowRecorderDispatcher = class {
       traversalContext,
       channel: "flow"
     };
-    fire(this.recorders, "onThrottled", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onThrottled", event, FLOW_FAILURE);
   }
   onPause(stageName, stageId, pauseData, subflowPath, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { stageName, stageId, pauseData, subflowPath, traversalContext, channel: "flow" };
-    fire(this.recorders, "onPause", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onPause", event, FLOW_FAILURE);
   }
   onResume(stageName, stageId, hasInput, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { stageName, stageId, hasInput, traversalContext, channel: "flow" };
-    fire(this.recorders, "onResume", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onResume", event, FLOW_FAILURE);
   }
   onRunStart(input, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { payload: input, traversalContext };
-    fire(this.recorders, "onRunStart", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onRunStart", event, FLOW_FAILURE);
   }
   onRunEnd(output, traversalContext) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { payload: output, traversalContext };
-    fire(this.recorders, "onRunEnd", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onRunEnd", event, FLOW_FAILURE);
   }
   onRunFailed(error, traversalContext, failure) {
-    if (this.recorders.length === 0)
+    if (!this.hasRecorders())
       return;
     const event = { structuredError: error, traversalContext };
     if (failure)
       Object.defineProperty(event, "failure", { value: failure, enumerable: true });
-    fire(this.recorders, "onRunFailed", event, FLOW_FAILURE);
+    fire(componentRecorders(this.#producer, this.recorders), "onRunFailed", event, FLOW_FAILURE);
   }
   /**
    * Returns sentences from an attached NarrativeFlowRecorder (looked up by ID).
@@ -13215,7 +14798,7 @@ function attemptOutcome(record) {
   const took = formatDuration(record.durationMs);
   switch (record.outcome) {
     case "ok":
-      return `succeeded in ${took}`;
+      return `answered in ${took}`;
     case "timeout":
       return `timed out after ${took}`;
     case "paused":
@@ -13272,8 +14855,6 @@ function formatDuration(ms) {
 var NarrativeFlowRecorder = class {
   id;
   sentences = [];
-  /** Parallel array: the actual stage name that produced each sentence. */
-  stageNames = [];
   /**
    * The stage whose arrival `onLoop` / `onResume` just narrated. Its completion
    * line would repeat that arrival ("Next, it moved on to X."), so the next
@@ -13300,25 +14881,21 @@ var NarrativeFlowRecorder = class {
     if (announced === event.stageName)
       return;
     this.sentences.push(nextStageSentence(event));
-    this.stageNames.push(event.stageName);
   }
   onNext(_event) {
   }
   onDecision(event) {
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
     this.sentences.push(decisionSentence(event));
-    this.stageNames.push(event.decider);
   }
   onFork(event) {
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
     this.sentences.push(forkSentence(event));
-    this.stageNames.push(void 0);
   }
   onSelected(event) {
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
     const names = event.selected.join(", ");
     this.sentences.push(`${event.selected.length} of ${event.total} paths were selected: ${names}.`);
-    this.stageNames.push(void 0);
   }
   onSubflowEntry(event) {
     if (event.description) {
@@ -13326,20 +14903,16 @@ var NarrativeFlowRecorder = class {
     } else {
       this.sentences.push(`Entering the ${event.name} subflow.`);
     }
-    this.stageNames.push(event.name);
   }
   onSubflowExit(event) {
     this.sentences.push(`Exiting the ${event.name} subflow.`);
-    this.stageNames.push(event.name);
   }
   onLoop(event) {
     this.sentences.push(loopSentence(event));
-    this.stageNames.push(event.target);
     this.announcedArrival = event.target;
   }
   onBreak(event) {
     this.sentences.push(breakSentence(event));
-    this.stageNames.push(event.stageName);
   }
   onError(event) {
     let sentence = errorSentence(event);
@@ -13347,7 +14920,6 @@ var NarrativeFlowRecorder = class {
       sentence += validationSentence(validationDetails(event.structuredError.issues));
     }
     this.sentences.push(sentence);
-    this.stageNames.push(event.stageName);
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
   }
   /**
@@ -13363,23 +14935,20 @@ var NarrativeFlowRecorder = class {
     const runtimeStageId = event.traversalContext?.runtimeStageId;
     if (runtimeStageId === void 0) {
       this.sentences.push(sentence);
-      this.stageNames.push(event.stageName);
       return;
     }
     const held = this.heldAttempts.get(runtimeStageId);
     if (held)
-      held.push({ sentence, stageName: event.stageName });
+      held.push(sentence);
     else
-      this.heldAttempts.set(runtimeStageId, [{ sentence, stageName: event.stageName }]);
+      this.heldAttempts.set(runtimeStageId, [sentence]);
   }
   onPause(event) {
     this.releaseAttempts(event.traversalContext?.runtimeStageId);
     this.sentences.push(pauseSentence(event));
-    this.stageNames.push(event.stageName);
   }
   onResume(event) {
     this.sentences.push(resumeSentence(event));
-    this.stageNames.push(event.stageName);
     this.announcedArrival = event.stageName;
   }
   /**
@@ -13389,14 +14958,13 @@ var NarrativeFlowRecorder = class {
   getSentences() {
     const held = [];
     for (const series of this.heldAttempts.values())
-      for (const { sentence } of series)
+      for (const sentence of series)
         held.push(sentence);
     return [...this.sentences, ...held];
   }
   /** Clears accumulated sentences. Useful for reuse across runs. */
   clear() {
     this.sentences = [];
-    this.stageNames = [];
     this.announcedArrival = void 0;
     this.heldAttempts.clear();
   }
@@ -13408,53 +14976,8 @@ var NarrativeFlowRecorder = class {
     if (!held)
       return;
     this.heldAttempts.delete(runtimeStageId);
-    for (const { sentence, stageName } of held) {
+    for (const sentence of held)
       this.sentences.push(sentence);
-      this.stageNames.push(stageName);
-    }
-  }
-};
-
-// node_modules/footprintjs/dist/esm/lib/engine/narrative/NullControlFlowNarrativeGenerator.js
-var NullControlFlowNarrativeGenerator = class {
-  onStageExecuted() {
-  }
-  onNext() {
-  }
-  onDecision() {
-  }
-  onFork() {
-  }
-  onSelected() {
-  }
-  onSubflowEntry() {
-  }
-  onSubflowExit() {
-  }
-  onSubflowRegistered() {
-  }
-  onLoop() {
-  }
-  onBreak() {
-  }
-  onError() {
-  }
-  onAttempt() {
-  }
-  onStageRetry() {
-  }
-  onPause() {
-  }
-  onResume() {
-  }
-  onRunStart() {
-  }
-  onRunEnd() {
-  }
-  onRunFailed() {
-  }
-  getSentences() {
-    return [];
   }
 };
 
@@ -13501,6 +15024,12 @@ function resumeTraversalContext(resume) {
     ...resume.resumedFrom && { resumedFrom: resume.resumedFrom },
     ...resume.correlation && { correlation: resume.correlation }
   });
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/traversal/touchesRefusal/index.js
+function touchesRefusal(node) {
+  const problem = touchesProblem(node.touches, node.retry);
+  return problem === void 0 ? void 0 : `stage '${node.id}': ${problem}`;
 }
 
 // node_modules/footprintjs/dist/esm/lib/engine/traversal/FlowchartTraverser.js
@@ -13626,13 +15155,15 @@ var FlowchartTraverser = class _FlowchartTraverser {
    * **What counts as depth (trampoline model):** `executeNode` is an iterative
    * driver — linear `next` hops, loop edges (`loopTo`/dynamic next), and
    * dynamic-subflow re-entry are followed in a flat loop and consume NO depth.
-   * Depth grows only with true tree nesting: one tick per fork child, one per
-   * decider/selector branch dispatch that must return to its invoker (decider
-   * with its own `next`), one per subflow mount frame in the parent (the
-   * subflow body itself runs on a FRESH traverser with its own budget).
+   * Depth grows only with true tree nesting: one level for a fork's or
+   * selector's children, one per decider branch dispatch that must return to
+   * its invoker (decider with its own `next`). A subflow mount consumes no
+   * depth: Phase 0 hands it to `SubflowExecutor`, and the subflow body runs on
+   * a FRESH traverser whose root context has no parent, so it starts again at
+   * depth 1. Nesting subflows inside subflows is not bounded by this cap.
    *
-   * 500 therefore covers any realistic chart — it bounds recursive
-   * COMPOSITION, not chain length or loop count. Loops are bounded by
+   * 500 therefore covers any realistic chart — it bounds nesting within one
+   * traverser, not chain length or loop count. Loops are bounded by
    * `ContinuationResolver`'s independent iteration limit (default 1000,
    * configurable via `RunOptions.maxIterations`), which is now the binding
    * constraint for loop-heavy pipelines.
@@ -13676,7 +15207,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
     this.structureManager = new RuntimeStructureManager();
     this.structureManager.init(opts.buildTimeStructure);
     if (opts.narrativeGenerator) {
-      this.narrativeGenerator = opts.narrativeGenerator;
+      this.narrativeGenerator = opts.narrativeGenerator instanceof FlowRecorderDispatcher ? opts.narrativeGenerator.bindProducer(this.executionRuntime.runFrame) : opts.narrativeGenerator;
     } else if (opts.narrativeEnabled) {
       const dispatcher = new FlowRecorderDispatcher();
       this.flowRecorderDispatcher = dispatcher;
@@ -13687,9 +15218,11 @@ var FlowchartTraverser = class _FlowchartTraverser {
       } else {
         dispatcher.attach(new NarrativeFlowRecorder());
       }
-      this.narrativeGenerator = dispatcher;
+      this.narrativeGenerator = dispatcher.bindProducer(this.executionRuntime.runFrame);
     } else {
-      this.narrativeGenerator = new NullControlFlowNarrativeGenerator();
+      const dispatcher = new FlowRecorderDispatcher();
+      this.flowRecorderDispatcher = dispatcher;
+      this.narrativeGenerator = dispatcher.bindProducer(this.executionRuntime.runFrame);
     }
     const deps = this.createDeps(opts);
     this.deps = deps;
@@ -13718,12 +15251,13 @@ var FlowchartTraverser = class _FlowchartTraverser {
     const parentSubflows = this.subflows;
     const narrativeGenerator = this.narrativeGenerator;
     return (subflowOpts) => {
+      const own5 = subflowOpts.definition;
       const traverser = new _FlowchartTraverser({
         root: subflowOpts.root,
         ...subflowOpts.entry && { entry: subflowOpts.entry },
         // a resume hop's entry point
         ...subflowOpts.pendingPauses && { pendingPauses: subflowOpts.pendingPauses },
-        stageMap: parentStageMap,
+        stageMap: own5?.stageMap ? new Map([...parentStageMap, ...own5.stageMap]) : parentStageMap,
         // Constructor shallow-copies this
         scopeFactory: parentOpts.scopeFactory,
         executionRuntime: subflowOpts.executionRuntime,
@@ -13732,7 +15266,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
         throttlingErrorChecker: parentOpts.throttlingErrorChecker,
         streamHandlers: parentOpts.streamHandlers,
         scopeProtectionMode: parentOpts.scopeProtectionMode,
-        subflows: parentSubflows,
+        subflows: own5?.subflows ? { ...parentSubflows, ...own5.subflows } : parentSubflows,
         // Constructor shallow-copies this
         narrativeGenerator,
         // Share parent's — all events flow to one place
@@ -13893,7 +15427,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
   getNarrative() {
     return this.narrativeGenerator.getSentences();
   }
-  /** Returns the FlowRecorderDispatcher, or undefined if narrative is disabled. */
+  /** Global recorder backend when constructed here; component dispatch may exist with prose disabled. */
   getFlowRecorderDispatcher() {
     return this.flowRecorderDispatcher;
   }
@@ -13968,6 +15502,19 @@ var FlowchartTraverser = class _FlowchartTraverser {
   effSubflowId(node) {
     const meta = this.getPatch(node)?.subflowMeta;
     return meta ? meta.subflowId : node.subflowId;
+  }
+  /**
+   * Take a returned sub-flowchart's mount off the overlay: the definition this node's stage function
+   * returned on this visit, or undefined when it returned none. The mount runs once, for the return that
+   * asked for it.
+   */
+  takeReturnedMount(node) {
+    const patch = this.getPatch(node);
+    const meta = patch?.subflowMeta;
+    if (!patch || !meta)
+      return void 0;
+    patch.subflowMeta = void 0;
+    return meta.definition;
   }
   /**
    * Materialize the effective view of a node — field-identical to what the
@@ -14175,9 +15722,10 @@ var FlowchartTraverser = class _FlowchartTraverser {
    * call): fork children (`ChildrenExecutor`), selector branches (parallel
    * fan-out), decider branch dispatch when the decider has its own `next`
    * (the branch must complete BEFORE the decider's continuation runs), and
-   * subflow mounts (fresh traverser; the mount frame stays in the parent).
-   * `_executeDepth` therefore counts chart COMPOSITION depth only, guarded
-   * by `_maxDepth` (default `MAX_EXECUTE_DEPTH` = 500).
+   * subflow mounts (a fresh traverser). The depth `nestingDepthOf` reads
+   * counts nesting along the call path within this traverser, guarded by
+   * `_maxDepth` (default `MAX_EXECUTE_DEPTH` = 500). A subflow's traverser
+   * starts again at depth 1, so a subflow mount consumes no depth.
    *
    * PauseSignal: a flat decider dispatch records an `InvokerStamp`; if the
    * continued chain later pauses, the driver stamps the signal during
@@ -14296,6 +15844,8 @@ var FlowchartTraverser = class _FlowchartTraverser {
     const effSubflowId = this.effSubflowId(node);
     if (this.effIsSubflowRoot(node) && effSubflowId)
       context.subflowId = effSubflowId;
+    if (context.captureExtent && this.effIsSubflowRoot(node))
+      context.captureExtent.limit("child-work-not-tracked");
     const idx = this._executionCounter.value++;
     context.runtimeStageId = buildRuntimeStageId(node.id, idx);
     context.bindFailureIdentity(this.runId, context.runtimeStageId);
@@ -14319,6 +15869,14 @@ var FlowchartTraverser = class _FlowchartTraverser {
       subflowPath: branchPath || void 0,
       ...this.correlation && { correlation: this.correlation }
     });
+    const runFrame = this.deps.executionRuntime.runFrame;
+    if (runFrame) {
+      bindStageRunFrame(context, runFrame.stage({
+        runtimeStageId: context.runtimeStageId,
+        ...traversalContext.subflowPath !== void 0 && { subflowPath: traversalContext.subflowPath },
+        ...parentRuntimeStageId !== void 0 && { parentRuntimeStageId }
+      }));
+    }
     if (node.isSubflowRoot && node.subflowResolver && !this.resolvedLazySubflows.has(node.subflowId)) {
       const resolved = node.subflowResolver();
       const prefixedRoot = this.prefixNodeTree(resolved.root, node.subflowId);
@@ -14344,9 +15902,10 @@ var FlowchartTraverser = class _FlowchartTraverser {
     }
     if (this.effIsSubflowRoot(node) && effSubflowId) {
       const mountNode = this.effNode(node);
-      const resolvedNode = this.nodeResolver.resolveSubflowReference(mountNode);
-      const subflowOutput = await this.subflowExecutor.executeSubflow(resolvedNode, context, breakFlag, branchPath, this.subflowResults, traversalContext);
-      const isReferenceBasedSubflow = resolvedNode !== mountNode;
+      const returned = this.takeReturnedMount(node);
+      const resolvedNode = returned?.root ? this.nodeResolver.mountOf(mountNode, returned.root) : this.nodeResolver.resolveSubflowReference(returned ? { ...mountNode, fn: void 0, children: void 0 } : mountNode);
+      const subflowOutput = await this.subflowExecutor.executeSubflow(resolvedNode, context, breakFlag, branchPath, this.subflowResults, traversalContext, returned?.root ? returned : void 0);
+      const isReferenceBasedSubflow = returned !== void 0 || resolvedNode !== mountNode;
       const hasChildren2 = Boolean(mountNode.children && mountNode.children.length > 0);
       const shouldExecuteContinuation = isReferenceBasedSubflow || hasChildren2;
       if (breakFlag.shouldBreak) {
@@ -14361,6 +15920,8 @@ var FlowchartTraverser = class _FlowchartTraverser {
       return subflowOutput;
     }
     if (node.isDynamicParallel && node.parallelForEach) {
+      context.captureExtent?.limit("child-work-not-tracked");
+      context.captureExtent?.limit("fanout-work-not-attested");
       const results = await this.parallelForEachHandler.run(node, context, branchPath, traversalContext);
       if (node.next) {
         const nextCtx = context.createNext(branchPath, node.next.name, node.next.id);
@@ -14397,7 +15958,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
       else if (hasChildren)
         context.setAsFork();
     }
-    const breakFn = createBreakHandler(breakFlag);
+    const breakFn = createBreakHandler(breakFlag, context, this.deps.readOnlyContext);
     if (isScopeBasedSelector) {
       const selectorResult = await this.selectorHandler.handleScopeBased(node, stageFunc, context, breakFlag, branchPath, this.executeStage.bind(this), this.executeNode.bind(this), traversalContext);
       if (breakFlag.shouldBreak)
@@ -14433,7 +15994,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
       if (hasNext && !breakFlag.shouldBreak) {
         const nextNode = originalNext;
         if (this.isLoopStub(nextNode))
-          return this.loopHop(nextNode, node, context, branchPath);
+          return this.loopHop(nextNode, node, context, branchPath, traversalContext);
         this.narrativeGenerator.onNext(node.name, nextNode.name, nextNode.description, traversalContext);
         const nextCtx = context.createNext(branchPath, nextNode.name, nextNode.id);
         return this.hop(nextNode, nextCtx, branchPath);
@@ -14459,8 +16020,8 @@ var FlowchartTraverser = class _FlowchartTraverser {
         }
         captureStageFailure(context, error);
         commitStageWrites(context);
-        const served = recordStageError(context, error);
-        this.narrativeGenerator.onError(node.name, served.message, served.structuredError, traversalContext);
+        const served2 = recordStageError(context, error);
+        this.narrativeGenerator.onError(node.name, served2.message, served2.structuredError, traversalContext);
         this.logger.error(`Error in pipeline (${branchPath}) stage [${node.name}]:`, {
           error: loggableStageError(context, error)
         });
@@ -14485,7 +16046,8 @@ var FlowchartTraverser = class _FlowchartTraverser {
             isSubflowRoot: true,
             subflowId: dynamicNode.subflowId,
             subflowName: dynamicNode.subflowName,
-            subflowMountOptions: dynamicNode.subflowMountOptions
+            subflowMountOptions: dynamicNode.subflowMountOptions,
+            definition: dynamicNode.subflowDef
           };
           this.structureManager.updateDynamicSubflow(node.id, dynamicNode.subflowId, dynamicNode.subflowName, dynamicNode.subflowDef?.buildTimeStructure);
           return this.hop(node, context, branchPath);
@@ -14542,7 +16104,7 @@ var FlowchartTraverser = class _FlowchartTraverser {
       }
     }
     if (dynamicNext)
-      return this.loopHop(dynamicNext, node, context, branchPath);
+      return this.loopHop(dynamicNext, node, context, branchPath, traversalContext);
     if (hasNext) {
       const nextNode = originalNext;
       const isLoopReference = nextNode.isLoopRef;
@@ -14664,44 +16226,62 @@ var FlowchartTraverser = class _FlowchartTraverser {
     }
   }
 };
-function touchesRefusal(node) {
-  const problem = touchesProblem(node.touches, node.retry);
-  return problem === void 0 ? void 0 : `stage '${node.id}': ${problem}`;
-}
-
-// node_modules/footprintjs/dist/esm/lib/engine/types.js
-var defaultLogger = {
-  info: (message, ...args) => console.info(message, ...args),
-  log: (message, ...args) => console.log(message, ...args),
-  debug: (message, ...args) => console.debug(message, ...args),
-  error: (message, ...args) => console.error(message, ...args),
-  warn: (message, ...args) => console.warn(message, ...args)
-};
-var ArrayMergeMode;
-(function(ArrayMergeMode2) {
-  ArrayMergeMode2["Concat"] = "concat";
-  ArrayMergeMode2["Replace"] = "replace";
-})(ArrayMergeMode || (ArrayMergeMode = {}));
 
 // node_modules/footprintjs/dist/esm/lib/errors/terminalFailure.js
 var UNKNOWN = Object.freeze({ category: "unknown" });
 var NativeFailureState = class {
   #pending;
+  #invocation;
   #result;
+  #selected;
   #sealed = false;
   get result() {
     return this.#result;
   }
+  /** @internal Published separately; ordinary failure contexts and off-path snapshots retain their shape. */
+  get selected() {
+    return this.#selected;
+  }
+  /** @internal An existing native catch observed this invocation's own error, before any serving callbacks. */
+  observeInvocationFailure(error, invocation) {
+    if (this.#sealed)
+      return;
+    this.#invocation = {
+      error,
+      selected: Object.freeze({
+        kind: "invocation",
+        runId: invocation.runId,
+        runtimeStageId: invocation.runtimeStageId,
+        attemptId: invocation.attemptId
+      })
+    };
+  }
+  /** @internal A new attempt's preparation cannot inherit a recovered invocation's error. */
+  clearInvocationFailure() {
+    if (!this.#sealed)
+      this.#invocation = void 0;
+  }
   capture(error, category, stage) {
     if (this.#sealed)
       return;
+    const invocation = this.#invocation;
+    const selected = invocation && Object.is(invocation.error, error) && invocation.selected.runId === stage.runId && invocation.selected.runtimeStageId === stage.runtimeStageId ? invocation.selected : void 0;
     this.#pending = {
       error,
       context: Object.freeze({
         category,
         stage: Object.freeze({ runId: stage.runId, runtimeStageId: stage.runtimeStageId })
-      })
+      }),
+      ...selected && { selected }
     };
+  }
+  /** @internal A commit is a different operation, even if it throws the very same object as the function. */
+  selectCommit(error, stage) {
+    const pending = this.#pending;
+    if (this.#sealed || !pending || !Object.is(pending.error, error))
+      return;
+    pending.selected = pending.context.stage?.runId === stage.runId && pending.context.stage.runtimeStageId === stage.runtimeStageId ? Object.freeze({ kind: "commit", runId: stage.runId, runtimeStageId: stage.runtimeStageId }) : void 0;
+    this.#invocation = void 0;
   }
   /** A runner already classified this exact native failure before it was served. */
   owns(error) {
@@ -14719,6 +16299,7 @@ var NativeFailureState = class {
     const pending = this.#pending;
     const context = pending && Object.is(pending.error, error) ? pending.context : UNKNOWN;
     this.#result = context;
+    this.#selected = pending && Object.is(pending.error, error) ? pending.selected : void 0;
     return context;
   }
   finish(error) {
@@ -14726,6 +16307,7 @@ var NativeFailureState = class {
       return;
     this.announce(error);
     this.#pending = void 0;
+    this.#invocation = void 0;
     this.#sealed = true;
   }
   /** Success or pause has no terminal failure. Also closes contained branch ownership. */
@@ -14733,7 +16315,9 @@ var NativeFailureState = class {
     if (this.#sealed)
       return;
     this.#pending = void 0;
+    this.#invocation = void 0;
     this.#result = void 0;
+    this.#selected = void 0;
     this.#sealed = true;
   }
 };
@@ -14943,6 +16527,71 @@ function resolveText(custom, fallback) {
   return custom === void 0 ? fallback() : custom;
 }
 
+// node_modules/footprintjs/dist/esm/lib/engine/narrative/formatting/ruleEvidence/index.js
+function thresholdText(condition, inertPreview = false) {
+  if (inertPreview) {
+    if (condition.thresholdRedacted)
+      return SCOPE_PLACEHOLDER;
+    const value = condition.threshold;
+    return value === null || ["string", "number", "boolean", "undefined"].includes(typeof value) ? summarizeValue(value, SUMMARY_PREVIEW_LENGTH) : "[recorded threshold]";
+  }
+  if (condition.thresholdRedacted)
+    return String(condition.threshold);
+  try {
+    return JSON.stringify(condition.threshold);
+  } catch {
+    return thresholdText(condition, true);
+  }
+}
+function defaultRenderDecision(ctx) {
+  const branchName = ctx.chosen;
+  let conditionText;
+  if (ctx.evidence) {
+    const evidence = ctx.evidence;
+    const matchedRule = evidence.rules?.find((r) => r.matched);
+    if (matchedRule) {
+      const label = matchedRule.label ? ` "${matchedRule.label}"` : "";
+      if (matchedRule.type === "filter") {
+        const parts = matchedRule.conditions.map((c) => `${c.key} ${c.actualSummary} ${c.op} ${thresholdText(c)} ${c.result ? "\u2713" : "\u2717"}`);
+        conditionText = `It evaluated Rule ${matchedRule.ruleIndex}${label}: ${parts.join(", ")}, and chose ${branchName}.`;
+      } else {
+        const parts = matchedRule.inputs.map((i) => `${i.key}=${i.valueSummary}`);
+        conditionText = `It examined${label}: ${parts.join(", ")}, and chose ${branchName}.`;
+      }
+    } else {
+      const erroredCount = evidence.rules?.filter((r) => r.matchError !== void 0).length ?? 0;
+      const errorNote = erroredCount > 0 ? ` (${erroredCount} rule${erroredCount > 1 ? "s" : ""} threw errors)` : "";
+      const defaultLabel = evidence.defaultLabel ? ` "${evidence.defaultLabel}"` : "";
+      conditionText = `No rules matched${errorNote}, fell back to default${defaultLabel}: ${branchName}.`;
+    }
+  } else {
+    conditionText = decisionSentence(ctx);
+  }
+  return `[Condition]: ${conditionText}`;
+}
+function defaultRenderSelected(ctx) {
+  if (ctx.evidence) {
+    const evidence = ctx.evidence;
+    const matched = evidence.rules?.filter((r) => r.matched) ?? [];
+    const shown2 = ctx.selected.length === 0 ? evidence.rules ?? [] : matched;
+    const parts = shown2.map((r) => {
+      const label = r.label ? ` "${r.label}"` : "";
+      if (r.type === "filter") {
+        const conds = r.conditions.map((c) => `${c.key} ${c.actualSummary} ${c.op} ${thresholdText(c, ctx.selected.length === 0)} ${c.result ? "\u2713" : "\u2717"}`).join(", ");
+        return `${r.branch}${label} (${conds})`;
+      }
+      const inputs = r.inputs.map((i) => `${i.key}=${i.valueSummary}`).join(", ");
+      return `${r.branch}${label} (${inputs})`;
+    });
+    if (ctx.selected.length === 0) {
+      return `[Selected]: 0 of ${ctx.total} paths selected; no rules matched${parts.length ? `: ${parts.join("; ")}` : ""}.`;
+    }
+    return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected: ${parts.join("; ")}.`;
+  }
+  const names = ctx.selected.join(", ");
+  return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected for execution: ${names}.`;
+}
+
 // node_modules/footprintjs/dist/esm/lib/engine/narrative/CombinedNarrativeRecorder.js
 var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   static _counter = 0;
@@ -14950,7 +16599,8 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   /** Dual-indexed ordered storage (Convention 1 — composed, not inherited). */
   store = new SequenceStore();
   /**
-   * Pending scope ops keyed by runtimeStageId. Flushed in onStageExecuted/onDecision.
+   * Pending scope ops keyed by runtimeStageId. Flushed in onStageExecuted/onDecision;
+   * released untold for a selector stage and for a failed stage.
    *
    * Keying by runtimeStageId (not stageName) ensures correctness when parallel fork
    * branches contain stages with the same name — each execution step has a unique ID.
@@ -14997,10 +16647,13 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
   }
   // ── Flow channel (fires after stage execution) ────────────────────────
   onStageExecuted(event) {
-    if (event.stageType !== "linear")
-      return;
-    const stageId = event.traversalContext?.stageId;
     const runtimeStageId = event.traversalContext?.runtimeStageId;
+    if (event.stageType !== "linear") {
+      if (event.stageType === "selector" && runtimeStageId !== void 0)
+        this.pendingOps.delete(runtimeStageId);
+      return;
+    }
+    const stageId = event.traversalContext?.stageId;
     const sfKey = event.traversalContext?.subflowId ?? "";
     const stageNum = this.incrementStageCounter(sfKey);
     const isFirst = this.consumeFirstStageFlag(sfKey);
@@ -15059,7 +16712,7 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       rationale: event.rationale,
       evidence: event.evidence
     };
-    const conditionText = this.renderer?.renderDecision?.(decisionCtx) ?? this.defaultRenderDecision(decisionCtx);
+    const conditionText = this.renderer?.renderDecision?.(decisionCtx) ?? defaultRenderDecision(decisionCtx);
     this.store.push({
       type: "condition",
       text: conditionText,
@@ -15090,7 +16743,7 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
       total: event.total,
       evidence: event.evidence
     };
-    const text = this.renderer?.renderSelected?.(ctx) ?? this.defaultRenderSelected(ctx);
+    const text = this.renderer?.renderSelected?.(ctx) ?? defaultRenderSelected(ctx);
     this.store.push({
       type: "selector",
       text,
@@ -15214,7 +16867,7 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
    *       Attempt 1 of 3 at Fetch user failed in 12ms (…), retrying in 100ms.
    *       Step 3: Read userId = "u1"
    *       Step 4: Write user = { … }
-   *       Attempt 2 of 3 at Fetch user succeeded in 9ms.
+   *       Attempt 2 of 3 at Fetch user answered in 9ms.
    *
    * This line replaces the 9.15 `[Retry]` line: it already says "retrying",
    * so `onStageRetry` is not narrated (two lines for one fact).
@@ -15295,15 +16948,17 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
    * before retry existed, kept. Its ATTEMPT lines are the exception (10.1):
    * the stop reason is the point, so they follow the error line, in order,
    * as its depth-1 sub-items. A stage with no retry policy buffers no attempt
-   * lines, so its failure narrates exactly as before.
+   * lines, so its failure narrates exactly as before. The stage's buffer is
+   * then released: nothing will narrate it later.
    */
   flushAttempts(traversalContext, stageName) {
     const runtimeStageId = traversalContext?.runtimeStageId;
     if (runtimeStageId === void 0)
       return;
     const ops = this.pendingOps.get(runtimeStageId);
-    if (!ops?.some((op) => op.type === "attempt"))
+    if (!ops)
       return;
+    this.pendingOps.delete(runtimeStageId);
     for (const op of ops) {
       if (op.type === "attempt" && op.attempt) {
         this.pushAttempt(op.attempt, op.stepNumber, {
@@ -15314,7 +16969,6 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
         });
       }
     }
-    this.pendingOps.set(runtimeStageId, ops.filter((op) => op.type !== "attempt"));
   }
   /** One attempt line — the consumer's `renderAttempt` first; `null` drops it, `undefined` falls back. */
   pushAttempt(ctx, stepNumber, at) {
@@ -15561,52 +17215,8 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
     }
     return this.includeValues ? `${stepPrefix}Write ${ctx.key} = ${ctx.valueSummary}` : `${stepPrefix}Write ${ctx.key}`;
   }
-  defaultRenderDecision(ctx) {
-    const branchName = ctx.chosen;
-    let conditionText;
-    if (ctx.evidence) {
-      const evidence = ctx.evidence;
-      const matchedRule = evidence.rules?.find((r) => r.matched);
-      if (matchedRule) {
-        const label = matchedRule.label ? ` "${matchedRule.label}"` : "";
-        if (matchedRule.type === "filter") {
-          const parts = matchedRule.conditions.map((c) => `${c.key} ${c.actualSummary} ${c.op} ${JSON.stringify(c.threshold)} ${c.result ? "\u2713" : "\u2717"}`);
-          conditionText = `It evaluated Rule ${matchedRule.ruleIndex}${label}: ${parts.join(", ")}, and chose ${branchName}.`;
-        } else {
-          const parts = matchedRule.inputs.map((i) => `${i.key}=${i.valueSummary}`);
-          conditionText = `It examined${label}: ${parts.join(", ")}, and chose ${branchName}.`;
-        }
-      } else {
-        const erroredCount = evidence.rules?.filter((r) => r.matchError !== void 0).length ?? 0;
-        const errorNote = erroredCount > 0 ? ` (${erroredCount} rule${erroredCount > 1 ? "s" : ""} threw errors)` : "";
-        const defaultLabel = evidence.defaultLabel ? ` "${evidence.defaultLabel}"` : "";
-        conditionText = `No rules matched${errorNote}, fell back to default${defaultLabel}: ${branchName}.`;
-      }
-    } else {
-      conditionText = decisionSentence(ctx);
-    }
-    return `[Condition]: ${conditionText}`;
-  }
   defaultRenderFork(ctx) {
     return `[Parallel]: ${forkSentence(ctx)}`;
-  }
-  defaultRenderSelected(ctx) {
-    if (ctx.evidence) {
-      const evidence = ctx.evidence;
-      const matched = evidence.rules?.filter((r) => r.matched) ?? [];
-      const parts = matched.map((r) => {
-        const label = r.label ? ` "${r.label}"` : "";
-        if (r.type === "filter") {
-          const conds = r.conditions.map((c) => `${c.key} ${c.actualSummary} ${c.op} ${JSON.stringify(c.threshold)} ${c.result ? "\u2713" : "\u2717"}`).join(", ");
-          return `${r.branch}${label} (${conds})`;
-        }
-        const inputs = r.inputs.map((i) => `${i.key}=${i.valueSummary}`).join(", ");
-        return `${r.branch}${label} (${inputs})`;
-      });
-      return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected: ${parts.join("; ")}.`;
-    }
-    const names = ctx.selected.join(", ");
-    return `[Selected]: ${ctx.selected.length} of ${ctx.total} paths selected for execution: ${names}.`;
   }
   defaultRenderSubflow(ctx) {
     if (ctx.direction === "exit") {
@@ -15625,6 +17235,191 @@ var CombinedNarrativeRecorder = class _CombinedNarrativeRecorder {
     if (ctx.validationIssues)
       text += validationSentence(ctx.validationIssues);
     return `[Error]: ${text}`;
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/recorder/attemptSeries.js
+var GAVE_UP = /* @__PURE__ */ new Set(["exhausted", "declined", "no-time-left"]);
+function gaveUp(record) {
+  return record.next === "stop" && GAVE_UP.has(record.reason);
+}
+function isRetryEvidence(record) {
+  if (record.kind !== "stage")
+    return false;
+  return record.attempt > 1 || record.next === "retry" || record.outcome === "timeout" || gaveUp(record) && (record.of ?? 1) > 1;
+}
+function attemptRef(record) {
+  return { series: record.series, attempt: record.attempt };
+}
+function subflowOfAttempt(event) {
+  const segments3 = subflowSegmentsOf(event.traversalContext?.runtimeStageId ?? event.record.series);
+  return segments3.length > 0 ? joinPath(...segments3) : void 0;
+}
+function emptyOutcomeCounts() {
+  return { ok: 0, failed: 0, timeout: 0, aborted: 0, paused: 0 };
+}
+var AttemptSeriesBook = class {
+  bySeries = /* @__PURE__ */ new Map();
+  add(record) {
+    if (!isRetryEvidence(record))
+      return void 0;
+    let entry = this.bySeries.get(record.series);
+    if (!entry) {
+      entry = { refs: [], counts: emptyOutcomeCounts() };
+      this.bySeries.set(record.series, entry);
+    }
+    entry.refs.push(attemptRef(record));
+    entry.counts[record.outcome] += 1;
+    const attempts = [...entry.refs];
+    if (record.next === "retry")
+      return { series: record.series, attempts };
+    return { series: record.series, attempts, summary: summaryOf(entry.refs.length, entry.counts, record) };
+  }
+  clear() {
+    this.bySeries.clear();
+  }
+};
+function summaryOf(count3, counts, last) {
+  return {
+    count: count3,
+    ...counts,
+    last: {
+      next: last.next,
+      reason: last.reason,
+      ...last.category !== void 0 && { category: last.category },
+      ...last.retryOnThrew && { retryOnThrew: true }
+    }
+  };
+}
+
+// node_modules/footprintjs/dist/esm/lib/engine/narrative/recorders/ManifestFlowRecorder.js
+var ManifestFlowRecorder = class {
+  id;
+  /** Open entries in entry order — the last one is the most recently entered. */
+  stack = [];
+  /** The entry each open entry is nested in (absent for a root). Recorded at entry. */
+  parents = /* @__PURE__ */ new Map();
+  /** Root-level subflows (not nested inside another subflow). */
+  roots = [];
+  /** Full specs stored from dynamic registration events. */
+  specs = /* @__PURE__ */ new Map();
+  /**
+   * Open entries by subflowId — where a stage's row lands. Not the stack: parallel subflow siblings exit out of
+   * stack order, so the entry a row belongs to may no longer be on it.
+   */
+  openEntries = /* @__PURE__ */ new Map();
+  /** Rows of top-level stages — the manifest has no entry for the top-level chart. */
+  rootAttempts = [];
+  /** Per-series tallies of the series that retried, gave up or timed out. */
+  attemptBook = new AttemptSeriesBook();
+  constructor(id) {
+    this.id = id ?? "manifest";
+  }
+  /**
+   * The parent is the open entry of the subflow the mount stage ran in, read from the mount's
+   * `runtimeStageId`, so parallel sibling subflows are never nested under each other. An event
+   * without a traversal context nests under the most recently entered open entry.
+   */
+  onSubflowEntry(event) {
+    const entry = {
+      subflowId: event.subflowId ?? event.name,
+      name: event.name,
+      description: event.description,
+      children: []
+    };
+    const mount = event.traversalContext?.runtimeStageId;
+    const parent = mount === void 0 ? this.stack[this.stack.length - 1] : this.openEntries.get(joinPath(...subflowSegmentsOf(mount)));
+    if (parent)
+      this.parents.set(entry, parent);
+    this.stack.push(entry);
+    this.openEntries.set(entry.subflowId, entry);
+  }
+  /** Closes the open entry of the exiting subflow (the most recently entered one when no entry matches it). */
+  onSubflowExit(event) {
+    const key = event.subflowId ?? event.name;
+    const matched = this.openEntries.get(key);
+    const index = matched ? this.stack.lastIndexOf(matched) : this.stack.length - 1;
+    if (index < 0)
+      return;
+    const [completed] = this.stack.splice(index, 1);
+    if (this.openEntries.get(completed.subflowId) === completed)
+      this.openEntries.delete(completed.subflowId);
+    const parent = this.parents.get(completed);
+    this.parents.delete(completed);
+    if (parent) {
+      parent.children.push(completed);
+    } else {
+      this.roots.push(completed);
+    }
+  }
+  /**
+   * A series' row lands once, when it ends, on the open entry of the subflow the stage ran in; a top-level
+   * stage's (or one whose entry this recorder never saw) on the root rows.
+   */
+  onAttempt(event) {
+    const summary = this.attemptBook.add(event.record)?.summary;
+    if (!summary)
+      return;
+    const row = {
+      stageId: event.stageId,
+      stageName: event.stageName,
+      runtimeStageId: event.record.series,
+      attempts: summary
+    };
+    const owner = this.openEntries.get(subflowOfAttempt(event) ?? "");
+    if (owner)
+      (owner.attempts ??= []).push(row);
+    else
+      this.rootAttempts.push(row);
+  }
+  onSubflowRegistered(event) {
+    if (event.specStructure && !this.specs.has(event.subflowId)) {
+      this.specs.set(event.subflowId, event.specStructure);
+    }
+  }
+  /** Returns the manifest tree — lightweight, suitable for snapshot inclusion. */
+  getManifest() {
+    return [...this.roots];
+  }
+  /**
+   * Rows of top-level stages whose series retried, gave up or timed out, in the order the series ended — plus any row of a
+   * subflow stage whose entry this recorder never saw (its path-prefixed `stageId` says where it ran).
+   */
+  getRootAttempts() {
+    return [...this.rootAttempts];
+  }
+  /**
+   * Returns the full spec for a dynamically-registered subflow.
+   * Only populated for subflows auto-registered at runtime (via StageNode
+   * return with subflowDef). Statically-configured subflows are not included
+   * even if they appear in getManifest(). Use FlowChart.buildTimeStructure
+   * to access statically-defined subflow specs.
+   */
+  getSpec(subflowId) {
+    return this.specs.get(subflowId);
+  }
+  /** Returns all stored spec IDs. */
+  getSpecIds() {
+    return Array.from(this.specs.keys());
+  }
+  toSnapshot() {
+    return {
+      name: "Manifest",
+      description: "Translator (FlowRecorder) \u2014 subflow catalog built during traversal",
+      preferredOperation: "translate",
+      data: this.getManifest(),
+      ...this.rootAttempts.length > 0 && { meta: { rootAttempts: this.getRootAttempts() } }
+    };
+  }
+  /** Clears state for reuse. */
+  clear() {
+    this.stack = [];
+    this.parents = /* @__PURE__ */ new Map();
+    this.roots = [];
+    this.specs.clear();
+    this.openEntries = /* @__PURE__ */ new Map();
+    this.rootAttempts = [];
+    this.attemptBook.clear();
   }
 };
 
@@ -15652,9 +17447,16 @@ function summarizeChild(parent, key, depth, budget, ancestors) {
 }
 function summarizeNode(value, depth, budget, ancestors) {
   budget.nodesLeft -= 1;
+  try {
+    return summarizeReadable(value, depth, budget, ancestors);
+  } catch {
+    return { type: "unreadable", preview: "[value threw during capture]" };
+  }
+}
+function summarizeReadable(value, depth, budget, ancestors) {
   const leaf = classifyLeaf(value);
   const container = (leaf.type === "object" || leaf.type === "array") && typeof value === "object" && value !== null;
-  if (!container || value instanceof Map || value instanceof Set)
+  if (!container || value instanceof Map || value instanceof Set || ArrayBuffer.isView(value))
     return leaf;
   const obj = value;
   if (ancestors.has(obj))
@@ -16614,6 +18416,8 @@ var RunObservers = class {
       const { target: target2 } = requireScopeRuntime(scope);
       if (ctx.capture && !hasNativeCaptureTarget(target2, ctx))
         ctx.capture.limit("custom-scope");
+      if (ctx.captureExtent && !hasNativeCaptureTarget(target2, ctx))
+        ctx.captureExtent.limit("custom-scope");
       if (ctx.readSources?.observing && !hasNativeCaptureTarget(target2, ctx))
         ctx.readSources.limit("custom-scope");
       target2.useSharedRedactedKeys?.(sharedRedactedKeys);
@@ -16643,6 +18447,14 @@ var RunObservers = class {
   inlineFlowListeners() {
     return this.combinedRecorder ? [this.combinedRecorder, ...this.flowRecorders] : this.flowRecorders;
   }
+  getSubflowManifest() {
+    const recorder = this.flowRecorders.find((r) => r instanceof ManifestFlowRecorder);
+    return recorder?.getManifest() ?? [];
+  }
+  getSubflowSpec(subflowId) {
+    const recorder = this.flowRecorders.find((r) => r instanceof ManifestFlowRecorder);
+    return recorder?.getSpec(subflowId);
+  }
   /**
    * Lazily create the executor's ONE deferred-observer tier (one merged
    * queue, total event order across all three channels). The FIRST deferred
@@ -16657,6 +18469,8 @@ var RunObservers = class {
 };
 
 // node_modules/footprintjs/dist/esm/lib/capture/historyData.js
+var MAX_HISTORY_DATA_NODES = 1e5;
+var MAX_HISTORY_DATA_DEPTH = 256;
 var HistoryDataError = class extends Error {
   code;
   constructor(code) {
@@ -16673,21 +18487,26 @@ function historyFailureReason(error, boundary) {
   }
   return `${boundary}-refused`;
 }
-function copyHistoryData(value, maxBytes, onOmitted) {
+function copyHistoryData(value, maxBytes, options) {
   let bytes = 0;
   let nodes = 0;
+  const preserveObjectUndefined = options?.preserveObjectUndefined === true;
   const ancestors = /* @__PURE__ */ new Set();
-  const encoder = new TextEncoder();
+  const encoder2 = new TextEncoder();
   const charge = (text) => {
     if (text.length > maxBytes - bytes)
       throw new HistoryDataError("too-large");
-    bytes += encoder.encode(text).length;
+    bytes += encoder2.encode(text).length;
     if (bytes > maxBytes)
       throw new HistoryDataError("too-large");
   };
-  const copy = (item, depth, path) => {
-    if (++nodes > 1e5 || depth > 256)
+  const copy = (item, depth, path, objectSlot = false) => {
+    if (++nodes > MAX_HISTORY_DATA_NODES || depth > MAX_HISTORY_DATA_DEPTH)
       throw new HistoryDataError("invalid-data");
+    if (item === void 0 && objectSlot && preserveObjectUndefined) {
+      charge("null");
+      return void 0;
+    }
     if (item === null || typeof item === "string" || typeof item === "boolean" || typeof item === "number") {
       if (typeof item === "number" && (!Number.isFinite(item) || Object.is(item, -0)))
         throw new HistoryDataError("invalid-data");
@@ -16703,7 +18522,7 @@ function copyHistoryData(value, maxBytes, onOmitted) {
     charge(array ? "[]" : "{}");
     const output = array ? [] : {};
     const keys = Object.keys(item);
-    if (keys.length > 1e5 - nodes)
+    if (keys.length > MAX_HISTORY_DATA_NODES - nodes)
       throw new HistoryDataError("invalid-data");
     if (array && Object.getOwnPropertyDescriptor(item, "length")?.value !== keys.length)
       throw new HistoryDataError("invalid-data");
@@ -16714,8 +18533,8 @@ function copyHistoryData(value, maxBytes, onOmitted) {
         throw new HistoryDataError("invalid-data");
       if (array && key !== String(written))
         throw new HistoryDataError("invalid-data");
-      if (property.value === void 0 && !array) {
-        onOmitted?.([...path, key]);
+      if (property.value === void 0 && !array && !preserveObjectUndefined) {
+        options?.onOmitted?.([...path, key]);
         continue;
       }
       if (written++)
@@ -16723,7 +18542,7 @@ function copyHistoryData(value, maxBytes, onOmitted) {
       if (!array)
         charge(JSON.stringify(key) + ":");
       Object.defineProperty(output, key, {
-        value: copy(property.value, depth + 1, [...path, key]),
+        value: copy(property.value, depth + 1, [...path, key], !array),
         enumerable: true,
         writable: true,
         configurable: true
@@ -16740,7 +18559,7 @@ async function historyDigest(value) {
   return Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("");
 }
 function historyEvidence(value) {
-  const fields3 = ["capture", "executionTree", "recorders", "readSources", "absent"];
+  const fields3 = ["capture", "executionTree", "recorders", "readSources", "absent", "captureExtent", "closure"];
   if (Object.keys(value).some((key) => key !== "target" && !fields3.includes(key)))
     throw new HistoryDataError("invalid-data");
   return Object.fromEntries(fields3.filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]]));
@@ -16773,19 +18592,21 @@ function comparePaths(left, right) {
 function copyCaptureEvidence(value, maxBytes) {
   const absent = [];
   let bytes = 2;
-  const encoder = new TextEncoder();
-  const payload = copyHistoryData(value, maxBytes, (path) => {
-    if (!trackedPath(path))
-      return;
-    if (path.length > MAX_PATH_SEGMENTS || absent.length >= MAX_ABSENT_ENTRIES)
-      throw new HistoryDataError("too-large");
-    const encoded = JSON.stringify(path);
-    if (encoded.length > maxBytes - bytes)
-      throw new HistoryDataError("too-large");
-    bytes += encoder.encode(encoded).length + (absent.length ? 1 : 0);
-    if (bytes > maxBytes)
-      throw new HistoryDataError("too-large");
-    absent.push(Object.freeze(path));
+  const encoder2 = new TextEncoder();
+  const payload = copyHistoryData(value, maxBytes, {
+    onOmitted: (path) => {
+      if (!trackedPath(path))
+        return;
+      if (path.length > MAX_PATH_SEGMENTS || absent.length >= MAX_ABSENT_ENTRIES)
+        throw new HistoryDataError("too-large");
+      const encoded = JSON.stringify(path);
+      if (encoded.length > maxBytes - bytes)
+        throw new HistoryDataError("too-large");
+      bytes += encoder2.encode(encoded).length + (absent.length ? 1 : 0);
+      if (bytes > maxBytes)
+        throw new HistoryDataError("too-large");
+      absent.push(Object.freeze(path));
+    }
   });
   if (!absent.length)
     return payload;
@@ -16815,6 +18636,12 @@ function validateAbsentEntries(payload) {
   return true;
 }
 
+// node_modules/footprintjs/dist/esm/lib/capture/evidenceInput/index.js
+var MAX_CAPTURE_INPUT_BYTES = 1024 * 1024;
+function copyEvidenceInput(value, maxBytes = MAX_CAPTURE_INPUT_BYTES) {
+  return copyHistoryData(value, maxBytes, { preserveObjectUndefined: true });
+}
+
 // node_modules/footprintjs/dist/esm/lib/capture/historyNote.js
 function historyNote(value, target2) {
   if (!value || typeof value !== "object")
@@ -16823,7 +18650,7 @@ function historyNote(value, target2) {
   const version = ownData3(v, "version") === 2 ? 2 : 1;
   const identity2 = copyIdentity(v, true, version);
   const limitations = copyLimitations(v.limitations);
-  if (!identity2 || JSON.stringify(identity2) !== JSON.stringify(copyIdentity(target2)) || v.scope !== "root-log" || v.persistence !== "memory-only" || !v.boundary || !["completed", "failed", "paused", "cancelled"].includes(v.boundary.status) || !v.modes || !v.channels || !limitations || !CAPTURE_BASE_LIMITATIONS.filter((g) => version === 1 || g !== "read-sources-not-collected").every((g) => limitations.includes(g)) || !copyModes(v.modes, true) || !(version === 1 ? copyChannels(v.channels, true) : copyObservedChannels(v.channels)) || version === 2 && (!isCaptureValue(v.channels.readSources, CAPTURE_CHANNEL_STATUSES) || Object.keys(v.channels).length !== 5 || limitations.includes("read-sources-not-collected")))
+  if (!identity2 || JSON.stringify(identity2) !== JSON.stringify(copyIdentity(target2)) || v.scope !== "root-log" || v.persistence !== "memory-only" || !v.boundary || !["completed", "failed", "paused", "cancelled"].includes(v.boundary.status) || !v.modes || !v.channels || !limitations || !baseLimitationsFor(version).every((g) => limitations.includes(g)) || !copyModes(v.modes, true) || !(version === 1 ? copyChannels(v.channels, true) : copyObservedChannels(v.channels)) || version === 2 && (!isCaptureValue(v.channels.readSources, CAPTURE_CHANNEL_STATUSES) || Object.keys(v.channels).length !== 5 || limitations.includes("read-sources-not-collected")))
     return void 0;
   if (Object.keys(v).some((k) => ![
     "version",
@@ -16880,6 +18707,192 @@ function copyHistoryReceipt(value, target2) {
 // node_modules/footprintjs/dist/esm/lib/capture/historyTypes.js
 var CAPTURE_HISTORY_NOTE = "capture-history";
 var CAPTURE_RECEIPT_NOTE = "capture-receipt";
+
+// node_modules/footprintjs/dist/esm/lib/capture/nativeExtent/format.js
+var BASE_LIMITATIONS = Object.freeze([
+  "closure-not-attested",
+  "channels-not-fenced",
+  "external-work-not-attested"
+]);
+var EXTENT_LIMITATIONS = Object.freeze([
+  ...BASE_LIMITATIONS,
+  "pending-native-invocations",
+  "abandoned-native-invocations",
+  "counter-saturated",
+  "child-work-not-tracked",
+  "fanout-work-not-attested",
+  "detached-work-not-tracked",
+  "custom-scope",
+  "resumed-segment"
+]);
+var RUNNING_STATUS = "running";
+var TERMINAL_STATUS = "unverified";
+var EXTENT_STATUSES = Object.freeze([RUNNING_STATUS, TERMINAL_STATUS]);
+var NATIVE_EXTENT_MAX_INVOCATIONS = 1e6;
+function exact(value, keys) {
+  return !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype && Reflect.ownKeys(value).length === keys.length && keys.every((key) => Object.hasOwn(Object.getOwnPropertyDescriptor(value, key) ?? {}, "value"));
+}
+function copyExtentIdentity(value, binding) {
+  const identity2 = copyIdentity(value, true);
+  if (!identity2 || ownData3(value, "extentId") !== identity2.runId || ownData3(value, "scope") !== "root-log" || ownData3(value, "persistence") !== "memory-only" || identity2.runId !== binding.runId || identity2.logAddress.logRunId !== binding.logAddress.logRunId || binding.logAddress.drillPath.length !== 0 || identity2.commits.from !== binding.commits.from || identity2.commits.to !== binding.commits.to || !exact(ownData3(value, "logAddress"), ["logRunId", "drillPath"]) || !exact(ownData3(value, "commits"), ["from", "to"]))
+    return;
+  const drill = ownData3(ownData3(value, "logAddress"), "drillPath");
+  if (!Array.isArray(drill) || Reflect.ownKeys(drill).length !== 1 || Object.is(identity2.commits.from, -0) || Object.is(identity2.commits.to, -0))
+    return;
+  return identity2;
+}
+function copyInvocationCounts(value) {
+  if (!exact(value, ["started", "settled", "pending", "abandoned"]))
+    return;
+  const started = ownData3(value, "started");
+  const settled = ownData3(value, "settled");
+  const pending = ownData3(value, "pending");
+  const abandoned = ownData3(value, "abandoned");
+  const count3 = (n) => Number.isSafeInteger(n) && !Object.is(n, -0) && n >= 0 && n <= NATIVE_EXTENT_MAX_INVOCATIONS;
+  if (!count3(started) || !count3(settled) || !count3(pending) || !count3(abandoned) || settled + pending !== started || abandoned > started)
+    return;
+  return Object.freeze({ started, settled, pending, abandoned });
+}
+function copyExtentLimitations(value, counts) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype)
+    return;
+  const length = Object.getOwnPropertyDescriptor(value, "length")?.value;
+  if (!Number.isSafeInteger(length) || length > EXTENT_LIMITATIONS.length || Reflect.ownKeys(value).length !== length + 1)
+    return;
+  const limitations = [];
+  for (let i = 0; i < length; i++) {
+    const entry = Object.getOwnPropertyDescriptor(value, String(i));
+    if (!entry || !Object.hasOwn(entry, "value") || !EXTENT_LIMITATIONS.includes(entry.value) || limitations.includes(entry.value))
+      return;
+    limitations.push(entry.value);
+  }
+  if (!BASE_LIMITATIONS.every((gap) => limitations.includes(gap)) || limitations.includes("pending-native-invocations") !== counts.pending > 0 || limitations.includes("abandoned-native-invocations") !== counts.abandoned > 0 || limitations.includes("counter-saturated") && counts.started !== NATIVE_EXTENT_MAX_INVOCATIONS)
+    return;
+  return Object.freeze(limitations);
+}
+function copyNativeCaptureExtent(value, binding, terminalOnly = false) {
+  try {
+    if (!exact(value, [
+      "version",
+      "extentId",
+      "runId",
+      "scope",
+      "logAddress",
+      "commits",
+      "status",
+      "invocations",
+      "persistence",
+      "limitations"
+    ]))
+      return;
+    const identity2 = copyExtentIdentity(value, binding);
+    const status = ownData3(value, "status");
+    if (!identity2 || status !== TERMINAL_STATUS && (status !== RUNNING_STATUS || terminalOnly))
+      return;
+    const invocations = copyInvocationCounts(ownData3(value, "invocations"));
+    if (!invocations)
+      return;
+    const limitations = copyExtentLimitations(ownData3(value, "limitations"), invocations);
+    if (!limitations)
+      return;
+    return Object.freeze({
+      version: 1,
+      extentId: identity2.runId,
+      ...identity2,
+      scope: "root-log",
+      status,
+      invocations,
+      persistence: "memory-only",
+      limitations
+    });
+  } catch {
+    return void 0;
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/format.js
+var CAPTURE_CLOSURE_LIMITATIONS = Object.freeze([
+  "unobserved-work-not-attested",
+  "external-work-not-attested",
+  "storage-not-attested",
+  "producer-not-authenticated"
+]);
+function exact2(value, fields3) {
+  return !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype && Reflect.ownKeys(value).length === fields3.length && fields3.every((key) => Object.hasOwn(Object.getOwnPropertyDescriptor(value, key) ?? {}, "value"));
+}
+function copyLimitations2(value) {
+  if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || Object.getOwnPropertyDescriptor(value, "length")?.value !== CAPTURE_CLOSURE_LIMITATIONS.length || Reflect.ownKeys(value).length !== CAPTURE_CLOSURE_LIMITATIONS.length + 1)
+    return;
+  const seen = /* @__PURE__ */ new Set();
+  for (let index = 0; index < CAPTURE_CLOSURE_LIMITATIONS.length; index++) {
+    const entry = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!entry || !Object.hasOwn(entry, "value") || !CAPTURE_CLOSURE_LIMITATIONS.includes(entry.value))
+      return;
+    seen.add(entry.value);
+  }
+  return seen.size === CAPTURE_CLOSURE_LIMITATIONS.length ? CAPTURE_CLOSURE_LIMITATIONS : void 0;
+}
+function copyFailure(value, binding, invocations) {
+  if (!exact2(value, ["kind", "runId", "runtimeStageId", "attemptId"]) || ownData3(value, "kind") !== "invocation")
+    return;
+  const runId = ownData3(value, "runId");
+  const runtimeStageId = ownData3(value, "runtimeStageId");
+  const attemptId = ownData3(value, "attemptId");
+  const failure = ownData3(ownData3(binding, "boundary"), "failure");
+  const stage = ownData3(failure, "stage");
+  if (!captureIdentifier(runId) || runId !== ownData3(binding, "runId") || !captureIdentifier(runtimeStageId) || runtimeStageId.length > 1024 || !isNativeSourceExecution(runtimeStageId) || !captureIdentifier(attemptId) || !exact2(stage, ["runId", "runtimeStageId"]) || ownData3(stage, "runId") !== runId || ownData3(stage, "runtimeStageId") !== runtimeStageId)
+    return;
+  const parsed = parseAttemptId(attemptId);
+  if (!parsed || parsed.call !== void 0 || parsed.runtimeStageId !== runtimeStageId || !Number.isSafeInteger(parsed.attempt) || parsed.attempt < 1 || parsed.attempt > invocations || buildAttemptId(runtimeStageId, parsed.attempt) !== attemptId)
+    return;
+  return Object.freeze({ kind: "invocation", runId, runtimeStageId, attemptId });
+}
+function copyCaptureClosure(value, binding, extent) {
+  try {
+    const boundary = ownData3(value, "boundary");
+    if (!exact2(value, [
+      "version",
+      "policy",
+      "scope",
+      "runId",
+      "logAddress",
+      "commits",
+      "status",
+      "boundary",
+      ...boundary === "failed" ? ["selectedFailure"] : [],
+      "limitations"
+    ]) || ownData3(value, "policy") !== "native-root-prefix-v1" || ownData3(value, "scope") !== "root-log" || ownData3(value, "status") !== "closed" || boundary !== "completed" && boundary !== "failed" || ownData3(binding, "scope") !== "root-log" || ownData3(binding, "persistence") !== "memory-only" || boundary === "completed" && ownData3(ownData3(binding, "boundary"), "failure") !== void 0 || ownData3(ownData3(binding, "boundary"), "status") !== boundary)
+      return;
+    const version = ownData3(binding, "version");
+    if (version !== 1 && version !== 2)
+      return;
+    const identity2 = copyIdentity(value, true);
+    const bound = copyIdentity(binding, false, version);
+    if (!identity2 || !bound || !exact2(ownData3(value, "logAddress"), ["logRunId", "drillPath"]) || !exact2(ownData3(value, "commits"), ["from", "to"]) || Reflect.ownKeys(ownData3(ownData3(value, "logAddress"), "drillPath")).length !== 1 || identity2.commits.from !== 0 || Object.is(identity2.commits.from, -0) || Object.is(identity2.commits.to, -0) || identity2.runId !== identity2.logAddress.logRunId || identity2.runId !== bound.runId || identity2.logAddress.logRunId !== bound.logAddress.logRunId || identity2.commits.from !== bound.commits.from || identity2.commits.to !== bound.commits.to)
+      return;
+    const book = copyNativeCaptureExtent(extent, bound, true);
+    if (!book || book.invocations.pending !== 0 || book.invocations.abandoned !== 0 || book.limitations.length !== BASE_LIMITATIONS.length || !BASE_LIMITATIONS.every((gap) => book.limitations.includes(gap)))
+      return;
+    const limitations = copyLimitations2(ownData3(value, "limitations"));
+    if (!limitations)
+      return;
+    const selectedFailure = boundary === "failed" ? copyFailure(ownData3(value, "selectedFailure"), binding, book.invocations.started) : void 0;
+    if (boundary === "failed" && !selectedFailure)
+      return;
+    return Object.freeze({
+      version: 1,
+      policy: "native-root-prefix-v1",
+      scope: "root-log",
+      ...identity2,
+      status: "closed",
+      boundary,
+      ...selectedFailure && { selectedFailure },
+      limitations
+    });
+  } catch {
+    return void 0;
+  }
+}
 
 // node_modules/footprintjs/dist/esm/lib/capture/sourceReferenceBudget.js
 var SourceReferenceBudget = class {
@@ -17154,7 +19167,7 @@ function storedReadSources(value, capture2, commitLog, initialState, executionTr
 }
 
 // node_modules/footprintjs/dist/esm/lib/runner/captureHistory.js
-async function persistCaptureHistory(runtime, record, snapshot2, lease) {
+async function persistCaptureHistory(runtime, record, snapshot2, lease, closed) {
   const options = record.captureOptions;
   if (!options)
     return;
@@ -17171,19 +19184,26 @@ async function persistCaptureHistory(runtime, record, snapshot2, lease) {
     try {
       if (!runtime.capture || record.stats().failed > 0)
         return unknown("prior-delivery-failed");
-      const view = snapshot2();
+      if (closed?.status === "unknown")
+        return unknown(closed.reason);
+      const view = closed?.status === "closed" ? closed.record : snapshot2();
       const note = view.capture;
       if (!note || note.boundary.status === "running")
         return unknown("capture-unavailable");
-      const payload = historyEvidence(copyCaptureEvidence(record.serve({
+      const payload = historyEvidence(copyCaptureEvidence(record.serve(copyEvidenceInput({
         capture: note,
         executionTree: view.executionTree,
         ...view.recorders && { recorders: view.recorders },
-        ...view.readSources && { readSources: view.readSources }
-      }), options.maxBytes ?? 1024 * 1024));
+        ...view.readSources && { readSources: view.readSources },
+        ...view.captureExtent && { captureExtent: view.captureExtent },
+        ...closed?.status === "closed" && { closure: closed.record.closure },
+        ...closed?.status === "closed" && closed.record.absent && { absent: closed.record.absent }
+      }, options.maxBytes ?? 1024 * 1024)), options.maxBytes ?? 1024 * 1024));
       const basis = copyHistoryData({
         commitLog: view.commitLog,
-        ...view.initialState !== void 0 && { initialState: record.captureInitialState(view.initialState) }
+        ...view.initialState !== void 0 && {
+          initialState: record.captureInitialState(copyEvidenceInput(view.initialState, options.maxBytes ?? 1024 * 1024))
+        }
       }, options.maxBytes ?? 1024 * 1024);
       const target2 = copyHistoryTarget({
         version: 1,
@@ -17200,6 +19220,10 @@ async function persistCaptureHistory(runtime, record, snapshot2, lease) {
       const evidence = copyHistoryData(record.serve({ target: target2, ...payload }), options.maxBytes ?? 1024 * 1024);
       if (!validateAbsentEntries(evidence) || !copyHistoryTarget(evidence.target) || JSON.stringify(copyHistoryTarget(evidence.target)) !== JSON.stringify(target2))
         return unknown("evidence-refused");
+      if (view.captureExtent && !copyNativeCaptureExtent(evidence.captureExtent, note, true))
+        return unknown("extent-evidence-refused");
+      if (closed?.status === "closed" && (!view.captureExtent || !copyCaptureClosure(evidence.closure, note, view.captureExtent)))
+        return unknown("closure-evidence-refused");
       if (view.readSources) {
         const admittedNote = historyNote(evidence.capture, target2);
         if (!admittedNote || admittedNote.version !== 2 || !storedReadSources(evidence.readSources, admittedNote, view.commitLog, basis.initialState, evidence.executionTree))
@@ -17372,6 +19396,96 @@ function stampedEnv(env, envSignal, signal, deadline) {
   };
 }
 
+// node_modules/footprintjs/dist/esm/lib/capture/nativeExtent/collector.js
+var NativeExtent = class {
+  runId;
+  address;
+  from;
+  started = 0;
+  settled = 0;
+  pending = 0;
+  abandoned = 0;
+  gaps = new Set(BASE_LIMITATIONS);
+  terminal;
+  closureGap;
+  /** Separate eligibility for a frozen prefix; never changes the version-1 bookkeeping observation. */
+  refuseClosure(reason) {
+    if (!this.terminal)
+      this.closureGap ??= reason;
+  }
+  get closureRefusal() {
+    return this.closureGap;
+  }
+  constructor(runId, address, from) {
+    this.runId = runId;
+    this.address = address;
+    this.from = from;
+  }
+  limit(gap) {
+    if (!this.terminal)
+      this.gaps.add(gap);
+  }
+  begin() {
+    if (this.terminal)
+      return;
+    if (this.started >= NATIVE_EXTENT_MAX_INVOCATIONS) {
+      this.limit("counter-saturated");
+      return;
+    }
+    this.started++;
+    this.pending++;
+    let pending = true;
+    let abandoned = false;
+    return {
+      settle: () => {
+        if (!pending)
+          return;
+        pending = false;
+        if (this.terminal)
+          return;
+        this.pending--;
+        this.settled++;
+      },
+      abandon: () => {
+        if (!pending || abandoned || this.terminal)
+          return;
+        abandoned = true;
+        this.abandoned++;
+      }
+    };
+  }
+  seal(to) {
+    this.terminal ??= this.view(to, TERMINAL_STATUS);
+  }
+  snapshot(to) {
+    return this.terminal ?? this.view(to, RUNNING_STATUS);
+  }
+  view(to, status) {
+    const gaps = new Set(this.gaps);
+    if (this.pending)
+      gaps.add("pending-native-invocations");
+    if (this.abandoned)
+      gaps.add("abandoned-native-invocations");
+    return Object.freeze({
+      version: 1,
+      extentId: this.runId,
+      runId: this.runId,
+      scope: "root-log",
+      logAddress: Object.freeze({ logRunId: this.address.logRunId, drillPath: Object.freeze([]) }),
+      commits: Object.freeze({ from: this.from, to }),
+      status,
+      invocations: Object.freeze({
+        started: this.started,
+        settled: this.settled,
+        pending: this.pending,
+        abandoned: this.abandoned
+      }),
+      persistence: "memory-only",
+      limitations: Object.freeze([...gaps])
+    });
+  }
+};
+
 // node_modules/footprintjs/dist/esm/lib/capture/nativeSourceAddress.js
 var emptyNativeBook;
 function supportsNativeSourceAddress(address) {
@@ -17387,6 +19501,33 @@ function supportsNativeSourceAddress(address) {
 function settleOnce(value, onValue, onError) {
   const adopted = value instanceof Promise ? value : new Promise((resolve2) => resolve2(value));
   return Promise.prototype.then.call(adopted, onValue, onError);
+}
+
+// node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/invocations.js
+var NativeClosureInvocations = class {
+  entered = 0;
+  get count() {
+    return this.entered;
+  }
+  reset() {
+    this.entered = 0;
+  }
+  begin(identity2, attempt) {
+    if (this.entered >= NATIVE_EXTENT_MAX_INVOCATIONS)
+      return "counter-saturated";
+    this.entered++;
+    return Object.freeze({
+      kind: "invocation",
+      runId: identity2.runId,
+      runtimeStageId: identity2.runtimeStageId,
+      attemptId: buildAttemptId(identity2.runtimeStageId, attempt?.attempt ?? 1)
+    });
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/errors/callsEnded/index.js
+function callsEndedReason() {
+  return new Error("[footprint] $call: the stage attempt that made this call has ended \u2014 the call stops, and nothing it records lands on the stage. Await every call the stage makes.");
 }
 
 // node_modules/footprintjs/dist/esm/lib/memory/attention.js
@@ -17483,7 +19624,7 @@ var StageAttention = class {
       }
       this.append({ kind, reason, evidence: [reference] });
     };
-    if (last.effect === "unknown")
+    if (this.summary?.effect === "unknown")
       add2("unknown-effect", "UNKNOWN_EFFECT_RECORDED", matching && terminal.effect === "unknown" ? terminal.evidence : void 0);
     if (this.retryPossible && last.next === "stop" && STOPPED_REASONS.has(last.reason))
       add2("gave-up", "RETRY_STOP_RECORDED", matching ? terminal.evidence : void 0);
@@ -17545,60 +19686,6 @@ var StageAttention = class {
     return Object.freeze(result3);
   }
 };
-
-// node_modules/footprintjs/dist/esm/lib/memory/borrowedMutation.js
-function joinSegment(prefix, segment, intoArray) {
-  if (intoArray)
-    return `${prefix}[${segment}]`;
-  return prefix === "" ? segment : `${prefix}.${segment}`;
-}
-function firstDifferingPath(before, after, prefix = "", depth = 0) {
-  if (deepEqual(before, after, "copies"))
-    return void 0;
-  if (depth >= 24)
-    return prefix;
-  if (before === null || after === null || typeof before !== "object" || typeof after !== "object")
-    return prefix;
-  const beforeIsArray = Array.isArray(before);
-  if (beforeIsArray !== Array.isArray(after))
-    return prefix;
-  if (beforeIsArray) {
-    const a2 = before;
-    const b2 = after;
-    if (a2.length !== b2.length)
-      return prefix;
-    for (let i = 0; i < a2.length; i++) {
-      const deeper = firstDifferingPath(a2[i], b2[i], joinSegment(prefix, String(i), true), depth + 1);
-      if (deeper !== void 0)
-        return deeper;
-    }
-    return prefix;
-  }
-  const a = before;
-  const b = after;
-  const keys = /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const key of keys) {
-    const deeper = firstDifferingPath(a[key], b[key], joinSegment(prefix, key, false), depth + 1);
-    if (deeper !== void 0)
-      return deeper;
-  }
-  return prefix;
-}
-function deadFrameMessage(stageName, runtimeStageId, key) {
-  const from = runtimeStageId ? `"${stageName}" (${runtimeStageId})` : `"${stageName}"`;
-  return `[footprint] Stage ${from} has already committed \u2014 its scope is dead, and a write to \`${key}\` just reached it from a later stage (this error is raised in that stage). A scope, and anything read out of it (\`scope.k\`, \`scope.k.arr[0]\`), belongs to the stage it was handed to; held past that stage's commit it has no frame to land in, so the write would vanish with no trace row. Read the key again through the CURRENT stage's scope and write there.`;
-}
-function lateAttemptMessage(stageName, series, attempt, key) {
-  return `[footprint] Stage "${stageName}" (${series}): attempt ${attempt} has already ended, and \`${key}\` was touched through its scope afterwards \u2014 refused. The engine stopped waiting for this attempt (its cap, the run's deadline, a cancellation, or its own error); its work must not land beside a later attempt. Pass \`scope.$attempt().signal\` to the calls it makes, so they stop when the attempt does.`;
-}
-function committedMutationMessage(stageName, key, path) {
-  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
-  return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE on the committed value it read before its first write, then wrote the key. The commit compares the written value with committed state \u2014 which the in-place change also moved \u2014 so it records NO change: live state keeps the edit, the commit log and every reader that folds it do not. Reads are BORROWED. Build the next value instead (\`scope.$setValue('${key}', { ...value, \u2026 })\`), or read the key again after the stage's first write \u2014 that read is the stage's own copy.`;
-}
-function borrowedMutationMessage(stageName, key, path) {
-  const where = path === "" ? key : `${key}.${path}`.replace(/\.\[/g, "[");
-  return `[footprint] Stage "${stageName}" changed \`${where}\` IN PLACE, on a value it only read. footprint never saw that write: there is no trace row for it, so the commit log, the causal chain and every reader that folds the log will disagree with final state \u2014 and under a different write order the change is dropped entirely. Reads are BORROWED. Write through the scope instead (\`scope.` + where + ` = \u2026\` \u2014 property and indexed access are both tracked), or hand back the whole value with \`scope.$setValue('${key}', next)\`. This usually comes from mutating an element reached by \`find\`/\`filter\`/\`for\u2026of\`/\`forEach\`, which the scope proxy cannot intercept.`;
-}
 
 // node_modules/footprintjs/dist/esm/lib/memory/DiagnosticCollector.js
 var BAG_FIELDS = {
@@ -17671,12 +19758,711 @@ var DiagnosticCollector = class {
   }
 };
 
+// node_modules/footprintjs/dist/esm/lib/memory/selectedObjects.js
+var ShownObjects = class {
+  objects = /* @__PURE__ */ new WeakSet();
+  has(value) {
+    return this.objects.has(value);
+  }
+  /** `more` showed too. */
+  add(more) {
+    for (const one of more)
+      this.objects.add(one);
+  }
+  /**
+   * The key's whole value was replaced and nothing of the old one was kept: `all` is what it shows now.
+   * WHY not `add`: a weak set that only grows, while most of what it holds is garbage, slows every
+   * collection (`bench/hidden-object-writes.ts`, a whole list assigned 100 times: 590 ms against 230).
+   */
+  replace(all) {
+    this.objects = new WeakSet(all);
+  }
+};
+var readOnce = /* @__PURE__ */ new WeakMap();
+function read(rule) {
+  const at = Object.isFrozen(rule.paths) ? rule.paths : rule;
+  const known = readOnce.get(at);
+  if (known !== void 0 && known.key === rule.key)
+    return known;
+  const below = /* @__PURE__ */ new Map();
+  for (const path of rule.paths) {
+    const dot = path.indexOf(".");
+    if (dot < 0)
+      below.set(path, null);
+    else {
+      const first = path.slice(0, dot);
+      const rest = below.get(first);
+      if (rest === void 0)
+        below.set(first, [path.slice(dot + 1)]);
+      else
+        rest?.push(path.slice(dot + 1));
+    }
+  }
+  const members = /* @__PURE__ */ new Map();
+  for (const [first, rest] of below) {
+    members.set(first, rest === null ? { kind: "whole", key: rule.key } : { kind: "fields", key: rule.key, paths: rest });
+  }
+  let set;
+  const once = { key: rule.key, members, paths: () => set ??= new Set(rule.paths) };
+  readOnce.set(at, once);
+  return once;
+}
+function ruleOfMember(rule, key) {
+  if (rule.kind === "whole")
+    return rule;
+  if (!key.includes("."))
+    return read(rule).members.get(key);
+  const below = [];
+  for (const path of rule.paths) {
+    if (path === key)
+      return { kind: "whole", key: rule.key };
+    if (path.startsWith(`${key}.`))
+      below.push(path.slice(key.length + 1));
+  }
+  return below.length > 0 ? { kind: "fields", key: rule.key, paths: below } : void 0;
+}
+var UNNAMED = Object.freeze({ kind: "fields", key: "", paths: Object.freeze([]) });
+function nameBelow(named, key) {
+  return named === void 0 || named === UNNAMED ? named : ruleOfMember(named, key);
+}
+function holdsAny(value, named) {
+  if (named.kind === "whole")
+    return true;
+  return named.paths.some((path) => {
+    if (ownMember(value, path) !== void 0)
+      return true;
+    let at = value;
+    for (const key of path.split(".")) {
+      at = Array.isArray(at) ? at[Number(key)] : ownMember(at, key);
+      if (at === void 0)
+        return false;
+    }
+    return true;
+  });
+}
+function covers(named, rule) {
+  if (named === void 0 || rule.kind === "whole")
+    return false;
+  if (named.kind === "whole")
+    return true;
+  const known = read(named).paths();
+  return rule.paths.every((path) => {
+    if (known.has(path))
+      return true;
+    for (let dot = path.indexOf("."); dot >= 0; dot = path.indexOf(".", dot + 1)) {
+      if (known.has(path.slice(0, dot)))
+        return true;
+    }
+    return false;
+  });
+}
+function entriesOf(node) {
+  if (node instanceof Map)
+    return [...node.keys(), ...node.values()];
+  if (node instanceof Set)
+    return [...node];
+  if (node instanceof Error)
+    return [node.cause, node.errors, ...Object.values(node)];
+  if (ArrayBuffer.isView(node) || node instanceof ArrayBuffer)
+    return [];
+  return void 0;
+}
+function ownMember(node, key) {
+  if (!isObject2(node) || Array.isArray(node))
+    return void 0;
+  return Object.prototype.hasOwnProperty.call(node, key) ? node[key] : void 0;
+}
+var SelectedObjects = class {
+  rules = /* @__PURE__ */ new WeakMap();
+  /** The rule `value` carries, when the stage read it under a hidden name (or inside such a value). */
+  get(value) {
+    return this.rules.get(value);
+  }
+  /**
+   * `handed` stands in for `value` (a view handed to user code in its place): it carries the same rule.
+   * The view alone: its members are read on demand, and reading them here would count as reads.
+   */
+  sameRuleFor(handed, value) {
+    const rule = this.rules.get(value);
+    if (rule !== void 0)
+      this.rules.set(handed, rule);
+  }
+  /**
+   * `copy` is a full copy the scope itself made of `value` (`$batchArray` hands a stage one): the copy
+   * and every object inside it carry what `value` carries.
+   */
+  copyOf(copy, value) {
+    const rule = this.rules.get(value);
+    if (rule !== void 0)
+      this.remember(copy, rule);
+  }
+  /**
+   * Remember `value`, read under a hidden name, and every object inside it. Once for each object: a
+   * second read of the same value costs one lookup. No recursion, so a long chain cannot overflow.
+   *
+   * ```ts
+   * selected.remember(profile, { kind: 'fields', key: 'profile', paths: ['contact.email'] });
+   * selected.get(profile.contact); // { kind: 'fields', key: 'profile', paths: ['email'] }
+   * ```
+   */
+  remember(value, rule) {
+    if (widest(this.rules.get(value), rule) === void 0)
+      return;
+    const todo = [[value, rule]];
+    for (let next = todo.pop(); next !== void 0; next = todo.pop()) {
+      const [node, asked] = next;
+      const its = widest(this.rules.get(node), asked);
+      if (its === void 0)
+        continue;
+      this.rules.set(node, its);
+      const entries = entriesOf(node);
+      if (entries !== void 0) {
+        if (its.kind === "whole")
+          for (const entry of entries)
+            pushObject(todo, entry, its);
+      } else if (Array.isArray(node)) {
+        if (its.kind === "whole")
+          for (const item of node)
+            pushObject(todo, item, its);
+        else
+          for (const [first, rule2] of read(its).members)
+            if (isIndex(first))
+              pushObject(todo, node[Number(first)], rule2);
+      } else {
+        for (const key of Object.keys(node)) {
+          pushObject(todo, node[key], ruleOfMember(its, key));
+        }
+      }
+    }
+  }
+  /**
+   * AT A WRITE: the remembered objects in `value`, about to be written over `base` (what the key holds
+   * now, or what a merge adds to). A part that is the same object as in `base` is not searched: it
+   * was there before this write. Empty when the value is, or holds, no remembered object that adds to
+   * what the key's name hides already. Every other new object at a public place is added to
+   * `search.shown`.
+   *
+   * ```ts
+   * selected.findIn({ x: 1, b: secret }, { x: 1 }); // [{ path: ['b'], rule: …, whole: true }]
+   * selected.findIn([...list, secret], list);       // [{ path: [], rule: …, whole: true }]  the list
+   * ```
+   */
+  findIn(value, base, search = {}) {
+    return this.walk(value, base, search, false, void 0);
+  }
+  /**
+   * What `value` shows, with nothing reported: every object in it that is new against `base`, sits at
+   * a public place and is not remembered goes into `search.shown`. For a value the stage wrote that no
+   * search at a write walked: a key written before the stage's first hidden read, and the containers a
+   * merge makes (the record builds them; the patch that was searched is not what the key then holds).
+   */
+  noteShown(value, base, search) {
+    this.walk(value, base, search, true, void 0);
+  }
+  /**
+   * AT COMMIT: the remembered objects the stage put into `value` after it wrote it. `base` is the
+   * committed value the stage started from. Passed over: what `search.shown` holds, and an object
+   * that `same` says holds what the committed one at its place held (file header, why).
+   */
+  findPlanted(value, base, search, same) {
+    return this.walk(value, base, search, false, same);
+  }
+  /** The one walk behind the three searches. `quiet` reports nothing; `same` makes it the search at commit. */
+  walk(value, base, { named, shown: shown2, patch, replaces }, quiet, same) {
+    const found = [];
+    const noted = shown2 !== void 0 && same === void 0 ? [] : void 0;
+    let kept = false;
+    const entered = /* @__PURE__ */ new Map();
+    const hide = (rule, at, whole) => {
+      if (quiet)
+        return;
+      found.push({ path: pathOf(at.list ?? at), rule, whole: whole || at.list !== void 0 || rule.kind === "whole" });
+    };
+    const holds = (rule, at) => {
+      for (let up = at.within; up !== void 0 && up.holds === void 0; up = up.above)
+        up.holds = rule;
+    };
+    let loops;
+    const todo = [[value, base, { named }]];
+    for (let next = todo.pop(); next !== void 0; next = todo.pop()) {
+      const [node, was, at] = next;
+      if (node === CLOSED2) {
+        was.open = false;
+        continue;
+      }
+      if (!isObject2(node) || at.named?.kind === "whole")
+        continue;
+      if (node === was || node === base && at.up !== void 0)
+        kept = true;
+      if (node === was)
+        continue;
+      if (node === base && at.up !== void 0) {
+        if (named !== void 0 && holdsAny(node, named)) {
+          hide(named, at, true);
+          holds(named, at);
+        }
+        continue;
+      }
+      let rule = this.rules.get(node);
+      if (rule !== void 0 && same !== void 0 && shown2?.has(node))
+        rule = void 0;
+      const its = at.named;
+      if (rule === void 0) {
+        if (its === void 0)
+          noted?.push(node);
+      } else if (covers(its, rule)) {
+        holds(rule, at);
+      } else {
+        if (same !== void 0 && isObject2(was) && same(node, was))
+          continue;
+        const list = rule.kind === "fields" && Array.isArray(node) && rule.paths.some(namesAnIndex);
+        hide(rule, at, list);
+        holds(rule, at);
+        if (rule.kind === "whole" || list || at.list !== void 0)
+          continue;
+      }
+      let old = was;
+      const before = entered.get(node);
+      if (before?.open) {
+        (loops ??= /* @__PURE__ */ new Set()).add(before);
+        continue;
+      }
+      if (before !== void 0) {
+        if (before.whole && its === void 0) {
+          if (before.holds !== void 0) {
+            hide(before.holds, at, true);
+            holds(before.holds, at);
+          }
+          continue;
+        }
+        old = void 0;
+      }
+      const here = { above: at.within, at, whole: old === void 0 && its === void 0, open: true };
+      entered.set(node, here);
+      const closes = todo.push([CLOSED2, here, at]);
+      const entries = entriesOf(node);
+      if (entries !== void 0) {
+        const inside = { up: at, list: at.list ?? at, within: here, named: its && UNNAMED };
+        for (const entry of entries)
+          todo.push([entry, void 0, inside]);
+      } else if (Array.isArray(node)) {
+        const list = at.list ?? at;
+        const inside = its === void 0 ? { up: at, list, within: here } : void 0;
+        const fresh = newItems(node, old);
+        if (fresh.passedOver)
+          kept = true;
+        for (const [item, itsOld, index] of fresh.items) {
+          const place = inside ?? {
+            up: at,
+            list,
+            within: here,
+            named: patch ? UNNAMED : nameBelow(its, String(index))
+          };
+          const partner = itsOld ?? (same !== void 0 && Array.isArray(old) ? old[index] : void 0);
+          todo.push([item, partner, place]);
+        }
+      } else {
+        for (const key of Object.keys(node)) {
+          const member = node[key];
+          if (isObject2(member)) {
+            const place = { up: at, key, list: at.list, within: here, named: nameBelow(its, key) };
+            todo.push([member, ownMember(old, key), place]);
+          }
+        }
+      }
+      if (todo.length === closes) {
+        todo.pop();
+        here.open = false;
+      }
+    }
+    if (loops !== void 0) {
+      for (const one of loops)
+        if (one.holds !== void 0)
+          hide(one.holds, one.at, true);
+    }
+    if (noted !== void 0 && replaces && !kept)
+      shown2?.replace(noted);
+    else if (noted !== void 0)
+      shown2?.add(noted);
+    return found;
+  }
+};
+var CLOSED2 = /* @__PURE__ */ Symbol("closed");
+function pathOf(place) {
+  const path = [];
+  for (let at = place; at.up !== void 0; at = at.up)
+    path.push(at.key);
+  return path.reverse();
+}
+function pushObject(todo, value, rule) {
+  if (rule !== void 0 && isObject2(value))
+    todo.push([value, rule]);
+}
+function widest(known, asked) {
+  if (known === void 0)
+    return asked;
+  if (known.kind === "whole")
+    return void 0;
+  if (asked.kind === "whole")
+    return asked;
+  if (known.paths === asked.paths)
+    return void 0;
+  const have = read(known).paths();
+  const more = asked.paths.filter((path) => !have.has(path));
+  return more.length > 0 ? { kind: "fields", key: known.key, paths: [...known.paths, ...more] } : void 0;
+}
+function newItems(list, was) {
+  const items = [];
+  if (!Array.isArray(was)) {
+    for (let i = 0; i < list.length; i++)
+      if (isObject2(list[i]))
+        items.push([list[i], void 0, i]);
+    return { items, passedOver: false };
+  }
+  let passedOver = false;
+  let old = 0;
+  let lookup;
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i];
+    if (lookup !== void 0) {
+      if (!isObject2(item))
+        continue;
+      if (lookup.has(item))
+        passedOver = true;
+      else
+        items.push([item, void 0, i]);
+    } else if (was[old] === item) {
+      old++;
+      passedOver ||= isObject2(item);
+    } else if (!isObject2(item))
+      continue;
+    else if (old >= was.length)
+      items.push([item, void 0, i]);
+    else if (list[i + 1] === was[old + 1])
+      items.push([item, was[old++], i]);
+    else if (list[i + 1] === was[old])
+      items.push([item, void 0, i]);
+    else if (was[old + 1] === item) {
+      old += 2;
+      passedOver = true;
+    } else {
+      lookup = new Set(was);
+      if (lookup.has(item))
+        passedOver = true;
+      else
+        items.push([item, void 0, i]);
+    }
+  }
+  return { items, passedOver };
+}
+function isIndex(first) {
+  return /^\d+$/.test(first);
+}
+function namesAnIndex(path) {
+  return /^\d+(\.|$)/.test(path);
+}
+function isObject2(value) {
+  return value !== null && typeof value === "object";
+}
+
+// node_modules/footprintjs/dist/esm/lib/memory/servedPlaces.js
+var HIDDEN_HERE = "\0hidden\0";
+var placesKept = /* @__PURE__ */ new WeakMap();
+var fixedRecords = /* @__PURE__ */ new WeakMap();
+function placesHiddenIn(rule, record) {
+  let fixed = fixedRecords.get(record);
+  if (fixed === void 0)
+    fixedRecords.set(record, fixed = cannotChange(record));
+  if (!fixed)
+    return served(rule, record);
+  const policy = rule.getPolicy();
+  const marks = JSON.stringify(rule.marksForCheckpoint() ?? null);
+  let ofRule = placesKept.get(rule);
+  const kept = ofRule?.get(record);
+  if (kept !== void 0 && kept.policy === policy && kept.marks === marks)
+    return kept.places;
+  const places = served(rule, record);
+  if (ofRule === void 0)
+    placesKept.set(rule, ofRule = /* @__PURE__ */ new WeakMap());
+  ofRule.set(record, { policy, marks, places });
+  return places;
+}
+function served(rule, record) {
+  try {
+    return Object.freeze(hiddenPlaces(record, rule.retainBoundary(record, HIDDEN_HERE)));
+  } catch {
+    return void 0;
+  }
+}
+function hiddenPlaces(record, shown2) {
+  const places = [];
+  const walked = /* @__PURE__ */ new Set();
+  const todo = [[record, shown2, ""]];
+  for (let next = todo.pop(); next !== void 0; next = todo.pop()) {
+    const [node, its, at] = next;
+    if (its === node || its === null || typeof its !== "object" || walked.has(its))
+      continue;
+    walked.add(its);
+    const look = (key) => {
+      const held = node[key];
+      const served2 = its[key];
+      if (served2 === held)
+        return;
+      const place = at === "" ? String(key) : `${at}.${key}`;
+      if (served2 === HIDDEN_HERE)
+        places.push(place);
+      else if (held !== null && typeof held === "object")
+        todo.push([held, served2, place]);
+    };
+    if (Array.isArray(node))
+      for (let i = 0; i < node.length; i++)
+        look(i);
+    else
+      for (const key of Object.keys(node))
+        look(key);
+  }
+  return places;
+}
+function cannotChange(record) {
+  const seen = /* @__PURE__ */ new Set();
+  const todo = [record];
+  for (let node = todo.pop(); node !== void 0; node = todo.pop()) {
+    if (seen.has(node))
+      continue;
+    seen.add(node);
+    const proto = Object.getPrototypeOf(node);
+    const list = Array.isArray(node);
+    if (!Object.isFrozen(node) || (list ? proto !== Array.prototype : proto !== Object.prototype && proto !== null)) {
+      return false;
+    }
+    for (const key of Object.keys(node)) {
+      const own5 = Object.getOwnPropertyDescriptor(node, key);
+      if (own5 === void 0 || own5.get !== void 0 || own5.set !== void 0)
+        return false;
+      if (own5.value !== null && typeof own5.value === "object")
+        todo.push(own5.value);
+    }
+  }
+  return true;
+}
+
+// node_modules/footprintjs/dist/esm/lib/memory/hiddenObjectTrail.js
+var SEGMENT = "";
+var sameAsBefore = (now, before) => deepEqual(now, before);
+var INPUT = "$getArgs";
+function namedBy(verdict) {
+  return verdict.kind === "clear" ? void 0 : verdict;
+}
+var HiddenObjectTrail = class {
+  record;
+  rule;
+  selected;
+  written;
+  /** The input that was last looked at for selected objects ({@link rememberInput}). */
+  inputSeen;
+  /** `record` is the frame's record; `rule` gives the redaction rule that is active when it is asked. */
+  constructor(record, rule) {
+    this.record = record;
+    this.rule = rule;
+  }
+  /** The objects read under a hidden name so far. None: there is nothing to follow yet. */
+  get objects() {
+    return this.selected;
+  }
+  /**
+   * `value` was read under a hidden name: it, and every object inside it, keeps `rule` from now on.
+   * At the first one, the keys the frame wrote before are noted for what they show (file header, why).
+   */
+  remember(value, rule) {
+    if (value === null || typeof value !== "object")
+      return;
+    if (this.selected === void 0) {
+      this.selected = new SelectedObjects();
+      this.noteWhatWasWritten(this.selected);
+    }
+    this.selected.remember(value, rule);
+  }
+  /**
+   * The stage's input was handed out (`$getArgs()`): `input` is what the stage holds, `source` the
+   * record it was made from (the same for every stage of a run). Inside a sub-flowchart the input IS
+   * the parent's values. What the library hides when it SERVES that input is what the stage must not
+   * pass on: so the one rule that serves it is asked (`servedPlaces.ts`), and every place it hides is
+   * remembered, as fields of the input.
+   *
+   * An input the rule cannot serve (its keys cannot be read) is remembered whole: the safe side, and
+   * `$getArgs()` does not fail.
+   */
+  rememberInput(input, source = input) {
+    if (this.inputSeen === input)
+      return;
+    this.inputSeen = input;
+    const active = this.rule();
+    if (active === void 0 || input === null || typeof input !== "object")
+      return;
+    const hidden = placesHiddenIn(active, source !== null && typeof source === "object" ? source : input);
+    if (hidden === void 0)
+      this.remember(input, { kind: "whole", key: INPUT });
+    else if (hidden.length > 0)
+      this.remember(input, { kind: "fields", key: INPUT, paths: hidden });
+  }
+  /**
+   * Steps 2 and 3 of a staged write (`StageContext · stageWrite`): search the value for hidden objects,
+   * then stage its bytes under the verdict that comes of it. Returns that verdict.
+   *
+   * `asked` is step 1's verdict, by name. `nsPath` is the absolute path of the write, `path` and `key`
+   * its user-level spelling.
+   */
+  stage(active, asked, nsPath, path, key, value, verb) {
+    const wrote = verb === "delete" ? void 0 : this.keyOf(nsPath, path, key);
+    const selected = this.selected;
+    if (active === void 0 || selected === void 0 || wrote === void 0 || asked.kind === "whole") {
+      this.record.write(nsPath, value, verb, scrubOf(asked));
+      return asked;
+    }
+    const shown2 = wrote.shown ??= new ShownObjects();
+    const base = this.heldNow(nsPath, value);
+    const how = { base, shown: shown2, patch: verb === "merge", replaces: verb === "set" && path.length === 0 };
+    const verdict = inheritByIdentity(active, asked, selected, path, key, value, how);
+    this.record.write(nsPath, value, verb, scrubOf(verdict));
+    if (verb === "merge")
+      selected.noteShown(this.record.peek(nsPath), base, { named: namedBy(verdict), shown: shown2 });
+    return verdict;
+  }
+  /**
+   * Search every key this frame wrote once more, as it stands now, before it is recorded. `restaged`
+   * is told of each key that gained a hidden place: its bytes are staged again here, as a `set` of
+   * its value under the new verdict; the marks are the frame's. Then each write the frame KEPT
+   * (`kept`) gets the verdict its kept form is taken under.
+   */
+  followAtCommit(restaged, kept) {
+    const written = this.written;
+    this.written = void 0;
+    const selected = this.selected;
+    const active = this.rule();
+    if (selected === void 0 || active === void 0)
+      return;
+    for (const { root, at, shown: shown2 } of written?.values() ?? []) {
+      const before = active.verdictAt([], root);
+      const value = this.record.peek(at);
+      const base = this.record.baseAt(at);
+      const after = inheritByIdentity(active, before, selected, [], root, value, { base, shown: shown2, sameAsBefore });
+      if (sameVerdict(before, after))
+        continue;
+      this.record.write(at, value, "set", scrubOf(after));
+      restaged(root, at, after);
+    }
+    if (kept !== void 0)
+      for (const one of kept)
+        this.keep(active, selected, written, one);
+  }
+  /** Give one kept write the verdict it is retained under, as its value stands now (file header, why). */
+  keep(active, selected, written, one) {
+    if (one.operation === "delete" || one.value === null || typeof one.value !== "object")
+      return;
+    const named = active.verdictAt(one.path, one.key);
+    const nsPath = this.record.at(one.path, one.key);
+    if (named.kind === "whole" || this.record.peek(nsPath) === one.value) {
+      one.verdict = named;
+      return;
+    }
+    const shown2 = written?.get(nsPath.slice(0, nsPath.length - one.path.length).join(SEGMENT))?.shown;
+    const search = { named: namedBy(named), shown: shown2 };
+    const found = selected.findPlanted(one.value, this.record.baseAt(nsPath), search, sameAsBefore);
+    one.verdict = keptUnder(named, found, userKeyOf(one.path, one.key));
+  }
+  /** A try was thrown away: what it wrote was never written. What it READ stays (`StageContext · discardStaged`, why). */
+  discard() {
+    this.written = void 0;
+  }
+  /** The record of the top key a write at `nsPath` lands in. */
+  keyOf(nsPath, path, key) {
+    const at = nsPath.slice(0, nsPath.length - path.length);
+    const id = at.join(SEGMENT);
+    let wrote = this.written?.get(id);
+    if (wrote === void 0)
+      (this.written ??= /* @__PURE__ */ new Map()).set(id, wrote = { root: path[0] ?? key, at });
+    return wrote;
+  }
+  /**
+   * What the frame's view holds at `at` now, for the search of a write: a part of the new value that is
+   * the same object there is not new, and is not searched again. With one exception: the SAME object
+   * written back. A stage does that after changing it in place, so nothing of it can be passed over.
+   */
+  heldNow(at, value) {
+    const now = this.record.peek(at);
+    return now === value ? void 0 : now;
+  }
+  /** The stage's first hidden read: note what each key written before it shows. Nothing is remembered yet, so nothing in them is hidden. */
+  noteWhatWasWritten(selected) {
+    const active = this.rule();
+    if (active === void 0 || this.written === void 0)
+      return;
+    for (const wrote of this.written.values()) {
+      const named = namedBy(active.verdictAt([], wrote.root));
+      selected.noteShown(this.record.peek(wrote.at), void 0, { named, shown: wrote.shown ??= new ShownObjects() });
+    }
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/memory/keptReads.js
+var WRITTEN = /* @__PURE__ */ Symbol("written");
+var KeptReads = class {
+  /**
+   * By the slot of `stageReads` a read was kept in (a root key): the object whose retained form the
+   * frame holds there, or {@link WRITTEN} for a root it has written under.
+   */
+  byRoot;
+  /** The frame wrote at or under `root`. */
+  wrote(root) {
+    (this.byRoot ??= /* @__PURE__ */ new Map()).set(root, WRITTEN);
+  }
+  /** Does the frame already hold what a read of the object `value` under root `key` would keep? */
+  holds(key, value) {
+    return this.byRoot?.get(key) === value;
+  }
+  /**
+   * The frame has just kept a read in `slot` of its `stageReads`: a root key, or the dotted name of a
+   * path, which a root key may bear too (`'a.b'` is a key, and the path a → b). `standsForNext`: what
+   * it kept is the retained form of the object `value` read at the root, and stands for the next read
+   * of the same object. Anything else kept in the slot ends what stood there. Called only once the
+   * retained form is there, so a value that could not be kept is asked again next time.
+   */
+  kept(slot, value, standsForNext) {
+    const now = this.byRoot?.get(slot);
+    if (now === WRITTEN)
+      return;
+    if (standsForNext)
+      (this.byRoot ??= /* @__PURE__ */ new Map()).set(slot, value);
+    else if (now !== void 0)
+      this.byRoot?.delete(slot);
+  }
+  /** The step committed, or its attempt was dropped: hold no object of it. */
+  release() {
+    this.byRoot = void 0;
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/memory/retainedValue/index.js
+function retainedForm(verdict, value, mode, summarize) {
+  if (verdict.kind === "whole")
+    return SCOPE_PLACEHOLDER;
+  const scrubbed = verdict.kind === "fields" ? RedactionRule.scrubFields(value, verdict.paths) : void 0;
+  if (mode === "summary")
+    return summarize(scrubbed ?? value);
+  return scrubbed ?? copyOf(value);
+}
+function copyOf(value) {
+  const kind = typeof value;
+  const fixed = value === null || kind === "string" || kind === "number" || kind === "boolean" || kind === "bigint";
+  return fixed ? value : structuredClone(value);
+}
+function activeRule(rule) {
+  return rule !== void 0 && !rule.isInert() ? rule : void 0;
+}
+
 // node_modules/footprintjs/dist/esm/lib/memory/StageContext.js
 var MAX_LATE_WRITES = 100;
 var MAX_CALL_RECORDS = 1e3;
-function callsEndedReason() {
-  return new Error("[footprint] $call: the stage attempt that made this call has ended \u2014 the call stops, and nothing it records lands on the stage. Await every call the stage makes.");
-}
 var StageContext = class _StageContext {
   /** @internal Ownership of an escaping failure. Shared only by sequential frames, never serialized. */
   failureState = new NativeFailureState();
@@ -17689,11 +20475,13 @@ var StageContext = class _StageContext {
   bindFailureIdentity(runId, runtimeStageId) {
     this.#failureIdentity = Object.freeze({ runId, runtimeStageId });
     this.sourceInvocations = 0;
+    if (this.captureClosureTracking)
+      this.closureInvocations?.reset();
     if (this.readSources?.active)
       this.readSources.ownership?.begin(runId, runtimeStageId, runAddress(this.namespaceId));
   }
   /**
-   * The record half of this frame (`RecordFrame.ts`, L3, C3): the heap and,
+   * The record half of this frame (foottrace's `RecordFrame`, C3): the heap and,
    * when the run keeps them, the redacted mirror and the log; the address;
    * the first-touch base; the lazy transaction buffer; the readKeys list.
    * Every state read of this frame goes through it, and so does every
@@ -17786,6 +20574,8 @@ var StageContext = class _StageContext {
    * facade path never allocates it.
    */
   _nestedReads;
+  /** Which reads this frame has already kept: a read is kept once for each object a key holds (`keptReads.ts`). */
+  keptReads = new KeptReads();
   /**
    * Dev mode only: the root keys whose LAST tracked read was served from
    * committed state — before this stage's first write, when no transaction
@@ -17795,6 +20585,15 @@ var StageContext = class _StageContext {
    * stage wrote them. Never allocated outside `enableDevMode()`.
    */
   _viewReads;
+  /**
+   * Dev mode only: the root keys read LIVE through {@link readLiveRoot} (a subflow mount's mappers and
+   * its list append). Such a read is of committed state as it was at that moment, not of this frame's
+   * pinned view, and a mount stays open for the whole run of its subflow: a parallel sibling may
+   * rightly replace the key in between. {@link warnOnBorrowedMutation} has no pinned value to compare
+   * the copy with, so it skips these keys, as it skips every read the live fallback served.
+   * Never allocated outside `enableDevMode()`.
+   */
+  _liveReads;
   /**
    * Has this frame committed at least once? The borrowed-read guard runs on
    * the FIRST commit only — see {@link warnOnBorrowedMutation}. The frame
@@ -17806,8 +20605,19 @@ var StageContext = class _StageContext {
   _committed = false;
   /** Tracked reads of a selected value ({@link selectedReads}). */
   _selectedReads = 0;
-  /** Each object this frame read under a selected name → that read's verdict (`stageWrite` hands it on). */
-  _selectedObjects;
+  /**
+   * Follows the objects this frame read under a selected name into what it writes: at each write, and
+   * once more at commit (`hiddenObjectTrail.ts`). Made at the first write or read a redaction rule
+   * has something to say about, so a run without a policy holds none.
+   */
+  _trail;
+  /**
+   * This frame's staged deletes of keys the redaction rule keeps hidden (`redaction.ts · markStagedWrite`),
+   * each with the absolute path it deletes. A delete is only STAGED until the frame commits, so no mark
+   * ends at the write: {@link endMarksOfLandedDeletes} asks the state once the commit has landed. A
+   * discarded try drops them; a delete that never landed ends nothing.
+   */
+  _stagedDeletes;
   /**
    * RFC-003 D2 honesty markers — untracked read paths used during THIS
    * stage's execution (`'args'` / `'env'` / `'silent'`). Marked by
@@ -17882,7 +20692,7 @@ var StageContext = class _StageContext {
   /**
    * Install a parallel redacted mirror. Subsequent `commit()` calls apply
    * the already-computed redacted patches — the ones the log records — to
-   * this mirror, beside the raw patches on the heap (`recordCommit`).
+   * this mirror, beside the raw patches on the heap (foottrace's `RecordFrame · commit`).
    * Child / next contexts inherit the mirror via `createNext` / `createChild`.
    *
    * Called on a runtime's root frame by `ExecutionRuntime` when the run's policy keeps a mirror.
@@ -17937,6 +20747,10 @@ var StageContext = class _StageContext {
     this.readSources = from.readSources;
     this.adoptPolicy(from.policy);
     this.capture = from.capture;
+    if (from.captureExtent)
+      this.captureExtent = from.captureExtent;
+    if (from.captureClosureTracking)
+      this.captureClosureTracking = true;
     this.record.useMirror(from.record.mirror);
   }
   /**
@@ -17963,12 +20777,12 @@ var StageContext = class _StageContext {
    * one `stageWrite` decided BEFORE staging, carried to commit with the
    * value. The staged write itself is unaffected — redaction of the
    * committed payload is the record frame's scrub of that write
-   * (`RecordFrame · write`, then `scrub.ts` at commit).
+   * (`RecordFrame · write`, then foottrace's scrub at commit).
    */
-  trackWrite(userKey, value, verdict, operation) {
+  trackWrite(path, key, value, verdict, operation) {
     if (this.policy.writeTracking === "off")
       return;
-    (this._pendingWrites ??= /* @__PURE__ */ new Map()).set(userKey, { value, verdict, operation });
+    (this._pendingWrites ??= /* @__PURE__ */ new Map()).set(userKeyOf(path, key), { value, verdict, operation, path, key });
   }
   /**
    * `_stageWrites` with every pending write folded in as its retained form
@@ -17982,7 +20796,7 @@ var StageContext = class _StageContext {
     const out = { ...this._stageWrites };
     for (const [key, w] of this._pendingWrites) {
       out[key] = {
-        value: this.retainedForm(w.verdict, w.value, this.policy.writeTracking, summarizeWriteValue),
+        value: retainedForm(w.verdict, w.value, this.policy.writeTracking, summarizeWriteValue),
         operation: w.operation
       };
     }
@@ -18004,30 +20818,6 @@ var StageContext = class _StageContext {
     }
   }
   /**
-   * The form of a value the engine RETAINS (reads and writes retention):
-   * the placeholder beats every dial; a field-level scrub happens before the
-   * dial sees the value; a clear value is summarized or cloned as the dial
-   * says. Callers handle `undefined` before asking.
-   */
-  retainedForm(verdict, value, mode, summarize) {
-    if (verdict.kind === "whole")
-      return SCOPE_PLACEHOLDER;
-    const scrubbed = verdict.kind === "fields" ? RedactionRule.scrubFields(value, verdict.paths) : void 0;
-    if (mode === "summary")
-      return summarize(scrubbed ?? value);
-    return scrubbed ?? structuredClone(value);
-  }
-  /**
-   * The rule with something to say — `undefined` on the no-policy path (no
-   * rule installed, or a rule with no policy entries and no marked keys), so
-   * a tracked read or a staged write there pays no verdict call and no path
-   * allocation. The default run is byte-identical AND cost-identical.
-   */
-  activeRule() {
-    const rule = this.policy.redaction;
-    return rule !== void 0 && !rule.isInert() ? rule : void 0;
-  }
-  /**
    * THE ONE FUNNEL every staged write passes through — facade writes AND
    * the paths that bypass the facade (subflow seed, `outputMapper`
    * merge-back, resume re-seed). Two owners (C4): the run's rule DECIDES,
@@ -18037,7 +20827,8 @@ var StageContext = class _StageContext {
    *   2. identity inheritance — `inheritByIdentity`, against this frame's
    *      selected reads as they stand after step 1;
    *   3. the bytes — `RecordFrame · write`, the op and its scrub (the whole
-   *      value, or the fields inside it);
+   *      value, or the fields inside it). Steps 2 and 3 are one call,
+   *      `HiddenObjectTrail · stage`, which also keeps what the key showed;
    *   4. the marks — `markStagedWrite`, only once the write staged, so a
    *      write that fails to stage marks nothing.
    * Each step reads the rule (and the selected reads) when it acts, as this
@@ -18045,16 +20836,56 @@ var StageContext = class _StageContext {
    * under the same decision.
    */
   stageWrite(nsPath, path, key, value, explicit, verb) {
-    const active = this.activeRule();
+    if (this.policy.readTracking !== "off")
+      this.keptReads.wrote(path[0] ?? key);
+    const active = activeRule(this.policy.redaction);
     if (active === void 0 && !explicit) {
       this.record.write(nsPath, value, verb);
       return CLEAR;
     }
     const asked = decideWrite(active, path, key, explicit);
-    const verdict = inheritByIdentity(active, asked, this._selectedObjects, path, key, value);
-    this.record.write(nsPath, value, verb, scrubOf(verdict));
-    markStagedWrite(active, this.policy.redaction, verdict, path, key, verb);
+    const verdict = this.trail.stage(active, asked, nsPath, path, key, value, verb);
+    const rule = this.policy.redaction;
+    const place = verb === "delete" || verdict.kind !== "clear" || rule?.keeps(path[0] ?? key) ? placeOf(this.record.state, nsPath.slice(0, nsPath.length - path.length - 1)) : void 0;
+    const ending = markStagedWrite(active, rule, verdict, path, key, verb, place);
+    if (ending !== void 0)
+      (this._stagedDeletes ??= []).push({ ending, at: nsPath });
     return verdict;
+  }
+  /**
+   * The frame's staged writes have landed. A delete among them ends its key's mark NOW, and only when
+   * the key is really gone from the state. WHY ask the state: a stage that deletes a key and writes it
+   * again before its commit has not deleted it (the record shows no delete either), and what it wrote
+   * back may be the hidden value it read first.
+   */
+  endMarksOfLandedDeletes() {
+    const staged = this._stagedDeletes;
+    if (staged === void 0)
+      return;
+    this._stagedDeletes = void 0;
+    const state = this.record.state.getState();
+    for (const { ending, at } of staged) {
+      if (nativeGet(state, at) === void 0)
+        ending.rule.unmark(ending.key, ending.place);
+    }
+  }
+  /** This frame's trail of hidden objects, made when first asked for (`hiddenObjectTrail.ts`). */
+  get trail() {
+    return this._trail ??= new HiddenObjectTrail(this.record, () => activeRule(this.policy.redaction));
+  }
+  /**
+   * Search what this frame wrote once more, as it stands now, before it is recorded
+   * (`HiddenObjectTrail · followAtCommit`, why). A key that gained a hidden place there was staged
+   * again; here it gets its marks. And every write the frame kept for its snapshot takes the verdict
+   * its kept form is taken under: this runs before {@link materialiseWrites}.
+   */
+  followLateEdits() {
+    if (this._trail === void 0)
+      return;
+    const active = activeRule(this.policy.redaction);
+    this._trail.followAtCommit((root, at, verdict) => {
+      markStagedWrite(active, active, verdict, [], root, "set", placeOf(this.record.state, at.slice(0, -1)));
+    }, this._pendingWrites?.values());
   }
   /**
    * Write and read at ANOTHER frame's address (its run namespace) while this
@@ -18092,7 +20923,7 @@ var StageContext = class _StageContext {
   }
   setObject(path, key, value, shouldRedact, description, operationOverride) {
     const verdict = operationOverride === "delete" ? this.stageWrite(this.record.at(path, key), path, key, void 0, shouldRedact, "delete") : this.stageWrite(this.record.at(path, key), path, key, value, shouldRedact, "set");
-    this.trackWrite(userKeyOf(path, key), value, verdict, operationOverride ?? "set");
+    this.trackWrite(path, key, value, verdict, operationOverride ?? "set");
     if (description) {
       const tagged = description.startsWith("[") ? description : `[WRITE] ${description}`;
       this.debug.addLog("message", tagged);
@@ -18101,7 +20932,7 @@ var StageContext = class _StageContext {
   }
   updateObject(path, key, value, description, shouldRedact) {
     const verdict = this.merge(path, key, value, shouldRedact);
-    this.trackWrite(userKeyOf(path, key), value, verdict, "update");
+    this.trackWrite(path, key, value, verdict, "update");
     if (description) {
       this.debug.addLog("message", description);
     }
@@ -18134,18 +20965,30 @@ var StageContext = class _StageContext {
   /**
    * Tracked read. The returned value is BORROWED — see the contract on
    * `ScopeFacade.getValue`. Read-tracking cost is policy-gated (#14):
-   * `'full'` clones the value into `_stageReads` (historical default),
-   * `'summary'` records a cheap marker, `'off'` records nothing.
+   * `'full'` keeps a clone of the value in `_stageReads` (the default), once
+   * for each object a key holds ({@link keepOnce}); `'summary'` records a
+   * cheap marker, `'off'` records nothing.
    */
   getValue(path, key, description) {
+    return this.retainedRead(path, key, description, true);
+  }
+  /**
+   * {@link getValue} for an answer that hands the stage a NAME, never the value: a key listing and its per-key check.
+   * The same read and the same rows, but it does not count for the taint law ({@link taintedReads}): a stage that knows
+   * a name holds nothing a rule selects. Only `ScopeFacade · getStateKeys` and `listsKey` ask it.
+   */
+  inspectValue(path, key) {
+    return this.retainedRead(path, key, void 0, false);
+  }
+  retainedRead(path, key, description, handsValue) {
     try {
-      return this.readRetainedValue(path, key, description);
+      return this.readRetainedValue(path, key, description, handsValue);
     } catch (error) {
       this.capture?.limit("read-retention-failed");
       throw error;
     }
   }
-  readRetainedValue(path, key, description) {
+  readRetainedValue(path, key, description, handsValue) {
     let verdict = CLEAR;
     const value = this.policy.readSources && this.readSources ? this.readWithNativeSource(path, key, () => {
       verdict = this.judgeRead(path, key);
@@ -18153,10 +20996,102 @@ var StageContext = class _StageContext {
     }) : this.record.read(path, key);
     if (!this.policy.readSources || !this.readSources)
       verdict = this.noteAndJudgeRead(path, key);
-    if (verdict.kind !== "clear" && value !== void 0) {
-      this._selectedReads += 1;
-      if (value !== null && typeof value === "object")
-        (this._selectedObjects ??= /* @__PURE__ */ new WeakMap()).set(value, verdict);
+    return this.retainRead(path, key, value, verdict, description, handsValue);
+  }
+  /**
+   * A read of one ROOT key of live committed state, recorded as a read of THIS step. The mount of a
+   * subflow reads this way: its two mappers (`engine/handlers/mapperScope.ts`) and its merge-back,
+   * which reads what is there before it adds to it (`SubflowInputMapper · applyOutputMapping`). The
+   * value is live state at the root, exactly what those were handed before. What is new is that the
+   * read is RECORDED: on the frame's read prefix, under the rule's verdict, in the taint count and
+   * in `stageReads`. A key the state does not hold reads `undefined` and records nothing, as before.
+   *
+   * WHY NOT `getValue`: that serves the frame's own view, pinned at its first touch. A mount's
+   * output mapping runs after the subflow has run, and reads state as it is THEN; a pinned view
+   * would hand it state as it was when the mount began.
+   *
+   * WHAT `stageReads` KEEPS IS THE RUN'S OWN SETTING (`readTracking`), as for every read of every
+   * step: a copy under `'full'`, a marker under `'summary'`, nothing under `'off'`. The first cut kept
+   * a marker whatever the setting said, to spare a mount in a loop the copy. That broke what `'full'`
+   * promises a reader of the record (every read of a step is there as a value), and a consumer's own
+   * test caught it. The copy is the setting's price, here as for a stage; `bench/mapper-reads.ts`
+   * measures it, and `'summary'` is the setting for a run that hands large values on.
+   *
+   * WITH READ SOURCES ON (`readSources: true`) this read has no source of its own: the record's
+   * source-capturing door reads the frame's view, not live root state. The capture says so
+   * (`untracked-read`, status `partial`) and never reports a run with such a read as fully captured.
+   */
+  readLiveRoot(key) {
+    if (!this.hasRootKey(key))
+      return void 0;
+    const value = this.record.readGlobal(key);
+    if (this.policy.readSources && this.readSources)
+      this.readSources.limit("untracked-read");
+    if (this.policy.readTracking === "full" && isDevMode())
+      (this._liveReads ??= /* @__PURE__ */ new Set()).add(key);
+    try {
+      return this.retainRead([], key, value, this.noteAndJudgeRead([], key), void 0, true);
+    } catch (error) {
+      this.capture?.limit("read-retention-failed");
+      throw error;
+    }
+  }
+  /**
+   * A read of `key` as THIS frame's writes see it (its own address, then the root), recorded as a read
+   * of this step like any other. A subflow's merge-back reads this way before it merges a plain object
+   * field by field: what comes out under `key` is what was there with those fields changed, and the
+   * fields are written where the frame writes. (For a mount whose frame writes at the root, which is
+   * every mount the builder makes, this is the root key; read at the root regardless, a frame that
+   * writes under a namespace would be given the wrong writer.) A key that is not there reads
+   * `undefined` and records nothing: that is all this door adds to {@link getValue}.
+   */
+  readOwnView(key) {
+    if (this.record.peek(this.record.at([], key)) === void 0 && !this.hasRootKey(key))
+      return void 0;
+    return this.retainedRead([], key, void 0, true);
+  }
+  /**
+   * `value` is about to be written at `path`/`key` in PIECES: a subflow's merge-back merges a plain
+   * object field by field and appends a list as a new array. The write funnel then sees only the
+   * pieces, so an object this frame read under a selected name would lose its rule on the way (step 2
+   * of {@link stageWrite}, which follows an object by identity). Asked here with the whole value
+   * first, the target inherits what a whole write would have given it.
+   */
+  inheritRule(path, key, value) {
+    const active = activeRule(this.policy.redaction);
+    if (active === void 0)
+      return;
+    inheritByIdentity(active, active.verdictAt(path, key), this._trail?.objects, path, key, value);
+  }
+  /**
+   * `handed` is what user code was given in place of `value`, an object this frame read under a
+   * selected name: the redaction rule hands a subflow mapper a VIEW of a record whose fields are
+   * selected, not the record. It carries the same rule, so that a copy of it written under another
+   * name is found by identity ({@link inheritRule}, {@link stageWrite}) as the record itself would be.
+   */
+  sameRuleFor(handed, value) {
+    if (handed === null || typeof handed !== "object" || value === null || typeof value !== "object")
+      return;
+    this._trail?.objects?.sameRuleFor(handed, value);
+  }
+  /**
+   * `copy` is a full copy the scope made of `value` and handed to user code (`$batchArray`). An object
+   * taken out of the copy is the selected value's all the same.
+   */
+  copyOfSelected(copy, value) {
+    if (copy === null || typeof copy !== "object" || value === null || typeof value !== "object")
+      return;
+    this._trail?.objects?.copyOf(copy, value);
+  }
+  /** What every tracked read keeps, once the value is in hand and its verdict known (see {@link getValue}). */
+  retainRead(path, key, value, verdict, description, handsValue) {
+    if (handsValue) {
+      if (verdict.kind !== "clear" && value !== void 0) {
+        this._selectedReads += 1;
+        this.rememberSelected(value, verdict);
+      } else if (key === void 0) {
+        this.noteKeylessRead(path, value);
+      }
     }
     if (key !== void 0 && this.policy.readTracking !== "off") {
       if (path.length > 0)
@@ -18167,12 +21102,25 @@ var StageContext = class _StageContext {
         else
           (this._viewReads ??= /* @__PURE__ */ new Set()).add(key);
       }
-      this._stageReads[userKeyOf(path, key)] = value === void 0 ? void 0 : this.retainedForm(verdict, value, this.policy.readTracking, summarizeReadValue);
+      this.keepOnce(path, key, value, verdict);
     }
     if (description) {
       this.debug.addLog("message", `[READ] ${description}`);
     }
     return value;
+  }
+  /**
+   * Keep what this read saw in {@link _stageReads}: once for each object a root key holds, not once for
+   * each read of it. The rule, why it holds and what it leaves alone are in `keptReads.ts`.
+   */
+  keepOnce(path, key, value, verdict) {
+    const atRoot = path.length === 0;
+    const object = atRoot && verdict.kind === "clear" && value !== null && typeof value === "object" ? value : void 0;
+    if (object !== void 0 && this.keptReads.holds(key, object))
+      return;
+    const slot = userKeyOf(path, key);
+    this._stageReads[slot] = value === void 0 ? void 0 : retainedForm(verdict, value, this.policy.readTracking, summarizeReadValue);
+    this.keptReads.kept(slot, value, object !== void 0);
   }
   /**
    * How many tracked reads of this frame read a value the run's rule selects
@@ -18184,13 +21132,85 @@ var StageContext = class _StageContext {
   get selectedReads() {
     return this._selectedReads;
   }
+  /**
+   * {@link selectedReads} as the taint law asks it (`RedactionRule · retainStageText`, `serveThreshold`): a stage's
+   * own effect key may be made of a selected value, so holding one counts as a read of it.
+   */
+  get taintedReads() {
+    return this._selectedReads + (this._effectKeyTainted ? 1 : 0);
+  }
+  /**
+   * A read past the tracked funnel still reads what the rule selects: a stage's silent read leaves no row but the value
+   * is in its hands all the same, by the key's verdict or, with no key, by {@link noteKeylessRead}. Counted, never
+   * retained or reported.
+   */
+  noteUntrackedRead(key, value) {
+    if (key === void 0) {
+      this.noteKeylessRead([], value);
+      return;
+    }
+    if (value === void 0)
+      return;
+    const verdict = activeRule(this.policy.redaction)?.verdictAt([], key);
+    if (verdict === void 0 || verdict.kind === "clear")
+      return;
+    this._selectedReads += 1;
+    this.rememberSelected(value, verdict);
+  }
+  /**
+   * The stage asked for its input (`$getArgs()`): what the rule hides in it stays hidden wherever the
+   * stage writes it (`HiddenObjectTrail · rememberInput`). Never counted as a selected read: the taint
+   * law asks the input itself (`redaction.ts`, "the taint law").
+   */
+  noteInputRead(input, source) {
+    if (activeRule(this.policy.redaction) !== void 0)
+      this.trail.rememberInput(input, source);
+  }
+  /** An object read under a selected name, and every object inside it, keeps its rule wherever the stage writes it (`selectedObjects.ts`). */
+  rememberSelected(value, verdict) {
+    if (value !== null && typeof value === "object")
+      this.trail.remember(value, verdict);
+  }
+  /**
+   * A read with no key hands the stage everything under `path`, so it counts when that holds a selected
+   * name, and each selected value in it is remembered like one read by its key (`selectedObjects.ts`):
+   * the value at a selected path, or, for the whole state, the value of each selected key (the keys of
+   * every run namespace included).
+   */
+  noteKeylessRead(path, value) {
+    const rule = activeRule(this.policy.redaction);
+    if (value === void 0 || rule === void 0)
+      return;
+    if (rule.holdsSelected(path, value))
+      this._selectedReads += 1;
+    if (path.length > 0) {
+      const verdict = rule.verdict(path);
+      if (verdict.kind !== "clear")
+        this.rememberSelected(value, verdict);
+      return;
+    }
+    const rememberKeys = (record) => {
+      if (record === null || typeof record !== "object" || Array.isArray(record))
+        return;
+      for (const [key, held] of Object.entries(record)) {
+        const verdict = rule.verdictAt([], key);
+        if (verdict.kind !== "clear")
+          this.rememberSelected(held, verdict);
+      }
+    };
+    rememberKeys(value);
+    const runs = value?.[RUN_NAMESPACE];
+    if (runs !== null && typeof runs === "object")
+      for (const space of Object.values(runs))
+        rememberKeys(space);
+  }
   noteAndJudgeRead(path, key) {
     if (key !== void 0)
       this.record.noteRead(path, key);
     return this.judgeRead(path, key);
   }
   judgeRead(path, key) {
-    const rule = key !== void 0 ? this.activeRule() : void 0;
+    const rule = key !== void 0 ? activeRule(this.policy.redaction) : void 0;
     return rule !== void 0 ? rule.verdictAt(path, key) : CLEAR;
   }
   readWithNativeSource(path, key, privacy) {
@@ -18215,11 +21235,11 @@ var StageContext = class _StageContext {
       } else {
         if (!this.sourceAttempt)
           this.readSources?.ownership?.limit("attempt-unavailable");
-        const read = this.record.readWithSource(path, key, { runtimeStageId: identity2.runtimeStageId, ...this.sourceAttempt && { attemptId: this.sourceAttempt } }, verdict);
-        value = read.value;
-        if (read.occurrence && this.readSources?.active) {
-          counts?.retain(read.occurrence.source.kind);
-          this.readSources.ownership?.checkSelectedAddress(identity2.runtimeStageId, read.occurrence.stateAddress);
+        const read2 = this.record.readWithSource(path, key, { runtimeStageId: identity2.runtimeStageId, ...this.sourceAttempt && { attemptId: this.sourceAttempt } }, verdict);
+        value = read2.value;
+        if (read2.occurrence && this.readSources?.active) {
+          counts?.retain(read2.occurrence.source.kind);
+          this.readSources.ownership?.checkSelectedAddress(identity2.runtimeStageId, read2.occurrence.stateAddress);
         }
       }
     } catch (error) {
@@ -18257,8 +21277,16 @@ var StageContext = class _StageContext {
   getGlobal(key) {
     return this.record.readGlobal(key);
   }
-  getScope() {
-    return this.record.state.getState();
+  /**
+   * The names of the root keys of committed state, as they stand now: what a subflow mapper may read
+   * (`engine/handlers/mapperScope.ts`). Names only; a value is read through {@link readLiveRoot}.
+   */
+  rootKeys() {
+    return Object.keys(this.record.state.getState());
+  }
+  /** Does committed state hold `key` at its root, as it stands now? A name is asked, no value is read. */
+  hasRootKey(key) {
+    return typeof key === "string" && Object.hasOwn(this.record.state.getState(), key);
   }
   getRunId() {
     return this.runId;
@@ -18323,12 +21351,12 @@ var StageContext = class _StageContext {
   warnOnBorrowedMutation() {
     if (!isDevMode() || this.policy.readTracking !== "full" || this._committed)
       return;
-    const rule = this.activeRule();
+    const rule = activeRule(this.policy.redaction);
     for (const key of Object.keys(this._stageReads)) {
       const retained = this._stageReads[key];
       if (retained === null || typeof retained !== "object")
         continue;
-      if (this._nestedReads?.has(key))
+      if (this._nestedReads?.has(key) || this._liveReads?.has(key))
         continue;
       if (rule !== void 0 && rule.verdictAt([], key).kind !== "clear")
         continue;
@@ -18404,10 +21432,14 @@ var StageContext = class _StageContext {
     } catch (error) {
       this.capture?.limit("commit-retention-failed");
       throw error;
+    } finally {
+      this.endCalls(void 0);
+      this._attemptReporter = void 0;
     }
   }
   commitRetained(phase) {
     const continuation = this._committed ? phase : void 0;
+    this.followLateEdits();
     this.materialiseWrites();
     this.warnOnBorrowedMutation();
     const commitIndex = this.record.log?.length;
@@ -18419,6 +21451,7 @@ var StageContext = class _StageContext {
       tags: this.tags,
       phase: continuation
     }));
+    this.endMarksOfLandedDeletes();
     if (this.readSources?.active && this.#failureIdentity && commitIndex !== void 0)
       this.readSources.ownership?.commit(this.#failureIdentity.runtimeStageId, commitIndex);
     if (this._commitObserver) {
@@ -18426,10 +21459,9 @@ var StageContext = class _StageContext {
     }
     this.record.release();
     this._untrackedSources = void 0;
+    this.keptReads.release();
     this.tags = void 0;
     this._committed = true;
-    this.endCalls(void 0);
-    this._attemptReporter = void 0;
   }
   /** Whether this frame has committed — a call's record arriving after it is late (P2, `ScopeFacade · call`). */
   get committed() {
@@ -18465,17 +21497,31 @@ var StageContext = class _StageContext {
    * every attempt did, and the retry feature's whole point is that the earlier
    * attempts stay visible.
    *
+   * Also KEPT: what the attempt read under a selected name — the count
+   * (`_selectedReads`, so {@link selectedReads} and {@link taintedReads} still
+   * count it) and the objects it read (`HiddenObjectTrail`, so `stageWrite`
+   * still hands their rule on). A later attempt can hold what a failed one
+   * read (a closure, a module variable), and the library cannot tell, so a
+   * selected read in any attempt marks the later ones: a threshold or break
+   * reason they serve is masked, and such an object keeps its rule when a
+   * later attempt writes it under another name. This is the conservative
+   * side for redaction (test/lib/engine/security/retry-isolation.test.ts).
+   *
    * No commit is recorded and no observer fires — a discarded attempt is not a
    * cursor stop, because from shared state's point of view it never happened.
    */
   discardStaged() {
     this.record.discard();
+    this._stagedDeletes = void 0;
+    this._trail?.discard();
     this._untrackedSources = void 0;
     this._pendingWrites = void 0;
     this._stageWrites = {};
     this._stageReads = {};
     this._nestedReads = void 0;
     this._viewReads = void 0;
+    this._liveReads = void 0;
+    this.keptReads.release();
   }
   // ── Attempts (10.1) ────────────────────────────────────────────────────
   /** Append one attempt's record — the attempt runner calls this as each attempt ends. */
@@ -18504,8 +21550,17 @@ var StageContext = class _StageContext {
    * record is the one the tree keeps: frozen, `structuredClone`-safe, its error the SERVED form (no `raw`), so the
    * note needs no second redaction pass. Without a sink the log does nothing (`EventLog · note`).
    */
-  noteAttempt(record) {
-    this.record.log?.note("attempt", { record });
+  noteAttempt(record, evidence) {
+    this.record.log?.note("attempt", { record, ...evidence });
+  }
+  /** Capture-only invocation note; independent of staged business-state writes. */
+  noteCallStart(data) {
+    const sourcePosition = this.captureEmitPosition();
+    this.record.log?.note("attempt-start", { ...data, ...sourcePosition && { sourcePosition } });
+  }
+  /** The answered call may feed subsequent writes in this live owning attempt. */
+  noteCallAnswerRead(attemptId) {
+    this.record.noteReadAttempt(attemptId);
   }
   /** The attempts of this execution so far, in order — its own and its calls'; `undefined` when there are none. */
   get attempts() {
@@ -18518,6 +21573,8 @@ var StageContext = class _StageContext {
   /** The attempt about to run (and the run's signal) — `StageRunner` sets both before it builds the scope. */
   useAttempt(attempt, runSignal) {
     this.sourceAttempt = void 0;
+    if (this.captureClosureTracking)
+      this.failureState.clearInvocationFailure();
     this._attempt = attempt;
     this._runSignal = runSignal;
   }
@@ -18527,6 +21584,18 @@ var StageContext = class _StageContext {
       return;
     this.sourceInvocations++;
     this.sourceAttempt = this.readSources.ownership?.attempt(this.#failureIdentity.runtimeStageId, attempt?.attempt ?? 1);
+  }
+  /** @internal Called only immediately before an actual native function entry, never reconstructed from rows. */
+  beginClosureInvocation(attempt) {
+    const identity2 = this.#failureIdentity;
+    if (!this.captureClosureTracking || !identity2)
+      return;
+    const invocation = (this.closureInvocations ??= new NativeClosureInvocations()).begin(identity2, attempt);
+    if (invocation === "counter-saturated") {
+      this.captureExtent?.refuseClosure("counter-saturated");
+      return;
+    }
+    return invocation;
   }
   /** The attempt now running; `undefined` for a stage the attempt runner does not run. */
   get attempt() {
@@ -18627,12 +21696,12 @@ var StageContext = class _StageContext {
    * {@link MAX_CALL_RECORDS}, the rest counted — and reported to the run's `onAttempt` either way. Like the stage's
    * records, NOT cleared by {@link discardStaged}: a failed attempt's calls are evidence too.
    */
-  reportCallAttempt(record, structuredError) {
+  reportCallAttempt(record, structuredError, evidence) {
     if (this._callRecords < MAX_CALL_RECORDS) {
       this._callRecords += 1;
       (this._attempts ??= []).push(record);
       (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).recordAttempt(record, this.runtimeStageId);
-      this.noteAttempt(record);
+      this.noteAttempt(record, evidence);
     } else {
       this._attemptsDropped += 1;
       (this._attention ??= new StageAttention(() => this.capture?.limit("attention-omitted"))).attemptDropped();
@@ -18756,6 +21825,8 @@ var StageContext = class _StageContext {
       snapshot2.readSourceCounts = this.sourceReadCounter?.snapshot() ?? EMPTY_SOURCE_READ_COUNTS;
       snapshot2.readSourceInvocations = this.sourceInvocations;
     }
+    if (this.captureClosureTracking)
+      snapshot2.nativeInvocations = this.closureInvocations?.count ?? 0;
     const stageWrites = this.retainedWrites();
     if (Object.keys(stageWrites).length > 0) {
       const writes = {};
@@ -18793,16 +21864,25 @@ var StageContext = class _StageContext {
 
 // node_modules/footprintjs/dist/esm/lib/runner/ExecutionRuntime.js
 var ExecutionRuntime = class {
+  /** @internal Current native leg's runtime bank; each scope captures its own stage view. */
+  runFrame;
   readSources;
   /** Present only for the current opted-in root leg. Never inherited by a subflow runtime. */
   capture;
-  beginCapture(runId) {
+  beginCapture(runId, extent = false) {
     const address = this.executionHistory.address ?? this.capture?.logAddress ?? { logRunId: runId, drillPath: [] };
     const capture2 = new NativeCapture(runId, address, this.executionHistory.length, this.policy);
     if (this.capture)
       capture2.limit("resumed-segment");
     this.capture = capture2;
     this.rootStageContext.capture = capture2;
+    if (extent) {
+      this.captureExtent = new NativeExtent(runId, address, this.executionHistory.length);
+      this.rootStageContext.captureExtent = this.captureExtent;
+    } else if (this.captureExtent) {
+      delete this.captureExtent;
+      delete this.rootStageContext.captureExtent;
+    }
     return capture2;
   }
   /** A reused log cannot be retrofitted or relabelled as the new leg's base. */
@@ -18928,7 +22008,7 @@ var ExecutionRuntime = class {
    * safe because it is deeply frozen, so no holder can mutate it or reach the
    * engine through it; a base holding a Date, Map, buffer … (what freezing
    * cannot seal) is served by the public snapshot as a copy of its open paths
-   * (`runner/snapshot.ts · servedSnapshot`, `capture/freeze.ts · serveRecord`,
+   * (`runner/snapshot.ts · servedSnapshot`, `foottrace · serveRecord`,
    * 9.44.2).
    */
   getFoldBase() {
@@ -18975,8 +22055,7 @@ var ExecutionRuntime = class {
    * @param options.redact  When `true`, returns `sharedState` from the
    *   parallel redacted mirror (if one was enabled). This is the safe view
    *   for sharing traces externally — paste into a viewer, ship to support,
-   *   etc. When the mirror was never enabled, falls back to raw `globalStore`
-   *   and a dev-mode warning is emitted (silent in production).
+   *   etc. When the mirror was never enabled, falls back to raw `globalStore`.
    *
    *   Default `false` preserves the runtime view — necessary for pause /
    *   resume (resumption must replay against the real values, not
@@ -19073,6 +22152,202 @@ function hasSourceSinkBase(state) {
   return typeof base === "object" && base !== null && !Array.isArray(base);
 }
 
+// node_modules/footprintjs/dist/esm/lib/capture/nativeClosure/evidence.js
+function validateClosureEvidence(closure, extent, tree, commitLog) {
+  if (closure.commits.from !== 0 || closure.commits.to !== commitLog.length)
+    return false;
+  const nodes = /* @__PURE__ */ new Map();
+  const pending = [tree];
+  let visited = 0;
+  let entered = 0;
+  while (pending.length) {
+    if (++visited > 1e5)
+      return false;
+    const node = pending.pop();
+    if (!node || typeof node !== "object" || Object.getPrototypeOf(node) !== Object.prototype)
+      return false;
+    const id = ownData3(node, "runtimeStageId");
+    const count3 = ownData3(node, "nativeInvocations");
+    if (typeof id !== "string" || !id || nodes.has(id) || !Number.isSafeInteger(count3) || Object.is(count3, -0) || count3 < 0 || count3 > NATIVE_EXTENT_MAX_INVOCATIONS)
+      return false;
+    const sourceCount = ownData3(node, "readSourceInvocations");
+    if (Object.hasOwn(node, "readSourceInvocations") && sourceCount !== count3)
+      return false;
+    nodes.set(id, count3);
+    entered += count3;
+    if (entered > extent.invocations.started)
+      return false;
+    if (Object.hasOwn(node, "next"))
+      pending.push(ownData3(node, "next"));
+    if (Object.hasOwn(node, "children")) {
+      const children = ownData3(node, "children");
+      if (!Array.isArray(children) || children.length > 1e5 - visited - pending.length)
+        return false;
+      for (const child of children)
+        pending.push(child);
+    }
+  }
+  if (entered !== extent.invocations.started)
+    return false;
+  const primary = /* @__PURE__ */ new Set();
+  for (const commit of commitLog) {
+    if (!nodes.has(commit.runtimeStageId))
+      return false;
+    if (commit.phase === void 0) {
+      if (primary.has(commit.runtimeStageId))
+        return false;
+      primary.add(commit.runtimeStageId);
+    }
+  }
+  for (const id of nodes.keys())
+    if (!primary.has(id))
+      return false;
+  const selected = closure.selectedFailure;
+  if (selected) {
+    const attempt = parseAttemptId(selected.attemptId);
+    if (!attempt || nodes.get(selected.runtimeStageId) !== attempt.attempt || !primary.has(selected.runtimeStageId))
+      return false;
+  }
+  return true;
+}
+
+// node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/record.js
+var NO_CLOSED_CAPTURE = Object.freeze({
+  status: "unknown",
+  reason: "not-collected"
+});
+function closeNativeCapture(view, selected, serve, maxBytes = 1024 * 1024) {
+  const unknown = (reason) => Object.freeze({ status: "unknown", reason });
+  try {
+    const capture2 = view.capture;
+    const extent = view.captureExtent;
+    if (!capture2 || !extent)
+      return unknown("capture-unavailable");
+    const marker = {
+      version: 1,
+      policy: "native-root-prefix-v1",
+      scope: "root-log",
+      runId: capture2.runId,
+      logAddress: capture2.logAddress,
+      commits: capture2.commits,
+      status: "closed",
+      boundary: capture2.boundary.status,
+      ...selected && { selectedFailure: selected },
+      limitations: CAPTURE_CLOSURE_LIMITATIONS
+    };
+    if (!copyCaptureClosure(marker, capture2, extent))
+      return unknown("native-prefix-unverified");
+    const payload = historyEvidence(copyCaptureEvidence(serve(copyEvidenceInput({
+      capture: capture2,
+      captureExtent: extent,
+      executionTree: view.executionTree,
+      ...view.recorders && { recorders: view.recorders },
+      ...view.readSources && { readSources: view.readSources },
+      closure: marker
+    }, maxBytes)), maxBytes));
+    const record = copyHistoryData({
+      ...payload,
+      commitLog: view.commitLog,
+      ...view.initialState !== void 0 && { initialState: view.initialState }
+    }, maxBytes);
+    const admitted = historyNote(record.capture, {
+      version: 1,
+      runId: capture2.runId,
+      logAddress: capture2.logAddress,
+      commits: capture2.commits
+    });
+    if (!admitted || !validateAbsentEntries(record) || !copyCaptureClosure(record.closure, admitted, record.captureExtent) || !validateClosureEvidence(record.closure, record.captureExtent, record.executionTree, record.commitLog))
+      return unknown("closure-evidence-refused");
+    if (admitted.version === 2 && !storedReadSources(record.readSources, admitted, record.commitLog, record.initialState, record.executionTree))
+      return unknown("source-evidence-refused");
+    return Object.freeze({ status: "closed", record });
+  } catch (error) {
+    return unknown(historyFailureReason(error, "evidence"));
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/cut.js
+function cutNativeCapture(runtime, port) {
+  const refusal = runtime.captureExtent?.closureRefusal;
+  if (refusal)
+    return Object.freeze({ status: "unknown", reason: refusal });
+  else {
+    try {
+      const view = port.snapshot();
+      return closeNativeCapture({
+        ...view,
+        ...view.initialState && {
+          initialState: port.initialState(copyEvidenceInput(view.initialState))
+        }
+      }, port.selected(), port.serve, port.maxBytes());
+    } catch {
+      return Object.freeze({ status: "unknown", reason: "evidence-refused" });
+    }
+  }
+}
+
+// node_modules/footprintjs/dist/esm/lib/runner/nativeClosure/state.js
+var NativeClosureState = class {
+  sealed = false;
+  result = NO_CLOSED_CAPTURE;
+  reset() {
+    this.result = NO_CLOSED_CAPTURE;
+    this.sealed = false;
+  }
+  closeOnce(cut) {
+    if (this.sealed)
+      return;
+    this.sealed = true;
+    this.result = cut();
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/runner/nativeLegSettlement.js
+function nativeLegResult(terminal, result3) {
+  if (terminal.escaped)
+    throw terminal.escaped.reason;
+  if (terminal.cleanupFailure)
+    throw terminal.cleanupFailure.reason;
+  return result3;
+}
+
+// node_modules/footprintjs/dist/esm/lib/runner/nativeRunBinding.js
+var bindings2 = /* @__PURE__ */ new WeakMap();
+var frames = /* @__PURE__ */ new WeakMap();
+var readyFrames = /* @__PURE__ */ new WeakMap();
+function attachNativeRun(executor, binding) {
+  if (bindings2.has(executor))
+    throw new TypeError("Native executor already has an execution binding");
+  bindings2.set(executor, binding);
+  return () => {
+    if (bindings2.get(executor) === binding)
+      bindings2.delete(executor);
+  };
+}
+function beginNativeRun(executor, origin, root, capture2) {
+  const binding = bindings2.get(executor);
+  const componentRoot = declaredRunComponentRoot(root);
+  const frame = RunFrame.open(origin, binding?.legBanks, binding?.runtimeBanks, binding?.componentBanks, componentRoot);
+  frames.set(executor, frame);
+  readyFrames.delete(executor);
+  captureComponentControl(frame, binding?.finalizers);
+  capture2?.(frame);
+  binding?.onOrigin(frame);
+  openComponentControl(frame);
+  return frame;
+}
+function nativeRunFrame(executor) {
+  return frames.get(executor);
+}
+function readyNativeRun(executor) {
+  const frame = frames.get(executor);
+  if (frame)
+    readyFrames.set(executor, frame);
+}
+function nativeRunReady(executor, frame) {
+  return readyFrames.get(executor) === frame;
+}
+
 // node_modules/footprintjs/dist/esm/lib/attempt/call.js
 function callSeries(runtimeStageId, stageAttempt, ordinal) {
   return `${runtimeStageId}@${stageAttempt}.${ordinal}`;
@@ -19084,17 +22359,24 @@ function runCall(target2, fn, policy, host) {
     if (signal?.aborted)
       return Promise.reject(signal.reason);
   const stop = new AbortController();
-  const own4 = hostSignal === void 0 ? armDeadline(void 0, host.deadline, lateCallMessage(target2, void 0, "ran out of time"), now) : void 0;
-  const composed = anySignal([hostSignal, host.ended, own4?.signal, stop.signal]);
+  const own5 = hostSignal === void 0 ? armDeadline(void 0, host.deadline, lateCallMessage(target2, void 0, "ran out of time"), now) : void 0;
+  const composed = anySignal([hostSignal, host.ended, own5?.signal, stop.signal]);
   let result3;
+  let answered;
   const quiet = () => {
     result3?.catch(() => void 0);
   };
   host.ended?.addEventListener("abort", quiet, { once: true });
   const release = () => {
     host.ended?.removeEventListener("abort", quiet);
-    own4?.dispose();
+    own5?.dispose();
     composed.dispose();
+    if (answered && host.admits(false)) {
+      try {
+        host.delivered?.(answered);
+      } catch {
+      }
+    }
   };
   if (composed.signal.aborted) {
     release();
@@ -19118,6 +22400,10 @@ function runCall(target2, fn, policy, host) {
       stop.abort(reason);
       throw reason;
     }
+    try {
+      host.start?.({ series: seriesName, kind: "call", attempt: context.attempt, target: target2, startedAt: now() });
+    } catch {
+    }
     return fn(context);
   }, policy, {
     series: seriesName,
@@ -19128,6 +22414,10 @@ function runCall(target2, fn, policy, host) {
     ...host.deadline !== void 0 && { deadline: host.deadline },
     now,
     serve: (error) => host.serve(error),
+    onAnswer: (answer) => {
+      if (host.admits(false))
+        host.answer?.(answer);
+    },
     // Synchronous at the abort: the stage attempt's signal aborting is what cut this call attempt.
     onAbandon: (attempt) => {
       if (hostSignal?.aborted)
@@ -19136,6 +22426,8 @@ function runCall(target2, fn, policy, host) {
     onAttempt: (record, structuredError) => {
       if (host.admits(cut.has(record.attempt))) {
         host.report(record, structuredError);
+        if (record.outcome === "ok")
+          answered = record;
         return;
       }
       host.refused();
@@ -19149,6 +22441,75 @@ function runCall(target2, fn, policy, host) {
 }
 function lateCallMessage(target2, series, what) {
   return `[footprint] $call "${target2}"${series === void 0 ? "" : ` (${series})`} ${what}: the attempt that made this call has ended \u2014 no further attempt of it starts, and nothing it records lands on the stage.`;
+}
+
+// node_modules/footprintjs/dist/esm/lib/attempt/evidence.js
+var encoder = new TextEncoder();
+var own4 = (value, key) => {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  if (descriptor && !Object.hasOwn(descriptor, "value"))
+    throw new TypeError("Evidence must be data");
+  return descriptor?.value;
+};
+var fits = (value) => value.length <= 200 && encoder.encode(JSON.stringify(value)).length <= 200;
+function refs(value, name) {
+  if (value === void 0)
+    return {};
+  if (!Array.isArray(value))
+    throw new TypeError("Evidence references must be an array");
+  const length = own4(value, "length");
+  if (typeof length !== "number" || !Number.isSafeInteger(length) || length < 0)
+    throw new TypeError("Invalid evidence length");
+  const kept = [];
+  const inspected = Math.min(length, 32);
+  for (let i = 0; i < inspected; i++) {
+    const item = own4(value, String(i));
+    if (typeof item !== "string")
+      throw new TypeError("Evidence references must be strings");
+    if (fits(item))
+      kept.push(item);
+  }
+  const omitted = length - kept.length;
+  return { [name]: kept, ...omitted > 0 && { [name + "Omitted"]: omitted } };
+}
+function readCallEvidence(options) {
+  try {
+    const value = options && typeof options === "object" ? own4(options, "evidence") : void 0;
+    if (value === void 0)
+      return { input: {} };
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+      return { input: {}, refused: true };
+    const input = refs(own4(value, "inputRefs"), "inputRefs");
+    const observe2 = own4(value, "observe");
+    if (observe2 !== void 0 && typeof observe2 !== "function")
+      return { input: {}, refused: true };
+    return { input, ...observe2 !== void 0 && { observe: observe2 } };
+  } catch {
+    return { input: {}, refused: true };
+  }
+}
+function observeCallAnswer(observe2, answer) {
+  try {
+    if (!observe2)
+      return { data: {} };
+    const observed = observe2(answer);
+    try {
+      Promise.prototype.then.call(observed, void 0, () => void 0);
+      return { data: {}, refused: true };
+    } catch {
+    }
+    if (observed === null || typeof observed !== "object" || Array.isArray(observed))
+      return { data: {}, refused: true };
+    const result3 = refs(own4(observed, "outputRefs"), "outputRefs");
+    const remote = own4(observed, "remoteRequestId");
+    if (remote !== void 0 && typeof remote !== "string")
+      return { data: {}, refused: true };
+    if (typeof remote === "string" && !fits(remote))
+      return { data: result3, refused: true };
+    return { data: { ...result3, ...remote !== void 0 && { remoteRequestId: remote } } };
+  } catch {
+    return { data: {}, refused: true };
+  }
 }
 
 // node_modules/footprintjs/dist/esm/lib/attempt/observed.js
@@ -19206,7 +22567,7 @@ function count2(name, value) {
 function observedRecord(report, init) {
   const failed = report.outcome !== "ok";
   const category = failed ? errorCategory(report.error, report.outcome) : void 0;
-  const served = failed && report.error !== void 0 ? withoutRaw(init.serve(report.error)) : void 0;
+  const served2 = failed && report.error !== void 0 ? withoutRaw(init.serve(report.error)) : void 0;
   const decision = decideAttempt(retryRules({ attempts: report.of ?? report.attempt }), (key) => readInput(report, category, key));
   const record = freezeDeep({
     series: init.series,
@@ -19222,12 +22583,12 @@ function observedRecord(report, init) {
     decision: decision.evidence,
     next: decision.next,
     reason: decision.reason,
-    ...served !== void 0 && { error: recordedError(served) }
+    ...served2 !== void 0 && { error: recordedError(served2) }
   });
-  return { record, ...served !== void 0 && { structuredError: served } };
+  return { record, ...served2 !== void 0 && { structuredError: served2 } };
 }
-function withoutRaw(served) {
-  return { ...served, raw: void 0 };
+function withoutRaw(served2) {
+  return { ...served2, raw: void 0 };
 }
 function readInput(report, category, key) {
   switch (key) {
@@ -19335,6 +22696,7 @@ var ScopeFacade = class _ScopeFacade {
    */
   _trackedReadKeys = /* @__PURE__ */ new Set();
   _recorders = [];
+  _producer;
   /**
    * Set by the commit observer: this stage's frame has flushed. A facade is
    * ONE stage execution's handle — the engine builds a fresh one per stage —
@@ -19389,6 +22751,8 @@ var ScopeFacade = class _ScopeFacade {
     this._stageContext.setCommitObserver((mutations) => {
       this._onCommitFired(mutations);
     });
+    registerNativeRunTarget(this, context);
+    this._producer = scopeRunFrame(this);
     registerScopeRuntime(this, { target: this, handlesAssignments: false });
     if (context.capture || context.readSources?.observing)
       registerNativeCaptureTarget(this, context);
@@ -19630,6 +22994,8 @@ var ScopeFacade = class _ScopeFacade {
     }
     this.refuseLateCall(`call:${name}`);
     const context = this._stageContext;
+    if (context.captureClosureTracking)
+      context.captureExtent?.refuseClosure("helper-work-not-attested");
     const stageAttempt = this._attempt?.attempt ?? 1;
     const signal = this._attempt?.signal ?? this._runSignal;
     const deadline = attemptEndsAt(this._attempt);
@@ -19639,7 +23005,7 @@ var ScopeFacade = class _ScopeFacade {
       this._retryingCalls += 1;
     let result3;
     try {
-      result3 = this.startCall(name, fn, admitted, touches, stageAttempt, signal, deadline, ended);
+      result3 = this.startCall(name, fn, admitted, touches, stageAttempt, signal, deadline, ended, options);
     } catch (error) {
       if (retrying)
         this._retryingCalls -= 1;
@@ -19654,22 +23020,78 @@ var ScopeFacade = class _ScopeFacade {
     return result3;
   }
   /** `runCall` with this stage attempt as its host (`call`). */
-  startCall(name, fn, admitted, touches, stageAttempt, signal, deadline, ended) {
+  startCall(name, fn, admitted, touches, stageAttempt, signal, deadline, ended, options) {
     const context = this._stageContext;
     const loop = takeRetryLoopCall(this);
+    const capture2 = readCallEvidence(options);
+    const effect = touches === void 0 ? void 0 : this.callEffect(touches);
+    const owner = context.runtimeStageId;
+    let ordinal;
+    let output = {};
+    let outputRefused = false;
+    let started = false;
+    let warned = false;
+    const warnIfRefused = (refused) => {
+      if (!refused || !started || warned || !isDevMode())
+        return;
+      warned = true;
+      try {
+        console.warn("[footprint] $call evidence refused; business outcome unchanged");
+      } catch {
+      }
+    };
+    const keep = (value) => {
+      try {
+        const kept = this.rule.retainDiagnostic(["logs", "callEvidence"], value);
+        return kept !== null && typeof kept === "object" && !Array.isArray(kept) ? kept : {};
+      } catch {
+        return {};
+      }
+    };
     return runCall(name, fn, admitted, {
-      openSeries: () => callSeries(context.runtimeStageId, stageAttempt, context.nextCallOrdinal(stageAttempt)),
+      openSeries: () => {
+        ordinal = context.nextCallOrdinal(stageAttempt);
+        return callSeries(owner, stageAttempt, ordinal);
+      },
       ...signal !== void 0 && { signal },
       ...deadline !== void 0 && { deadline },
       ended,
-      ...touches !== void 0 && { effect: this.callEffect(touches) },
+      ...effect !== void 0 && { effect },
+      start: (identity2) => {
+        started = true;
+        output = {};
+        outputRefused = false;
+        warnIfRefused(capture2.refused === true);
+        const recordedKey = effect === void 0 ? void 0 : recordedKeyOf(effect);
+        context.noteCallStart({
+          ...identity2,
+          ...keep({
+            ...capture2.input,
+            ...capture2.refused && { evidenceRefused: true },
+            ...effect && { system: effect.system },
+            ...recordedKey !== void 0 && { idempotencyKey: recordedKey }
+          })
+        });
+      },
+      answer: (answer) => {
+        const observed = observeCallAnswer(capture2.observe, answer);
+        output = observed.data;
+        outputRefused = observed.refused === true;
+        warnIfRefused(outputRefused);
+      },
+      delivered: (record) => {
+        if (ordinal !== void 0)
+          context.noteCallAnswerRead(buildAttemptId(owner, stageAttempt, { ordinal, attempt: record.attempt }));
+      },
       // The frame's own commit state (every attempt's facade reads the same), never a facade flag.
       admits: (cut) => !context.committed && (cut || !(ended.aborted || this.attemptHasEnded())),
       serve: (error) => this.rule.servedError(error),
       report: (record, structuredError) => {
-        const served = loop ? Object.freeze({ ...record, retryLoop: loop.identity }) : record;
-        context.reportCallAttempt(served, structuredError);
-        loop?.record(served);
+        const served2 = loop ? Object.freeze({ ...record, retryLoop: loop.identity }) : record;
+        const refused = capture2.refused === true || outputRefused;
+        warnIfRefused(refused);
+        context.reportCallAttempt(served2, structuredError, keep({ ...capture2.input, ...output, ...refused && { evidenceRefused: true } }));
+        loop?.record(served2);
       },
       refused: () => context.recordLateWrite({ attempt: stageAttempt, key: `call:${name}`, channel: "attempt" }),
       observe: (report, at) => this.recordObserved(report, at.ended)
@@ -19684,18 +23106,23 @@ var ScopeFacade = class _ScopeFacade {
   }
   /** @internal Exactly the existing P3 key-retention law; operational state keeps the real key. */
   serveRetryLoopKey(key) {
-    return this.rule.retainIdempotencyKey(key, {
-      input: this._readOnlyValues,
-      selectedReads: this._stageContext.selectedReads + (this._stageContext.effectKeyTainted ? 1 : 0)
-    });
+    return this.rule.retainIdempotencyKey(key, this.stageSources());
+  }
+  /** What this stage's code may have copied a value from: `RedactionRule · retainStageText`, `serveThreshold`. */
+  stageSources() {
+    return { input: this._readOnlyValues, selectedReads: this._stageContext.taintedReads };
+  }
+  /** @internal What `decide()` / `select()` ask the run's rule: `RedactionRule · evidenceRule`, over this stage's sources. */
+  decisionEvidenceRule(behind) {
+    return this.rule.evidenceRule(() => this.stageSources(), behind);
   }
   /** @internal Loop state is durable data: never persist the thrown value, stack, cause or payload. */
   serveRetryLoopError(error) {
-    const served = this.rule.servedError(error);
+    const served2 = this.rule.servedError(error);
     return {
-      message: served.message,
-      ...served.name !== void 0 ? { name: served.name } : {},
-      ...served.code !== void 0 ? { code: served.code } : {}
+      message: served2.message,
+      ...served2.name !== void 0 ? { name: served2.name } : {},
+      ...served2.code !== void 0 ? { code: served2.code } : {}
     };
   }
   /** A touching call's target, its key served for the records (`RedactionRule · retainIdempotencyKey`: by name and by its sources). */
@@ -19703,11 +23130,7 @@ var ScopeFacade = class _ScopeFacade {
     const key = touches.idempotencyKey;
     if (key === void 0)
       return touches;
-    const recordedKey = this.rule.retainIdempotencyKey(key, {
-      input: this._readOnlyValues,
-      // The stage's own key may be made of a selected value: a key passed on from it is served the same way.
-      selectedReads: this._stageContext.selectedReads + (this._stageContext.effectKeyTainted ? 1 : 0)
-    });
+    const recordedKey = this.rule.retainIdempotencyKey(key, this.stageSources());
     return { ...touches, recordedKey };
   }
   /**
@@ -19732,8 +23155,8 @@ var ScopeFacade = class _ScopeFacade {
    * level: an SDK's call is a call the stage attempt made, so a report made through a `$call` is that call's sibling.
    */
   recordObserved(report, callAttemptEnded = false) {
-    const read = readObservedReport(report);
-    const key = `observed:${read.target}`;
+    const read2 = readObservedReport(report);
+    const key = `observed:${read2.target}`;
     const context = this._stageContext;
     const stageAttempt = this._attempt?.attempt ?? 1;
     if (callAttemptEnded || this.attemptHasEnded() || context.committed || this._committed) {
@@ -19741,8 +23164,8 @@ var ScopeFacade = class _ScopeFacade {
       return;
     }
     const book = this._observedBook ??= new ObservedSeriesBook(() => callSeries(context.runtimeStageId, stageAttempt, context.nextCallOrdinal(stageAttempt)));
-    const { record, structuredError } = observedRecord(read, {
-      series: book.seriesFor(read),
+    const { record, structuredError } = observedRecord(read2, {
+      series: book.seriesFor(read2),
       now: Date.now,
       serve: (error) => this.rule.servedError(error)
     });
@@ -19754,10 +23177,10 @@ var ScopeFacade = class _ScopeFacade {
     return attempt !== void 0 && this._stageContext.hasAttemptEnded(attempt.attempt);
   }
   /** Called by StageContext.commit() observer. Converts tracked writes to CommitEvent format.
-   *  Errors are caught to prevent recorder issues from aborting the traversal. */
+   *  A failure never aborts the traversal; one while building the event is reported to `onError`. */
   _onCommitFired(mutations) {
     this._committed = true;
-    if (this._recorders.length === 0)
+    if (!this._hasRecorders())
       return;
     try {
       const commitMutations = Object.entries(mutations).map(([key, entry]) => ({
@@ -19766,7 +23189,8 @@ var ScopeFacade = class _ScopeFacade {
         operation: entry.operation
       }));
       this.notifyCommit(commitMutations);
-    } catch {
+    } catch (error) {
+      this._routeFailure(error, this, "onCommit");
     }
   }
   // ── Debug / Diagnostics ──────────────────────────────────────────────────
@@ -19822,7 +23246,7 @@ var ScopeFacade = class _ScopeFacade {
    */
   emitEvent(name, payload) {
     this.refuseIfAttemptEnded(name, "emit");
-    if (this._recorders.length === 0)
+    if (!this._hasRecorders())
       return;
     const finalPayload = this.rule.retainEmit(name, payload);
     const sourcePosition = this._stageContext.captureEmitPosition();
@@ -19836,7 +23260,7 @@ var ScopeFacade = class _ScopeFacade {
       timestamp: Date.now(),
       ...sourcePosition === void 0 ? {} : { sourcePosition }
     };
-    fire(this._recorders, "onEmit", this._correlated(event), this._routeFailure);
+    fire(componentRecorders(this._producer, this._recorders), "onEmit", this._correlated(event), this._routeFailure);
   }
   // ── Detach — fire-and-forget child flowchart execution ─────────────────
   //
@@ -19847,18 +23271,20 @@ var ScopeFacade = class _ScopeFacade {
   /** See `ScopeMethods.$detachAndJoinLater`. */
   detachAndJoinLater(driver, child, input) {
     this.refuseIfAttemptEnded(detachKey(child), "detach");
+    this._stageContext.captureExtent?.limit("detached-work-not-tracked");
     return detachAndJoinLater(driver, child, input, this._stageContext.runtimeStageId);
   }
   /** See `ScopeMethods.$detachAndForget`. */
   detachAndForget(driver, child, input) {
     this.refuseIfAttemptEnded(detachKey(child), "detach");
+    this._stageContext.captureExtent?.limit("detached-work-not-tracked");
     detachAndForget(driver, child, input, this._stageContext.runtimeStageId);
   }
   /**
    * Build the subflowPath (outer → inner) for event enrichment.
    *
    * Parses from `runtimeStageId` which has the format
-   * `[subflowPath/]stageId#executionIndex` (see `lib/ids/runtimeStageId.ts`).
+   * `[subflowPath/]stageId#executionIndex` (see `foottrace · subflowSegmentsOf`).
    * Subflow isolation prevents walking the parent-chain across boundaries,
    * so the runtimeStageId — globally unique, includes full path — is the
    * canonical source of truth for the subflow hierarchy at emit time.
@@ -19878,13 +23304,25 @@ var ScopeFacade = class _ScopeFacade {
     return Object.freeze(segments3);
   }
   // ── Non-Tracking State Inspection (for TypedScope proxy internals) ──────
-  /** Returns all state keys without firing onRead. Used by TypedScope ownKeys/has traps. */
+  /**
+   * Returns all state keys without firing onRead. Used by TypedScope ownKeys/has traps. A listing hands the stage names
+   * and no value, so it never counts as a selected read.
+   */
   getStateKeys() {
     this.refuseIfAttemptEnded("*");
-    const snapshot2 = this._stageContext.getValue([], void 0);
+    const snapshot2 = this._stageContext.inspectValue([], void 0);
     if (!snapshot2 || typeof snapshot2 !== "object")
       return [];
     return Object.keys(snapshot2);
+  }
+  /**
+   * {@link hasKey} as a listing asks it, once per key (the TypedScope descriptor trap, under `Object.keys`, `for…in` and
+   * a spread). The same answer and the same read row, but it hands the stage no value, so it never counts as a selected
+   * read. `'k' in scope` stays {@link hasKey}: a question about one key by name.
+   */
+  listsKey(key) {
+    this.refuseIfAttemptEnded(key);
+    return this._stageContext.inspectValue([], key) !== void 0;
   }
   /** Check key existence without firing onRead. Used by TypedScope has trap.
    *  Contract: returns false for keys never set OR keys set to undefined.
@@ -19912,11 +23350,23 @@ var ScopeFacade = class _ScopeFacade {
     if (key === void 0 || !this._trackedReadKeys.has(key)) {
       this._stageContext.markUntrackedSource("silent");
     }
-    return this._stageContext.getValueDirect([], key);
+    const value = this._stageContext.getValueDirect([], key);
+    this._stageContext.noteUntrackedRead(key, value);
+    return value;
+  }
+  /** `copy` is a full copy the typed scope made of `value` for user code (`$batchArray`): it carries the value's redaction rule. */
+  copyOf(copy, value) {
+    this._stageContext.copyOfSelected?.(copy, value);
   }
   // ── State Access ─────────────────────────────────────────────────────────
   getInitialValueFor(key) {
-    return this._stageContext.getGlobal?.(key);
+    return this.readGlobalValue(key);
+  }
+  /** A root read past the tracked funnel: no row, but it still counts for the taint law. */
+  readGlobalValue(key) {
+    const value = this._stageContext.getGlobal?.(key);
+    this._stageContext.noteUntrackedRead(key, value);
+    return value;
   }
   /**
    * Tracked read of shared state.
@@ -19956,7 +23406,7 @@ var ScopeFacade = class _ScopeFacade {
       this._trackedReadKeys.add(key);
     else if (path.length === 1 && key === void 0)
       this._trackedReadKeys.add(path[0]);
-    if (this._recorders.length > 0) {
+    if (this._hasRecorders()) {
       const wholeState = path.length === 0 && key === void 0;
       const verdict = wholeState ? CLEAR : key === void 0 ? this.rule.verdict(path) : this.rule.verdictAt(path, key);
       const recorderValue = wholeState ? this.rule.retainRecord(value) : RedactionRule.apply(verdict, value);
@@ -19988,7 +23438,7 @@ var ScopeFacade = class _ScopeFacade {
       }
     }
     const verdict = this._stageContext.setObject(path, key, value, shouldRedact, description);
-    if (this._recorders.length > 0) {
+    if (this._hasRecorders()) {
       this._invokeHook("onWrite", {
         stageName: this._stageName,
         stageId: this._stageContext.stageId,
@@ -20016,7 +23466,7 @@ var ScopeFacade = class _ScopeFacade {
       }
     }
     const verdict = this._stageContext.updateObject(path, key, value, description);
-    if (this._recorders.length > 0) {
+    if (this._hasRecorders()) {
       this._invokeHook("onWrite", {
         stageName: this._stageName,
         stageId: this._stageContext.stageId,
@@ -20034,7 +23484,7 @@ var ScopeFacade = class _ScopeFacade {
     assertNotReadonly(this._readOnlyValues, key, "delete");
     this.assertLive(key);
     this._stageContext.setObject([], key, void 0, false, description ?? `deleted ${key}`, "delete");
-    if (this._recorders.length > 0) {
+    if (this._hasRecorders()) {
       this._invokeHook("onWrite", {
         stageName: this._stageName,
         stageId: this._stageContext.stageId,
@@ -20054,7 +23504,7 @@ var ScopeFacade = class _ScopeFacade {
   }
   /** @internal */
   getGlobal(key) {
-    return this._stageContext.getGlobal?.(key);
+    return this.readGlobalValue(key);
   }
   /** @internal */
   setObjectInRoot(key, value) {
@@ -20080,8 +23530,10 @@ var ScopeFacade = class _ScopeFacade {
    */
   getArgs() {
     this.refuseIfAttemptEnded("$args");
-    if (this._hasArgs)
+    if (this._hasArgs) {
       this._stageContext.markUntrackedSource("args");
+      this._stageContext.noteInputRead(this._frozenArgs, this._readOnlyValues);
+    }
     return this._frozenArgs;
   }
   /**
@@ -20112,8 +23564,11 @@ var ScopeFacade = class _ScopeFacade {
     return this._stageContext.runId;
   }
   // ── Internal ─────────────────────────────────────────────────────────────
+  _hasRecorders() {
+    return this._recorders.length > 0 || hasComponentRecorders(this._producer);
+  }
   _invokeHook(hook, event) {
-    fire(this._recorders, hook, this._correlated(event), this._routeFailure);
+    fire(componentRecorders(this._producer, this._recorders), hook, this._correlated(event), this._routeFailure);
   }
   /** The event as fired: unchanged without a correlation, else with the run's correlation as its last key. */
   _correlated(event) {
@@ -20135,10 +23590,6 @@ var ScopeFacade = class _ScopeFacade {
   };
 };
 var NEVER_ABORTED = new AbortController().signal;
-function detachKey(child) {
-  const id = child?.root?.id;
-  return typeof id === "string" ? `detach:${id}` : "detach";
-}
 
 // node_modules/footprintjs/dist/esm/lib/runner/recordSink.js
 var RecordSinkError = class extends Error {
@@ -20220,12 +23671,12 @@ var RunRecord = class {
       opened: (entry) => {
         handed();
         const rule = this.rule;
-        const served = {
+        const served2 = {
           ...entry,
           initialState: rule ? rule.retainState(entry.initialState, LOG_PLACEHOLDER) : entry.initialState,
           ...entry.meta === void 0 ? {} : { meta: this.serve(entry.meta) }
         };
-        return this.invoke({ ...served, kind: "opened" }, () => adapter.opened(served), rule);
+        return this.invoke({ ...served2, kind: "opened" }, () => adapter.opened(served2), rule);
       },
       commit: (entry) => {
         handed();
@@ -20237,8 +23688,8 @@ var RunRecord = class {
       },
       closed: (entry) => {
         handed();
-        const served = { ...entry, ...entry.meta === void 0 ? {} : { meta: this.serve(entry.meta) } };
-        return this.invoke({ ...served, kind: "closed" }, () => adapter.closed(served), this.rule);
+        const served2 = { ...entry, ...entry.meta === void 0 ? {} : { meta: this.serve(entry.meta) } };
+        return this.invoke({ ...served2, kind: "closed" }, () => adapter.closed(served2), this.rule);
       },
       onFailure: (failure) => {
         const invocation = failure.error !== null && (typeof failure.error === "object" || typeof failure.error === "function") ? this.invocationFailures.get(failure.error) : void 0;
@@ -20277,11 +23728,11 @@ var RunRecord = class {
   errorView(error, rule) {
     const text = thrownText(error);
     const retained = rule ? rule.retainStageError(error, text, rule.retainDiagnostic(["errors", "recordSinkError"], text)) : { message: text, structuredError: extractErrorInfo(error) };
-    const served = { ...retained.structuredError };
-    Reflect.deleteProperty(served, "raw");
+    const served2 = { ...retained.structuredError };
+    Reflect.deleteProperty(served2, "raw");
     return {
       text: retained.message,
-      error: served,
+      error: served2,
       masked: retained.message !== text || retained.structuredError.raw !== error,
       rule
     };
@@ -20389,7 +23840,8 @@ var RunRecord = class {
     this.lastError = text;
     if (isDevMode() && !this.warned) {
       this.warned = true;
-      console.warn(`[footprint] record sink: an entry was not stored (${text}). The run goes on; getSnapshot().sink counts every loss.`);
+      const outcome = this.stopper !== void 0 ? "The run stops (onFailure: 'fail')" : "The run goes on";
+      console.warn(`[footprint] record sink: an entry was not stored (${text}). ${outcome}; getSnapshot().sink counts every loss.`);
     }
     if (this.stopper !== void 0 && this.failure === void 0) {
       this.failure = new RecordSinkError(`record sink: an entry was not stored \u2014 ${text}`, error);
@@ -20418,6 +23870,22 @@ function tellAdapter(adapter, failure) {
 var defaultScopeFactory = (ctx, stageName, readOnly, env) => new ScopeFacade(ctx, stageName, readOnly, env);
 function resolveExecutorArgs(flowChart2, factoryOrOptions) {
   const opts = typeof factoryOrOptions === "function" ? { scopeFactory: factoryOrOptions } : factoryOrOptions ?? {};
+  const extentSlot = Object.getOwnPropertyDescriptor(opts, "captureExtent");
+  if (extentSlot && !Object.hasOwn(extentSlot, "value"))
+    throw new TypeError("captureExtent must be plain data");
+  const extent = extentSlot?.value;
+  if (extent !== void 0 && typeof extent !== "boolean")
+    throw new TypeError("captureExtent must be a boolean");
+  if (extent === true && opts.captureCoverage !== true)
+    throw new TypeError("captureExtent requires captureCoverage: true");
+  const closureSlot = Object.getOwnPropertyDescriptor(opts, "captureClosure");
+  if (closureSlot && !Object.hasOwn(closureSlot, "value"))
+    throw new TypeError("captureClosure must be plain data");
+  const closure = closureSlot?.value;
+  if (closure !== void 0 && typeof closure !== "boolean")
+    throw new TypeError("captureClosure must be a boolean");
+  if (closure === true && (extent !== true || opts.captureCoverage !== true))
+    throw new TypeError("captureClosure requires captureCoverage: true and captureExtent: true");
   const slot = Object.getOwnPropertyDescriptor(opts, "readSources");
   if (slot && !Object.hasOwn(slot, "value"))
     throw new TypeError("readSources must be plain data");
@@ -20464,15 +23932,38 @@ function resolveExecutorArgs(flowChart2, factoryOrOptions) {
     scopeProtectionMode: opts.scopeProtectionMode,
     dials,
     ...opts.captureCoverage === true && { captureCoverage: true },
+    ...extent === true && { captureExtent: true },
+    ...closure === true && { captureClosure: true },
     ...sink && { sink }
+  };
+}
+
+// node_modules/footprintjs/dist/esm/lib/runner/recordMetadata/index.js
+function openingMeta(args, readRunId, root, correlation, deadline, resumedFrom) {
+  const budgetMs = args.flowChart.buildTimeStructure?.budgetMs;
+  return {
+    runId: readRunId(),
+    chart: { id: root.id, name: root.name },
+    ...correlation && { correlation },
+    ...deadline !== void 0 && { deadline },
+    ...budgetMs !== void 0 && { budgetMs },
+    ...resumedFrom !== void 0 && { resumedFrom }
+  };
+}
+function closingError(error, rule) {
+  const info = rule.servedError(error);
+  return {
+    ...info.name !== void 0 && { name: info.name },
+    message: info.message,
+    ...info.code !== void 0 && { code: info.code }
   };
 }
 
 // node_modules/footprintjs/dist/esm/lib/runner/resume.js
 var RESUME_FLOW_FAILURE = warnInDevMode("FlowChartExecutor");
-function planResume(fc, stored, resumeInput) {
+function planResume(fc, root, stored, resumeInput) {
   const checkpoint = decodeCheckpoint(stored);
-  const pausedNode = findNodeInGraph(fc, checkpoint.pausedStageId, checkpoint.subflowPath);
+  const pausedNode = findNodeInGraph(fc, root, checkpoint.pausedStageId, checkpoint.subflowPath);
   if (!pausedNode) {
     throw new Error(`Cannot resume: stage '${checkpoint.pausedStageId}' not found in flowchart. The chart may have changed since the checkpoint was created.`);
   }
@@ -20493,7 +23984,7 @@ function planResume(fc, stored, resumeInput) {
   if (standIn.touches && carriedKey !== void 0)
     standIn.touches = carriedTouches(standIn.touches.system, carriedKey);
   const entry = ResumeEntry.plan({
-    root: fc.root,
+    root,
     subflows: fc.subflows,
     path: checkpoint.subflowPath,
     captures: structuredClone(checkpoint.subflowStates),
@@ -20535,7 +24026,7 @@ function announceResume(plan, resumeInput, run) {
     }),
     channel: "flow"
   };
-  fire(observers.inlineFlowListeners(), "onResume", flowResumeEvent, RESUME_FLOW_FAILURE);
+  fire(componentRecorders(run.producer, observers.inlineFlowListeners()), "onResume", flowResumeEvent, RESUME_FLOW_FAILURE);
   const scopeResumeEvent = {
     stageName: pausedNode.name,
     stageId: pausedNode.id,
@@ -20547,10 +24038,10 @@ function announceResume(plan, resumeInput, run) {
     channel: "scope",
     ...correlation && { correlation }
   };
-  fire(observers.scopeRecorders, "onResume", scopeResumeEvent, (error, _recorder, hook) => (
+  fire(componentRecorders(run.producer, observers.scopeRecorders), "onResume", scopeResumeEvent, (error, _recorder, hook) => (
     // The scope channel's policy (as `ScopeFacade` routes a stage's hook failure): the throw
     // becomes an `onError` on every scope recorder, whose own throw is dropped.
-    fire(observers.scopeRecorders, "onError", recorderFailureEvent(scopeResumeEvent, error, hook))
+    fire(componentRecorders(run.producer, observers.scopeRecorders), "onError", recorderFailureEvent(scopeResumeEvent, error, hook))
   ));
   if (observers.deferredTier) {
     observers.deferredTier.capture("flow", "onResume", resumeRuntimeStageId, run.runId, flowResumeEvent);
@@ -20588,9 +24079,9 @@ function resumeLinkOf(checkpoint) {
   const paused = checkpoint.pausedExecution;
   return isPausedExecution(paused) ? { runId: paused.runId, runtimeStageId: paused.runtimeStageId } : void 0;
 }
-function findNodeInGraph(fc, stageId, subflowPath) {
+function findNodeInGraph(fc, root, stageId, subflowPath) {
   if (subflowPath.length === 0)
-    return dfsFind(fc.root, stageId);
+    return dfsFind(root, stageId);
   let subflowRoot;
   for (const sfId of subflowPath) {
     const subflow = fc.subflows?.[sfId];
@@ -20622,6 +24113,20 @@ function dfsFind(node, targetId, visited = /* @__PURE__ */ new Set()) {
   return void 0;
 }
 
+// node_modules/footprintjs/dist/esm/lib/runner/runCleanup/index.js
+function autoFlushMs(deadline) {
+  return deadline === void 0 ? AUTO_FLUSH_MS : Math.min(AUTO_FLUSH_MS, Math.max(1e3, deadline - Date.now()));
+}
+var AUTO_FLUSH_MS = 3e4;
+function disposeOnThrow(armed, build) {
+  try {
+    return build();
+  } catch (error) {
+    armed.dispose();
+    throw error;
+  }
+}
+
 // node_modules/footprintjs/dist/esm/lib/runner/runId.js
 var _counter = 0;
 var _lastTimestamp = 0;
@@ -20634,28 +24139,100 @@ function generateRunId() {
   return `${_lastTimestamp}-${counter2}`;
 }
 
+// node_modules/footprintjs/dist/esm/lib/errors/RunInFlightError.js
+var RunInFlightError = class extends Error {
+  runnerId;
+  code = "ERR_RUN_IN_FLIGHT";
+  constructor(runnerId, activeRunId) {
+    super(`Runner ${runnerId} already has an in-flight execution`);
+    this.runnerId = runnerId;
+    this.name = "RunInFlightError";
+    if (activeRunId !== void 0)
+      this.activeRunId = activeRunId;
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/runner/RunLease.js
+var RunLease = class {
+  runnerId;
+  active;
+  constructor(runnerId) {
+    this.runnerId = runnerId;
+  }
+  acquire() {
+    if (this.active)
+      throw new RunInFlightError(this.runnerId, this.active.runId);
+    const admission = {};
+    this.active = admission;
+    return {
+      bindRunId: (runId) => {
+        if (this.active !== admission)
+          throw new TypeError("Run admission has ended");
+        admission.runId = runId;
+      },
+      release: () => {
+        if (this.active === admission)
+          this.active = void 0;
+      }
+    };
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/recorder/captureSnapshot/index.js
+var strategies = /* @__PURE__ */ new WeakMap();
+function createCaptureSnapshotContext() {
+  return { rows: 0, depth: 0, active: /* @__PURE__ */ new Set() };
+}
+function captureRecorderSnapshot(owner, context) {
+  if (context.rows >= MAX_HISTORY_DATA_NODES || context.depth > MAX_HISTORY_DATA_DEPTH || context.active.has(owner))
+    throw new HistoryDataError("invalid-data");
+  context.rows++;
+  context.depth++;
+  context.active.add(owner);
+  try {
+    const hook = owner.toSnapshot;
+    if (typeof hook !== "function")
+      throw new HistoryDataError("invalid-data");
+    const strategy = strategies.get(hook);
+    return strategy ? strategy(owner, context) : Reflect.apply(hook, owner, []);
+  } finally {
+    context.depth--;
+    context.active.delete(owner);
+  }
+}
+
 // node_modules/footprintjs/dist/esm/lib/recorder/snapshot.js
-function copyBundle(id, bundle, includeCapture = false) {
-  const capture2 = includeCapture ? copyCaptureAcknowledgement(Object.getOwnPropertyDescriptor(bundle, "capture")?.value) : void 0;
+function copyBundle(id, bundle, includeCapture = false, captureOnly = false) {
+  if (captureOnly && (!bundle || typeof bundle !== "object" || Object.getPrototypeOf(bundle) !== Object.prototype))
+    throw new HistoryDataError("invalid-data");
+  const field = (key) => {
+    if (!captureOnly)
+      return bundle[key];
+    const property = Object.getOwnPropertyDescriptor(bundle, key);
+    if (property && !Object.hasOwn(property, "value"))
+      throw new HistoryDataError("invalid-data");
+    return property?.value;
+  };
+  const capture2 = includeCapture ? copyCaptureAcknowledgement(captureOnly ? field("capture") : Object.getOwnPropertyDescriptor(bundle, "capture")?.value) : void 0;
   return {
     id,
-    name: bundle.name,
-    description: bundle.description,
-    preferredOperation: bundle.preferredOperation,
-    data: bundle.data,
-    meta: bundle.meta,
+    name: field("name"),
+    description: field("description"),
+    preferredOperation: field("preferredOperation"),
+    data: field("data"),
+    meta: field("meta"),
     ...capture2 && { capture: capture2 }
   };
 }
 
 // node_modules/footprintjs/dist/esm/lib/runner/snapshot.js
-function servedSnapshot(traverser, observers, options, sink) {
+function servedSnapshot(traverser, observers, options, sink, captureOnly = false) {
   const snapshot2 = servedLog(traverser.getSnapshot(options));
-  if (isDevMode()) {
+  if (!captureOnly && isDevMode()) {
     snapshot2.sharedState = deepFreeze(structuredClone(snapshot2.sharedState));
   }
-  const sfResults = traverser.getSubflowResults();
-  if (sfResults.size > 0) {
+  const sfResults = captureOnly ? void 0 : traverser.getSubflowResults();
+  if (sfResults && sfResults.size > 0) {
     snapshot2.subflowResults = servedSubflowResults(sfResults, options?.redact === true);
   }
   let recorderSnapshots;
@@ -20666,7 +24243,7 @@ function servedSnapshot(traverser, observers, options, sink) {
     recorderSnapshots = collectRecorderSnapshots(observers, inlineFlow && ((recorder, row) => {
       if (inlineFlow.has(recorder) && row.capture?.runId === snapshot2.runId)
         acknowledged.push(row.capture);
-    }), runtime.capture !== void 0);
+    }), runtime.capture !== void 0, captureOnly);
   } catch (error) {
     runtime.capture?.limit("recorder-snapshot-failed");
     throw error;
@@ -20685,7 +24262,8 @@ function servedSnapshot(traverser, observers, options, sink) {
       runtime.capture.limit("redaction-active");
     return {
       ...snapshot2,
-      capture: runtime.captureSnapshot(snapshot2.commitLog.length, control3, options?.redact === true)
+      capture: runtime.captureSnapshot(snapshot2.commitLog.length, control3, options?.redact === true),
+      ...runtime.captureExtent && { captureExtent: runtime.captureExtent.snapshot(snapshot2.commitLog.length) }
     };
   }
   return snapshot2;
@@ -20698,14 +24276,16 @@ function servedLog(snapshot2) {
     ...initialState === void 0 ? {} : { initialState: serveRecord(initialState) }
   };
 }
-function collectRecorderSnapshots(observers, collected, includeCapture = false) {
+function collectRecorderSnapshots(observers, collected, includeCapture = false, captureOnly = false) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
+  const context = captureOnly ? createCaptureSnapshotContext() : void 0;
   const collect = (r) => {
     if (!r.toSnapshot || seen.has(r.id))
       return;
     seen.add(r.id);
-    const row = copyBundle(r.id, r.toSnapshot(), includeCapture);
+    const bundle = context ? captureRecorderSnapshot(r, context) : r.toSnapshot();
+    const row = copyBundle(r.id, bundle, includeCapture, captureOnly);
     out.push(row);
     collected?.(r, row);
   };
@@ -20746,7 +24326,9 @@ function validateParseable(schema, data) {
     try {
       const result3 = schema.safeParse(data);
       if (result3.success) {
-        return { success: true, data: result3.data ?? data };
+        const output = result3.data;
+        const hasOutput = output !== void 0 || Object.prototype.hasOwnProperty.call(result3, "data");
+        return { success: true, data: hasOutput ? output : data };
       }
       const issues = extractIssuesFromZodError(result3.error);
       const message = formatIssues(issues);
@@ -20760,7 +24342,7 @@ function validateParseable(schema, data) {
   if (typeof schema.parse === "function") {
     try {
       const parsed = schema.parse(data);
-      return { success: true, data: parsed ?? data };
+      return { success: true, data: parsed === void 0 ? data : parsed };
     } catch (err) {
       const issues = extractIssuesFromZodError(err);
       if (issues.length > 0) {
@@ -20869,10 +24451,17 @@ var FlowChartExecutor = class {
    * counters, checkpoint, recorders) — one executor = one in-flight execution.
    * See docs/guides/execution-model.md.
    */
-  _isExecuting = false;
+  lease = new RunLease("FlowChartExecutor");
   captureSignal;
   captureHistoryLease;
   failureState = new NativeFailureState();
+  /**
+   * The opted-in immutable recorded native prefix. Ordinary snapshots remain live observations.
+   * A closed failed prefix stays failed; channel coverage, outside work and semantic causes are separate.
+   */
+  getClosedCapture() {
+    return this.nativeClosure?.result ?? NO_CLOSED_CAPTURE;
+  }
   /** Safe native context for the latest rejected leg; undefined before, during, after success or pause. */
   getFailureContext() {
     return this.failureState.result;
@@ -20902,9 +24491,9 @@ var FlowChartExecutor = class {
    */
   constructor(flowChart2, factoryOrOptions) {
     this.flowChartArgs = resolveExecutorArgs(flowChart2, factoryOrOptions);
-    this.traverser = this.createTraverser();
+    this.traverser = this.createTraverser(this.flowChartArgs.flowChart.root);
   }
-  createTraverser(signal, readOnlyContextOverride, env, maxDepth, maxIterations, overrides) {
+  createTraverser(root, signal, readOnlyContextOverride, env, maxDepth, maxIterations, overrides) {
     const args = this.flowChartArgs;
     const fc = args.flowChart;
     const narrativeFlag = this.observers.startLeg(fc.enableNarrative ?? false, overrides?.preserveRecorders === true);
@@ -20913,7 +24502,7 @@ var FlowChartExecutor = class {
       this.redactionRule.restoreMarks(overrides.redactionMarks);
     overrides?.record?.link.useRule(this.redactionRule);
     const scopeFactory = this.observers.composeScopeFactory(args.scopeFactory, this.redactionPolicy, this.redactionRule.markedKeys(), overrides?.correlation);
-    const effectiveRoot = overrides?.resume?.start ?? fc.root;
+    const effectiveRoot = overrides?.resume?.start ?? root;
     const effectiveInitialContext = overrides?.initialContext ?? args.initialContext;
     const policy = runPolicy(args.dials, this.redactionRule, this.redactionPolicy !== void 0);
     let runtime;
@@ -20948,11 +24537,14 @@ var FlowChartExecutor = class {
         } : void 0
       );
     }
+    runtime.runFrame = nativeRunFrame(this);
     runtime.rootStageContext.failureState = this.failureState;
+    if (args.captureClosure === true)
+      runtime.rootStageContext.captureClosureTracking = true;
     try {
       const traverser = new FlowchartTraverser({
         // Always the REAL chart; a resume only moves where the traversal STARTS, once.
-        root: fc.root,
+        root,
         ...overrides?.resume?.start && { entry: overrides.resume.start },
         ...overrides?.resume?.startPendingPauses && { pendingPauses: overrides.resume.startPendingPauses },
         ...overrides?.resume && { resume: overrides.resume },
@@ -20977,12 +24569,15 @@ var FlowChartExecutor = class {
         ...maxDepth !== void 0 && { maxDepth },
         ...maxIterations !== void 0 && { maxIterations }
       });
-      if ((args.captureCoverage || policy.readSources) && this._currentRunId)
-        runtime.beginCapture(this._currentRunId);
+      if ((args.captureCoverage || policy.readSources) && this._currentRunId) {
+        runtime.beginCapture(this._currentRunId, args.captureExtent);
+        if (overrides?.resume)
+          runtime.captureExtent?.limit("resumed-segment");
+      }
       return traverser;
     } catch (error) {
       if (overrides?.record && !overrides.existingRuntime) {
-        runtime.closeRecord("failed", { runId: this._currentRunId, error: this.closingError(error) });
+        runtime.closeRecord("failed", { runId: this._currentRunId, error: closingError(error, this.redactionRule) });
       }
       throw error;
     }
@@ -21086,16 +24681,16 @@ var FlowChartExecutor = class {
    * ```
    */
   async resume(checkpoint, resumeInput, options) {
-    this.assertIdle("resume");
+    const admission = this.lease.acquire();
     this.failureState = new NativeFailureState();
+    const terminal = { completed: false };
+    let result3;
     try {
-      const plan = planResume(this.flowChartArgs.flowChart, checkpoint, resumeInput);
+      const root = this.flowChartArgs.flowChart.root;
+      const plan = planResume(this.flowChartArgs.flowChart, root, checkpoint, resumeInput);
       const { env, correlation } = admitRunEnv(options?.env);
-      seedCounters(plan.checkpoint, this._executionCounter, this._visitCounts);
-      this.lastCheckpoint = void 0;
-      const existingRuntime = this._hasRunBefore ? this.traverser.getRuntime() : void 0;
-      this._hasRunBefore = true;
-      this._currentRunId = generateRunId();
+      const startedAtMs = Date.now();
+      const existingRuntime = this._hasRunBefore && this.isLatestPause(checkpoint, plan.checkpoint) ? this.traverser.getRuntime() : void 0;
       const sinkOption = this.flowChartArgs.sink;
       const reused = existingRuntime && this.record ? this.record : void 0;
       reused?.beginLeg();
@@ -21108,7 +24703,20 @@ var FlowChartExecutor = class {
         env,
         ...record?.stopSignal && { stop: record.stopSignal }
       });
-      this.traverser = disposeOnThrow(armed, () => this.createTraverser(armed.signal, void 0, armed.env, options?.maxDepth, options?.maxIterations, {
+      this._currentRunId = generateRunId();
+      this.nativeClosure?.reset();
+      admission.bindRunId(this._currentRunId);
+      disposeOnThrow(armed, () => beginNativeRun(this, {
+        kind: "leg",
+        runId: this._currentRunId,
+        startedAtMs,
+        ...correlation && { correlation }
+      }, root, (frame) => {
+        terminal.frame = frame;
+      }));
+      seedCounters(plan.checkpoint, this._executionCounter, this._visitCounts);
+      this.lastCheckpoint = void 0;
+      this.traverser = disposeOnThrow(armed, () => this.createTraverser(root, armed.signal, void 0, armed.env, options?.maxDepth, options?.maxIterations, {
         // Clone-in: `initialContext` seeds the fresh SharedMemory with a
         // top-level-only merge — nested objects would alias the caller's checkpoint.
         initialContext: structuredClone(plan.checkpoint.sharedState),
@@ -21120,10 +24728,11 @@ var FlowChartExecutor = class {
         ...record && {
           record: {
             link: record,
-            meta: this.openingMeta(correlation, armed.deadline, resumedFrom)
+            meta: openingMeta(this.flowChartArgs, () => this._currentRunId, root, correlation, armed.deadline, resumedFrom)
           }
         }
       }));
+      this._hasRunBefore = true;
       if (record && existingRuntime) {
         existingRuntime.noteRecord("resume", record.serve({
           runId: this._currentRunId,
@@ -21135,35 +24744,86 @@ var FlowChartExecutor = class {
       this.record = record;
       this.captureSignal = this.flowChartArgs.captureCoverage || this.flowChartArgs.dials.readSources ? armed.signal : void 0;
       this.traverser.getRuntime().capture?.limit("resumed-segment");
+      readyNativeRun(this);
       disposeOnThrow(armed, () => announceResume(plan, resumeInput, {
         runId: this._currentRunId,
         executionCount: this._executionCounter.value,
         observers: this.observers,
+        ...terminal.frame && { producer: terminal.frame },
         ...correlation && { correlation }
       }));
-      this._isExecuting = true;
-      if (record)
-        return this.settleRecorded(armed, record);
-      try {
-        const result3 = await this.traverser.execute();
-        this.observers.deferredTier?.terminalFlush();
-        this.failureState.complete();
-        this.finishCapture("completed");
-        return result3;
-      } catch (error) {
-        const paused = this.pausedOrThrow(error);
-        this.failureState.complete();
-        this.finishCapture("paused");
-        return paused;
-      } finally {
-        this._isExecuting = false;
-        armed.dispose();
+      if (record) {
+        result3 = await this.settleRecorded(armed, record);
+        terminal.completed = true;
+      } else {
+        try {
+          result3 = await this.traverser.execute();
+          this.observers.deferredTier?.terminalFlush();
+          this.failureState.complete();
+          this.finishCapture("completed");
+          terminal.completed = true;
+        } catch (error) {
+          result3 = this.pausedOrThrow(error);
+          this.failureState.complete();
+          this.finishCapture("paused");
+          terminal.completed = true;
+        } finally {
+          armed.dispose();
+        }
       }
     } catch (error) {
       this.failureState.finish(error);
       this.finishCapture("failed", error);
-      throw error;
+      terminal.escaped = { reason: error };
+    } finally {
+      try {
+        const pending = this.finishNativeLeg(terminal);
+        if (pending)
+          await pending;
+      } finally {
+        terminal.frame?.retire();
+        admission.release();
+      }
     }
+    return nativeLegResult(terminal, result3);
+  }
+  /**
+   * Whether `stored` is this executor's latest pause — the one its live runtime is still paused at. The same
+   * object, or a copy naming the same paused execution (runId + runtimeStageId).
+   */
+  isLatestPause(stored, decoded) {
+    const latest = this.lastCheckpoint;
+    if (latest === void 0)
+      return false;
+    if (stored === latest)
+      return true;
+    const own5 = latest.pausedExecution;
+    const named = decoded.pausedExecution;
+    return own5 !== void 0 && named !== void 0 && own5.runId === named.runId && own5.runtimeStageId === named.runtimeStageId;
+  }
+  /** The one terminal law for run and resume; no promise or extra await without cleanup. */
+  finishNativeLeg(terminal) {
+    const frame = terminal.frame;
+    if (!frame)
+      return;
+    retireLegComponentObservations(frame);
+    frame.retire();
+    const paused = terminal.completed && this.isPaused();
+    const pending = retireComponentControl(frame, {
+      kind: terminal.completed ? paused ? "paused" : "completed" : "failed"
+    });
+    if (!pending)
+      return;
+    return pending.then((failures) => {
+      reportFinalizationFailures(this.flowChartArgs.flowChart.logger ?? defaultLogger, 0, failures.count);
+      if (paused)
+        return;
+      terminal.cleanupFailure = failures.first;
+      if (!terminal.escaped && failures.first) {
+        this.failureState = new NativeFailureState();
+        this.failureState.finish(failures.first.reason);
+      }
+    });
   }
   /**
    * The settle of a leg that threw: flush the deferred tier (the OUTERMOST
@@ -21203,7 +24863,6 @@ var FlowChartExecutor = class {
     try {
       return await this.settleRecordedLeg(armed, record);
     } finally {
-      this._isExecuting = false;
       armed.dispose();
     }
   }
@@ -21228,7 +24887,7 @@ var FlowChartExecutor = class {
       }
       runtime.closeRecord(outcome, {
         runId: this._currentRunId,
-        ...failure && { error: this.closingError(failure.error) }
+        ...failure && { error: closingError(failure.error, this.redactionRule) }
       });
       if (record.flushMode === "auto")
         await record.flush(autoFlushMs(armed.deadline), true);
@@ -21262,7 +24921,7 @@ var FlowChartExecutor = class {
     if (!record.captureOptions)
       return Promise.resolve();
     this.captureHistoryLease ??= { pending: false };
-    return persistCaptureHistory(runtime, record, () => this.getSnapshot(), this.captureHistoryLease);
+    return persistCaptureHistory(runtime, record, () => servedSnapshot(this.traverser, this.observers, void 0, void 0, true), this.captureHistoryLease, this.flowChartArgs.captureClosure ? this.nativeClosure?.result ?? NO_CLOSED_CAPTURE : void 0);
   }
   finishCapture(status, error) {
     const signal = this.captureSignal;
@@ -21275,37 +24934,16 @@ var FlowChartExecutor = class {
     if (status === "completed" && this.traverser.getBreakState().shouldBreak)
       capture2.limit("execution-broken");
     capture2.end(cancelled ? "cancelled" : status, status === "failed" ? this.failureState.result : void 0);
+    runtime.captureExtent?.seal(runtime.executionHistory.length);
     runtime.readSources?.seal(runtime.executionHistory.length);
-  }
-  /**
-   * What a new root log opens with: names and numbers the run already serves — the run, the chart, the correlation,
-   * the deadline, the declared budget, and the run a fresh-executor resume continues. Served by the record.
-   */
-  openingMeta(correlation, deadline, resumedFrom) {
-    const root = this.flowChartArgs.flowChart.root;
-    const budgetMs = this.flowChartArgs.flowChart.buildTimeStructure?.budgetMs;
-    return {
-      runId: this._currentRunId,
-      chart: { id: root.id, name: root.name },
-      ...correlation && { correlation },
-      ...deadline !== void 0 && { deadline },
-      ...budgetMs !== void 0 && { budgetMs },
-      ...resumedFrom !== void 0 && { resumedFrom }
-    };
-  }
-  /** The closing entry's error: the run's SERVED form of it, its name, message and code only (never `raw`). */
-  closingError(error) {
-    const info = this.redactionRule.servedError(error);
-    return {
-      ...info.name !== void 0 && { name: info.name },
-      message: info.message,
-      ...info.code !== void 0 && { code: info.code }
-    };
-  }
-  /** The re-entrancy guard: one executor = one in-flight execution. */
-  assertIdle(method) {
-    if (this._isExecuting) {
-      throw new Error(`FlowChartExecutor: ${method}() called while another run()/resume() is in flight on this executor. An executor holds per-run state (runId, recorders, checkpoint) \u2014 create one executor per concurrent run. See docs/guides/execution-model.md.`);
+    if (this.flowChartArgs.captureClosure && !this.nativeClosure?.sealed) {
+      (this.nativeClosure ??= new NativeClosureState()).closeOnce(() => cutNativeCapture(runtime, {
+        snapshot: () => servedSnapshot(this.traverser, this.observers, void 0, void 0, true),
+        initialState: (value) => this.redactionRule.retainState(value, LOG_PLACEHOLDER),
+        selected: () => this.failureState.selected,
+        serve: (value) => this.redactionRule.retainBoundary(value, LOG_PLACEHOLDER),
+        maxBytes: () => Math.min(1024 * 1024, this.record?.captureOptions?.maxBytes ?? 1024 * 1024)
+      }));
     }
   }
   // ─── Recorders (the register lives in `attach.ts`) ───
@@ -21462,11 +25100,14 @@ var FlowChartExecutor = class {
    * checkpoint). Create one executor per concurrent run.
    */
   async run(options) {
-    this.assertIdle("run");
+    const admission = this.lease.acquire();
     this.failureState = new NativeFailureState();
+    const terminal = { completed: false };
+    let result3;
     try {
+      const root = this.flowChartArgs.flowChart.root;
       let validatedInput = options?.input;
-      if (validatedInput && this.flowChartArgs.flowChart.inputSchema) {
+      if (validatedInput !== void 0 && this.flowChartArgs.flowChart.inputSchema) {
         validatedInput = validateInput(this.flowChartArgs.flowChart.inputSchema, validatedInput);
       }
       const { env, correlation } = admitRunEnv(options?.env);
@@ -21479,42 +25120,69 @@ var FlowChartExecutor = class {
         env,
         ...record?.stopSignal && { stop: record.stopSignal }
       });
-      disposeOnThrow(armed, () => warnDeadlineUnderBudget(this.flowChartArgs.flowChart, armed.deadline, startedAt));
-      this.observers.clearForRun();
+      disposeOnThrow(armed, () => warnDeadlineUnderBudget(this.flowChartArgs.flowChart, armed.deadline, startedAt, root.name));
+      this._currentRunId = generateRunId();
+      this.nativeClosure?.reset();
+      admission.bindRunId(this._currentRunId);
+      disposeOnThrow(armed, () => beginNativeRun(this, {
+        kind: "leg",
+        runId: this._currentRunId,
+        startedAtMs: startedAt,
+        ...correlation && { correlation }
+      }, root, (frame) => {
+        terminal.frame = frame;
+      }));
       this.lastCheckpoint = void 0;
       this._executionCounter = { value: 0 };
       this._visitCounts = /* @__PURE__ */ new Map();
-      this._currentRunId = generateRunId();
-      this._hasRunBefore = true;
-      this.traverser = disposeOnThrow(armed, () => this.createTraverser(armed.signal, validatedInput, armed.env, options?.maxDepth, options?.maxIterations, {
+      disposeOnThrow(armed, () => this.observers.clearForRun());
+      this.traverser = disposeOnThrow(armed, () => this.createTraverser(root, armed.signal, validatedInput, armed.env, options?.maxDepth, options?.maxIterations, {
         ...correlation && { correlation },
-        ...record && { record: { link: record, meta: this.openingMeta(correlation, armed.deadline) } }
+        ...record && {
+          record: {
+            link: record,
+            meta: openingMeta(this.flowChartArgs, () => this._currentRunId, root, correlation, armed.deadline)
+          }
+        }
       }));
+      this._hasRunBefore = true;
       this.record = record;
       this.captureSignal = this.flowChartArgs.captureCoverage || this.flowChartArgs.dials.readSources ? armed.signal : void 0;
-      this._isExecuting = true;
-      if (record)
-        return this.settleRecorded(armed, record);
-      try {
-        const result3 = await this.traverser.execute();
-        this.observers.deferredTier?.terminalFlush();
-        this.failureState.complete();
-        this.finishCapture("completed");
-        return result3;
-      } catch (error) {
-        const paused = this.pausedOrThrow(error);
-        this.failureState.complete();
-        this.finishCapture("paused");
-        return paused;
-      } finally {
-        this._isExecuting = false;
-        armed.dispose();
+      readyNativeRun(this);
+      if (record) {
+        result3 = await this.settleRecorded(armed, record);
+        terminal.completed = true;
+      } else {
+        try {
+          result3 = await this.traverser.execute();
+          this.observers.deferredTier?.terminalFlush();
+          this.failureState.complete();
+          this.finishCapture("completed");
+          terminal.completed = true;
+        } catch (error) {
+          result3 = this.pausedOrThrow(error);
+          this.failureState.complete();
+          this.finishCapture("paused");
+          terminal.completed = true;
+        } finally {
+          armed.dispose();
+        }
       }
     } catch (error) {
       this.failureState.finish(error);
       this.finishCapture("failed", error);
-      throw error;
+      terminal.escaped = { reason: error };
+    } finally {
+      try {
+        const pending = this.finishNativeLeg(terminal);
+        if (pending)
+          await pending;
+      } finally {
+        terminal.frame?.retire();
+        admission.release();
+      }
     }
+    return nativeLegResult(terminal, result3);
   }
   /**
    * Flush the deferred-observer backlog, then await async listener completions
@@ -21533,10 +25201,11 @@ var FlowChartExecutor = class {
   /**
    * Flush the record sink (10.1, P6): await the adapter's `flush()` — for an executor built with
    * `sink: { adapter, flush: 'manual' }`, or before a serverless process freezes. `timeoutMs` bounds the wait; a
-   * flush still running then is `pending` (and keeps running). The limit follows the one long-timer law, as
-   * `drainObservers` does: `Infinity` waits for the flush and arms no timer, a limit past 2^31 − 1 ms is waited in
-   * full, and a value that is not a number > 0 (`NaN`, a negative, `-Infinity`) gives up at once. A failed flush is
-   * counted on `getSnapshot().sink`.
+   * flush still running then is `pending` (and keeps running). Without `timeoutMs` it waits until the flush settles,
+   * with no limit (unlike `drainObservers`, whose default is 30 000). A given limit follows the one long-timer law:
+   * `Infinity` waits for the flush and arms no timer, a limit past 2^31 − 1 ms is waited in full, and a value that
+   * is not a number > 0 (`0`, `NaN`, a negative, `-Infinity`) gives up at once. A failed flush is counted on
+   * `getSnapshot().sink`.
    * Done at once without a sink, or with an adapter that has no `flush`.
    *
    * @example
@@ -21595,32 +25264,534 @@ var FlowChartExecutor = class {
    * Returns empty array if no ManifestFlowRecorder is attached.
    */
   getSubflowManifest() {
-    const recorder = this.observers.flowRecorders.find((r) => r instanceof ManifestFlowRecorder);
-    return recorder?.getManifest() ?? [];
+    return this.observers.getSubflowManifest();
   }
   /**
    * Returns the full spec for a dynamically-registered subflow.
    * Requires an attached ManifestFlowRecorder that observed the registration.
    */
   getSubflowSpec(subflowId) {
-    const recorder = this.observers.flowRecorders.find((r) => r instanceof ManifestFlowRecorder);
-    return recorder?.getSpec(subflowId);
+    return this.observers.getSubflowSpec(subflowId);
   }
 };
-function autoFlushMs(deadline) {
-  return deadline === void 0 ? AUTO_FLUSH_MS : Math.min(AUTO_FLUSH_MS, Math.max(1e3, deadline - Date.now()));
-}
-var AUTO_FLUSH_MS = 3e4;
-function disposeOnThrow(armed, build) {
-  try {
-    return build();
-  } catch (error) {
-    armed.dispose();
-    throw error;
+
+// node_modules/footprintjs/dist/esm/lib/runner/NativeRunAdapter.js
+var NativeRunAdapter = class {
+  executor;
+  constructor(chart, options) {
+    this.executor = new FlowChartExecutor(chart, options);
   }
+  execute(entry, setup, admission) {
+    const redaction = setup?.redaction;
+    const narrative = setup?.narrative;
+    const attachments = setup?.attachments?.map((attachment) => ({
+      recorder: attachment.recorder,
+      options: attachment.options
+    }));
+    const initialize = setup?.onOrigin;
+    const source = entry.options;
+    const signal = source?.signal;
+    const options = {
+      ...entry.kind === "run" && { input: entry.options?.input },
+      env: source?.env,
+      timeoutMs: source?.timeoutMs,
+      deadline: source?.deadline,
+      maxDepth: source?.maxDepth,
+      maxIterations: source?.maxIterations
+    };
+    const composed = anySignal([signal, admission.signal]);
+    admission.cleanup(() => composed.dispose());
+    options.signal = composed.signal;
+    const detach = attachNativeRun(this.executor, {
+      legBanks: admission.legBanks,
+      runtimeBanks: admission.runtimeBanks,
+      componentBanks: admission.componentBanks,
+      finalizers: admission.finalizers,
+      onOrigin: (frame) => {
+        admission.bindOrigin(frame);
+        if (redaction !== void 0)
+          this.executor.setRedactionPolicy(redaction);
+        if (narrative !== void 0)
+          this.executor.enableNarrative(narrative);
+        for (const attachment of attachments ?? []) {
+          this.executor.attachCombinedRecorder(attachment.recorder, attachment.options);
+        }
+        admission.initialize(initialize);
+      }
+    });
+    admission.cleanup(detach);
+    return entry.kind === "run" ? this.executor.run(options) : this.executor.resume(entry.checkpoint, entry.input, options);
+  }
+  ready(frame) {
+    if (!frame)
+      return false;
+    if (nativeRunFrame(this.executor) !== frame)
+      throw new TypeError("Run view belongs to an earlier native leg");
+    return nativeRunReady(this.executor, frame);
+  }
+  snapshot(frame, options) {
+    return this.ready(frame) ? this.executor.getSnapshot(options) : void 0;
+  }
+  narrative(frame) {
+    return this.ready(frame) ? this.executor.getNarrativeEntries() : [];
+  }
+  commits(frame) {
+    return this.ready(frame) ? this.executor.getCommitCount() : 0;
+  }
+  paused(frame) {
+    return this.ready(frame) && this.executor.isPaused();
+  }
+  drain(frame, options) {
+    return this.ready(frame) ? this.executor.drainObservers(options) : Promise.resolve({ done: 0, failed: 0, pending: 0 });
+  }
+  liveState(frame) {
+    return this.ready(frame) ? this.executor.getRuntime().globalStore.getState() : void 0;
+  }
+  checkpoint(frame) {
+    if (!this.paused(frame))
+      return void 0;
+    const checkpoint = this.executor.getCheckpoint();
+    return checkpoint === void 0 ? void 0 : structuredClone(checkpoint);
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/runner/RunCells.js
+var INITIALIZING = /* @__PURE__ */ Symbol("initializing run cell");
+var RunSlots = class {
+  keys = /* @__PURE__ */ new WeakMap();
+  frozen = false;
+  issue(lifetime) {
+    if (this.frozen)
+      throw new TypeError("Run slots must be declared before the first use");
+    if (lifetime !== "leg" && lifetime !== "runtime" && lifetime !== "component")
+      throw new TypeError("Unknown run slot lifetime");
+    const slot = Object.freeze({});
+    this.keys.set(slot, lifetime);
+    return slot;
+  }
+  freeze() {
+    this.frozen = true;
+  }
+  cells(bankFor, allowRead, allowWrite) {
+    const bank = (slot) => {
+      const lifetime = slot && (typeof slot === "object" || typeof slot === "function") ? this.keys.get(slot) : void 0;
+      if (!lifetime)
+        throw new TypeError("Run slot belongs to another lifecycle or is fabricated");
+      return bankFor(this, lifetime);
+    };
+    const read2 = (slot) => {
+      allowRead();
+      const cells = bank(slot);
+      if (!cells.has(slot))
+        return { present: false };
+      const value = cells.get(slot);
+      if (value === INITIALIZING)
+        throw new TypeError("Run cell is being initialized");
+      return { present: true, value };
+    };
+    return {
+      read: read2,
+      local: (slot, initialize) => {
+        const existing = read2(slot);
+        if (existing.present)
+          return existing.value;
+        allowWrite();
+        const cells = bank(slot);
+        cells.set(slot, INITIALIZING);
+        try {
+          const value = initialize();
+          cells.set(slot, value);
+          return value;
+        } catch (error) {
+          cells.delete(slot);
+          throw error;
+        }
+      },
+      set: (slot, value) => {
+        allowWrite();
+        const cells = bank(slot);
+        if (cells.get(slot) === INITIALIZING)
+          throw new TypeError("Run cell is being initialized");
+        cells.set(slot, value);
+      },
+      take: (slot) => {
+        allowWrite();
+        const value = read2(slot);
+        bank(slot).delete(slot);
+        return value;
+      }
+    };
+  }
+};
+
+// node_modules/footprintjs/dist/esm/lib/runner/NativeRunLifecycle.js
+function observe(promise) {
+  return promise.then((value) => ({ status: "fulfilled", value }), (reason) => ({ status: "rejected", reason }));
+}
+var countOne = (count3) => Math.min(Number.MAX_SAFE_INTEGER, count3 + 1);
+var NO_FAILURES = Object.freeze({ count: 0 });
+function throwCleanupFailure(closed) {
+  if (closed.cleanup.first && closed.end.kind !== "paused")
+    throw closed.cleanup.first.reason;
+}
+var NativeRunLifecycle = class {
+  chart;
+  options;
+  slots = new RunSlots();
+  componentSetup;
+  componentPort = {
+    open: (frame, finalizers) => {
+      if (!this.componentSetup)
+        return {};
+      this.slots.freeze();
+      const write = () => {
+        if (frame.retired)
+          throw new TypeError("Native component binding has retired");
+      };
+      const cells = this.slots.cells((namespace, lifetime) => frame.bank(namespace, lifetime, this.componentRoot), () => void 0, write);
+      return this.componentSetup(Object.freeze({
+        ...cells,
+        origin: frame.componentOrigin,
+        entry: frame.componentEntry,
+        onFinalize: (callback) => {
+          write();
+          finalizers.register(callback);
+        }
+      }));
+    }
+  };
+  componentRoot;
+  lease;
+  active;
+  latest;
+  pause;
+  pauses = /* @__PURE__ */ new WeakMap();
+  constructor(chart, options) {
+    this.chart = chart;
+    this.options = options;
+    this.lease = new RunLease(options.runnerId);
+    this.componentSetup = options.componentSetup;
+  }
+  slot(lifetime) {
+    const chartRoot = lifetime === "component" ? this.chart.root : void 0;
+    const root = chartRoot === void 0 ? void 0 : canonicalRunComponentRoot(chartRoot);
+    if (root !== void 0 && this.componentRoot !== void 0 && root !== this.componentRoot) {
+      throw new TypeError("A lifecycle component root cannot change after slot issuance");
+    }
+    const slot = this.slots.issue(lifetime);
+    if (chartRoot !== void 0) {
+      this.componentRoot = declareRunComponentRoot(chartRoot);
+      registerComponentPort(this.componentRoot, this.slots, this.componentPort);
+    }
+    return slot;
+  }
+  forScope(scope) {
+    const frame = scopeRunFrame(scope);
+    if (!frame)
+      throw new TypeError("Scope has no registered native run binding");
+    this.slots.freeze();
+    const cells = this.slots.cells((namespace, lifetime) => frame.bank(namespace, lifetime, this.componentRoot), () => void 0, () => {
+      if (frame.retired)
+        throw new TypeError("Native run binding has retired");
+    });
+    return Object.freeze({
+      ...cells,
+      get origin() {
+        return frame.origin;
+      },
+      get retired() {
+        return frame.retired;
+      }
+    });
+  }
+  view() {
+    return this.active ? this.readView(this.active.view) : this.latest;
+  }
+  continuation() {
+    return this.active ? void 0 : this.pause?.token;
+  }
+  async withRun(body) {
+    const lease = this.lease.acquire();
+    try {
+      return await this.admit(body, lease);
+    } finally {
+      lease.release();
+    }
+  }
+  async admit(body, lease) {
+    this.slots.freeze();
+    const state = {
+      view: { settled: false, phase: "preparing" },
+      legBanks: new RunBanks(),
+      runtimeBanks: new RunBanks(),
+      componentBanks: new RunBanks(),
+      cancel: new AbortController(),
+      finalizers: new FinalizationBook(),
+      controls: [],
+      bodyOpen: true,
+      retired: false,
+      requested: false
+    };
+    this.active = state;
+    const bankFor = (namespace, lifetime) => (lifetime === "leg" ? state.legBanks : lifetime === "runtime" ? state.runtimeBanks : state.componentBanks).bank(namespace);
+    const read2 = () => {
+      if (state.retired)
+        throw new TypeError("Owned run has retired");
+    };
+    const write = () => {
+      read2();
+      if (!state.bodyOpen)
+        throw new TypeError("Owned run body has closed");
+    };
+    const cells = this.slots.cells(bankFor, read2, write);
+    const owned = Object.freeze({
+      ...cells,
+      get origin() {
+        return state.view.frame?.origin;
+      },
+      execute: (entry, setup) => {
+        write();
+        if (state.closing)
+          throw new TypeError("Owned run has finished");
+        if (state.requested)
+          throw new TypeError("Owned run accepts one execution");
+        state.requested = true;
+        let resolveExecution;
+        let rejectExecution;
+        const execution2 = new Promise((resolve2, reject) => {
+          resolveExecution = resolve2;
+          rejectExecution = reject;
+        });
+        state.native = observe(execution2);
+        try {
+          const selected = this.select(entry);
+          const adapter = selected.adapter ?? new NativeRunAdapter(this.chart, this.options.executorOptions);
+          state.view.adapter = adapter;
+          const native = adapter.execute(selected.entry, setup, {
+            legBanks: state.legBanks,
+            runtimeBanks: state.runtimeBanks,
+            componentBanks: state.componentBanks,
+            finalizers: state.finalizers,
+            signal: state.cancel.signal,
+            cleanup: (callback) => {
+              state.finalizers.register(callback);
+            },
+            bindOrigin: (frame) => {
+              state.view.frame = frame;
+              lease.bindRunId(frame.origin.runId);
+              this.pause = void 0;
+              this.latest = this.readView(state.view);
+            },
+            initialize: (callback) => {
+              if (!callback)
+                return;
+              let open2 = true;
+              const allowed = () => {
+                if (!open2)
+                  throw new TypeError("Run origin initializer has closed");
+              };
+              const initializerCells = this.slots.cells(bankFor, allowed, allowed);
+              let returned;
+              try {
+                returned = callback(initializerCells, state.view.frame.origin);
+              } finally {
+                open2 = false;
+              }
+              if (typeof returned === "object" && returned !== null || typeof returned === "function") {
+                const then = returned.then;
+                if (typeof then === "function") {
+                  const control3 = Promise.resolve().then(() => new Promise((resolve2, reject) => {
+                    Reflect.apply(then, returned, [resolve2, reject]);
+                  }));
+                  state.controls.push(observe(control3));
+                  throw new TypeError("Run onOrigin must be synchronous");
+                }
+              }
+            }
+          });
+          native.then((result3) => {
+            state.view.phase = "postprocessing";
+            const checkpoint = adapter.checkpoint(state.view.frame);
+            if (checkpoint)
+              this.offerPause(adapter, checkpoint);
+            resolveExecution(result3);
+          }, (error) => {
+            state.view.phase = "postprocessing";
+            rejectExecution(error);
+          }).catch(rejectExecution);
+        } catch (error) {
+          rejectExecution(error);
+        }
+        return execution2;
+      },
+      onFinalize: (cleanup) => {
+        write();
+        if (state.closing)
+          throw new TypeError("Owned run has finished; register cleanup before finish()");
+        if (typeof cleanup !== "function")
+          throw new TypeError("Run cleanup must be a function");
+        state.finalizers.register(cleanup);
+      },
+      finish: () => {
+        write();
+        if (!state.closing) {
+          let settle;
+          state.closing = new Promise((resolve2) => {
+            settle = resolve2;
+          });
+          settle(this.close(state, false));
+        }
+        return state.closing.then(throwCleanupFailure);
+      },
+      snapshot: (options) => {
+        read2();
+        return state.view.adapter?.snapshot(state.view.frame, options);
+      }
+    });
+    let bodyResult;
+    try {
+      try {
+        bodyResult = { status: "fulfilled", value: await body(owned) };
+      } catch (reason) {
+        bodyResult = { status: "rejected", reason };
+      }
+      state.bodyOpen = false;
+      const bodyFailed = bodyResult.status === "rejected";
+      if (bodyResult.status === "rejected" && state.native)
+        state.cancel.abort(bodyResult.reason);
+      let closed;
+      if (state.closing)
+        closed = await state.closing;
+      else {
+        const native = state.native && await state.native;
+        let secondary2 = 0;
+        for (const control3 of state.controls) {
+          if ((await control3).status === "rejected")
+            secondary2 = countOne(secondary2);
+        }
+        const end = this.decideEnd(state, bodyFailed, native);
+        const cleanup = state.finalizers.hasCallbacks ? await state.finalizers.finish(end) : NO_FAILURES;
+        closed = { native, end, secondary: secondary2, cleanup };
+      }
+      let secondary = closed.secondary;
+      if (bodyResult.status === "rejected") {
+        if (closed.native?.status === "rejected" && !Object.is(bodyResult.reason, closed.native.reason))
+          secondary = countOne(secondary);
+        this.withdrawPause(state);
+      }
+      reportFinalizationFailures(this.chart.logger ?? defaultLogger, secondary, closed.cleanup.count);
+      if (bodyResult.status === "rejected")
+        throw bodyResult.reason;
+      if (closed.native?.status === "rejected")
+        throw closed.native.reason;
+      throwCleanupFailure(closed);
+      return bodyResult.value;
+    } finally {
+      state.bodyOpen = false;
+      state.retired = true;
+      state.view.settled = true;
+      state.view.phase = "settled";
+      state.controls.length = 0;
+      state.native = void 0;
+      if (this.active === state)
+        this.active = void 0;
+    }
+  }
+  /**
+   * Joins the leg and its controls, decides the end and runs the finalizers once, for
+   * `finish()`. A body that never calls it gets the same steps written out after it.
+   */
+  async close(state, bodyFailed) {
+    const native = state.native && await state.native;
+    let secondary = 0;
+    for (const control3 of state.controls) {
+      if ((await control3).status === "rejected")
+        secondary = countOne(secondary);
+    }
+    const end = this.decideEnd(state, bodyFailed, native);
+    const cleanup = state.finalizers.hasCallbacks ? await state.finalizers.finish(end) : NO_FAILURES;
+    return { native, end, secondary, cleanup };
+  }
+  /** The one end rule: a failed body or leg (cancellation included) fails, then a pause, else completed. */
+  decideEnd(state, bodyFailed, native) {
+    const end = bodyFailed || native?.status === "rejected" ? { kind: "failed" } : state.view.adapter?.paused(state.view.frame) ? { kind: "paused" } : { kind: "completed" };
+    if (end.kind === "failed")
+      this.withdrawPause(state);
+    return end;
+  }
+  /** A failed run withdraws the SAME continuation it offered; a FRESH checkpoint stays usable. */
+  withdrawPause(state) {
+    const offered = this.pause;
+    if (offered && offered.adapter === state.view.adapter) {
+      offered.spent = true;
+      this.pause = void 0;
+    }
+  }
+  select(entry) {
+    if (!entry || typeof entry !== "object")
+      throw new TypeError("Run entry is required");
+    const kind = entry.kind;
+    if (kind === "run")
+      return { entry: { kind, options: entry.options } };
+    if (kind !== "resume")
+      throw new TypeError("Unknown run entry kind");
+    const mode = entry.mode;
+    if (mode === "fresh")
+      return {
+        entry: { kind, checkpoint: entry.checkpoint, input: entry.input, options: entry.options }
+      };
+    if (mode !== "same")
+      throw new TypeError("Unknown native resume mode");
+    const token = entry.continuation;
+    const pause = token && typeof token === "object" ? this.pauses.get(token) : void 0;
+    if (!pause || this.pause !== pause || pause.spent)
+      throw new TypeError("Invalid or spent paused continuation");
+    pause.spent = true;
+    this.pause = void 0;
+    return {
+      adapter: pause.adapter,
+      entry: { kind, checkpoint: pause.checkpoint, input: entry.input, options: entry.options }
+    };
+  }
+  offerPause(adapter, checkpoint) {
+    const token = Object.freeze({
+      checkpoint: () => {
+        if (this.pause !== pause || pause.spent)
+          throw new TypeError("Paused continuation has been superseded");
+        return structuredClone(checkpoint);
+      }
+    });
+    const pause = { adapter, checkpoint, token, spent: false };
+    this.pauses.set(token, pause);
+    this.pause = pause;
+  }
+  readView(state) {
+    return Object.freeze({
+      get phase() {
+        if (state.settled)
+          return "settled";
+        return state.phase === "postprocessing" ? state.phase : state.adapter?.ready(state.frame) ? "executing" : "preparing";
+      },
+      get origin() {
+        return state.frame?.origin;
+      },
+      snapshot: (options) => state.adapter?.snapshot(state.frame, options),
+      getNarrativeEntries: () => state.adapter?.narrative(state.frame) ?? [],
+      getCommitCount: () => state.adapter?.commits(state.frame) ?? 0,
+      isPaused: () => state.adapter?.paused(state.frame) ?? false,
+      drainObservers: (options) => state.adapter?.drain(state.frame, options) ?? Promise.resolve({ done: 0, failed: 0, pending: 0 }),
+      liveState: () => state.adapter?.liveState(state.frame)
+    });
+  }
+};
+function createRunLifecycle(chart, options) {
+  return new NativeRunLifecycle(chart, options);
 }
 
 // node_modules/footprintjs/dist/esm/lib/runner/RunContext.js
+function pauseOf(result3) {
+  return typeof result3 === "object" && result3 !== null && result3.paused === true ? result3 : void 0;
+}
 var RunContext = class {
   chart;
   recorders = [];
@@ -21645,27 +25816,63 @@ var RunContext = class {
   }
   /** Execute the chart with accumulated config. Returns RunResult. */
   async run(options) {
-    const executor = new FlowChartExecutor(this.chart);
-    for (const r of this.recorders) {
-      executor.attachCombinedRecorder(r);
-    }
-    if (this.redactionPolicy) {
-      executor.setRedactionPolicy(this.redactionPolicy);
-    }
-    await executor.run(options);
-    const snapshot2 = executor.getSnapshot();
-    const mapper = this.chart.outputMapper;
-    const output = mapper ? mapper(snapshot2.sharedState || {}) : snapshot2.sharedState;
-    return {
-      state: snapshot2.sharedState || {},
-      output,
-      executionTree: snapshot2.executionTree,
-      commitLog: snapshot2.commitLog || []
-    };
+    const lifecycle = createRunLifecycle(this.chart, { runnerId: "RunContext" });
+    return lifecycle.withRun(async (run) => {
+      const pause = pauseOf(await run.execute({ kind: "run", options }, {
+        attachments: this.recorders.map((recorder) => ({ recorder })),
+        ...this.redactionPolicy !== void 0 && { redaction: this.redactionPolicy }
+      }));
+      const snapshot2 = run.snapshot();
+      const state = snapshot2.sharedState || {};
+      const mapper = this.chart.outputMapper;
+      const output = pause ? void 0 : mapper ? mapper(state) : snapshot2.sharedState;
+      return {
+        state,
+        output,
+        executionTree: snapshot2.executionTree,
+        commitLog: snapshot2.commitLog || [],
+        ...pause && { paused: true, checkpoint: pause.checkpoint }
+      };
+    });
   }
 };
 
 // node_modules/footprintjs/dist/esm/lib/runner/RunnableChart.js
+function chartToMermaid(root) {
+  const lines = ["flowchart TD"];
+  const mermaidIds = /* @__PURE__ */ new Map();
+  const taken = /* @__PURE__ */ new Set();
+  const idOf = (id) => {
+    const known = mermaidIds.get(id);
+    if (known !== void 0)
+      return known;
+    const base = (id || "").replace(/[^a-zA-Z0-9_]/g, "_") || "_";
+    let mermaidId = base;
+    for (let n = 2; taken.has(mermaidId); n++)
+      mermaidId = `${base}_${n}`;
+    taken.add(mermaidId);
+    mermaidIds.set(id, mermaidId);
+    return mermaidId;
+  };
+  const visited = /* @__PURE__ */ new Set();
+  const walk2 = (n) => {
+    if (n.isLoopRef || visited.has(n.id))
+      return;
+    visited.add(n.id);
+    const nid = idOf(n.id);
+    lines.push(`${nid}["${String(n.name).replace(/"/g, "#quot;")}"]`);
+    for (const c of n.children || []) {
+      lines.push(`${nid} --> ${idOf(c.id)}`);
+      walk2(c);
+    }
+    if (n.next) {
+      lines.push(`${nid} --> ${idOf(n.next.id)}`);
+      walk2(n.next);
+    }
+  };
+  walk2(root);
+  return lines.join("\n");
+}
 var openAPICache = /* @__PURE__ */ new WeakMap();
 var mcpCache = /* @__PURE__ */ new WeakMap();
 function makeRunnable(chart) {
@@ -21718,28 +25925,7 @@ function makeRunnable(chart) {
     return spec;
   };
   runnable.toMermaid = function() {
-    const lines = ["flowchart TD"];
-    const idOf = (k) => (k || "").replace(/[^a-zA-Z0-9_]/g, "_") || "_";
-    const visited = /* @__PURE__ */ new Set();
-    const walk2 = (n) => {
-      const nid = idOf(n.id);
-      if (visited.has(nid))
-        return;
-      visited.add(nid);
-      lines.push(`${nid}["${n.name}"]`);
-      for (const c of n.children || []) {
-        const cid = idOf(c.id);
-        lines.push(`${nid} --> ${cid}`);
-        walk2(c);
-      }
-      if (n.next) {
-        const mid = idOf(n.next.id);
-        lines.push(`${nid} --> ${mid}`);
-        walk2(n.next);
-      }
-    };
-    walk2(chart.root);
-    return lines.join("\n");
+    return chartToMermaid(chart.root);
   };
   runnable.timeBudget = function(options) {
     return timeBudget(chart, options);
@@ -21824,7 +26010,7 @@ function appendRetryLoop(builder, id, supplied, stamp) {
     }
     return state;
   };
-  const read = (host) => checked(host.getValue(into));
+  const read2 = (host) => checked(host.getValue(into));
   const identity2 = (state, phase) => Object.freeze({ id, series: state.series, attempt: state.attempt, of: attempts, phase });
   const call = async (scope, host, state, phase, fn) => {
     let record;
@@ -21848,7 +26034,7 @@ function appendRetryLoop(builder, id, supplied, stamp) {
   };
   builder.addFunction(`Attempt ${id}`, async (scope) => {
     const host = hostOf(scope);
-    const previous = read(host);
+    const previous = read2(host);
     let state = previous && !previous.terminal ? { ...previous, reconciled: false } : {
       id,
       series: host.getAttempt().series,
@@ -21901,7 +26087,7 @@ function appendRetryLoop(builder, id, supplied, stamp) {
   stamp({ ...callbackBudget, passes: attempts });
   builder.addFunction(`Reconcile ${id}`, async (scope) => {
     const host = hostOf(scope);
-    const state = read(host);
+    const state = read2(host);
     if (state.effect !== "unknown")
       return;
     const result3 = await call(scope, host, state, "reconcile", reconcile);
@@ -21917,7 +26103,7 @@ function appendRetryLoop(builder, id, supplied, stamp) {
   stamp(callbackBudget);
   const decider = builder.addDeciderFunction(`Decide ${id}`, (scope) => {
     const host = hostOf(scope);
-    const state = read(host);
+    const state = read2(host);
     const context = host.getAttempt();
     const left = context.timeLeftMs();
     const inputs = {
@@ -21953,7 +26139,7 @@ function appendRetryLoop(builder, id, supplied, stamp) {
   stamp(controlBudget);
   const waitScope = async (scope) => {
     const host = hostOf(scope);
-    const state = read(host);
+    const state = read2(host);
     const delay = state.resumeAt === void 0 ? state.delayMs : Math.max(0, state.resumeAt - Date.now());
     const signal = host.getAttempt().signal;
     await sleep(delay, signal);
@@ -21963,17 +26149,17 @@ function appendRetryLoop(builder, id, supplied, stamp) {
   };
   const waitFn = wait === "pause" ? async (scope) => {
     const host = hostOf(scope);
-    const state = read(host);
+    const state = read2(host);
     if (state.resumeAt === void 0)
       host.writeRetryLoopState(into, { ...state, resumeAt: Date.now() + state.delayMs });
-    interrupt(scope, { reason: `Retry ${id}`, expects: { resumeAt: read(host).resumeAt } });
+    interrupt(scope, { reason: `Retry ${id}`, expects: { resumeAt: read2(host).resumeAt } });
     await waitScope(scope);
   } : waitScope;
   decider.addFunctionBranch(`${id}-retry`, `Wait ${id}`, waitFn, void 0, { loopTo: id, tags: [tag] }).addFunctionBranch(`${id}-done`, `Done ${id}`, () => void 0, void 0, { tags: [tag] }).addFunctionBranch(`${id}-stop`, `Stop ${id}`, (scope) => {
     if (onStop === "continue")
       return;
     const host = hostOf(scope);
-    const state = read(host);
+    const state = read2(host);
     const cause = Object.assign(new Error(state.error?.message ?? "retry loop stopped"), {
       name: state.error?.name ?? "Error",
       ...state.error?.code ? { code: state.error.code } : {}
@@ -22101,8 +26287,7 @@ var StructureRecorderDispatcher = class {
   }
   // ── Internals ───────────────────────────────────────────────────────
   recordError(recorderId, method, err) {
-    const e = err;
-    const message = typeof e?.message === "string" ? e.message : String(err);
+    const message = messageOf(err);
     if (this.errors.length < STRUCTURE_BUILD_ERRORS_CAP) {
       this.errors.push({ recorderId, method, message, error: err });
     } else if (!this._truncated) {
@@ -22119,62 +26304,19 @@ var StructureRecorderDispatcher = class {
     }
   }
 };
-
-// node_modules/footprintjs/dist/esm/lib/reactive/allowlist.js
-var NON_PROXY_TAGS = /* @__PURE__ */ new Set([
-  "Date",
-  "RegExp",
-  "Map",
-  "Set",
-  "WeakMap",
-  "WeakSet",
-  "ArrayBuffer",
-  "SharedArrayBuffer",
-  "DataView",
-  "Error",
-  "EvalError",
-  "RangeError",
-  "ReferenceError",
-  "SyntaxError",
-  "TypeError",
-  "URIError",
-  "Promise",
-  "Int8Array",
-  "Uint8Array",
-  "Uint8ClampedArray",
-  "Int16Array",
-  "Uint16Array",
-  "Int32Array",
-  "Uint32Array",
-  "Float32Array",
-  "Float64Array",
-  "BigInt64Array",
-  "BigUint64Array",
-  "WeakRef",
-  "FinalizationRegistry"
-]);
-function shouldWrapWithProxy(value) {
-  if (value === null || typeof value !== "object")
-    return false;
-  if (Object.isFrozen(value) || Object.isSealed(value))
-    return false;
-  if (Array.isArray(value))
-    return true;
-  const ctor = value.constructor;
-  if (ctor === void 0 || ctor === Object)
-    return true;
-  const tag = Object.prototype.toString.call(value).slice(8, -1);
-  if (NON_PROXY_TAGS.has(tag))
-    return false;
-  return false;
+function messageOf(err) {
+  try {
+    const message = err?.message;
+    if (typeof message === "string")
+      return message;
+  } catch {
+  }
+  return thrownText(err);
 }
 
 // node_modules/footprintjs/dist/esm/lib/reactive/jsonProjection.js
 function isPlainContainer2(value) {
-  if (Array.isArray(value))
-    return true;
-  const ctor = value.constructor;
-  return ctor === void 0 || ctor === Object;
+  return Array.isArray(value) || isPlainObject(value);
 }
 function project(value, ancestors) {
   if (value === null || typeof value !== "object")
@@ -22270,7 +26412,7 @@ function liveGetTrap(live, segments3, child, members) {
       return raw[prop];
     if (prop === "then" || prop === "asymmetricMatch")
       return void 0;
-    if (prop === "constructor")
+    if (prop === "constructor" && !Object.prototype.hasOwnProperty.call(raw, prop))
       return Object;
     if (prop === "toJSON")
       return () => toJSONView(raw);
@@ -22288,6 +26430,9 @@ function liveInspectionTraps(live) {
     getOwnPropertyDescriptor(target2, prop) {
       if (!Object.isExtensible(target2))
         return Object.getOwnPropertyDescriptor(target2, prop);
+      const own5 = Object.getOwnPropertyDescriptor(target2, prop);
+      if (own5 && !own5.configurable)
+        return own5;
       const descriptor = Object.getOwnPropertyDescriptor(live(), prop);
       return descriptor && !descriptor.configurable ? { ...descriptor, configurable: true } : descriptor;
     }
@@ -22317,18 +26462,26 @@ function indexOf(node, segment) {
   const i = Number(segment);
   return Number.isInteger(i) && i >= 0 ? i : void 0;
 }
+function ownChild2(node, segment) {
+  if (node === null || typeof node !== "object")
+    return void 0;
+  return Object.prototype.hasOwnProperty.call(node, segment) ? node[segment] : void 0;
+}
+function putOwn2(node, segment, value) {
+  Object.defineProperty(node, segment, { value, writable: true, enumerable: true, configurable: true });
+}
 function setInPath(root, segments3, value) {
   if (segments3.length === 0)
     return value;
   const next = copyContainer(root);
   const segment = segments3[0];
   const index = indexOf(next, segment);
-  const child = index !== void 0 ? next[index] : next[segment];
+  const child = index !== void 0 ? next[index] : ownChild2(next, segment);
   const replaced = setInPath(child, segments3.slice(1), value);
   if (index !== void 0)
     next[index] = replaced;
   else
-    next[segment] = replaced;
+    putOwn2(next, segment, replaced);
   return next;
 }
 function deleteInPath(root, segments3) {
@@ -22352,7 +26505,7 @@ function deleteInPath(root, segments3) {
     delete copy2[segment];
     return copy2;
   }
-  const child = index !== void 0 ? root[index] : root[segment];
+  const child = index !== void 0 ? root[index] : ownChild2(root, segment);
   const replaced = deleteInPath(child, segments3.slice(1));
   if (replaced === child)
     return root;
@@ -22360,11 +26513,14 @@ function deleteInPath(root, segments3) {
   if (index !== void 0)
     copy[index] = replaced;
   else
-    copy[segment] = replaced;
+    putOwn2(copy, segment, replaced);
   return copy;
 }
 
 // node_modules/footprintjs/dist/esm/lib/reactive/writeTraps.js
+function joinName(base, path) {
+  return [base, ...path].filter((part) => part !== "").join(".");
+}
 function rootKeySink(target2, readSilent, rootKey, cache) {
   return new RootKeySink(target2, readSilent, rootKey, cache);
 }
@@ -22395,27 +26551,37 @@ var RootKeySink = class {
     this.target.setValue(this.rootKey, deleteInPath(this.readAt([]), path));
     this.cache.delete(this.rootKey);
   }
+  nameOf(path) {
+    return joinName(this.rootKey, path);
+  }
 };
-function elementSink(getCurrent, commit, index) {
-  return new ElementSink(getCurrent, commit, index);
+function elementSink(getCurrent, commit, index, arrayName = "", forWrite = getCurrent) {
+  return new ElementSink(getCurrent, commit, index, arrayName, forWrite);
 }
 var ElementSink = class {
   getCurrent;
   commit;
   index;
-  constructor(getCurrent, commit, index) {
+  arrayName;
+  forWrite;
+  constructor(getCurrent, commit, index, arrayName, forWrite) {
     this.getCurrent = getCurrent;
     this.commit = commit;
     this.index = index;
+    this.arrayName = arrayName;
+    this.forWrite = forWrite;
   }
   readAt(path) {
     return readInElement(this.getCurrent, this.index, path);
   }
+  nameOf(path) {
+    return joinName(`${this.arrayName}[${this.index}]`, path);
+  }
   put(path, value) {
-    replaceInElement(this.getCurrent, this.commit, this.index, path, value);
+    replaceInElement(this.forWrite, this.commit, this.index, path, value);
   }
   remove(path) {
-    removeInElement(this.getCurrent, this.commit, this.index, path);
+    removeInElement(this.forWrite, this.commit, this.index, path);
   }
 };
 function readInElement(getCurrent, index, path) {
@@ -22452,6 +26618,39 @@ function sinkDeleteTrap(sink, segments3) {
     return true;
   };
 }
+function refuseDoor(what, path) {
+  throw new TypeError(`Cannot ${what} on scope state${path ? ` ('${path}')` : ""}: the record holds plain data only. Assign a value instead; to replace an object, assign a new one.`);
+}
+function isAssignmentDescriptor(descriptor, exists) {
+  const has2 = (name) => Object.prototype.hasOwnProperty.call(descriptor, name);
+  if (!has2("value") || has2("get") || has2("set"))
+    return false;
+  const attributes = ["writable", "enumerable", "configurable"].filter(has2);
+  if (attributes.length === 0)
+    return exists;
+  return attributes.length === 3 && attributes.every((name) => descriptor[name] === true);
+}
+function sinkDoorTraps(sink, segments3) {
+  const pathOf2 = (prop) => (prop === void 0 ? segments3 : [...segments3, prop]).join(".");
+  return {
+    defineProperty(target2, prop, descriptor) {
+      if (typeof prop !== "string")
+        return Reflect.defineProperty(target2, prop, descriptor);
+      const current = sink.readAt(segments3);
+      const exists = current !== null && typeof current === "object" && Object.prototype.hasOwnProperty.call(current, prop);
+      if (!isAssignmentDescriptor(descriptor, exists))
+        refuseDoor("define a property with special attributes", pathOf2(prop));
+      sink.put([...segments3, prop], unwrapHandles(descriptor.value));
+      return true;
+    },
+    setPrototypeOf() {
+      return refuseDoor("change the prototype of a value", pathOf2());
+    },
+    preventExtensions() {
+      return refuseDoor("freeze, seal or lock a value", pathOf2());
+    }
+  };
+}
 
 // node_modules/footprintjs/dist/esm/lib/reactive/arrayTraps.js
 var MUTATING_METHODS = /* @__PURE__ */ new Set([
@@ -22481,13 +26680,13 @@ function boundMember(current, prop) {
   const val = current[prop];
   return typeof val === "function" ? val.bind(current) : val;
 }
-function cachedElement(cache, element, index, read, write) {
+function cachedElement(cache, element, index, read2, forWrite, write, name) {
   if (!shouldWrapWithProxy(element))
     return element;
   const cached = cache.get(index);
   if (cached && cached.ref === element)
     return cached.proxy;
-  const wrapped = wrapElementMember(element, elementSink(read, write, index), [], /* @__PURE__ */ new Set());
+  const wrapped = wrapElementMember(element, elementSink(read2, write, index, name, forWrite), [], /* @__PURE__ */ new Set());
   cache.set(index, { ref: element, proxy: wrapped });
   return wrapped;
 }
@@ -22495,37 +26694,60 @@ function fillHoles(arr, upTo) {
   for (let i = arr.length; i < upTo; i++)
     arr[i] = null;
 }
-function mutatingMethod(read, write, name) {
+function mutatingMethod(read2, write, name) {
   return (...args) => {
-    const clone = [...read()];
+    const clone = [...read2()];
     const result3 = clone[name](...args.map(unwrapHandles));
     write(clone);
     return result3;
   };
 }
-function setIndex(read, write, index, value) {
-  const clone = [...read()];
+function setIndex(read2, write, index, value) {
+  const clone = [...read2()];
   fillHoles(clone, index);
   clone[index] = unwrapHandles(value);
   write(clone);
 }
-function setLength(read, write, length) {
-  const clone = [...read()];
+function setLength(read2, write, length) {
+  const clone = [...read2()];
   fillHoles(clone, length);
   clone.length = length;
   write(clone);
 }
-function deleteSlot(read, write, prop) {
-  const clone = [...read()];
+function deleteSlot(read2, write, prop) {
+  const current = read2();
   const index = typeof prop === "string" ? Number(prop) : NaN;
-  if (Number.isInteger(index) && index >= 0 && index < clone.length)
+  const inRange = Number.isInteger(index) && index >= 0 && index < current.length;
+  if (!inRange && !Object.prototype.hasOwnProperty.call(current, prop))
+    return;
+  const clone = [...current];
+  if (inRange)
     clone[index] = null;
   else
     delete clone[prop];
   write(clone);
 }
-function arrayProxyAt(sink, path) {
-  return createArrayProxy(() => sink.readAt(path) ?? [], (next) => sink.put(path, next));
+function arrayProxyAt(sink, path, captured) {
+  return createArrayProxy(() => sink.readAt(path), (next) => sink.put(path, next), sink.nameOf(path), captured);
+}
+function liveArray(getCurrent, captured) {
+  return () => {
+    const current = getCurrent();
+    return Array.isArray(current) ? current : captured;
+  };
+}
+function madeOver(current, name) {
+  if (Array.isArray(current))
+    return current;
+  throw new TypeError(name ? `Cannot make an array handle for '${name}': the key does not hold an array.` : "Cannot make an array handle: the value is not an array.");
+}
+function writableArray(getCurrent, name) {
+  return () => {
+    const current = getCurrent();
+    if (Array.isArray(current))
+      return current;
+    throw new TypeError((name ? `Cannot write through the array handle for '${name}': the key no longer holds an array.` : "Cannot write through this array handle: its value is no longer an array.") + " The handle still reads the array as it was. Read the key from the scope again to change it.");
+  };
 }
 function wrapElementMember(value, sink, path, visited) {
   if (!shouldWrapWithProxy(value))
@@ -22535,7 +26757,7 @@ function wrapElementMember(value, sink, path, visited) {
   const branch = new Set(visited);
   branch.add(value);
   if (Array.isArray(value))
-    return arrayProxyAt(sink, path);
+    return arrayProxyAt(sink, path, value);
   return createElementProxy(value, sink, path, branch);
 }
 function createElementProxy(raw, sink, segments3, visited) {
@@ -22545,24 +26767,26 @@ function createElementProxy(raw, sink, segments3, visited) {
     get: liveGetTrap(live, segments3, (value, path) => wrapElementMember(value, sink, path, visited), members),
     set: sinkSetTrap(sink, segments3),
     deleteProperty: sinkDeleteTrap(sink, segments3),
+    ...sinkDoorTraps(sink, segments3),
     ...liveInspectionTraps(live)
   }), live);
 }
-function createArrayProxy(getCurrent, commit) {
-  const target2 = getCurrent();
-  const read = getCurrent;
+function createArrayProxy(getCurrent, commit, name = "", captured) {
+  const target2 = captured ?? madeOver(getCurrent(), name);
+  const read2 = liveArray(getCurrent, target2);
+  const forWrite = writableArray(getCurrent, name);
   const write = commit;
   const elements = /* @__PURE__ */ new Map();
   return rememberHandle(new Proxy(target2, {
     get(_target, prop) {
       if (typeof prop === "string" && MUTATING_METHODS.has(prop))
-        return mutatingMethod(read, write, prop);
-      const current = read();
+        return mutatingMethod(forWrite, write, prop);
+      const current = read2();
       if (prop === "length")
         return current.length;
       const index = indexIn(current, prop);
       if (index !== void 0)
-        return cachedElement(elements, current[index], index, read, write);
+        return cachedElement(elements, current[index], index, read2, forWrite, write, name);
       if (prop === /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom"))
         return () => current;
       return boundMember(current, prop);
@@ -22570,19 +26794,41 @@ function createArrayProxy(getCurrent, commit) {
     set(_target, prop, value) {
       const index = indexNamed(prop);
       if (index !== void 0)
-        setIndex(read, write, index, value);
+        setIndex(forWrite, write, index, value);
       else if (prop === "length" && typeof value === "number")
-        setLength(read, write, value);
+        setLength(forWrite, write, value);
       return true;
     },
     deleteProperty(_target, prop) {
-      deleteSlot(read, write, prop);
+      deleteSlot(forWrite, write, prop);
       return true;
     },
-    has: (_target, prop) => Reflect.has(read(), prop),
-    ownKeys: () => Reflect.ownKeys(read()),
-    getOwnPropertyDescriptor: (_target, prop) => Object.getOwnPropertyDescriptor(read(), prop)
-  }), read);
+    // The other write doors (writeTraps.ts): an index or `length` define that is an assignment is one.
+    defineProperty(target3, prop, descriptor) {
+      if (typeof prop !== "string")
+        return Reflect.defineProperty(target3, prop, descriptor);
+      const index = indexNamed(prop);
+      const exists = Object.prototype.hasOwnProperty.call(forWrite(), prop);
+      const assignable = index !== void 0 || prop === "length" && typeof descriptor.value === "number";
+      if (!assignable || !isAssignmentDescriptor(descriptor, exists)) {
+        refuseDoor("define a property with special attributes", prop);
+      }
+      if (index !== void 0)
+        setIndex(forWrite, write, index, descriptor.value);
+      else
+        setLength(forWrite, write, descriptor.value);
+      return true;
+    },
+    setPrototypeOf() {
+      return refuseDoor("change the prototype of an array", "");
+    },
+    preventExtensions() {
+      return refuseDoor("freeze, seal or lock an array", "");
+    },
+    has: (_target, prop) => Reflect.has(read2(), prop),
+    ownKeys: () => Reflect.ownKeys(read2()),
+    getOwnPropertyDescriptor: (_target, prop) => Object.getOwnPropertyDescriptor(read2(), prop)
+  }), read2);
 }
 
 // node_modules/footprintjs/dist/esm/lib/reactive/types.js
@@ -22645,6 +26891,7 @@ var METHOD_ROUTES = {
   $batchArray: (t) => (key, fn) => {
     const current = t.getValue(key);
     const clone = Array.isArray(current) ? structuredClone(current) : [];
+    t.copyOf?.(clone, current);
     fn(clone);
     t.setValue(key, unwrapHandles(clone));
   },
@@ -22684,7 +26931,7 @@ function createTerminalProxy(obj, sink, segments3, visited = /* @__PURE__ */ new
     if (!shouldWrapWithProxy(value))
       return value;
     if (Array.isArray(value))
-      return arrayProxyAt(sink, path);
+      return arrayProxyAt(sink, path, value);
     if (visited.has(value))
       return value;
     return createTerminalProxy(value, sink, path, visited);
@@ -22693,6 +26940,7 @@ function createTerminalProxy(obj, sink, segments3, visited = /* @__PURE__ */ new
     get: liveGetTrap(live, segments3, child, members),
     set: sinkSetTrap(sink, segments3),
     deleteProperty: sinkDeleteTrap(sink, segments3),
+    ...sinkDoorTraps(sink, segments3),
     ...liveInspectionTraps(live)
   }), live);
 }
@@ -22703,7 +26951,7 @@ function createNestedProxy(obj, sink, segments3, ancestors = /* @__PURE__ */ new
     if (!shouldWrapWithProxy(value))
       return value;
     if (Array.isArray(value))
-      return arrayProxyAt(sink, path);
+      return arrayProxyAt(sink, path, value);
     if (ancestors.has(value))
       return createTerminalProxy(value, sink, path);
     return createNestedProxy(value, sink, path, new Set(ancestors).add(value));
@@ -22712,6 +26960,7 @@ function createNestedProxy(obj, sink, segments3, ancestors = /* @__PURE__ */ new
     get: liveGetTrap(live, segments3, child, members),
     set: sinkSetTrap(sink, segments3),
     deleteProperty: sinkDeleteTrap(sink, segments3),
+    ...sinkDoorTraps(sink, segments3),
     ...liveInspectionTraps(live)
   }), live);
 }
@@ -22740,7 +26989,7 @@ function wrapStateValue(target2, readSilent, state, key, value) {
   return cachedMember(state.childCache, key, value, () => {
     const sink = rootKeySink(target2, readSilent, key, state.childCache);
     if (Array.isArray(value))
-      return arrayProxyAt(sink, []);
+      return arrayProxyAt(sink, [], value);
     return createNestedProxy(value, sink, [], /* @__PURE__ */ new Set([value]));
   }, []);
 }
@@ -22751,12 +27000,22 @@ function assignStateKey(target2, state, key, value) {
   target2.setValue(key, unwrapHandles(value));
   state.childCache.delete(key);
 }
+function deleteStateKey(target2, state, key) {
+  if (SCOPE_METHOD_NAMES.has(key)) {
+    throw new Error(`Cannot delete state key "${key}" -- it conflicts with a reserved TypedScope method. Rename the state key to avoid $-prefixed names.`);
+  }
+  target2.deleteValue(key);
+  state.childCache.delete(key);
+}
 function knownKey(target2, key) {
   if (target2.hasKey)
     return target2.hasKey(key);
   if (target2.getStateKeys)
     return target2.getStateKeys().includes(key);
   return target2.getValue(key) !== void 0;
+}
+function listedKey(target2, key) {
+  return target2.listsKey ? target2.listsKey(key) : knownKey(target2, key);
 }
 function stateKeys(target2) {
   if (target2.getStateKeys)
@@ -22780,10 +27039,8 @@ function createTypedScope(target2, options) {
       return true;
     },
     deleteProperty(_proxyTarget, prop) {
-      if (typeof prop !== "string")
-        return true;
-      target2.deleteValue(prop);
-      state.childCache.delete(prop);
+      if (typeof prop === "string")
+        deleteStateKey(target2, state, prop);
       return true;
     },
     has(_proxyTarget, prop) {
@@ -22795,9 +27052,25 @@ function createTypedScope(target2, options) {
     getOwnPropertyDescriptor(_proxyTarget, prop) {
       if (typeof prop !== "string" || SCOPE_METHOD_NAMES.has(prop))
         return void 0;
-      if (!knownKey(target2, prop))
+      if (!listedKey(target2, prop))
         return void 0;
       return { configurable: true, enumerable: true, writable: true };
+    },
+    // The other write doors (writeTraps.ts): a define that is an assignment is one; the rest is refused.
+    defineProperty(proxyTarget, prop, descriptor) {
+      if (typeof prop !== "string")
+        return Reflect.defineProperty(proxyTarget, prop, descriptor);
+      const exists = !SCOPE_METHOD_NAMES.has(prop) && knownKey(target2, prop);
+      if (!isAssignmentDescriptor(descriptor, exists))
+        refuseDoor("define a property with special attributes", prop);
+      assignStateKey(target2, state, prop, descriptor.value);
+      return true;
+    },
+    setPrototypeOf() {
+      return refuseDoor("change the prototype of the scope", "");
+    },
+    preventExtensions() {
+      return refuseDoor("freeze, seal or lock the scope", "");
     }
   });
   return registerScopeRuntime(proxy, {
@@ -22842,8 +27115,8 @@ function applyTouches(node, spec, touches, where) {
     return;
   if (node.touches)
     fail3(`${where}: touches already declared at '${node.name}' (${node.touches.system})`);
-  const read = touches !== null && typeof touches === "object" ? touches : {};
-  const { system, idempotencyKey } = read;
+  const read2 = touches !== null && typeof touches === "object" ? touches : {};
+  const { system, idempotencyKey } = read2;
   const copy = { system, ...idempotencyKey !== void 0 && { idempotencyKey } };
   const problem = touchesProblem(touches === null || typeof touches !== "object" ? touches : copy, node.retry);
   if (problem !== void 0)
@@ -22917,6 +27190,7 @@ var BranchCursor = class {
    * that follows a dispatcher — a chain, which is a new node at its `next`.
    */
   assertOpen(action) {
+    this.b._refuseIfSealed(action);
     if (this.curNode.deciderFn || this.curNode.selectorFn) {
       fail3(`cannot ${action}: ${this.kind} '${this.curNode.name}' was already closed by end()`);
     }
@@ -22986,7 +27260,7 @@ var BranchCursor = class {
   subflowBranch(id, subflow, mountName, options) {
     this.admit(id, "segment");
     const subflowName = mountName || id;
-    this.b._mountSubflow(id, subflow, () => this.placeSubflowBranch(id, subflow, subflowName, options));
+    this.b._mountSubflow(id, `addSubFlowChartBranch('${id}')`, subflow, () => this.placeSubflowBranch(id, subflow, subflowName, options));
   }
   /** The branch mount's own node + spec, placed under the decider/selector (see `_mountSubflow`). */
   placeSubflowBranch(id, subflow, subflowName, options) {
@@ -23013,6 +27287,7 @@ var BranchCursor = class {
       spec.convergeAt = options.convergeAt;
     applyTags(node, spec, options?.tags, `addSubFlowChartBranch('${id}')`);
     this.attach(node, spec, id);
+    this.branchDescInfo.push({ id });
     this.b._fireSubflowMountedFromSubBuilder(id, subflowName, id, false, subflow.buildTimeStructure);
   }
   lazySubflowBranch(id, resolver, mountName, options) {
@@ -23041,6 +27316,7 @@ var BranchCursor = class {
     };
     applyTags(node, spec, options?.tags, `addLazySubFlowChartBranch('${id}')`);
     this.attach(node, spec, id);
+    this.branchDescInfo.push({ id });
     this.b._fireSubflowMountedFromSubBuilder(id, subflowName, id, true);
   }
   /**
@@ -23064,6 +27340,10 @@ var BranchCursor = class {
         }
       }
     }
+    const defaultChild = defaultId === void 0 ? void 0 : children.find((c) => c.id === defaultId);
+    if (defaultId !== void 0 && defaultChild === void 0) {
+      fail3(`setDefault('${defaultId}') under '${this.curNode.name}' names no branch of this ${kind} \u2014 pass the id of a branch added to it (branches: ${[...this.branchIds].join(", ")})`);
+    }
     if (kind === "decider")
       this.curNode.deciderFn = true;
     else
@@ -23072,12 +27352,8 @@ var BranchCursor = class {
     this.curSpec.type = kind;
     if (kind === "selector")
       this.curSpec.hasSelector = true;
-    if (defaultId) {
-      const defaultChild = children.find((c) => c.id === defaultId);
-      if (defaultChild) {
-        children.push({ ...defaultChild, id: "default", branchId: "default" });
-      }
-    }
+    if (defaultChild)
+      children.push({ ...defaultChild, id: "default", branchId: "default" });
     if (this.reservedStepNumber > 0) {
       const label = this.curNode.name;
       const branchIdList = this.branchDescInfo.map((b) => b.id).join(", ");
@@ -23141,6 +27417,7 @@ var DeciderList = class {
     }
     return this;
   }
+  /** Name the branch taken when no branch id matches. `end()` refuses an id that names no branch of this decider. */
   setDefault(id) {
     this.cursor.assertOpen(`setDefault('${id}')`);
     this.defaultId = id;
@@ -23182,7 +27459,7 @@ var DeciderList = class {
    * Decorate ONE branch node/spec with a loop-back edge to `stageId`. Shared by
    * the positional `loopTo()` (which targets the last-added branch) AND the
    * per-branch `{ loopTo }` option on `addFunctionBranch` /
-   * `addPausableFunctionBranch` / `addSubFlowChartBranch`. Either way the loop
+   * `addPausableFunctionBranch`. Either way the loop
    * SOURCE is the branch — so visualizers read `tool-calls → context`, never
    * `Route → context`. Validates the target is a stage declared BEFORE the
    * decider (branch ids / the synthetic 'default' clone are not valid targets).
@@ -23193,9 +27470,7 @@ var DeciderList = class {
     if (branchNode.next) {
       fail3(`cannot set loopTo on branch '${branchSpec.id}' \u2014 it already has a continuation`);
     }
-    if (!this.cursor.b._knownStageIdsHas(stageId)) {
-      fail3(`loopTo('${stageId}') target not found \u2014 a branch loop must target a stage declared BEFORE the decider (branch ids and the synthetic 'default' branch are not valid loop targets; did you pass a stage name instead of an id?)`);
-    }
+    this.cursor.b._assertLoopTarget(stageId, `loopTo('${stageId}') target not found \u2014 a branch loop must target a stage declared BEFORE the decider (branch ids and the synthetic 'default' branch are not valid loop targets; did you pass a stage name instead of an id?)`);
     branchNode.next = { name: stageId, id: stageId, isLoopRef: true };
     branchSpec.loopTarget = stageId;
     branchSpec.next = { name: stageId, id: stageId, type: "loop", isLoopReference: true };
@@ -23261,14 +27536,15 @@ var FlowChartBuilder = class {
    */
   _structureDispatcher;
   /**
-   * L7.3 — Sealed-after-build flag (Panel 2 phase invariant). Flips
-   * to `true` when `.build()` returns; subsequent `attachStructureRecorder`
-   * throws. Prevents the footgun where a consumer attaches a recorder
-   * mid-execution and gets partial structure data (missed every event
-   * already fired during construction).
+   * Sealed-after-build flag. Flips to `true` when `.build()` returns a
+   * chart. The chart shares this builder's graph and maps by reference, so
+   * from then on every door that would change it refuses
+   * (`_refuseIfSealed`): through `_needCursor`, the branch lists'
+   * `BranchCursor · assertOpen`, and the doors that touch neither.
+   * `attachStructureRecorder` and `budget` keep their own messages.
+   * `build()` again and the read-only doors keep working.
    */
   _sealed = false;
-  _enableNarrative = false;
   _logger;
   _descriptionParts = [];
   _stepCounter = 0;
@@ -23276,8 +27552,12 @@ var FlowChartBuilder = class {
   // and knownStageIds use id (stable identifier). These are intentionally different
   // namespaces — descriptions are presentational, lookups are structural.
   _stageDescriptions = /* @__PURE__ */ new Map();
+  /** Step number per stage ID — `loopTo` looks the target up by id. */
   _stageStepMap = /* @__PURE__ */ new Map();
+  /** Ids a `loopTo` may target: stages on a path (see `_assertLoopTarget`). */
   _knownStageIds = /* @__PURE__ */ new Set();
+  /** Fork children (`addListOfFunction`, `addSubFlowChart`, `addLazySubFlowChart`): never loop targets. */
+  _forkChildIds = /* @__PURE__ */ new Set();
   _inputSchema;
   _outputSchema;
   _outputMapper;
@@ -23449,17 +27729,16 @@ var FlowChartBuilder = class {
       ...defaultBranch !== void 0 && { defaultBranch }
     });
   }
-  _fireSubflowMounted(subflowId, subflowName, rootStageId, isLazy, subflowSpec, subflowPath) {
+  _fireSubflowMounted(subflowId, subflowName, rootStageId, isLazy, subflowSpec) {
     if (!this._structureDispatcher)
       return;
-    const path = subflowPath ?? subflowId;
     this._structureDispatcher.fireSubflowMounted({
       subflowId,
       subflowName,
       rootStageId,
       ...isLazy === true && { isLazy },
       ...subflowSpec !== void 0 && { subflowSpec },
-      subflowPath: path
+      subflowPath: subflowId
     });
   }
   /** Sub-builder access (`.b._fireXxx`) is needed by DeciderList /
@@ -23483,14 +27762,22 @@ var FlowChartBuilder = class {
     this._fireDeciderComplete(decider, type, branchIds, defaultBranch);
   }
   /** @internal — see `_fireEdgeAddedFromSubBuilder`. */
-  _fireSubflowMountedFromSubBuilder(subflowId, subflowName, rootStageId, isLazy, subflowSpec, subflowPath) {
-    this._fireSubflowMounted(subflowId, subflowName, rootStageId, isLazy, subflowSpec, subflowPath);
+  _fireSubflowMountedFromSubBuilder(subflowId, subflowName, rootStageId, isLazy, subflowSpec) {
+    this._fireSubflowMounted(subflowId, subflowName, rootStageId, isLazy, subflowSpec);
   }
-  /** @internal — see `_fireEdgeAddedFromSubBuilder`. Used by `DeciderList.loopTo`
-   *  to validate a branch-sourced loop target against the known stage ids
-   *  (mirrors `FlowChartBuilder.loopTo`'s `_knownStageIds.has` guard). */
-  _knownStageIdsHas(id) {
-    return this._knownStageIds.has(id);
+  /**
+   * @internal THE loop-target check, for `loopTo()` and a decider branch's
+   * loop (`DeciderList · _applyBranchLoop`). A target is a stage on a path
+   * (`_knownStageIds`). A fork child is refused by name: it has no
+   * continuation of its own, so a loop back to it runs that child once more
+   * and the run ends there. `notFound` is the door's own message.
+   */
+  _assertLoopTarget(stageId, notFound) {
+    if (this._forkChildIds.has(stageId)) {
+      fail3(`loopTo('${stageId}'): '${stageId}' is a fork child. A fork child has no continuation of its own, so a loop back to it would run that child once more and end the run. Loop to the fork's own stage instead.`);
+    }
+    if (!this._knownStageIds.has(stageId))
+      fail3(notFound);
   }
   /** @internal — see `_fireEdgeAddedFromSubBuilder`. Used by `DeciderList.loopTo`
    *  to fire a loop back-edge SOURCED FROM A BRANCH node (not the decider). */
@@ -23498,9 +27785,10 @@ var FlowChartBuilder = class {
     this._fireLoopEdgeAdded(from, to);
   }
   // ── Description helpers ──
-  _appendDescriptionLine(name, description) {
+  /** One numbered step line; the step number is keyed by the stage's id (what `loopTo` names). */
+  _appendDescriptionLine(id, name, description) {
     this._stepCounter++;
-    this._stageStepMap.set(name, this._stepCounter);
+    this._stageStepMap.set(id, this._stepCounter);
     const line = description ? `${this._stepCounter}. ${name} \u2014 ${description}` : `${this._stepCounter}. ${name}`;
     this._descriptionParts.push(line);
     if (description) {
@@ -23529,17 +27817,18 @@ var FlowChartBuilder = class {
   }
   // ── Configuration ──
   setLogger(logger) {
+    this._refuseIfSealed("setLogger()");
     this._logger = logger;
     return this;
   }
   /**
-   * Declare the API contract — input validation, output shape, and output mapper.
-   * Replaces setInputSchema() + setOutputSchema() + setOutputMapper() in a single call.
+   * Declare the API contract — input validation, output shape, and output mapper, in one call.
    *
    * If a contract with input schema is declared, chart.run() validates input automatically.
    * Contract data is used by chart.toOpenAPI() and chart.toMCPTool().
    */
   contract(opts) {
+    this._refuseIfSealed("contract()");
     if (opts.input)
       this._inputSchema = opts.input;
     if (opts.output)
@@ -23550,6 +27839,7 @@ var FlowChartBuilder = class {
   }
   // ── Linear Chaining ──
   start(name, fn, id, description, options) {
+    this._refuseIfSealed(`start('${id}')`);
     admitId("stage id", id, "stage");
     if (this._root)
       fail3("root already defined; create a new builder");
@@ -23577,7 +27867,7 @@ var FlowChartBuilder = class {
     this._advanceCursorSpec(spec);
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
-    this._appendDescriptionLine(name, description);
+    this._appendDescriptionLine(id, name, description);
     return this;
   }
   /**
@@ -23593,6 +27883,7 @@ var FlowChartBuilder = class {
    * with no separate seed stage before it.
    */
   startSelector(name, fn, id, description, options) {
+    this._refuseIfSealed(`startSelector('${id}')`);
     admitId("stage id", id, "stage");
     if (this._root)
       fail3("root already defined; create a new builder");
@@ -23615,13 +27906,12 @@ var FlowChartBuilder = class {
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._stepCounter++;
-    this._stageStepMap.set(name, this._stepCounter);
-    this._appendDescriptionLine(name, description);
+    this._stageStepMap.set(id, this._stepCounter);
     return new SelectorFnList(this, node, spec, this._descriptionParts, this._stageDescriptions, this._stepCounter, description);
   }
   addFunction(name, fn, id, description) {
     admitId("stage id", id, "stage");
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addFunction('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     const node = { name, id, fn };
@@ -23638,7 +27928,7 @@ var FlowChartBuilder = class {
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
-    this._appendDescriptionLine(name, description);
+    this._appendDescriptionLine(id, name, description);
     return this;
   }
   /** Compose a keyed outside operation, reconciliation, shared retry decision and wait as ordinary chart nodes. */
@@ -23663,7 +27953,7 @@ var FlowChartBuilder = class {
   }
   addStreamingFunction(name, fn, id, streamId, description) {
     admitId("stage id", id, "stage");
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addStreamingFunction('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     const node = {
@@ -23692,7 +27982,7 @@ var FlowChartBuilder = class {
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
-    this._appendDescriptionLine(name, description);
+    this._appendDescriptionLine(id, name, description);
     return this;
   }
   /**
@@ -23718,7 +28008,7 @@ var FlowChartBuilder = class {
    */
   addPausableFunction(name, handler, id, description) {
     admitId("stage id", id, "stage");
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addPausableFunction('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     const node = {
@@ -23746,7 +28036,7 @@ var FlowChartBuilder = class {
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
-    this._appendDescriptionLine(name, description);
+    this._appendDescriptionLine(id, name, description);
     return this;
   }
   // ── Detach (builder-native composition) ──
@@ -23848,7 +28138,7 @@ var FlowChartBuilder = class {
   // ── Branching ──
   addDeciderFunction(name, fn, id, description, options) {
     admitId("stage id", id, "stage");
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addDeciderFunction('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     const node = { name, id, fn };
@@ -23869,12 +28159,12 @@ var FlowChartBuilder = class {
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
     this._stepCounter++;
-    this._stageStepMap.set(name, this._stepCounter);
+    this._stageStepMap.set(id, this._stepCounter);
     return new DeciderList(this, node, spec, this._descriptionParts, this._stageDescriptions, this._stepCounter, description);
   }
   addSelectorFunction(name, fn, id, description, options) {
     admitId("stage id", id, "stage");
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addSelectorFunction('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     const node = { name, id, fn };
@@ -23897,12 +28187,12 @@ var FlowChartBuilder = class {
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
     this._stepCounter++;
-    this._stageStepMap.set(name, this._stepCounter);
+    this._stageStepMap.set(id, this._stepCounter);
     return new SelectorFnList(this, node, spec, this._descriptionParts, this._stageDescriptions, this._stepCounter, description);
   }
   // ── Parallel (Fork) ──
   addListOfFunction(children, options) {
-    const { cur, curSpec } = this._needForkParent();
+    const { cur, curSpec } = this._needForkParent("addListOfFunction()");
     const forkId = cur.id;
     curSpec.type = "fork";
     if (options?.failFast)
@@ -23933,6 +28223,7 @@ var FlowChartBuilder = class {
       cur.children.push(node);
       curSpec.children = curSpec.children || [];
       curSpec.children.push(spec);
+      this._forkChildIds.add(id);
       this._fireStageAdded(spec);
       this._fireEdgeAdded(curSpec.id, spec.id, "fork-branch");
     }
@@ -23986,7 +28277,7 @@ var FlowChartBuilder = class {
    * ```
    */
   addParallelForEach(name, id, config, description) {
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addParallelForEach('${id}')`);
     const curSpec = this._needCursorSpec();
     const parentSpec = curSpec;
     admitId("parallelForEach stage id", id, "segment");
@@ -24020,19 +28311,19 @@ var FlowChartBuilder = class {
     this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
-    this._appendDescriptionLine(name, description ?? `Runs one branch per item into '${config.into}'`);
+    this._appendDescriptionLine(id, name, description ?? `Runs one branch per item into '${config.into}'`);
     return this;
   }
   // ── Subflow Mounting ──
   addSubFlowChart(id, subflow, mountName, options) {
-    const { cur, curSpec } = this._needForkParent();
+    const { cur, curSpec } = this._needForkParent(`addSubFlowChart('${id}')`);
     if (cur.children?.some((c) => c.id === id)) {
       fail3(`duplicate child id '${id}' under '${cur.name}'`);
     }
     assertSubflowIdAllowed(id);
     const subflowName = mountName || id;
     const forkId = cur.id;
-    this._mountSubflow(id, subflow, () => {
+    this._mountSubflow(id, `addSubFlowChart('${id}')`, subflow, () => {
       const node = {
         name: subflowName,
         id,
@@ -24059,7 +28350,7 @@ var FlowChartBuilder = class {
       cur.children.push(node);
       curSpec.children = curSpec.children || [];
       curSpec.children.push(spec);
-      this._knownStageIds.add(id);
+      this._forkChildIds.add(id);
       this._fireStageAdded(spec);
       this._fireEdgeAdded(curSpec.id, id, "fork-branch");
       this._fireSubflowMounted(id, subflowName, id, false, subflow.buildTimeStructure);
@@ -24069,7 +28360,7 @@ var FlowChartBuilder = class {
     return this;
   }
   addLazySubFlowChart(id, resolver, mountName, options) {
-    const { cur, curSpec } = this._needForkParent();
+    const { cur, curSpec } = this._needForkParent(`addLazySubFlowChart('${id}')`);
     if (cur.children?.some((c) => c.id === id)) {
       fail3(`duplicate child id '${id}' under '${cur.name}'`);
     }
@@ -24104,6 +28395,7 @@ var FlowChartBuilder = class {
     cur.children.push(node);
     curSpec.children = curSpec.children || [];
     curSpec.children.push(spec);
+    this._forkChildIds.add(id);
     this._fireStageAdded(spec);
     this._fireEdgeAdded(curSpec.id, id, "fork-branch");
     this._fireSubflowMounted(id, subflowName, id, true);
@@ -24114,7 +28406,7 @@ var FlowChartBuilder = class {
     return this;
   }
   addLazySubFlowChartNext(id, resolver, mountName, options) {
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addLazySubFlowChartNext('${id}')`);
     const curSpec = this._needCursorSpec();
     if (cur.next) {
       fail3(`cannot add subflow as next when next is already defined at '${cur.name}'`);
@@ -24147,6 +28439,7 @@ var FlowChartBuilder = class {
     curSpec.next = spec;
     this._cursor = node;
     this._advanceCursorSpec(spec);
+    this._knownStageIds.add(id);
     this._fireStageAdded(spec);
     this._fireNextEdgeFromParent(parentSpec, id);
     this._fireSubflowMounted(id, subflowName, id, true);
@@ -24156,14 +28449,14 @@ var FlowChartBuilder = class {
     return this;
   }
   addSubFlowChartNext(id, subflow, mountName, options) {
-    const cur = this._needCursor();
+    const cur = this._needContinuationCursor(`addSubFlowChartNext('${id}')`);
     const curSpec = this._needCursorSpec();
     if (cur.next) {
       fail3(`cannot add subflow as next when next is already defined at '${cur.name}'`);
     }
     assertSubflowIdAllowed(id);
     const subflowName = mountName || id;
-    this._mountSubflow(id, subflow, () => {
+    this._mountSubflow(id, `addSubFlowChartNext('${id}')`, subflow, () => {
       const node = {
         name: subflowName,
         id,
@@ -24420,6 +28713,11 @@ var FlowChartBuilder = class {
     return this;
   }
   // ── Loop ──
+  /**
+   * Make a loop back to `stageId` the current stage's continuation. The loop
+   * ends this path: a door that would attach a stage after it is refused
+   * (`_needContinuationCursor`), so add every stage before `loopTo()`.
+   */
   loopTo(stageId) {
     const cur = this._needCursor();
     const curSpec = this._needCursorSpec();
@@ -24427,9 +28725,7 @@ var FlowChartBuilder = class {
       fail3(`loopTo already defined at '${cur.name}'`);
     if (cur.next)
       fail3(`cannot set loopTo when next is already defined at '${cur.name}'`);
-    if (!this._knownStageIds.has(stageId)) {
-      fail3(`loopTo('${stageId}') target not found \u2014 did you pass a stage name instead of id?`);
-    }
+    this._assertLoopTarget(stageId, `loopTo('${stageId}') target not found \u2014 did you pass a stage name instead of id?`);
     cur.next = { name: stageId, id: stageId, isLoopRef: true };
     curSpec.loopTarget = stageId;
     curSpec.next = { name: stageId, id: stageId, type: "loop", isLoopReference: true };
@@ -24444,27 +28740,29 @@ var FlowChartBuilder = class {
   }
   // ── Streaming ──
   onStream(handler) {
+    this._refuseIfSealed("onStream()");
     this._streamHandlers.onToken = handler;
     return this;
   }
   onStreamStart(handler) {
+    this._refuseIfSealed("onStreamStart()");
     this._streamHandlers.onStart = handler;
     return this;
   }
   onStreamEnd(handler) {
+    this._refuseIfSealed("onStreamEnd()");
     this._streamHandlers.onEnd = handler;
     return this;
   }
   // ── Output ──
   build() {
-    this._sealed = true;
     const root = this._root ?? fail3("empty tree; call start() first");
     const rootSpec = this._rootSpec ?? fail3("empty spec; call start() first");
     const subflows = {};
     for (const [key, def] of this._subflowDefs) {
       subflows[key] = def;
     }
-    const rootName = this._root?.name ?? "FlowChart";
+    const rootName = root.name;
     const description = this._descriptionParts.length > 0 ? `FlowChart: ${rootName}
 Steps:
 ${this._descriptionParts.join("\n")}` : "";
@@ -24473,7 +28771,6 @@ ${this._descriptionParts.join("\n")}` : "";
       stageMap: this._stageMap,
       buildTimeStructure: rootSpec,
       ...Object.keys(subflows).length > 0 ? { subflows } : {},
-      ...this._enableNarrative ? { enableNarrative: true } : {},
       ...this._logger ? { logger: this._logger } : {},
       description,
       stageDescriptions: new Map(this._stageDescriptions),
@@ -24487,6 +28784,7 @@ ${this._descriptionParts.join("\n")}` : "";
     };
     if (rootSpec.budgetMs !== void 0)
       this._checkBudget(chart);
+    this._sealed = true;
     return makeRunnable(chart);
   }
   /**
@@ -24507,6 +28805,7 @@ ${this._descriptionParts.join("\n")}` : "";
   }
   /** Override the scope factory. Rarely needed — auto-embeds TypedScope by default. */
   setScopeFactory(factory) {
+    this._refuseIfSealed("setScopeFactory()");
     this._scopeFactory = factory;
     return this;
   }
@@ -24514,30 +28813,39 @@ ${this._descriptionParts.join("\n")}` : "";
     const rootSpec = this._rootSpec ?? fail3("empty tree; call start() first");
     return rootSpec;
   }
+  /** The graph so far as Mermaid text — the same walker as the built chart's `toMermaid()` (`chartToMermaid`). */
   toMermaid() {
-    const lines = ["flowchart TD"];
-    const idOf = (k) => (k || "").replace(/[^a-zA-Z0-9_]/g, "_") || "_";
-    const root = this._root ?? fail3("empty tree; call start() first");
-    const walk2 = (n) => {
-      const nid = idOf(n.id);
-      lines.push(`${nid}["${n.name}"]`);
-      for (const c of n.children || []) {
-        const cid = idOf(c.id);
-        lines.push(`${nid} --> ${cid}`);
-        walk2(c);
-      }
-      if (n.next) {
-        const mid = idOf(n.next.id);
-        lines.push(`${nid} --> ${mid}`);
-        walk2(n.next);
-      }
-    };
-    walk2(root);
-    return lines.join("\n");
+    return chartToMermaid(this._root ?? fail3("empty tree; call start() first"));
   }
   // ── Internals (exposed for helper classes) ──
   _needCursor() {
+    this._refuseIfSealed();
     return this._cursor ?? fail3("cursor undefined; call start() first");
+  }
+  /**
+   * The cursor a door attaches a continuation (`next`) to. After `.loopTo()`
+   * the cursor's `next` IS its continuation — the loop edge — and a stage
+   * attached there would silently replace it. Every door that writes the
+   * cursor's `next` asks here; fork children, modifiers, `end()` and
+   * `build()` do not, so they are unchanged.
+   */
+  _needContinuationCursor(door) {
+    const cur = this._needCursor();
+    if (cur.next?.isLoopRef) {
+      fail3(`${door} after loopTo('${cur.next.id}') at '${cur.name}': the loop is this path's continuation, so nothing can follow it. Add the stage before loopTo().`);
+    }
+    return cur;
+  }
+  /**
+   * @internal The one sealed check. `build()` hands out a chart that shares
+   * this builder's graph by reference, so a change after it would edit a chart
+   * that may already be running.
+   */
+  _refuseIfSealed(door) {
+    if (!this._sealed)
+      return;
+    const chartId = this._rootSpec?.id ?? "";
+    fail3(`${door ? `${door}: ` : ""}builder sealed by build() \u2014 chart '${chartId}' is already built and shares this builder's graph, so it cannot change. Declare every stage before build(), or start a new builder for another chart.`);
   }
   _needCursorSpec() {
     return this._cursorSpec ?? fail3("cursor undefined; call start() first");
@@ -24566,12 +28874,13 @@ ${this._descriptionParts.join("\n")}` : "";
    * refused here when a stage already has it, and by stage admission /
    * `_registerSubflowDef` when a later stage or mount asks for it.
    */
-  _needForkParent() {
+  _needForkParent(door) {
     const owner = this._needCursor();
     const ownerSpec = this._needCursorSpec();
     const childrenMeanSomethingElse = owner.isSubflowRoot || owner.isDynamicParallel || owner.deciderFn || owner.selectorFn;
     if (!childrenMeanSomethingElse)
       return { cur: owner, curSpec: ownerSpec };
+    this._needContinuationCursor(door);
     const id = `${owner.id}-fork`;
     if (this._idTaken(id)) {
       fail3(`cannot fan out after '${owner.name}': the fork node it needs, '${id}', is already a stage id. Add a stage after '${owner.name}' and fan out from it.`);
@@ -24593,13 +28902,16 @@ ${this._descriptionParts.join("\n")}` : "";
   /** Shared by stage admission and subflow registration: reserved structural ids cannot be reused. */
   _refuseForkNodeId(id) {
     if (this._claimedIds.has(id)) {
-      fail3(`id '${id}' is already used by a lazy subflow mount or a parallelForEach in this chart. Rename the stage.`);
+      fail3(`id '${id}' is already used by a subflow mount or a parallelForEach in this chart. Rename the stage.`);
     }
     if (!this._forkNodeIds.has(id))
       return;
     fail3(`id '${id}' is taken: it is the fork node the builder placed after '${id.slice(0, -"-fork".length)}' (a fan-out right after a subflow mount, decider, selector or parallelForEach continues on it). Rename the stage.`);
   }
-  /** Ids the lazy-mount and parallelForEach doors claimed (they register in no map). */
+  /**
+   * Ids the subflow-mount and parallelForEach doors claimed (`_claimFreshId`). Every stage door
+   * consults it (`_refuseForkNodeId`), so a later stage cannot take a mount's id, in either order.
+   */
   _claimedIds = /* @__PURE__ */ new Set();
   /** Structural declarations without an embedded function; not function entries or loop targets. */
   _functionlessStageIds = /* @__PURE__ */ new Set();
@@ -24608,12 +28920,13 @@ ${this._descriptionParts.join("\n")}` : "";
     return this._knownStageIds.has(id) || this._stageMap.has(id) || this._functionlessStageIds.has(id) || this._subflowDefs.has(id) || this._claimedIds.has(id) || this._forkNodeIds.has(id);
   }
   /**
-   * @internal The lazy-mount doors and `addParallelForEach` register their id
-   * in no map, so through 9.37.0 they accepted an id another stage or mount
-   * already had (and a later stage could take theirs). They claim it here:
-   * refused when taken, recorded when fresh. Loop-ref stubs reference an
-   * existing stage rather than claiming a new id. Reusable function stages
-   * retain their separate `_addToMap` rule.
+   * @internal The subflow-mount doors (eager and lazy) and `addParallelForEach`
+   * claim their id here: refused when taken, recorded when fresh. Through
+   * 9.37.0 the lazy doors and `addParallelForEach` registered their id in no
+   * map, and until this release an eager mount was checked only one way, so a
+   * later stage could take its id. Loop-ref stubs reference an existing stage
+   * rather than claiming a new id. Reusable function stages retain their
+   * separate `_addToMap` rule.
    */
   _claimFreshId(id, door) {
     if (this._idTaken(id)) {
@@ -24622,23 +28935,23 @@ ${this._descriptionParts.join("\n")}` : "";
     this._claimedIds.add(id);
   }
   /**
-   * Advance the spec cursor. Retained as a method so call sites stay
-   * one-liners and future cursor-related side effects have a hook.
-   */
-  /**
    * What was attached to the CURSOR without advancing it — a subflow mount, a
    * parallel fork's children. Cleared by {@link _advanceCursorSpec}, the single
    * choke point every cursor-advancing method already goes through, so this
    * marker cannot drift as new builder methods are added.
    *
-   * Exists for `.retry()`. Those methods hang children off the current stage
-   * and leave the cursor pointing at that stage, so a chained `.retry()` would
-   * silently attach the policy to the stage BEFORE the thing you just wrote —
-   * exactly the silent mis-attribution this codebase refuses elsewhere (see
-   * the branch-segment marker rules). Naming what was last added lets the
-   * refusal say something useful.
+   * Read by `.retry()`, `.touches()` and `.tag()`. Those mounts hang children
+   * off the current stage and leave the cursor pointing at that stage, so a
+   * chained modifier would silently attach to the stage BEFORE the thing you
+   * just wrote — exactly the silent mis-attribution this codebase refuses
+   * elsewhere (see the branch-segment marker rules). Naming what was last
+   * added lets the refusal say something useful.
    */
   _cursorTail;
+  /**
+   * Advance the spec cursor. Retained as a method so call sites stay
+   * one-liners and future cursor-related side effects have a hook.
+   */
   _advanceCursorSpec(newSpec) {
     this._cursorTail = void 0;
     this._cursorSpec = newSpec;
@@ -24656,7 +28969,6 @@ ${this._descriptionParts.join("\n")}` : "";
    * here, at build time, where the id can still be changed.
    */
   _registerSubflowDef(id, root) {
-    this._refuseForkNodeId(id);
     if (!this._subflowDefs.has(id)) {
       this._subflowDefs.set(id, { root });
       return;
@@ -24712,12 +29024,20 @@ ${this._descriptionParts.join("\n")}` : "";
    * THE mount of a subflow chart under `id` (F10) — every eager mount site
    * (`addSubFlowChart`, `addSubFlowChartNext`, a decider/selector
    * `addSubFlowChartBranch`) goes through it, and it is the one caller of the
-   * prefixer. In order: register the chart's prefixed root under `id`;
+   * prefixer. In order: claim `id` (`_claimFreshId` — refused when another
+   * stage, functionless stage, claimed id or generated fork node holds it; a
+   * prior subflow mount under the same id is the one exception, it already
+   * holds the claim — see `_registerSubflowDef`); register the chart's prefixed root under `id`;
    * `place` the mount's own node + spec and fire its structure events; merge
    * the chart's stage map under `id`; register its nested subflows under
    * `id/<key>` (a key already registered is kept).
    */
-  _mountSubflow(id, subflow, place) {
+  _mountSubflow(id, door, subflow, place) {
+    if (!this._subflowDefs.has(id)) {
+      if (this._forkNodeIds.has(id))
+        this._refuseForkNodeId(id);
+      this._claimFreshId(id, door);
+    }
     const prefixed = (root) => this._prefixNodeTree(root, id);
     this._registerSubflowDef(id, prefixed(subflow.root));
     place();
@@ -24773,15 +29093,22 @@ var EvidenceCollector = class {
 // node_modules/footprintjs/dist/esm/lib/decide/decide.js
 function scopeAccessors(scope) {
   const { target: target2 } = requireDecisionScopeRuntime(scope);
-  const keys = target2.getRedactedKeys?.();
+  const rule = target2.decisionEvidenceRule?.(valueBehind);
+  const keys = rule ? void 0 : target2.getRedactedKeys?.();
   return {
     attachFn: target2.attachScopeRecorder?.bind(target2),
     detachFn: target2.detachScopeRecorder?.bind(target2),
     valueFn: target2.getValue?.bind(target2) ?? (() => void 0),
-    redactedFn: (key) => keys?.has(key) ?? false
+    redactedFn: rule?.masksActual ?? ((key) => keys?.has(key) ?? false),
+    serveThreshold: rule?.serveThreshold,
+    servedMatchError: rule?.servedMatchError ?? ((text) => text)
   };
 }
-function evaluateRule2(scope, rule, index, attachFn, detachFn, valueFn, redactedFn) {
+function matchErrorOf(e, accessors) {
+  return accessors.servedMatchError(e instanceof Error ? e.message : String(e));
+}
+function evaluateRule2(scope, rule, index, accessors) {
+  const { attachFn, detachFn, valueFn, redactedFn, serveThreshold } = accessors;
   if (typeof rule.when === "function") {
     const hasRecorderSupport = Boolean(attachFn);
     const collector = hasRecorderSupport ? new EvidenceCollector() : void 0;
@@ -24793,7 +29120,7 @@ function evaluateRule2(scope, rule, index, attachFn, detachFn, valueFn, redacted
       matched = rule.when(scope);
     } catch (e) {
       matched = false;
-      matchError = e instanceof Error ? e.message : String(e);
+      matchError = matchErrorOf(e, accessors);
       if (isDevMode()) {
         const label = rule.label ? ` ('${rule.label}')` : "";
         console.warn(`[footprint] decide() rule ${index}${label} threw during evaluation: ${matchError}`);
@@ -24814,19 +29141,17 @@ function evaluateRule2(scope, rule, index, attachFn, detachFn, valueFn, redacted
     };
     return evidence;
   } else {
-    const resolvedValueFn = valueFn ?? (() => void 0);
-    const resolvedRedactedFn = redactedFn ?? (() => false);
     let filterMatched = false;
     let filterConditions = [];
     let matchError;
     try {
-      const result3 = evaluateFilter(resolvedValueFn, resolvedRedactedFn, rule.when);
+      const result3 = evaluateFilter(valueFn, redactedFn, rule.when, serveThreshold);
       filterMatched = result3.matched;
       filterConditions = result3.conditions;
     } catch (e) {
       filterMatched = false;
       filterConditions = [];
-      matchError = e instanceof Error ? e.message : String(e);
+      matchError = matchErrorOf(e, accessors);
       if (isDevMode()) {
         const label = rule.label ? ` ('${rule.label}')` : "";
         console.warn(`[footprint] decide() filter rule ${index}${label} threw during evaluation: ${matchError}`);
@@ -24848,12 +29173,12 @@ function normalizeDefaultBranch(defaultBranch) {
   return typeof defaultBranch === "object" && defaultBranch !== null ? defaultBranch : { branch: defaultBranch };
 }
 function decide(scope, rules, defaultBranch) {
-  const { attachFn, detachFn, valueFn, redactedFn } = scopeAccessors(scope);
+  const accessors = scopeAccessors(scope);
   const { branch: defaultBranchId, label: defaultLabel } = normalizeDefaultBranch(defaultBranch);
   const defaultMeaning = defaultLabel !== void 0 ? { defaultLabel } : void 0;
   const evaluatedRules = [];
   for (const [index, rule] of rules.entries()) {
-    const ruleEvidence = evaluateRule2(scope, rule, index, attachFn, detachFn, valueFn, redactedFn);
+    const ruleEvidence = evaluateRule2(scope, rule, index, accessors);
     evaluatedRules.push(ruleEvidence);
     if (ruleEvidence.matched) {
       const evidence2 = {
@@ -24944,14 +29269,14 @@ var ControlDepRecorder = class {
     if (!ctx)
       return;
     this.resetIfNewRun(ctx.runId);
-    if (event.selected.length === 0)
-      return;
     const deciderId = ctx.runtimeStageId;
     this.decisions.set(deciderId, {
       deciderRuntimeStageId: deciderId,
       chosen: [...event.selected],
       ...event.evidence && { evidence: event.evidence }
     });
+    if (event.selected.length === 0)
+      return;
     this.pending.push({ deciderId, remaining: event.selected.length });
   }
   onStageExecuted(event) {
@@ -25455,14 +29780,14 @@ async function createFoottraceShadow({ config, sourceSha, transport = createRead
   const runIdentity = invocation.kind === "github-actions" ? { runId: invocation.runId, runAttempt: invocation.runAttempt, eventName: invocation.eventName } : {};
   let main2, context, plan;
   const readonly = (callback) => Object.assign(callback, { readOnly: true });
-  const observe = (callback) => readonly(async (invocation2) => {
+  const observe2 = (callback) => readonly(async (invocation2) => {
     try {
       return await callback(invocation2);
     } catch (error) {
       return { outcome: "hold", reason: "INVALID_EVIDENCE", facts: { headSha: main2, complete: false, refusalCode: safeFailure(error), readOnly: true } };
     }
   });
-  const middle = (stage) => observe(async () => {
+  const middle = (stage) => observe2(async () => {
     if (!plan) return { outcome: "hold", reason: "INVALID_EVIDENCE" };
     if (plan.mode === "verify") return { outcome: "skip", reason: "PLAN_SKIP", facts: publicPlan(plan) };
     return {
@@ -25472,7 +29797,7 @@ async function createFoottraceShadow({ config, sourceSha, transport = createRead
     };
   });
   const ports = {
-    plan: observe(async () => {
+    plan: observe2(async () => {
       main2 = (await transport.api("GET", "/repos/footprintjs/foottrace/git/ref/heads/main")).data?.object?.sha;
       if (!SHA3.test(main2 ?? "") || sourceSha !== void 0 && sourceSha !== main2) refuse4("shadow-source-pin");
       context = { repository: config.repository, sha: main2, ref: "refs/heads/main", eventName: invocation.kind === "github-actions" ? invocation.eventName : "workflow_dispatch", ...runIdentity, verify: verifyOnly };
@@ -25486,7 +29811,7 @@ async function createFoottraceShadow({ config, sourceSha, transport = createRead
     authority: middle("authority"),
     build: middle("build"),
     publish: middle("publish"),
-    verify: observe(async ({ prior } = {}) => {
+    verify: observe2(async ({ prior } = {}) => {
       const receipt = prior?.plan;
       if (!plan || plan.mode !== "verify" || receipt?.outcome !== "verify-only" || receipt.reason !== "PLAN_VERIFY_ONLY" || receipt.facts?.headSha !== main2 || receipt.facts.treeSha !== plan.tree || receipt.facts.version !== plan.version || receipt.facts.planMode !== plan.mode || receipt.facts.inputDigest !== GUARD_SOURCE_SHA) return { outcome: "hold", reason: "SHADOW_ONLY" };
       const result3 = await guard.runStage("verify", {
