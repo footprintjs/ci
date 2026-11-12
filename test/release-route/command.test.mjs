@@ -41,7 +41,7 @@ test('the script: an unknown or missing step is refused with exit 1', () => {
   for (const args of [['ship'], [], ['__proto__'], ['PLAN']]) {
     const result = runCli(args);
     assert.equal(result.status, 1, JSON.stringify(args));
-    assert.match(result.stdout, /^Refused: unknown-step\. The step is not one of plan, npm-tool, build, inspect, ready, verify, tag, notes\.$/m);
+    assert.match(result.stdout, /^Refused: unknown-step\. The step is not one this command runs \(the plain command: plan, npm-tool, build, inspect, ready, verify, tag, notes; the bundle: plan, verify, why\)\.$/m);
   }
 });
 

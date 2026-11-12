@@ -14,6 +14,7 @@
 //   notes    ROUTE_COMMIT, ROUTE_OUT                                   -> title-file, notes-file
 // ROUTE_SOURCE (default ".") is the repository checkout every git question is asked in.
 import archivePort from './archive/check-archive.cjs';
+import { commitInput, input, pathInput, reportPlan, reportVerified, runHandlers, verifyInputs } from './step-common.mjs';
 import { build } from './build.mjs';
 import { unpackNpm } from './npm-tool.mjs';
 import { ready } from './ready.mjs';
@@ -21,46 +22,18 @@ import { tagPlan } from './tag.mjs';
 import { isCommit, isPackageName, isPlainVersion } from './identity.mjs';
 import { releaseNotes, writeNotes } from './notes.mjs';
 import { observe, readPackage } from './observe.mjs';
-import { plan, unreadableFacts } from './plan.mjs';
+import { plan } from './plan.mjs';
 import { compareWithNpm } from './registry.mjs';
 import { readAtCommit } from './repo.mjs';
-import { asRefusal, REFUSALS, refuse } from './refusals.mjs';
+import { refuse } from './refusals.mjs';
 import { MAX_SETTINGS_BYTES, readSettings, SETTINGS_PATH } from './settings.mjs';
 import { clean as printable } from '../shared/text.mjs';
 
 export const STEPS = Object.freeze(['plan', 'npm-tool', 'build', 'inspect', 'ready', 'verify', 'tag', 'notes']);
 
-const input = (env, name, check) => {
-  const value = env[name];
-  if (typeof value !== 'string' || !check(value)) refuse('input-invalid', name);
-  return value;
-};
-const commitInput = (env) => input(env, 'ROUTE_COMMIT', isCommit);
-const pathInput = (env, name) => input(env, name, (value) => value.length > 0 && value.length <= 4096 && !value.includes('\0'));
-
 async function planStep({ env, git, fetcher, report }) {
   const { facts, causes, context } = await observe({ env, git, fetcher });
-  const result = plan({ facts });
-  report.say(`Release route plan for commit ${context.commit}${context.name ? ` of ${printable(context.name, 214)}` : ''}${context.version ? ` ${context.version}` : ''}.`);
-  report.output('rule', result.rule);
-  report.output('commit', context.commit);
-  if (context.name) report.output('package', context.name);
-  if (context.version) report.output('version', context.version);
-  for (const name of unreadableFacts(result.seen)) {
-    const cause = causes[name];
-    report.say(`Unreadable fact ${name}: ${cause ? `${cause.code} (${cause.sentence})${cause.detail ? ` ${printable(cause.detail)}` : ''}` : 'not asked or not known'}.`);
-  }
-  report.say(`Facts seen: ${Object.entries(result.seen).map(([name, value]) => `${name}=${printable(String(value), 20)}`).join(', ')}.`);
-  if (result.refuse) {
-    const first = unreadableFacts(result.seen)[0];
-    refuse(result.refuse, result.rule === 'facts-unreadable' ? first : `rule ${result.rule}`);
-  }
-  report.output('mode', result.mode);
-  report.output('compare', result.compare);
-  const what = { nothing: 'nothing to do: the version is tagged and on npm', publish: 'publish, then verify, tag and release',
-    recover: 'npm has it but there is no tag: rebuild, compare with npm, then tag and release',
-    'dry-run': result.compare === 'yes' ? 'dry run: rebuild and compare with what npm serves' : `dry run: would publish ${context.version}` }[result.mode];
-  report.say(`Decision: rule ${result.rule} gives mode ${result.mode}, ${what}.`);
+  reportPlan({ result: plan({ facts }), causes, context, report });
 }
 
 function buildStep({ env, git, run, report }) {
@@ -82,11 +55,9 @@ function inspectStep({ env, git, report }) {
 }
 
 async function verifyStep({ env, fetcher, sleep, report }) {
-  const name = input(env, 'ROUTE_PACKAGE', isPackageName);
-  const version = input(env, 'ROUTE_VERSION', isPlainVersion);
-  const { bytes } = archivePort.readIntake(pathInput(env, 'ROUTE_TARBALL_DIR'));
+  const { name, version, bytes } = verifyInputs(env);
   const result = await compareWithNpm({ fetcher, name, version, localBytes: bytes, sleep });
-  report.say(`Verified: npm serves ${name}@${version} with the same bytes as the built file (${result.integrity}).`);
+  reportVerified({ name, version, integrity: result.integrity, report });
 }
 
 function npmToolStep({ env, report }) {
@@ -125,22 +96,4 @@ const HANDLERS = Object.freeze({ plan: planStep, 'npm-tool': npmToolStep, build:
   tag: tagStep, notes: notesStep });
 
 // doors: { env, git, fetcher, run, sleep, report }. Returns the exit code.
-export async function runStep(step, doors) {
-  const { report } = doors;
-  try {
-    if (typeof step !== 'string' || !Object.hasOwn(HANDLERS, step)) refuse('unknown-step', step);
-    await HANDLERS[step](doors);
-    report.summary();
-    return 0;
-  } catch (error) {
-    const refusal = asRefusal(error);
-    try {
-      report.say(`Refused: ${refusal.code}. ${REFUSALS[refusal.code]}`);
-      if (refusal.detail) report.say(`Detail: ${printable(refusal.detail, 200)}`);
-      report.summary();
-    } catch {
-      // Printing failed too; the exit code still says "refused".
-    }
-    return 1;
-  }
-}
+export const runStep = (step, doors) => runHandlers(HANDLERS, step, doors);

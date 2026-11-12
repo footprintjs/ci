@@ -66,9 +66,11 @@ export async function readDist({ fetcher, name, version }) {
 }
 
 // Waits a bounded time for name@version to appear; `sleep(ms)` is injected.
-export async function waitForDist({ fetcher, name, version, sleep, wait = WAIT }) {
+// `onLook(look, found)` is told after each look (the charted verify records how many it took).
+export async function waitForDist({ fetcher, name, version, sleep, wait = WAIT, onLook = () => {} }) {
   for (let attempt = 1; attempt <= wait.tries; attempt++) {
     const dist = await readDist({ fetcher, name, version });
+    onLook(attempt, dist !== null);
     if (dist) return dist;
     if (attempt < wait.tries) await sleep(wait.delayMs);
   }
