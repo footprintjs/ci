@@ -17,6 +17,9 @@
 //   an unknown package), so they must come first to name the real reason.
 // - `facts-unreadable` comes before EVERY row that yields a mode: no mode is ever chosen while
 //   a fact is unknown.
+// - Every mode that WRITES anything (WRITING_MODES: a publish, a tag, a GitHub release) needs
+//   `refIsMain: true`; off main the same facts meet a named refusal row instead. A dry run
+//   writes nothing and stays allowed from any branch. A test holds every writing row to this.
 // - A missing CHANGELOG section stops `recover` too, not only `publish`: both write a GitHub
 //   release whose notes come from that section. A dry run says the same, so it tells the truth
 //   about what a publish would do.
@@ -37,6 +40,10 @@ export const FACTS = Object.freeze({
   refIsMain: Object.freeze([true, false]),
 });
 
+// The modes that write: `publish` (npm, then the tag and release) and `recover` (the tag and
+// release for a version npm already has). `nothing` and `dry-run` write nothing.
+export const WRITING_MODES = Object.freeze(['publish', 'recover']);
+
 const row = (value) => Object.freeze({ ...value, when: Object.freeze(value.when) });
 
 export const RULES = Object.freeze([
@@ -53,8 +60,9 @@ export const RULES = Object.freeze([
   row({ id: 'tag-without-package', when: { tagExists: true, npmHasVersion: false }, refuse: 'tag-without-package' }),
 
   row({ id: 'changelog-missing', when: { tagExists: false, changelogFound: false }, refuse: 'changelog-missing',
-    outranks: ['recover', 'dry-run-recover', 'version-not-newer', 'publish-off-main', 'publish', 'dry-run-would-publish'] }),
-  row({ id: 'recover', when: { tagExists: false, npmHasVersion: true, action: 'publish' }, mode: 'recover', compare: 'yes' }),
+    outranks: ['recover-off-main', 'recover', 'dry-run-recover', 'version-not-newer', 'publish-off-main', 'publish', 'dry-run-would-publish'] }),
+  row({ id: 'recover-off-main', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: false }, refuse: 'recover-off-main' }),
+  row({ id: 'recover', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: true }, mode: 'recover', compare: 'yes' }),
   row({ id: 'dry-run-recover', when: { tagExists: false, npmHasVersion: true, action: 'dry-run' }, mode: 'dry-run', compare: 'yes' }),
 
   row({ id: 'version-not-newer', when: { tagExists: false, npmHasVersion: false, versionNewer: false }, refuse: 'version-not-newer',

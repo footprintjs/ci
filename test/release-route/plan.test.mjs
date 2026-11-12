@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { matches, plan, seenFacts } from '../../src/release-route/plan.mjs';
-import { FACTS, RULES } from '../../src/release-route/rules.mjs';
+import { FACTS, RULES, WRITING_MODES } from '../../src/release-route/rules.mjs';
 import { REFUSALS } from '../../src/release-route/refusals.mjs';
 
 // A publish that should go through; each row's case changes only what that row needs.
@@ -31,6 +31,7 @@ for (const [change, expected] of [
   [{ changelogFound: false }, 'changelog-missing -> refuse changelog-missing'],
   [{ changelogFound: false, npmHasVersion: true }, 'changelog-missing -> refuse changelog-missing'],
   [{ npmHasVersion: true, versionNewer: false }, 'recover -> recover (compare yes)'],
+  [{ npmHasVersion: true, versionNewer: false, refIsMain: false }, 'recover-off-main -> refuse recover-off-main'],
   [{ npmHasVersion: true, versionNewer: false, action: 'dry-run' }, 'dry-run-recover -> dry-run (compare yes)'],
   [{ versionNewer: false }, 'version-not-newer -> refuse version-not-newer'],
   [{ refIsMain: false }, 'publish-off-main -> refuse publish-off-main'],
@@ -72,6 +73,18 @@ test('fail closed: with any one fact unknown or out of its domain, the result is
       }
   assert.equal(plan({ facts: {} }).refuse !== undefined, true);
   assert.equal(plan({ facts: null }).refuse !== undefined, true);
+});
+
+test('every row whose mode writes requires main, so a future writing mode cannot be added without it', () => {
+  const writing = RULES.filter((rule) => WRITING_MODES.includes(rule.mode));
+  assert.deepEqual(writing.map((rule) => rule.id), ['recover', 'publish']);
+  for (const rule of writing) assert.equal(rule.when.refIsMain, true, `${rule.id} writes but does not require refIsMain: true`);
+  for (const rule of RULES) assert.ok(rule.refuse !== undefined || WRITING_MODES.includes(rule.mode) || ['nothing', 'dry-run'].includes(rule.mode), rule.id);
+});
+
+test('over every combination of facts, nothing that writes is ever chosen off main', () => {
+  for (const facts of all) if (WRITING_MODES.includes(plan({ facts }).mode)) assert.equal(facts.refIsMain, true, JSON.stringify(facts));
+  for (const facts of all) if (!facts.refIsMain && facts.action === 'dry-run' && plan({ facts }).mode) assert.equal(plan({ facts }).mode, 'dry-run');
 });
 
 test('publish is chosen only when every gate holds', () => {

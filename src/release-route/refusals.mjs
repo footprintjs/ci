@@ -54,6 +54,7 @@ export const REFUSALS = Object.freeze({
   'tag-without-package': 'The tag for this version exists but npm does not have the version; decide by hand.',
   'version-not-newer': 'The version is not newer than every version npm already has.',
   'publish-off-main': 'A real publish runs only from main.',
+  'recover-off-main': 'Recovering a release writes a tag and a GitHub release, so it runs only from main.',
   'no-rule-matched': 'No rule of the decision matched these facts, so nothing is decided.',
 
   // Building the package.
