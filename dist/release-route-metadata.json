@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "bf31d637a2e6b284f6c8d8377278e8057a76feaba9608cf5d834495e3d94a292",
-  "bytes": 1224675,
+  "sha256": "7cfa0368834f57776a0eb28acbab6c3f4cd4aceb2ef19a306d6619e5aa2bca9f",
+  "bytes": 1224942,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -12,7 +12,7 @@
   "inputs": [
     {
       "path": "bin/release-route.mjs",
-      "bytes": 1587
+      "bytes": 1464
     },
     {
       "path": "node_modules/footprintjs/dist/esm/index.js",
@@ -1445,6 +1445,10 @@
     {
       "path": "src/release-route/settings.mjs",
       "bytes": 4147
+    },
+    {
+      "path": "src/release-route/stdout.mjs",
+      "bytes": 1265
     },
     {
       "path": "src/release-route/step-common.mjs",

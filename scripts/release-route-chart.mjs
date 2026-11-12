@@ -6,12 +6,12 @@ import { appendFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { openBundle } from '../src/release-route/bundle-door.mjs';
 import { createReport } from '../src/release-route/report.mjs';
+import { stdoutPrinter } from '../src/release-route/stdout.mjs';
 import { printRefusal } from '../src/release-route/step-common.mjs';
 
 const dist = (name) => fileURLToPath(new URL(`../dist/${name}`, import.meta.url));
 try {
   openBundle({ bundle: dist('release-route.cjs'), metadata: dist('release-route-metadata.json') });
 } catch (error) {
-  const print = (line) => process.stdout.write(`${line}\n`);
-  process.exitCode = printRefusal(createReport({ env: process.env, print, append: appendFileSync }), error);
+  process.exitCode = printRefusal(createReport({ env: process.env, print: stdoutPrinter({ env: process.env }), append: appendFileSync }), error);
 }

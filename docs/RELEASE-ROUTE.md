@@ -102,6 +102,7 @@ Each file has one job; the WHY of each choice is in its header comment.
 | `command.mjs` | The plain steps, wired to the doors; `scripts/release-route.mjs` is its process entry. |
 | `step-common.mjs` | What the plain and the charted steps share: checked inputs, what plan and verify print, the step runner. |
 | `bundle-door.mjs` | Opens the charted steps' bundle only when it is the file its metadata names. |
+| `stdout.mjs` | How the entry points print a line: the token masked; a closed stdout ends the step quietly with exit 1, before its end writes anything. |
 | `chart/` | `plan` and `verify` as footprintjs charts, the record, the `why` reader ([RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md)). |
 | `archive/` | The archive inspector: ONE port (`check-archive.cjs`), described below. |
 | `../shared/` | Shared with the hold check: `http.mjs · boundedGet` (https only, redirects refused, a held timer over the request and the body, a streaming byte bound), `text.mjs · clean` (control, format and bidi characters out, `::` and `##[` broken apart, bounded), `github.mjs` (the fixed host `https://api.github.com`, the token's shape, the headers). |

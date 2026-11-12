@@ -8,6 +8,7 @@ import { appendFileSync } from 'node:fs';
 import { setTimeout as wait } from 'node:timers/promises';
 import { runChartStep } from '../src/release-route/chart/cli.mjs';
 import { createReport } from '../src/release-route/report.mjs';
+import { stdoutPrinter } from '../src/release-route/stdout.mjs';
 
 const env = process.env;
 const source = env.ROUTE_SOURCE || '.';
@@ -15,9 +16,7 @@ const git = (args) => execFileSync('git', ['-C', source, ...args], {
   maxBuffer: 8 * 1024 * 1024, timeout: 120_000, stdio: ['ignore', 'pipe', 'pipe'],
   env: { ...env, GIT_TERMINAL_PROMPT: '0' },
 });
-const secret = typeof env.GITHUB_TOKEN === 'string' && env.GITHUB_TOKEN.length >= 8 ? env.GITHUB_TOKEN : null;
-const print = (line) => process.stdout.write(`${secret ? line.split(secret).join('***') : line}\n`);
-const report = createReport({ env, print, append: appendFileSync });
+const report = createReport({ env, print: stdoutPrinter({ env }), append: appendFileSync });
 
 // No top-level await: the bundle is CommonJS. runChartStep never rejects; if it did, exit 1.
 process.exitCode = 1;

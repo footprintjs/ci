@@ -30167,7 +30167,7 @@ var inWriteOrder = (kept) => [
   ...kept.filter(([key]) => key === "mode")
 ];
 var escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout.write(`${line}
+function createReport({ env: env2 = {}, print = (line) => process.stdout.write(`${line}
 `), append = import_node_fs3.appendFileSync } = {}) {
   const lines = [];
   const outputs = [];
@@ -30176,7 +30176,7 @@ function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout
     say(line) {
       const safe = safeLine(line);
       lines.push(safe);
-      print2(safe);
+      print(safe);
     },
     output(key, value) {
       if (ended) throw new Error("an output after the step ended");
@@ -30204,6 +30204,17 @@ ${lines.map(escapeHtml).join("\n")}
   };
 }
 
+// src/release-route/stdout.mjs
+function stdoutPrinter({ env: env2 = {}, stream = process.stdout, exit = (code) => process.exit(code) } = {}) {
+  const secret = typeof env2.GITHUB_TOKEN === "string" && env2.GITHUB_TOKEN.length >= 8 ? env2.GITHUB_TOKEN : null;
+  stream.on("error", () => exit(1));
+  return (line) => {
+    stream.write(`${secret ? line.split(secret).join("***") : line}
+`);
+    if (stream.errored) throw new Error("stdout is closed");
+  };
+}
+
 // bin/release-route.mjs
 var env = process.env;
 var source = env.ROUTE_SOURCE || ".";
@@ -30213,10 +30224,7 @@ var git = (args) => (0, import_node_child_process.execFileSync)("git", ["-C", so
   stdio: ["ignore", "pipe", "pipe"],
   env: { ...env, GIT_TERMINAL_PROMPT: "0" }
 });
-var secret = typeof env.GITHUB_TOKEN === "string" && env.GITHUB_TOKEN.length >= 8 ? env.GITHUB_TOKEN : null;
-var print = (line) => process.stdout.write(`${secret ? line.split(secret).join("***") : line}
-`);
-var report = createReport({ env, print, append: import_node_fs4.appendFileSync });
+var report = createReport({ env, print: stdoutPrinter({ env }), append: import_node_fs4.appendFileSync });
 process.exitCode = 1;
 runChartStep(process.argv[2], { env, git, fetcher: globalThis.fetch, sleep: (ms) => (0, import_promises.setTimeout)(ms), report, argv: process.argv.slice(3) }).then((code) => {
   process.exitCode = code;
