@@ -1,0 +1,231 @@
+{
+  "name": "footprintjs",
+  "version": "12.0.0",
+  "description": "TypeScript workflow engine that records each run's stages, state changes and decision evidence, so AI agents and people can explain and debug what happened.",
+  "license": "MIT",
+  "author": "Package Author",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/footprintjs/footPrint.git"
+  },
+  "homepage": "https://footprintjs.github.io/footPrint/",
+  "bugs": {
+    "url": "https://github.com/footprintjs/footPrint/issues"
+  },
+  "keywords": [
+    "typescript",
+    "workflow",
+    "workflow-engine",
+    "flowchart",
+    "orchestration",
+    "execution-trace",
+    "execution-provenance",
+    "state-management",
+    "decision-evidence",
+    "debugging",
+    "observability",
+    "mcp",
+    "ai-agent",
+    "llm",
+    "explainability",
+    "causal-trace",
+    "time-travel-debugging",
+    "footprintjs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "rm -rf build/* coverage dist node_modules",
+    "build": "rm -rf dist && tsc && tsc -p tsconfig.esm.json && node scripts/postbuild-esm.mjs",
+    "prepare": "husky",
+    "watch": "tsc -w",
+    "pretest": "npm --prefix test/fixtures/published-reference ci --ignore-scripts --strict-peer-deps --registry=https://registry.npmjs.org",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:contract:foottrace": "node --test contract/foottrace.test.mjs && node contract/foottrace.types.mjs",
+    "test:examples": "tsc -p examples/tsconfig.json && npm run build && vitest run --config vitest.examples.config.ts",
+    "test:every-example": "vitest run --config vitest.every-example.config.ts",
+    "example": "npx tsx",
+    "release:patch": "bash scripts/release.sh patch",
+    "release:minor": "bash scripts/release.sh minor",
+    "release:major": "bash scripts/release.sh major",
+    "check:dup-types": "node scripts/check-dup-types.mjs",
+    "check:layering": "node scripts/check-layering.mjs",
+    "check:record-tests": "node scripts/record-tests.mjs",
+    "check:doc-snippets": "node scripts/check-doc-snippets.mjs",
+    "check:doc-paths": "node scripts/doc-paths/check.mjs",
+    "ai:generate": "node scripts/ai-instructions/generate.mjs",
+    "check:ai-instructions": "node scripts/ai-instructions/generate.mjs --check",
+    "check:api-doors": "node scripts/api-doors/check.mjs",
+    "audit:family": "node scripts/audit-family-versions.mjs",
+    "audit:consumers": "node scripts/audit-consumers.mjs",
+    "lint": "eslint '{src,test}/**/*.ts' --ext .ts",
+    "lint:fix": "eslint '{src,test}/**/*.ts' --ext .ts --fix",
+    "format:fix": "prettier --config .prettierrc.js --write '{src,test}/**/*.ts'",
+    "format": "prettier --config .prettierrc.js --list-different '{src,test}/**/*.ts'",
+    "bench": "npm run bench:micro && npm run bench:baseline && npm run bench:depth",
+    "bench:micro": "NODE_OPTIONS=--expose-gc npx tsx bench/run.ts",
+    "bench:baseline": "npx tsx bench/baseline.ts",
+    "bench:depth": "npx tsx bench/depth-probe.ts",
+    "bench:time-travel": "npx tsx bench/time-travel.ts",
+    "bench:key-queries": "npx tsx bench/key-queries.ts",
+    "bench:fault-finding": "npx tsx bench/fault-finding.ts",
+    "bench:heap": "NODE_OPTIONS=--expose-gc npx tsx bench/retained-heap.ts",
+    "bench:compare": "npx tsx bench/compare.ts",
+    "bench:typecheck": "tsc -p bench/tsconfig.json",
+    "docs": "typedoc",
+    "docs:serve": "typedoc && npx serve api-docs",
+    "test:coverage": "vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text-summary --coverage.reportsDirectory=coverage",
+    "coverage:badge": "npm run test:coverage; node scripts/coverage-badge.mjs"
+  },
+  "files": [
+    "dist/**/*",
+    "AGENTS.md"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./advanced": {
+      "import": {
+        "types": "./dist/esm/advanced.d.ts",
+        "default": "./dist/esm/advanced.js"
+      },
+      "require": {
+        "types": "./dist/types/advanced.d.ts",
+        "default": "./dist/advanced.js"
+      }
+    },
+    "./recorders": {
+      "import": {
+        "types": "./dist/esm/recorders.d.ts",
+        "default": "./dist/esm/recorders.js"
+      },
+      "require": {
+        "types": "./dist/types/recorders.d.ts",
+        "default": "./dist/recorders.js"
+      }
+    },
+    "./trace": {
+      "import": {
+        "types": "./dist/esm/trace.d.ts",
+        "default": "./dist/esm/trace.js"
+      },
+      "require": {
+        "types": "./dist/types/trace.d.ts",
+        "default": "./dist/trace.js"
+      }
+    },
+    "./detach": {
+      "import": {
+        "types": "./dist/esm/detach.d.ts",
+        "default": "./dist/esm/detach.js"
+      },
+      "require": {
+        "types": "./dist/types/detach.d.ts",
+        "default": "./dist/detach.js"
+      }
+    },
+    "./sinks": {
+      "import": {
+        "types": "./dist/esm/sinks.d.ts",
+        "default": "./dist/esm/sinks.js"
+      },
+      "require": {
+        "types": "./dist/types/sinks.d.ts",
+        "default": "./dist/sinks.js"
+      }
+    },
+    "./zod": {
+      "import": {
+        "types": "./dist/esm/zod.d.ts",
+        "default": "./dist/esm/zod.js"
+      },
+      "require": {
+        "types": "./dist/types/zod.d.ts",
+        "default": "./dist/zod.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "advanced": [
+        "./dist/types/advanced.d.ts"
+      ],
+      "recorders": [
+        "./dist/types/recorders.d.ts"
+      ],
+      "trace": [
+        "./dist/types/trace.d.ts"
+      ],
+      "detach": [
+        "./dist/types/detach.d.ts"
+      ],
+      "sinks": [
+        "./dist/types/sinks.d.ts"
+      ],
+      "zod": [
+        "./dist/types/zod.d.ts"
+      ]
+    }
+  },
+  "lint-staged": {
+    "{src,test}/**/*.ts": [
+      "eslint --fix",
+      "prettier --config .prettierrc.js --write"
+    ]
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "foottrace": "^1.11.1"
+  },
+  "peerDependencies": {
+    "zod": "^3.0.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.2",
+    "@typescript-eslint/parser": "^8.71.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "concurrently": "^8.0.1",
+    "esbuild": "^0.28.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-import-resolver-typescript": "^3.5.2",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-simple-import-sort": "^8.0.0",
+    "fast-check": "^4.4.0",
+    "footprintjs-baseline": "npm:footprintjs@9.28.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "markdown-it": "^14.3.1",
+    "prettier": "^2.8.1",
+    "publint": "^0.3.0",
+    "semver": "^7.8.5",
+    "tsx": "^4.23.15",
+    "typedoc": "^0.28.17",
+    "typescript": "~5.4.5",
+    "vitest": "^4.0.18",
+    "zod": "^4.0.0"
+  }
+}

@@ -17,7 +17,7 @@ export async function runHold({ env, fetcher, git }) {
       verdict = cannotCheck(problem);
     } else {
       const versions = mode === 'pull-request' ? readVersions(git, { eventName: env.HOLD_EVENT_NAME, headSha: env.HOLD_HEAD_SHA }) : undefined;
-      const get = createRequest({ fetcher, token: env.GH_TOKEN, apiUrl: env.GITHUB_API_URL || undefined });
+      const get = createRequest({ fetcher, token: env.GH_TOKEN });
       verdict = decideHold({ mode, repo, holds: await listHolds(get, repo), versions });
     }
   } catch (error) {

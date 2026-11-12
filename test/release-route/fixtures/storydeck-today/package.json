@@ -1,0 +1,138 @@
+{
+  "name": "footprint-storydeck",
+  "version": "0.13.1",
+  "description": "React views and a deck CLI for turning one structured story into an article, scrollytelling page, slide deck, narrated video or PowerPoint.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Package Author",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/footprintjs/storydeck.git"
+  },
+  "homepage": "https://github.com/footprintjs/storydeck#readme",
+  "bugs": "https://github.com/footprintjs/storydeck/issues",
+  "keywords": [
+    "slides",
+    "deck",
+    "presentation",
+    "scrollytelling",
+    "react",
+    "narration",
+    "captions",
+    "voice",
+    "video",
+    "pptx",
+    "powerpoint",
+    "talk",
+    "focus",
+    "exploded-view",
+    "kiosk",
+    "footprintjs",
+    "cli",
+    "dev-server",
+    "mcp"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "types": "./index.d.ts",
+  "bin": {
+    "storydeck": "dist/deck/bin.js",
+    "footprint-storydeck": "dist/deck/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./focus": {
+      "types": "./focus.d.ts",
+      "default": "./dist/focus.js"
+    },
+    "./focus-html": {
+      "types": "./focusHtml.d.ts",
+      "default": "./dist/focusHtml.js"
+    },
+    "./focus.css": "./focus.css",
+    "./tour": {
+      "types": "./tour.d.ts",
+      "default": "./dist/tour.js"
+    },
+    "./narration": {
+      "types": "./narration.d.ts",
+      "default": "./dist/narration.js"
+    },
+    "./narration-html": {
+      "types": "./narrationHtml.d.ts",
+      "default": "./dist/narrationHtml.js"
+    },
+    "./narration.css": "./narration.css",
+    "./voice": {
+      "types": "./voice.d.ts",
+      "default": "./dist/voice.js"
+    },
+    "./video": {
+      "types": "./video.d.ts",
+      "default": "./dist/video.js"
+    },
+    "./pptx": {
+      "types": "./pptx.d.ts",
+      "default": "./dist/pptx.js"
+    },
+    "./deck": {
+      "types": "./deck.d.ts",
+      "default": "./dist/deck/index.js"
+    },
+    "./storydeck.css": "./storydeck.css",
+    "./deck.css": "./deck.css",
+    "./look-base.css": "./look-base.css",
+    "./deck-stage.js": "./site/public/deck-stage.js"
+  },
+  "files": [
+    "dist",
+    "/*.d.ts",
+    "/*.css",
+    "site/public/deck-stage.js",
+    "plugin",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "check:dist": "node scripts/check-dist.mjs",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "test:cov": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "footprintjs": "^11.0.0 || ^12.0.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "footprintjs": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "footprint-story": "^0.6.0",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/coverage-v8": "^4.1.9",
+    "esbuild": "^0.28.2",
+    "footprintjs": "12.0.0",
+    "jsdom": "^29.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vitest": "^4.1.9"
+  }
+}

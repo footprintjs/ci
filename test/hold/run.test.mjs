@@ -41,13 +41,15 @@ test('the request goes to the one fixed path: open, labelled, 100 per page, with
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, 'https://api.github.com/repos/footprintjs/example/issues?state=open&labels=hold-release&per_page=100');
   assert.equal(calls[0].options.method, 'GET');
-  assert.equal(calls[0].options.redirect, 'error');
+  assert.equal(calls[0].options.redirect, 'manual'); // a 3xx comes back and is refused, never followed
   assert.equal(calls[0].options.headers.authorization, `Bearer ${TOKEN}`);
 });
-test('GITHUB_API_URL is honoured when it is a plain https URL', async () => {
-  const { fetcher, calls } = pages([]);
-  await runHold({ env: env({ GITHUB_API_URL: 'https://ghe.example/api/v3/' }), fetcher, git: noGit });
-  assert.equal(calls[0].url, 'https://ghe.example/api/v3/repos/footprintjs/example/issues?state=open&labels=hold-release&per_page=100');
+test('GITHUB_API_URL is not read: the token goes to the fixed host api.github.com only', async () => {
+  for (const GITHUB_API_URL of ['https://ghe.example/api/v3/', 'https://evil.example', 'not a url']) {
+    const { fetcher, calls } = pages([]);
+    assert.equal((await runHold({ env: env({ GITHUB_API_URL }), fetcher, git: noGit })).code, 0);
+    assert.equal(calls[0].url, 'https://api.github.com/repos/footprintjs/example/issues?state=open&labels=hold-release&per_page=100');
+  }
 });
 test('a hold fails publish mode and the output names it', async () => {
   const { fetcher } = pages([item(12, { pull_request: {} })]);
@@ -106,12 +108,11 @@ test('fail closed: a response that is not a Response, or whose body cannot be re
   failedToCheck(await runHold({ env: env(), fetcher: async () => ({ status: 200, text: async () => { throw new Error('boom'); } }), git: noGit }));
   failedToCheck(await runHold({ env: env(), fetcher: undefined, git: noGit }));
 });
-test('fail closed: unknown mode, missing or malformed repository, token, API URL', async () => {
+test('fail closed: unknown mode, missing or malformed repository, token', async () => {
   const { fetcher, calls } = pages([]);
   for (const extra of [{ HOLD_MODE: 'release' }, { HOLD_MODE: '' }, { HOLD_MODE: undefined }, { GITHUB_REPOSITORY: undefined },
     { GITHUB_REPOSITORY: 'justaname' }, { GITHUB_REPOSITORY: 'a/b/c' }, { GITHUB_REPOSITORY: 'a/b?x=1' }, { GH_TOKEN: undefined }, { GH_TOKEN: '' },
-    { GH_TOKEN: 'two words' }, { GH_TOKEN: 'line\nbreak' }, { GITHUB_API_URL: 'http://api.github.com' }, { GITHUB_API_URL: 'https://u:p@x.example' },
-    { GITHUB_API_URL: 'https://x.example/?q=1' }, { GITHUB_API_URL: 'not a url' }]) {
+    { GH_TOKEN: 'two words' }, { GH_TOKEN: 'line\nbreak' }]) {
     failedToCheck(await runHold({ env: env(extra), fetcher, git: noGit }));
   }
   assert.equal(calls.length, 0, 'no request is made with unusable inputs');

@@ -1,0 +1,400 @@
+{
+  "repository": "https://github.com/footprintjs/footPrint",
+  "commit": "531160b2124c11e373338bb65584909a1496a1f8",
+  "license": "MIT",
+  "scope": "The release route archive inspector: footPrint scripts/publish-release/archive/ and check-archive.cjs, the base chosen for the shared release route (docs/RELEASE-ROUTE.md says why). Production modules under src/release-route/archive/, their tests, fixture helper and attack corpus under test/release-route/archive/. candidate-version.cjs (release candidates) is not copied: prereleases are a later phase.",
+  "files": [
+    {
+      "source": "scripts/publish-release/archive/PROVENANCE.json",
+      "destination": "src/release-route/archive/PROVENANCE.json",
+      "sourceSha256": "8eb850599d25ef737dda885cf904fdc49d863fc5eda11ca1cd9f9a9413588fee",
+      "sha256": "8eb850599d25ef737dda885cf904fdc49d863fc5eda11ca1cd9f9a9413588fee",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/README.md",
+      "destination": "src/release-route/archive/README.md",
+      "sourceSha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
+      "sha256": "15135e3f7a2dba5ae9b3109f2fde0f1df20dc6dbd851b13171c990241ada0dc3",
+      "adaptation": "Route deltas listed at the top; a section 'Names no archive may hold' (the fixed npm deny list and the file-system name class, with why for each); profile and test-location sentences updated."
+    },
+    {
+      "source": "scripts/publish-release/archive/corpus.test.cjs",
+      "destination": "test/release-route/archive/corpus.test.cjs",
+      "sourceSha256": "1ef507432720a29c21578325b6574b4f2b8d653762ab8faddbf95f541ca47610",
+      "sha256": "b65439e075e7db6f4e23a14a36c558e89f9147d1a1f40eb08d9c19d593f5a937",
+      "adaptation": "require path; structural refusals may be archive-path:<member> or archive-denied:<member>."
+    },
+    {
+      "source": "scripts/publish-release/archive/fixture.cjs",
+      "destination": "test/release-route/archive/fixture.cjs",
+      "sourceSha256": "7001d0a30f255b0cbae58ed507c39f10012f0cab592e8b2631e49e601d76803b",
+      "sha256": "4df276d2d82368006f3b9ce735e6e744294ee8345c4b84e279c3d90758718d52",
+      "adaptation": "Source manifest from fixtures/source-package.json (footPrint package.json at the same commit); expected() is { version, sourceManifest, archive }."
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/.gitignore",
+      "destination": "test/release-route/archive/fixtures/.gitignore",
+      "sourceSha256": "844bb0262a6daf1423a201359be00ccaab814e52a9b8cf3de545155498ec06ad",
+      "sha256": "844bb0262a6daf1423a201359be00ccaab814e52a9b8cf3de545155498ec06ad",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/00-00-baseline.tgz",
+      "destination": "test/release-route/archive/fixtures/00-00-baseline.tgz",
+      "sourceSha256": "ab7fdb5d02d7953c3a5389bd51e25ca475d22caad91cb4a2512bc466db5dbe5e",
+      "sha256": "ab7fdb5d02d7953c3a5389bd51e25ca475d22caad91cb4a2512bc466db5dbe5e",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/01-10-dup-manifest.tgz",
+      "destination": "test/release-route/archive/fixtures/01-10-dup-manifest.tgz",
+      "sourceSha256": "b6080c624ae3c694c233950fa99a636fbce6cbe5ae5e3a423414e109ce1ca1a8",
+      "sha256": "b6080c624ae3c694c233950fa99a636fbce6cbe5ae5e3a423414e109ce1ca1a8",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/02-11-second-top-dir.tgz",
+      "destination": "test/release-route/archive/fixtures/02-11-second-top-dir.tgz",
+      "sourceSha256": "56c3f0cd814e9217a29b794b107c1947b05d15d05101970282de5e85b12a2b29",
+      "sha256": "56c3f0cd814e9217a29b794b107c1947b05d15d05101970282de5e85b12a2b29",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/03-12-dot-slash.tgz",
+      "destination": "test/release-route/archive/fixtures/03-12-dot-slash.tgz",
+      "sourceSha256": "095608cf3eb9346078d357598286a330692994df8e0afd792227a9b23dbd6bd1",
+      "sha256": "095608cf3eb9346078d357598286a330692994df8e0afd792227a9b23dbd6bd1",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/04-13-double-slash.tgz",
+      "destination": "test/release-route/archive/fixtures/04-13-double-slash.tgz",
+      "sourceSha256": "24821804ba4b0699eb064c9c366a901af9d67f7c77fc72271770734dce3fcd7b",
+      "sha256": "24821804ba4b0699eb064c9c366a901af9d67f7c77fc72271770734dce3fcd7b",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/05-14-dot-middle.tgz",
+      "destination": "test/release-route/archive/fixtures/05-14-dot-middle.tgz",
+      "sourceSha256": "1ae153dff22626888f065b8573f76f4fa3ee955980d494230d9f483e41c1f04c",
+      "sha256": "1ae153dff22626888f065b8573f76f4fa3ee955980d494230d9f483e41c1f04c",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/06-15-upper-top.tgz",
+      "destination": "test/release-route/archive/fixtures/06-15-upper-top.tgz",
+      "sourceSha256": "2f9ede20bd72fe7eb97ad3af34aff09e514dfabc51e23a9a181ef8c1844b6168",
+      "sha256": "2f9ede20bd72fe7eb97ad3af34aff09e514dfabc51e23a9a181ef8c1844b6168",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/07-16-dotdot.tgz",
+      "destination": "test/release-route/archive/fixtures/07-16-dotdot.tgz",
+      "sourceSha256": "5915ece7da5ca9132843bea8519d327688a76f1f2dd165bcf0bf3d48dcfd2321",
+      "sha256": "5915ece7da5ca9132843bea8519d327688a76f1f2dd165bcf0bf3d48dcfd2321",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/08-17-prefix-split-dup.tgz",
+      "destination": "test/release-route/archive/fixtures/08-17-prefix-split-dup.tgz",
+      "sourceSha256": "b3ccfb8470848106d346250b27fcea74c1e78b5715f432dbec84652dcfe092c4",
+      "sha256": "b3ccfb8470848106d346250b27fcea74c1e78b5715f432dbec84652dcfe092c4",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/09-18-pax-dup.tgz",
+      "destination": "test/release-route/archive/fixtures/09-18-pax-dup.tgz",
+      "sourceSha256": "9d2544e43c839ed2b5547fd75a8633358f10c978cdf0000ce57a6e3f49602d57",
+      "sha256": "9d2544e43c839ed2b5547fd75a8633358f10c978cdf0000ce57a6e3f49602d57",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/10-19-pax-size.tgz",
+      "destination": "test/release-route/archive/fixtures/10-19-pax-size.tgz",
+      "sourceSha256": "e557bd3b413ad31d95808c6d0972147572fd6ec89f9bc0f182a2f33ecb916c21",
+      "sha256": "e557bd3b413ad31d95808c6d0972147572fd6ec89f9bc0f182a2f33ecb916c21",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/11-20-pax-global.tgz",
+      "destination": "test/release-route/archive/fixtures/11-20-pax-global.tgz",
+      "sourceSha256": "509f7e77256154a8a0223d71693783f1c4d56d55fc9d21bf30cc7a73aec3ff96",
+      "sha256": "509f7e77256154a8a0223d71693783f1c4d56d55fc9d21bf30cc7a73aec3ff96",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/12-21-gnu-longname.tgz",
+      "destination": "test/release-route/archive/fixtures/12-21-gnu-longname.tgz",
+      "sourceSha256": "10f150f3d05e65780fdeb64a9134693d32d61cbb533ca3c472c6d10b43804af6",
+      "sha256": "10f150f3d05e65780fdeb64a9134693d32d61cbb533ca3c472c6d10b43804af6",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/13-22-publishConfig-direct.tgz",
+      "destination": "test/release-route/archive/fixtures/13-22-publishConfig-direct.tgz",
+      "sourceSha256": "6cf9d3859a88451beadd94ff4f8a2786b0227c877f1d47577f5a3c2b7ecb2990",
+      "sha256": "6cf9d3859a88451beadd94ff4f8a2786b0227c877f1d47577f5a3c2b7ecb2990",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/14-23-other-name.tgz",
+      "destination": "test/release-route/archive/fixtures/14-23-other-name.tgz",
+      "sourceSha256": "3dab2cd81731fc3ac1bc98a56519f96e3130747688d2dd4a8fa0c1a558337462",
+      "sha256": "3dab2cd81731fc3ac1bc98a56519f96e3130747688d2dd4a8fa0c1a558337462",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/15-24-symlink-manifest.tgz",
+      "destination": "test/release-route/archive/fixtures/15-24-symlink-manifest.tgz",
+      "sourceSha256": "ca665009a0bf1d57e32dd322cf287a9df981908ffc25f3653caaa8ef6ea1827f",
+      "sha256": "ca665009a0bf1d57e32dd322cf287a9df981908ffc25f3653caaa8ef6ea1827f",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/16-25-trailing-data.tgz",
+      "destination": "test/release-route/archive/fixtures/16-25-trailing-data.tgz",
+      "sourceSha256": "a9cd5a249821dc52f8085829f2f31b20a12bbe1c5855c7e1c4b8d1b3fbf4928c",
+      "sha256": "a9cd5a249821dc52f8085829f2f31b20a12bbe1c5855c7e1c4b8d1b3fbf4928c",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/17-26-oldgnu-magic.tgz",
+      "destination": "test/release-route/archive/fixtures/17-26-oldgnu-magic.tgz",
+      "sourceSha256": "4b528e1e87e071904f18029fdada6e14cf658d099817bb4a009a65b3111839bc",
+      "sha256": "4b528e1e87e071904f18029fdada6e14cf658d099817bb4a009a65b3111839bc",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/18-27-npmrc-member.tgz",
+      "destination": "test/release-route/archive/fixtures/18-27-npmrc-member.tgz",
+      "sourceSha256": "ff1b05be6394040e505edb813d78ad43975f510a68be4d3637bc6cb5286b9285",
+      "sha256": "ff1b05be6394040e505edb813d78ad43975f510a68be4d3637bc6cb5286b9285",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/19-30-D1-ustar-version-ignored-prefix.tgz",
+      "destination": "test/release-route/archive/fixtures/19-30-D1-ustar-version-ignored-prefix.tgz",
+      "sourceSha256": "fab036237dce234bb3326519b92fa06d711944251fe78509cff94b932d5e8b0d",
+      "sha256": "fab036237dce234bb3326519b92fa06d711944251fe78509cff94b932d5e8b0d",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/20-31-D1b-ustar-nul-version.tgz",
+      "destination": "test/release-route/archive/fixtures/20-31-D1b-ustar-nul-version.tgz",
+      "sourceSha256": "ad3d05c2ccfa5aed6da081332cb7886d98d76807488cb105ed2702d0907531e8",
+      "sha256": "ad3d05c2ccfa5aed6da081332cb7886d98d76807488cb105ed2702d0907531e8",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/21-32-D2-checksum-8-digits-desync.tgz",
+      "destination": "test/release-route/archive/fixtures/21-32-D2-checksum-8-digits-desync.tgz",
+      "sourceSha256": "7708580f72b66276e2a5ff623625b7e5ae1cde78b475a0f63482792097600cae",
+      "sha256": "7708580f72b66276e2a5ff623625b7e5ae1cde78b475a0f63482792097600cae",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/22-33-D3-pax-bom-key.tgz",
+      "destination": "test/release-route/archive/fixtures/22-33-D3-pax-bom-key.tgz",
+      "sourceSha256": "d6d798d31223fedb59365fca24ec25ce96430981b6025fee281188158ee9b5d9",
+      "sha256": "d6d798d31223fedb59365fca24ec25ce96430981b6025fee281188158ee9b5d9",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/23-34-D4-link-nul-newline-desync.tgz",
+      "destination": "test/release-route/archive/fixtures/23-34-D4-link-nul-newline-desync.tgz",
+      "sourceSha256": "d9435646bf3dbd73d453826eb6b75712c5a7d9781751f37f34a16031348c83fa",
+      "sha256": "d9435646bf3dbd73d453826eb6b75712c5a7d9781751f37f34a16031348c83fa",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/24-35-D5-mode-bad-base256-desync.tgz",
+      "destination": "test/release-route/archive/fixtures/24-35-D5-mode-bad-base256-desync.tgz",
+      "sourceSha256": "481227f94ea0488712afd51406208ecb5cb91ef44d7fc01803c017b63d9fa7a3",
+      "sha256": "481227f94ea0488712afd51406208ecb5cb91ef44d7fc01803c017b63d9fa7a3",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/25-36-D5b-uid-bad-base256-desync.tgz",
+      "destination": "test/release-route/archive/fixtures/25-36-D5b-uid-bad-base256-desync.tgz",
+      "sourceSha256": "9b550e6c5f9b941c60e2e6b9e03bc51e19a4127ae2c60f5a79ed74ab4c03d514",
+      "sha256": "9b550e6c5f9b941c60e2e6b9e03bc51e19a4127ae2c60f5a79ed74ab4c03d514",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/26-37-D5c-mtime-bad-base256-desync.tgz",
+      "destination": "test/release-route/archive/fixtures/26-37-D5c-mtime-bad-base256-desync.tgz",
+      "sourceSha256": "157915553fd6bfb087ea5a41415e0687af8b602f12255716ee8e74ac2768422d",
+      "sha256": "157915553fd6bfb087ea5a41415e0687af8b602f12255716ee8e74ac2768422d",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/27-38-D6-prefix-bom-hides-visible.tgz",
+      "destination": "test/release-route/archive/fixtures/27-38-D6-prefix-bom-hides-visible.tgz",
+      "sourceSha256": "e9bed93b75f8a2c10cdcd290e98e09646dba3b115278c323913d85146e541e22",
+      "sha256": "e9bed93b75f8a2c10cdcd290e98e09646dba3b115278c323913d85146e541e22",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/28-39-D7-pax-plus-prefix.tgz",
+      "destination": "test/release-route/archive/fixtures/28-39-D7-pax-plus-prefix.tgz",
+      "sourceSha256": "16d98968f257bd96f0dfe526acd10791eba3944e30efdbb792e5038e45bf64f2",
+      "sha256": "16d98968f257bd96f0dfe526acd10791eba3944e30efdbb792e5038e45bf64f2",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/29-40-D8-name-nul-newline.tgz",
+      "destination": "test/release-route/archive/fixtures/29-40-D8-name-nul-newline.tgz",
+      "sourceSha256": "402450b11ca9ccca8f7ccf95fb4dfeb6911487de1864bc5c81eb467c4e4baae2",
+      "sha256": "402450b11ca9ccca8f7ccf95fb4dfeb6911487de1864bc5c81eb467c4e4baae2",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/30-41-J1-proto-publishConfig.tgz",
+      "destination": "test/release-route/archive/fixtures/30-41-J1-proto-publishConfig.tgz",
+      "sourceSha256": "8466493afb042497f8b398ccc852577002256e5d442a742b8fb2b4ef5dde421f",
+      "sha256": "8466493afb042497f8b398ccc852577002256e5d442a742b8fb2b4ef5dde421f",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/31-42-J2-manifest-bom.tgz",
+      "destination": "test/release-route/archive/fixtures/31-42-J2-manifest-bom.tgz",
+      "sourceSha256": "205e4b05a3555101f5fbab82f9a5fc7a1b977fa22b0fbad09d851964ac197e51",
+      "sha256": "205e4b05a3555101f5fbab82f9a5fc7a1b977fa22b0fbad09d851964ac197e51",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/32-43-J3-json-dup-keys.tgz",
+      "destination": "test/release-route/archive/fixtures/32-43-J3-json-dup-keys.tgz",
+      "sourceSha256": "842f38dfad3b89d1c6c3899e18665a7b723360e4660f8f9a755d93f7bc6b779e",
+      "sha256": "842f38dfad3b89d1c6c3899e18665a7b723360e4660f8f9a755d93f7bc6b779e",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/33-44-G1-gzip-zero-then-member.tgz",
+      "destination": "test/release-route/archive/fixtures/33-44-G1-gzip-zero-then-member.tgz",
+      "sourceSha256": "20bac02ad91e7ee9bf65d329b5f1eae9916d8845560ad34a86d599ccd39fbba6",
+      "sha256": "20bac02ad91e7ee9bf65d329b5f1eae9916d8845560ad34a86d599ccd39fbba6",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/34-50-D3-hidden-publishConfig-proxy.tgz",
+      "destination": "test/release-route/archive/fixtures/34-50-D3-hidden-publishConfig-proxy.tgz",
+      "sourceSha256": "b7c138572dbcfd09b8b94284ce981f0b7dbd90607c9b9b5ef977636276ff2cf5",
+      "sha256": "b7c138572dbcfd09b8b94284ce981f0b7dbd90607c9b9b5ef977636276ff2cf5",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/35-51-D1-hidden-publishConfig-proxy.tgz",
+      "destination": "test/release-route/archive/fixtures/35-51-D1-hidden-publishConfig-proxy.tgz",
+      "sourceSha256": "14074b3400ab8ed6b52af40763918f0453c66572831f0622456f7fbc46327cf1",
+      "sha256": "14074b3400ab8ed6b52af40763918f0453c66572831f0622456f7fbc46327cf1",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/36-60-stable-visible-rc-hidden.tgz",
+      "destination": "test/release-route/archive/fixtures/36-60-stable-visible-rc-hidden.tgz",
+      "sourceSha256": "aaef9ff497ec2553e86c757f449d411ffeb6f40a42859ef2180f26caf333de08",
+      "sha256": "aaef9ff497ec2553e86c757f449d411ffeb6f40a42859ef2180f26caf333de08",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/37-T0-baseline-rc.tgz",
+      "destination": "test/release-route/archive/fixtures/37-T0-baseline-rc.tgz",
+      "sourceSha256": "30f4742e88c56c22b40e26ecd7c2be72a214e5324ef57c8af01548f62ac71454",
+      "sha256": "30f4742e88c56c22b40e26ecd7c2be72a214e5324ef57c8af01548f62ac71454",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/38-T0-baseline-stable.tgz",
+      "destination": "test/release-route/archive/fixtures/38-T0-baseline-stable.tgz",
+      "sourceSha256": "2847aabf2f9f38f4ef1a78f13497f7d4d221fa069025dda46070466f68bbd39a",
+      "sha256": "2847aabf2f9f38f4ef1a78f13497f7d4d221fa069025dda46070466f68bbd39a",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/39-T1-rc-tag-latest.tgz",
+      "destination": "test/release-route/archive/fixtures/39-T1-rc-tag-latest.tgz",
+      "sourceSha256": "d24a15ab065c97acf41b813b63ecf1581f3b9845bfc6d57a7ab83f3ed81665b9",
+      "sha256": "d24a15ab065c97acf41b813b63ecf1581f3b9845bfc6d57a7ab83f3ed81665b9",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/40-T2-stable-tag-next.tgz",
+      "destination": "test/release-route/archive/fixtures/40-T2-stable-tag-next.tgz",
+      "sourceSha256": "d986cfa7b8b76906b9bdaafd0d7fd77ecbc78509c56c91d3663a79197acc4955",
+      "sha256": "d986cfa7b8b76906b9bdaafd0d7fd77ecbc78509c56c91d3663a79197acc4955",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/41-T3-rc-tag-scripts.tgz",
+      "destination": "test/release-route/archive/fixtures/41-T3-rc-tag-scripts.tgz",
+      "sourceSha256": "42e49449931b76236b6475800fdfb0c4f2041bf2d143e3a4c7614f2e822b72bc",
+      "sha256": "42e49449931b76236b6475800fdfb0c4f2041bf2d143e3a4c7614f2e822b72bc",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/fixtures/corpus.json",
+      "destination": "test/release-route/archive/fixtures/corpus.json",
+      "sourceSha256": "f3bc1ad4713074b6829ff0fb27b401487c79e76bd9b2adf32f708fc8afd82e77",
+      "sha256": "f3bc1ad4713074b6829ff0fb27b401487c79e76bd9b2adf32f708fc8afd82e77",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/inspector.cjs",
+      "destination": "src/release-route/archive/inspector.cjs",
+      "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
+      "sha256": "7d53d9c7cec39a041ac93a00e5375b5bbbad01250f928e3419c7d00a708dd739",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader. NEW in the profile, which the original's closed list never needed: no member may have a name some file system resolves to a different file (archive-name): two paths equal without letter case, a root member other than the exact package/package.json equal to it without case, and any segment ending in '.' or a space, holding '~' or ':', or with a Windows device base name (CON, PRN, AUX, NUL, COM1-9, LPT1-9)."
+    },
+    {
+      "source": "scripts/publish-release/archive/inspector.test.cjs",
+      "destination": "test/release-route/archive/inspector.test.cjs",
+      "sourceSha256": "e1a81ba8ea773a700c59ec51d72823cc8c5af974c07653bdb1322213acec7f90",
+      "sha256": "ec7c5086e742163119a7bc4babb73cf21ce8576c637da3799e16e7717070fe76",
+      "adaptation": "require path; refusal patterns include the named archive-* codes; the AGENTS.md positive lists it in the archive setting; the sibling .npmrc/binding.gyp/server.js case expects archive-denied:<member>, also under a widened setting."
+    },
+    {
+      "source": "scripts/publish-release/archive/manifest.cjs",
+      "destination": "src/release-route/archive/manifest.cjs",
+      "sourceSha256": "45b62772f4840d29c455a3bb4ed8f0a1a21459f60e9c465e3acfe8ada49957f0",
+      "sha256": "45b62772f4840d29c455a3bb4ed8f0a1a21459f60e9c465e3acfe8ada49957f0",
+      "adaptation": "exact"
+    },
+    {
+      "source": "scripts/publish-release/archive/refusal.cjs",
+      "destination": "src/release-route/archive/refusal.cjs",
+      "sourceSha256": "78cd4728d1ca76698f347fe3fd8b5a5ce58e345ee3e117ccc5dc1f34ca0e222a",
+      "sha256": "eb4cacec585dbb2c78510ce5fd1da1b490d9001805acc4487c14ffb239e9a56d",
+      "adaptation": "A { text } field prints a route-bounded label (member path, a space included, or entry-<n>) when it is printable ASCII without ':'; otherwise hashed as before."
+    },
+    {
+      "source": "scripts/publish-release/archive/strict-json.cjs",
+      "destination": "src/release-route/archive/strict-json.cjs",
+      "sourceSha256": "30be8b6addaffccaa6093e70e29114eb44e59b1a66d285a1c9befa75613363f7",
+      "sha256": "1395d10fb471be3fad43af89d4b6a8af04219628477a7a8236c2dd0895f6567b",
+      "adaptation": "parseStrictJson(bytes, { maxBytes, maxValues }) exported; parseManifest keeps the copied 1 MiB / 100,000-value bounds."
+    },
+    {
+      "source": "scripts/publish-release/archive/strict-json.test.cjs",
+      "destination": "test/release-route/archive/strict-json.test.cjs",
+      "sourceSha256": "021d16435ef19dc85252fb0e9b3e08e520a78db20dd101caee73c3d9c5b3aa66",
+      "sha256": "911f6b8d6da9b9dbf0b8cd88bb511472ef436207aa20be75c4394c9c4cee7b28",
+      "adaptation": "require paths."
+    },
+    {
+      "source": "scripts/publish-release/check-archive.cjs",
+      "destination": "src/release-route/archive/check-archive.cjs",
+      "sourceSha256": "b9391d1f9e071f7938339fc8e990eabd9676a40de4d7a85bd4fcf745a3404cca",
+      "sha256": "21a87d1e42ca83514c845e5a89a70ade7732ecc1a489e4d7e36a8b9964f31374",
+      "adaptation": "The route port: readIntake(intake) (the one reader of a built tarball) and checkArchive(intake, sourceBytes, version, archive); package name no longer hard-coded; release-candidate operation and CLI removed; refusals through refusal.cjs (archive-intake, archive-file, archive-version, publish-directory)."
+    },
+    {
+      "source": "package.json",
+      "destination": "test/release-route/archive/fixtures/source-package.json",
+      "sourceSha256": "e0d31c44ed8e88cd8bbf77f463d9d97c9779cdb2cd1e3eb108624c0d10f70b70",
+      "sha256": "a45f64fe891d0b0c07fc5971c4d29d4098db695738875577268dbe179e3fcf6f",
+      "adaptation": "footPrint package.json at the copied commit with its author value replaced by a neutral string (no person's name in a fixture; no test reads it); test fixture only."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "node": "22",
+  "systemPackages": ["ffmpeg"],
+  "install": "npm ci",
+  "checks": ["npm run test:temp", "npx publint", "npm run test:skills:render"],
+  "archive": ["src/", "plugin/", "types/", "themes/", "fonts/", "examples/", "tools/*.py", "CHANGELOG.md", "BACKLOG.md"],
+  "changelog": "titled"
+}

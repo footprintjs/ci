@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "node": "22",
+  "systemPackages": [],
+  "install": "npm ci",
+  "checks": ["npm test", "npm run build", "npx publint", "npx @arethetypeswrong/cli --pack --profile esm-only"],
+  "archive": ["dist/"],
+  "changelog": "keepachangelog"
+}
