@@ -5,9 +5,12 @@
 //   condition := '${{' or '}}'
 //   or        := and ('||' and)*
 //   and       := not ('&&' not)*
-//   not       := '!' not | '(' or ')' | 'cancelled()' | path '==' 'literal'
+//   not       := '!cancelled()' | '(' or ')' | 'cancelled()' | path '==' 'literal'
 //   path      := needs.<job>.result | needs.<job>.outputs.<name> | steps.<id>.outputs.<name>
 //
+// `!` is accepted ONLY directly before cancelled(): GitHub gives `!` a higher precedence than `==`
+// (`!needs.x.result == 'failure'` reads `(!'success') == 'failure'`, always false), and an evaluator
+// that read it the other way would compute a truth table GitHub does not run.
 // GitHub compares strings without regard to letter case; so does this (every value here is a
 // lowercase word of a closed alphabet anyway). A missing output (a skipped job has none) is ''.
 // Source of the job-level rules modelled by the callers: GitHub's expressions reference, "Status
@@ -57,7 +60,11 @@ export function parseCondition(condition) {
   };
   const not = () => {
     const token = list[at++];
-    if (token?.op === '!') return { not: not() };
+    if (token?.op === '!') {
+      if (list[at]?.call !== 'cancelled') throw new Error(`"!" before something other than cancelled() in ${condition}`);
+      at++;
+      return { not: { cancelled: true } };
+    }
     if (token?.op === '(') { const inner = or(); take(')'); return inner; }
     if (token?.call === 'cancelled') return { cancelled: true };
     if (token?.path) {

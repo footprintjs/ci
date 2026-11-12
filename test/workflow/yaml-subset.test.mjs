@@ -77,6 +77,9 @@ test('the evaluator: the few forms, GitHub\'s case-insensitive equality, and a r
   assert.equal(evaluate(parseCondition('${{ !cancelled() }}'), { ...world, cancelled: true }), false);
   assert.throws(() => evaluate(parseCondition("${{ needs.other.result == 'success' }}"), world), /not a job this one needs/);
   for (const condition of ["${{ needs.plan.result != 'success' }}", '${{ always() }}', '${{ success() }}', "${{ contains(needs.plan.outputs.mode, 'p') }}",
-    "needs.plan.result == 'success'", "${{ github.ref == 'refs/heads/main' }}", '${{ needs.plan.result }}', "${{ 'a' == needs.plan.result }}", "${{ needs.plan.result == 'Success' }}"])
+    "needs.plan.result == 'success'", "${{ github.ref == 'refs/heads/main' }}", '${{ needs.plan.result }}', "${{ 'a' == needs.plan.result }}", "${{ needs.plan.result == 'Success' }}",
+    // N5: GitHub gives `!` a higher precedence than `==` (`!needs.x.result == 'failure'` is `(!'success') == 'failure'`,
+    // always false); the evaluator allows `!` only directly before cancelled().
+    "${{ !needs.plan.result == 'failure' }}", "${{ !(needs.plan.result == 'success') }}", '${{ !!cancelled() }}', "${{ !cancelled() && !needs.plan.outputs.mode == 'publish' }}"])
     assert.throws(() => parseCondition(condition), Error, condition);
 });
