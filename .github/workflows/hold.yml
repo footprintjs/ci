@@ -1,0 +1,56 @@
+name: Release hold check
+on:
+  workflow_call:
+    inputs:
+      tool_sha:
+        description: Reviewed full footprintjs/ci commit; pin the caller uses to the same SHA
+        required: true
+        type: string
+      mode:
+        description: "publish (first job of a publish workflow) or pull-request (fails a version-changing pull request)"
+        required: true
+        type: string
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+jobs:
+  hold:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Validate tool pin and mode
+        shell: bash
+        env:
+          TOOL_SHA: ${{ inputs.tool_sha }}
+          HOLD_MODE: ${{ inputs.mode }}
+        run: |
+          [[ "$TOOL_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo "Hold check FAILED: tool_sha is not a full commit SHA."; exit 1; }
+          [[ "$HOLD_MODE" == "publish" || "$HOLD_MODE" == "pull-request" ]] || { echo "Hold check FAILED: mode must be publish or pull-request."; exit 1; }
+      - name: Checkout reviewed check
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: footprintjs/ci
+          ref: ${{ inputs.tool_sha }}
+          persist-credentials: false
+          path: hold-tool
+      - name: Checkout candidate merge tree (pull-request mode reads its versions)
+        if: inputs.mode == 'pull-request'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+          path: source
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Refuse while a hold-release label is open
+        shell: bash
+        env:
+          HOLD_MODE: ${{ inputs.mode }}
+          GH_TOKEN: ${{ github.token }}
+          HOLD_EVENT_NAME: ${{ github.event_name }}
+          HOLD_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HOLD_SOURCE_DIR: source
+        run: node hold-tool/scripts/hold.mjs

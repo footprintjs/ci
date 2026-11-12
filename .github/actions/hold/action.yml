@@ -1,0 +1,37 @@
+name: Release hold check (step)
+description: >-
+  Fails the job while an open issue or pull request carries the label hold-release.
+  Put it directly before the npm publish step of the SAME job: a re-run of a failed
+  job then looks again, which the hold.yml job form cannot promise.
+inputs:
+  token:
+    description: Read-only token that may list issues and pull requests (issues read, pull-requests read)
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Refuse while a hold-release label is open
+      shell: bash
+      # Values reach the command through env: only. The mode is fixed here: there is no input for it.
+      env:
+        HOLD_MODE: publish
+        GH_TOKEN: ${{ inputs.token }}
+        HOLD_ACTION_PATH: ${{ github.action_path }}
+        # A job-level NODE_OPTIONS (for example --import=...) would load the caller's code into the check; the step starts clean.
+        NODE_OPTIONS: ''
+      run: |
+        # The command is the one in this action's own commit (action_path = .github/actions/hold),
+        # so a caller has one pin. Every way of not being able to look ends in exit 1.
+        no() { echo "Hold check FAILED: could not check for a hold ($1)."; exit 1; }
+        command -v node >/dev/null || no "node is not installed on this runner; add actions/setup-node before this step"
+        [ -n "$HOLD_ACTION_PATH" ] || no "the action path is unknown"
+        root="$HOLD_ACTION_PATH/../../.."
+        [ -f "$root/scripts/hold.mjs" ] || no "the check script is missing next to this action"
+        have=$(node --version) && have=${have#v} || no "node cannot report its version"
+        need=$(node -p 'require(process.argv[1]).engines.node' "$root/package.json") && need=${need#>=} || no "the minimum node version cannot be read from package.json"
+        [[ "$have" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "$need" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || no "node version $have or the required version $need is not plain x.y.z"
+        order=$(printf '%s\n%s\n' "$need" "$have" | sort -V) || no "sort -V could not order the versions, so node $have cannot be compared with the $need needed"
+        [[ "$order" == *$'\n'* ]] || no "sort -V gave no ordering, so node $have cannot be compared with the $need needed"
+        [ "${order%%$'\n'*}" = "$need" ] || no "node $have is older than the $need this check needs"
+        node "$root/scripts/hold.mjs"
