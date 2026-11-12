@@ -148,7 +148,15 @@ test('above every walk, one fixed line says side-by-side steps may be shown one 
   assert.ok(lines[at + 2].startsWith('Walk: '));
 });
 
-test('why refuses, at once and without reading on, anything that is not a regular file within the bound', (t) => {
+// The module's reader runs in a child process with a deadline, never in this one: a reader that
+// blocks (an open that waits for a FIFO's writer, a read of /dev/zero that never ends) blocks the
+// thread it runs on, and node:test's own `timeout` cannot interrupt a test whose thread is blocked,
+// so in this process a broken reader would hang the whole suite instead of failing this test.
+const READ_IN_A_CHILD = `import { readRouteRecord } from ${JSON.stringify(new URL('../../../src/release-route/chart/why.mjs', import.meta.url).href)};
+import { asRefusal } from ${JSON.stringify(new URL('../../../src/release-route/refusals.mjs', import.meta.url).href)};
+try { readRouteRecord(process.argv[1]); console.log('answered'); } catch (error) { console.log(asRefusal(error).code); }`;
+
+test('why refuses, without reading on, anything that is not a regular file within the bound (each within 5 seconds)', { timeout: 60_000 }, (t) => {
   const dir = folder(t);
   const fifo = join(dir, 'fifo');
   assert.equal(spawnSync('mkfifo', [fifo]).status, 0);
@@ -156,9 +164,9 @@ test('why refuses, at once and without reading on, anything that is not a regula
   writeFileSync(join(dir, 'big'), '');
   truncateSync(join(dir, 'big'), MAX_RECORD_BYTES + 1);
   for (const file of ['/dev/zero', fifo, join(dir, 'folder'), join(dir, 'big')]) {
-    const started = Date.now();
-    assert.equal(code(() => readRouteRecord(file)), 'record-unreadable', file);
-    assert.ok(Date.now() - started < 1000, `${file} took too long`);
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', READ_IN_A_CHILD, file], { encoding: 'utf8', timeout: 5000 });
+    assert.equal(result.signal, null, `${file}: the reader did not finish within 5 seconds`);
+    assert.equal(result.stdout.trim(), 'record-unreadable', file);
   }
 });
 
