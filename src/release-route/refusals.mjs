@@ -59,6 +59,7 @@ export const REFUSALS = Object.freeze({
 
   // Building the package.
   'output-folder': 'The output folder is not an empty folder the route may write.',
+  'node-version': 'The Node running the build is not the major version the settings name.',
   'system-packages-failed': 'Installing the system packages failed.',
   'install-failed': 'The install command failed.',
   'check-failed': 'A check failed.',
