@@ -1,9 +1,11 @@
 // Observe, then plan, against recorded real answers. The storydeck case is the family as it is
-// today: storydeck main a3936e3 (package.json and CHANGELOG.md are the real blobs), the tag list
+// today: storydeck main a3936e3 (package.json and CHANGELOG.md are the real blobs, the author value
+// made neutral), the tag list
 // from `git ls-remote` on github.com, npm's real package document, and GitHub's real compare
 // answer for a ci commit on main, all saved 2026-11-12. The one thing storydeck does not have yet
 // is .github/release.json: the test adds the file its pull request A will add (design section 2).
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { observe } from '../../src/release-route/observe.mjs';
@@ -32,8 +34,12 @@ async function run({ files = today, lsRemote = fixture('storydeck-today/ls-remot
   return { observed, result: plan({ facts: observed.facts }) };
 }
 
-test('the fixtures are the real storydeck blobs at a3936e3', () => {
-  assert.equal(blobId(today['package.json']), '0a134d3e17fe5811fef85cb5a8518842b9ec0f51');
+test('the fixtures are the real storydeck blobs at a3936e3 (package.json with its author value made neutral)', () => {
+  // The real package.json blob is 0a134d3e17fe5811fef85cb5a8518842b9ec0f51; its "author" value is
+  // replaced by a neutral string so no person's name is kept in a fixture, so it is pinned by
+  // its own hash here. No test reads the author.
+  assert.equal(createHash('sha256').update(today['package.json']).digest('hex'), 'dc1a7e2ef32048b8334bf1ff323c32ef5fd1598fe0378683bc0e1acb72f67ba1');
+  assert.equal(JSON.parse(today['package.json']).author, 'Package Author');
   assert.equal(blobId(today['CHANGELOG.md']), '6c967696db5752073ac3313952345e3db6f45d75');
 });
 

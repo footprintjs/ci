@@ -393,8 +393,8 @@
       "source": "package.json",
       "destination": "test/release-route/archive/fixtures/source-package.json",
       "sourceSha256": "e0d31c44ed8e88cd8bbf77f463d9d97c9779cdb2cd1e3eb108624c0d10f70b70",
-      "sha256": "e0d31c44ed8e88cd8bbf77f463d9d97c9779cdb2cd1e3eb108624c0d10f70b70",
-      "adaptation": "exact; test fixture only (the source manifest the copied tests were written against)"
+      "sha256": "a45f64fe891d0b0c07fc5971c4d29d4098db695738875577268dbe179e3fcf6f",
+      "adaptation": "footPrint package.json at the copied commit with its author value replaced by a neutral string (no person's name in a fixture; no test reads it); test fixture only."
     }
   ]
 }

@@ -4,7 +4,7 @@
   "description": "React views and a deck CLI for turning one structured story into an article, scrollytelling page, slide deck, narrated video or PowerPoint.",
   "type": "module",
   "license": "MIT",
-  "author": "Sanjay Krishna Anbalagan",
+  "author": "Package Author",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/footprintjs/storydeck.git"
