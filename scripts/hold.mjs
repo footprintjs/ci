@@ -5,7 +5,7 @@ import { runHold } from '../src/hold/run.mjs';
 // request's head SHA, used by pull-request mode to prove which commit it reads) and
 // HOLD_SOURCE_DIR (the caller's checkout, default ".") from `env:`, never from a script
 // string; the runner itself provides GITHUB_REPOSITORY (the CALLER's repository, also
-// inside a reusable workflow) and GITHUB_API_URL.
+// inside a reusable workflow). GITHUB_API_URL is not read: the API host is fixed (src/shared/github.mjs).
 const dir = process.env.HOLD_SOURCE_DIR || '.';
 const git = (args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 let result = { code: 1, lines: ['Hold check FAILED: could not check for a hold (the command itself failed to start).'] };

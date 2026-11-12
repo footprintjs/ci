@@ -107,12 +107,12 @@ The workflow form does not compare `tool_sha` with the `uses:` pin: `hold.yml` o
 | `HOLD_MODE` | `publish` or `pull-request` | exit 1, could not check |
 | `GH_TOKEN` | a token that may list issues and pull requests; sent in one header to the API host, never printed | exit 1, could not check |
 | `GITHUB_REPOSITORY` | `owner/name` of the repository whose labels are read (the runner sets it to the CALLER's repository, also inside a reusable workflow) | exit 1, could not check |
-| `GITHUB_API_URL` | API base, a plain `https` URL; default `https://api.github.com` (the runner sets it) | a value that is not a plain https URL: exit 1 |
+| `GITHUB_API_URL` | **not read.** The API host is fixed, `https://api.github.com` (`src/shared/github.mjs`), so the token never goes to a host an environment variable named. GitHub Enterprise Server is not supported. | ignored |
 | `HOLD_EVENT_NAME` | the caller's event name; `pull-request` mode accepts only `pull_request` | `pull-request` mode: exit 1 |
 | `HOLD_HEAD_SHA` | the pull request's head commit (40 lowercase hex), proof of which merge commit was checked out | `pull-request` mode: exit 1 |
 | `HOLD_SOURCE_DIR` | the git checkout `pull-request` mode reads, default `.` | `pull-request` mode: a directory that is not a merge checkout: exit 1 |
 
-Only `publish` mode needs the first three (and optionally `GITHUB_API_URL`); the last three are read in `pull-request` mode only. Exit status: 0 only when the decision is "no hold" (or, in `pull-request` mode, "this pull request leaves the version alone"); everything else, including every failure to look, is 1.
+Only `publish` mode needs the first three; the last three are read in `pull-request` mode only. Exit status: 0 only when the decision is "no hold" (or, in `pull-request` mode, "this pull request leaves the version alone"); everything else, including every failure to look, is 1.
 
 ## This repository's own run
 
@@ -146,7 +146,7 @@ Nothing turns an exception into a pass.
 
 - Titles and versions are text the check does not control. Control, bidirectional-format and separator characters are removed, whitespace collapses, text is cut, `::` and `##[` are broken up wherever they appear (so `a ::error:: b` prints as `a : :error: : b`). A `::` command is read at the start of a line; the runner's older syntax may read `##[` anywhere in a line (not run here), and the check breaks it up either way, and no printed line starts with untrusted text.
 - `tool_sha`, `mode`, the event name and the pull request head SHA reach the scripts through `env:` only, are validated, and are never interpolated into a `run:` script; the action has no `${{ }}` inside its `run:` either.
-- The token is whatever the job or step is given: for the `hold.yml` job that is its read-only `GITHUB_TOKEN`, but the step runs inside the publish job, whose token may carry `id-token: write` or more, and a caller can pass any token as `token:`. What the check does with it: sends it in one GET header to the API host (`api.github.com` or `GITHUB_API_URL`) and nowhere else, never follows a redirect with it, never prints it; if a library ever did, it is masked in the output. Give the step the narrowest token that can list issues.
+- The token is whatever the job or step is given: for the `hold.yml` job that is its read-only `GITHUB_TOKEN`, but the step runs inside the publish job, whose token may carry `id-token: write` or more, and a caller can pass any token as `token:`. What the check does with it: sends it in one GET header to the fixed API host `api.github.com` and nowhere else, never follows a redirect with it, never prints it; if a library ever did, it is masked in the output. Give the step the narrowest token that can list issues.
 - A pull request from a fork runs with a read-only token and needs no secret. The step reads no secret either.
 
 ## What it does NOT do
@@ -158,4 +158,4 @@ Nothing turns an exception into a pass.
 - It is not a release approval. A passing check means "no hold is open", nothing more.
 - Adopting it in a repository is a separate, reviewed change to that repository's workflows and ruleset.
 
-Developers: the decision is the pure `src/hold/decide.mjs`; `src/hold/run.mjs` wires the request (`http.mjs`, `list-holds.mjs`) and git (`versions.mjs`) into it, both injected so tests make no network call. The command is `scripts/hold.mjs`; the step form is `.github/actions/hold/action.yml`, a few lines of bash that call it. Tests spawn the real command (and the action's real `run:` script) with `test/hold/support/fetch-stub.mjs` loaded by `node --import`. It does not use `src/github-readonly.mjs`: that client's routes are fixed to a single other repository and its allow-list refuses the `state` and `labels` query keys, so widening it would loosen a separately reviewed boundary.
+Developers: the decision is the pure `src/hold/decide.mjs`; `src/hold/run.mjs` wires the request (`http.mjs`, `list-holds.mjs`) and git (`versions.mjs`) into it, both injected so tests make no network call. The request goes through the repository's one bounded GET, the text cleaner and the GitHub host/token rule in `src/shared/` (shared with the release route; neither feature imports the other). The command is `scripts/hold.mjs`; the step form is `.github/actions/hold/action.yml`, a few lines of bash that call it. Tests spawn the real command (and the action's real `run:` script) with `test/hold/support/fetch-stub.mjs` loaded by `node --import`. It does not use `src/github-readonly.mjs`: that client's routes are fixed to a single other repository and its allow-list refuses the `state` and `labels` query keys, so widening it would loosen a separately reviewed boundary.

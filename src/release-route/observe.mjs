@@ -47,7 +47,7 @@ export async function observe({ env, git, fetcher }) {
   facts.refIsMain = typeof env.GITHUB_REF === 'string' && env.GITHUB_REF !== '' ? env.GITHUB_REF === 'refs/heads/main' : null;
   facts.toolCommitPlain = isCommit(env.ROUTE_TOOL_SHA);
   if (facts.toolCommitPlain)
-    await read('toolReviewed', () => toolReviewed({ fetcher, sha: env.ROUTE_TOOL_SHA, token: env.GITHUB_TOKEN, apiUrl: env.GITHUB_API_URL }));
+    await read('toolReviewed', () => toolReviewed({ fetcher, sha: env.ROUTE_TOOL_SHA, token: env.GITHUB_TOKEN }));
 
   let settings = null;
   await read('settingsRead', () => {

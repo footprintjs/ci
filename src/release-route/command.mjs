@@ -3,7 +3,7 @@
 // into a script line); each step prints a short summary, writes closed-alphabet outputs, and
 // returns 0 or 1. Every exception ends as a named refusal and exit 1: no catch here passes.
 //
-//   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN, GITHUB_API_URL]
+//   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN]
 //            -> mode, rule, compare, commit, [package, version]       (exit 0 also for "nothing")
 //   build    ROUTE_COMMIT, ROUTE_OUT                                   -> file
 //   inspect  ROUTE_COMMIT, ROUTE_TARBALL_DIR                           (re-checks package.tgz)
@@ -20,7 +20,7 @@ import { compareWithNpm } from './registry.mjs';
 import { readAtCommit } from './repo.mjs';
 import { asRefusal, REFUSALS, refuse } from './refusals.mjs';
 import { MAX_SETTINGS_BYTES, readSettings, SETTINGS_PATH } from './settings.mjs';
-import { printable } from './text.mjs';
+import { clean as printable } from '../shared/text.mjs';
 
 export const STEPS = Object.freeze(['plan', 'build', 'inspect', 'verify', 'notes']);
 

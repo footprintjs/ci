@@ -1,73 +1,31 @@
-// The ONE way the route asks the network: a bounded GET through an injected fetch.
-//
-// - GET only, https only, no user or password in the URL; the CALLER names the host (npm's
-//   registry, or GitHub's API) and checks it before calling.
-// - A redirect is never followed: `redirect: 'manual'` hands the 3xx back and it is refused, so
-//   a header can never travel to a host the route did not name.
-// - One timeout covers the request AND the body; the body is read in chunks and abandoned the
-//   moment it passes its bound (a Content-Length over the bound is refused before reading).
-// - The answer is { status, bytes }; which statuses are acceptable is the caller's question.
-// - Messages never include a header value, so a token cannot reach the log through here.
-import { refuse } from './refusals.mjs';
+// The release route's words for the one bounded GET (src/shared/http.mjs): every way a request
+// can fail becomes a named refusal, and answers are read with the strict JSON reader. The rules
+// of the request itself (https only, redirects refused, a held timer, a streaming byte bound)
+// live in the shared module, which the hold check uses too.
+import { boundedGet as sharedGet, HttpFailure } from '../shared/http.mjs';
 import strictJson from './archive/strict-json.cjs';
+import { refuse } from './refusals.mjs';
 
 export const REQUEST_TIMEOUT_MS = 30_000;
 
-export async function boundedGet({ fetcher, url, headers = {}, maxBytes, timeoutMs = REQUEST_TIMEOUT_MS }) {
-  let parsed;
-  try { parsed = new URL(url); } catch { refuse('input-invalid', 'url'); }
-  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) refuse('input-invalid', 'url');
-  if (typeof fetcher !== 'function' || !Number.isSafeInteger(maxBytes) || maxBytes < 1) refuse('input-invalid', 'request');
-  // A timer we hold (not AbortSignal.timeout, whose timer Node does not keep alive: on Node 22
-  // a stalled request with no open socket let the process end before the timeout fired).
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new DOMException('timeout', 'TimeoutError')), timeoutMs);
-  const signal = controller.signal;
-  try {
-    let response;
-    try {
-      response = await fetcher(parsed.href, { method: 'GET', redirect: 'manual', signal, headers });
-    } catch (error) {
-      refuse('request-failed', `${parsed.host} ${error?.name === 'TimeoutError' ? 'timeout' : 'network error'}`);
-    }
-    const status = response?.status;
-    if (!Number.isInteger(status)) refuse('request-failed', `${parsed.host} no usable response`);
-    if (status >= 300 && status < 400) refuse('response-redirect', `${parsed.host} HTTP ${status}`);
-    const length = Number(response.headers?.get?.('content-length'));
-    if (Number.isFinite(length) && length > maxBytes) refuse('response-too-large', parsed.host);
-    return { status, bytes: await readBody(response, maxBytes, parsed.host, signal) };
-  } finally {
-    clearTimeout(timer);
-    controller.abort();
-  }
-}
+const WORDS = Object.freeze({
+  url: (f) => ['input-invalid', 'url'],
+  request: (f) => ['input-invalid', 'request'],
+  network: (f) => ['request-failed', `${f.host} network error`],
+  timeout: (f) => ['request-failed', `${f.host} timeout`],
+  'no-response': (f) => ['request-failed', `${f.host} no usable response`],
+  body: (f) => ['request-failed', `${f.host} body not read`],
+  redirect: (f) => ['response-redirect', `${f.host} HTTP ${f.status}`],
+  'too-large': (f) => ['response-too-large', f.host],
+});
 
-async function readBody(response, maxBytes, host, signal) {
-  if (!response.body || typeof response.body.getReader !== 'function') return Buffer.alloc(0);
-  const reader = response.body.getReader();
-  const chunks = [];
-  let size = 0;
-  // Each read races the timeout: a server that sends headers and then stalls must not hold
-  // the job past the bound (a fetch does not always tie the body stream to its signal).
-  const timedOut = new Promise((_, reject) => {
-    if (signal.aborted) reject(signal.reason);
-    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-  });
-  timedOut.catch(() => {});
+export async function boundedGet({ fetcher, url, headers = {}, maxBytes, timeoutMs = REQUEST_TIMEOUT_MS }) {
   try {
-    for (;;) {
-      const { done, value } = await Promise.race([reader.read(), timedOut]);
-      if (done) break;
-      size += value.byteLength;
-      if (size > maxBytes) refuse('response-too-large', host);
-      chunks.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
-    }
+    return await sharedGet({ fetcher, url, headers, maxBytes, timeoutMs });
   } catch (error) {
-    await reader.cancel().catch(() => {});
-    if (error?.name === 'Refusal') throw error;
-    refuse('request-failed', `${host} ${error?.name === 'TimeoutError' ? 'timeout' : 'body not read'}`);
+    if (error instanceof HttpFailure && Object.hasOwn(WORDS, error.kind)) refuse(...WORDS[error.kind](error));
+    throw error;
   }
-  return Buffer.concat(chunks);
 }
 
 // Strict JSON (duplicate keys refused) with the given bounds, as a network answer.

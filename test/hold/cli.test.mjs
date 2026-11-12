@@ -17,12 +17,6 @@ test('the command exits 1 and says it could not check when its inputs are unusab
     assert.match(result.stdout, /Hold check FAILED: could not check/);
   }
 });
-test('the command exits 1 when the API cannot be reached (a name that never resolves)', () => {
-  const result = run({ HOLD_MODE: 'publish', GITHUB_REPOSITORY: 'a/b', GH_TOKEN: 'ghs_x', GITHUB_API_URL: 'https://hold-check.invalid' });
-  assert.equal(result.status, 1);
-  assert.match(result.stdout, /could not check/);
-});
-
 // The exit code is the whole product, so these run the REAL command (scripts/hold.mjs) with the network
 // replaced by test/hold/support/fetch-stub.mjs, loaded with `node --import`. The stub answers what the
 // test says and echoes each request (method and URL, never headers) to stderr.
@@ -30,6 +24,13 @@ const stub = pathToFileURL(resolve('test/hold/support/fetch-stub.mjs')).href;
 const runStubbed = (answer, env = {}) => spawnSync(process.execPath, ['--import', stub, cli], { encoding: 'utf8',
   env: { PATH: process.env.PATH, HOLD_MODE: 'publish', GITHUB_REPOSITORY: 'footprintjs/example', GH_TOKEN: 'ghs_secret_token_value',
     ...(answer.status ? { HOLD_STUB_STATUS: String(answer.status) } : {}), ...(answer.body !== undefined ? { HOLD_STUB_BODY: answer.body } : {}), ...env } });
+
+test('the command exits 1 when the API cannot be reached (the stub fails as an unreachable host does)', () => {
+  const result = runStubbed({ status: 'network-error' }, { GITHUB_API_URL: 'https://hold-check.invalid' });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /could not check for a hold \(the request failed or timed out \(network error\)\)/);
+  assert.match(result.stderr, /^STUB-REQUEST GET https:\/\/api\.github\.com\//);
+});
 
 test('exit code: one open hold makes the command exit 1 and print the listing', () => {
   const result = runStubbed({ body: JSON.stringify([{ number: 12, title: 'Hold 10.8 until review' }, { number: 15, title: 'Heading', pull_request: {} }]) });

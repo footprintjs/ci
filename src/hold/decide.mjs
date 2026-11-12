@@ -5,26 +5,19 @@
 // Why a hold exists: on 12 Nov 2026 one session was told to hold a release and another
 // session, which could not see that, published it. A published npm version cannot be
 // taken back, so the hold lives in the repository, as a label, where a machine reads it.
+import { clean } from '../shared/text.mjs';
+import { isRepository } from '../shared/github.mjs';
+
 export const LABEL = 'hold-release';
 export const MODES = Object.freeze(['publish', 'pull-request']);
 const MAX_LISTED = 50;
-const REPO = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 
-// Titles and versions come from people (a pull request's head can say anything), and
-// they are printed into a CI log where a line starting with `::` is a workflow command
-// and the runner's older syntax may read `##[` anywhere in a line (not run here, so both
-// are broken up either way). So: control, format (bidi overrides), line/paragraph
-// separators and unassigned characters never survive, whitespace collapses to single spaces, `::` and `##[` are broken up wherever
-// they appear ("a ::error:: b" prints as "a : :error: : b", "x ##[add-mask]y" as
-// "x # #[add-mask]y": still readable, no longer a command), and the text is cut. A line
-// we print never STARTS with untrusted text either (see `lines` below).
-export function clean(value, max = 80) {
-  const text = typeof value === 'string' ? value : '';
-  const flat = text.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, ' ').replace(/[\p{Cf}\p{Cs}\p{Co}\p{Cn}]/gu, '')
-    .replace(/\s+/gu, ' ').trim().replace(/:(?=:)/g, ': ').replace(/#(?=#\[)/g, '# ');
-  const points = Array.from(flat);
-  return points.length > max ? `${points.slice(0, max).join('')}...` : flat;
-}
+// Titles and versions come from people (a pull request's head can say anything), and they are
+// printed into a CI log. The one cleaner for such text is src/shared/text.mjs · clean (control,
+// format and bidi characters out, `::` and `##[` broken apart, cut); it is re-exported here
+// because the hold check prints with it. A line we print never STARTS with untrusted text either
+// (see `lines` below).
+export { clean };
 
 // A gate that cannot look must not say "no hold": every failure to check lands here.
 export function cannotCheck(reason) {
@@ -37,7 +30,7 @@ export function cannotCheck(reason) {
 // The first reason the inputs are unusable, or null. Asked before any request is made.
 export function inputProblem({ mode, repo }) {
   if (!MODES.includes(mode)) return `unknown mode, expected one of ${MODES.join(', ')}`;
-  if (typeof repo !== 'string' || !REPO.test(repo) || repo.split('/').some((part) => /^\.+$/.test(part)))
+  if (!isRepository(repo))
     return 'repository name is missing or malformed';
   return null;
 }

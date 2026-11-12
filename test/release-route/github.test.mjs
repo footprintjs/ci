@@ -35,15 +35,14 @@ test('anything else is a refusal, never a pass', async () => {
   assert.equal(await refusedWith(toolReviewed({ fetcher: fakeFetch({}).fetcher, sha: 'HEAD' })), 'input-invalid tool commit');
 });
 
-test('the token goes in one header to the API host only; a bad API URL is refused before any request', async () => {
-  const { fetcher, calls } = fakeFetch({ [URL_C]: json(behind), [URL_C.replace('api.github.com', 'ghe.example.invalid/api/v3')]: json(behind) });
+test('the token goes in one header to the fixed API host only; GITHUB_API_URL is not an input', async () => {
+  const { fetcher, calls } = fakeFetch({ [URL_C]: json(behind) });
   await toolReviewed({ fetcher, sha: SHA, token: 'ghs_secret' });
+  assert.equal(calls[0].url, URL_C);
   assert.equal(calls[0].headers.authorization, 'Bearer ghs_secret');
-  await toolReviewed({ fetcher, sha: SHA, apiUrl: 'https://ghe.example.invalid/api/v3/' });
-  assert.equal(calls[1].url, `https://ghe.example.invalid/api/v3/repos/footprintjs/ci/compare/main...${SHA}?per_page=1`);
+  await toolReviewed({ fetcher, sha: SHA, apiUrl: 'https://evil.example/api/v3/' });
+  assert.equal(calls[1].url, URL_C);
   assert.ok(!('authorization' in calls[1].headers));
-  for (const apiUrl of ['http://api.github.com', 'https://x:y@api.github.com', 'https://api.github.com/?a=1', 'nope'])
-    assert.equal(await refusedWith(toolReviewed({ fetcher, sha: SHA, apiUrl })), 'input-invalid GITHUB_API_URL');
   assert.equal(await refusedWith(toolReviewed({ fetcher, sha: SHA, token: 'bad token' })), 'input-invalid GITHUB_TOKEN');
   assert.equal(calls.length, 2);
 });

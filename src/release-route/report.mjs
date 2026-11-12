@@ -10,7 +10,7 @@
 import { appendFileSync } from 'node:fs';
 import { COMMIT, PLAIN_VERSION, isPackageName } from './identity.mjs';
 import { refuse } from './refusals.mjs';
-import { neutralise, clean } from './text.mjs';
+import { clean } from '../shared/text.mjs';
 
 const OUTPUTS = Object.freeze({
   mode: (v) => /^(publish|recover|dry-run|nothing)$/.test(v),
@@ -25,7 +25,7 @@ const OUTPUTS = Object.freeze({
 });
 
 export function safeLine(line) {
-  const text = neutralise(clean(String(line), 400));
+  const text = clean(String(line), 400);
   return /^[A-Za-z]/.test(text) ? text : `Note: ${text}`;
 }
 

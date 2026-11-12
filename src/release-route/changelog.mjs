@@ -9,9 +9,9 @@
 // keepachangelog link definitions ("[4.1.0]: https://...") at the end of a section are dropped.
 // Two sections for one version is a refusal: which one would be the notes?
 //
-// Text out is bounded and has no control characters (text.mjs); the caller decides where it goes.
+// Text out is bounded and has no control characters (src/shared/text.mjs); the caller decides where it goes.
 import { refuse } from './refusals.mjs';
-import { clean, cleanLines } from './text.mjs';
+import { cleanLines, flatten } from '../shared/text.mjs';
 
 export const MAX_CHANGELOG_BYTES = 2 * 1024 * 1024;
 // Any x.y.z in a heading; the section is the one whose text equals the planned version exactly.
@@ -56,5 +56,5 @@ export function findSection(text, version, style) {
   const body = lines.slice(start, end);
   while (body.length > 0 && (body.at(-1).trim() === '' || LINK_DEFINITION.test(body.at(-1)))) body.pop();
   while (body.length > 0 && body[0].trim() === '') body.shift();
-  return { title: clean(title, 120), lines: cleanLines(body.join('\n')) };
+  return { title: flatten(title, 120), lines: cleanLines(body.join('\n')) };
 }
