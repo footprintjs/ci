@@ -6,7 +6,7 @@ The core of the shared release route: small modules, one job each, built-in Node
 `test/release-route/`.
 
 Read `docs/RELEASE-ROUTE.md` for what each module is for and why, the settings file, the rule
-table, every refusal, and the borrowed archive inspector in `archive/`.
+table, the borrowed archive inspector in `archive/`, and (in `docs/RELEASE-ROUTE-REFUSALS.md`) every refusal.
 
 Two rules to keep when changing anything here:
 

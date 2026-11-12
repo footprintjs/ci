@@ -71,12 +71,17 @@ test('action step: a node older than package.json engines asks is exit 1 and nam
 test('action step: a sort that cannot order the versions is exit 1 with its own line, not "node is older"', (t) => {
   const bin = tempDir(t);
   writeFileSync(join(bin, 'node'), `#!/bin/sh\nexec "${process.execPath}" "$@"\n`);
-  writeFileSync(join(bin, 'sort'), '#!/bin/sh\nexit 1\n');
+  // Each fake sort READS ALL OF ITS INPUT before it exits, as a real sort does. One that exits
+  // without reading closes the pipe while `printf` may still be writing: the writer then dies of
+  // SIGPIPE (status 141) and, under pipefail, the step takes the "could not order" path instead of
+  // the case the fake stands for. That race made this test fail by chance on Node 22 in CI
+  // (run 43273576700).
+  writeFileSync(join(bin, 'sort'), '#!/bin/sh\ncat >/dev/null\nexit 1\n');
   chmodSync(join(bin, 'node'), 0o755); chmodSync(join(bin, 'sort'), 0o755);
   const failing = runAction(t, { path: `${bin}:/usr/bin:/bin` });
   couldNotCheck(failing, /sort -V could not order the versions/);
   assert.doesNotMatch(failing.stdout, /older than/);
-  writeFileSync(join(bin, 'sort'), '#!/bin/sh\nexit 0\n'); // succeeds, prints nothing: still no pass
+  writeFileSync(join(bin, 'sort'), '#!/bin/sh\ncat >/dev/null\nexit 0\n'); // reads, succeeds, prints nothing: still no pass
   const silent = runAction(t, { path: `${bin}:/usr/bin:/bin` });
   couldNotCheck(silent, /sort -V gave no ordering/);
   assert.doesNotMatch(silent.stdout, /older than/);
