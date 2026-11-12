@@ -21,7 +21,23 @@ const HEADINGS = Object.freeze({
   keepachangelog: new RegExp(`^## \\[${VERSION}\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}(?: \u{2014} (.+))?$`, 'u'),
 });
 const LINK_DEFINITION = /^\[[^\]\n]{1,100}\]: \S+$/;
-const FENCE = /^(```|~~~)/;
+// CommonMark fences: an opening fence is three or more backticks or tildes (up to three spaces
+// in); it is closed only by a fence of the SAME character, at least as long, with nothing after
+// it but spaces. A fence never closed runs to the end of the file. (A backtick fence whose info
+// text holds a backtick is not a fence.) Found by the second reader: toggling on any "```" let a
+// fake section inside a four-backtick block pass for the real one.
+const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*$/;
+// The fence a line opens ({ char, length }), or null.
+function opens(line) {
+  const match = FENCE_OPEN.exec(line);
+  if (!match || (match[1][0] === '`' && match[2].includes('`'))) return null;
+  return { char: match[1][0], length: match[1].length };
+}
+const closes = (line, fence) => {
+  const match = FENCE_CLOSE.exec(line);
+  return match !== null && match[1][0] === fence.char && match[1].length >= fence.length;
+};
 
 // bytes -> text: strict UTF-8, bounded. Anything else is changelog-unreadable.
 export function decodeChangelog(bytes) {
@@ -40,11 +56,15 @@ export function findSection(text, version, style) {
   const heading = HEADINGS[style];
   const lines = text.split(/\r\n|\n|\r/);
   const found = [];
-  let fenced = false;
+  let fence = null;
   let open = null;
   lines.forEach((line, index) => {
-    if (FENCE.test(line)) fenced = !fenced;
-    if (fenced || !line.startsWith('## ')) return;
+    if (fence) {
+      if (closes(line, fence)) fence = null;
+      return;
+    }
+    fence = opens(line);
+    if (fence || !line.startsWith('## ')) return;
     if (open) open.end = index;
     open = null;
     const match = heading.exec(line);

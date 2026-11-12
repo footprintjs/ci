@@ -58,6 +58,23 @@ test('a "## " inside a fenced code block is not a heading', () => {
   assert.equal(findSection(text, '0.9.0', 'titled').title, 'real');
 });
 
+test('fences follow CommonMark: closed only by the same character at least as long (the reader\'s notesx.mjs case)', () => {
+  const F3 = '`'.repeat(3);
+  const F4 = '`'.repeat(4);
+  const spoof = ['# C', '', '## 1.1.0', '', F4, F3, `## 1.2.0 ${DASH} FAKE`, '', '- fake notes', F4, '', `## 1.2.0 ${DASH} real`, '', '- real notes', ''].join('\n');
+  assert.deepEqual(findSection(spoof, '1.2.0', 'titled'), { title: 'real', lines: ['- real notes'] });
+  const tilde = ['~~~~', '~~~', `## 1.2.0 ${DASH} FAKE`, '```', '~~~~', `## 1.2.0 ${DASH} real`, '- x'].join('\n');
+  assert.equal(findSection(tilde, '1.2.0', 'titled').title, 'real');
+  const mixed = ['```', `## 1.2.0 ${DASH} FAKE`, '~~~', `## 1.2.0 ${DASH} still fenced`, '```', `## 1.2.0 ${DASH} real`].join('\n');
+  assert.equal(findSection(mixed, '1.2.0', 'titled').title, 'real');
+  const unclosed = [`## 1.2.0 ${DASH} real`, '- a', '````', `## 1.2.0 ${DASH} FAKE`].join('\n');
+  assert.equal(findSection(unclosed, '1.2.0', 'titled').title, 'real');
+  const notAFence = [`## 1.2.0 ${DASH} one`, '``` x`y', `## 1.2.0 ${DASH} two`].join('\n');
+  assert.equal(code(() => findSection(notAFence, '1.2.0', 'titled')), 'changelog-duplicate');
+  const twoReal = ['````', '```', '````', `## 1.2.0 ${DASH} a`, '- x', `## 1.2.0 ${DASH} b`].join('\n');
+  assert.equal(code(() => findSection(twoReal, '1.2.0', 'titled')), 'changelog-duplicate');
+});
+
 test('two sections for one version is changelog-duplicate', () => {
   assert.equal(code(() => findSection(`## 1.0.0 ${DASH} a\n- x\n## 1.0.0 ${DASH} b\n- y\n`, '1.0.0', 'titled')), 'changelog-duplicate');
 });
