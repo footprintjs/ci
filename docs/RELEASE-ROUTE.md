@@ -6,15 +6,20 @@ exact file, proves npm serves the same bytes, and only then writes the tag and t
 
 This page covers the part with no workflow in it: the modules in `src/release-route/` and the one
 command the workflow will call, `node scripts/release-route.mjs <step>`. The workflow
-(`release-route.yml`), the tag and the GitHub release come in the next pull request. Design and
-rulings: `review-exchange/designs/shared-release-route-20261112.md` (section 12 wins).
+(`release-route.yml`) comes later (see the last section). Design and rulings:
+`review-exchange/designs/shared-release-route-20261112.md` (sections 12 and 13 win).
 
 Why it is built this way, in one line each:
 
 - **Fail closed.** A route that says "fine" because it could not look is worse than none. Every
   stop is a named refusal and exit 1; no `catch` turns an exception into a pass.
-- **One owner per rule.** One refusal table, one archive inspector, one decision table, one
-  strict JSON reader, one bounded GET. Nothing has a second copy.
+- **One owner per rule.** One refusal table, one archive inspector (and one tar reader), one
+  decision table, one strict JSON reader. The bounded GET, the text cleaner and the GitHub host
+  and token rule are shared with the hold check in `src/shared/` (neither tool imports the
+  other). Nothing has a second copy.
+- **No logic left for the workflow.** Every decision a job takes (what to do, whether npm
+  already has the bytes, whether to write the tag and the release) is a step here, so the
+  workflow only wires steps together.
 - **The decision is data.** An ordered table of equality tests over named facts; the first row
   that matches decides and its id is the printed reason. A later step runs the same table in a
   footprintjs chart and keeps the run record.
@@ -25,17 +30,23 @@ Why it is built this way, in one line each:
 
 | Step | Job (next PR) | Reads (environment) | Does | Writes (`$GITHUB_OUTPUT`) |
 |---|---|---|---|---|
-| `plan` | plan: read only, no repo code runs | `GITHUB_SHA`, `GITHUB_REF`, `ROUTE_ACTION` (`publish` or `dry-run`), `ROUTE_TOOL_SHA` (`job.workflow_sha`), optional `GITHUB_TOKEN`, `GITHUB_API_URL` | observes the facts and runs the rule table | `rule`, `commit`, `package`, `version`, and on a decision `mode`, `compare` |
-| `build` | build: no secret, no write right | `ROUTE_COMMIT`, `ROUTE_OUT` | the settings' system packages, install, checks, `npm pack --ignore-scripts`, one archive check | `file` (`package.tgz`) |
+| `plan` | plan: read only, no repo code runs | `GITHUB_SHA`, `GITHUB_REF`, `ROUTE_ACTION` (`publish` or `dry-run`), `ROUTE_TOOL_SHA` (`job.workflow_sha`), optional `GITHUB_TOKEN` | observes the facts (git, npm, GitHub) and runs the rule table | `rule`, `commit`, `package`, `version`, and on a decision `mode`, `compare` |
+| `npm-tool` | build and publish, first | `ROUTE_NPM_DIR` | checks `vendor/npm/npm-11.19.0.tgz` against both digests in `vendor/npm/manifest.json` and unpacks it (with the inspector's tar reader) into that new, private folder outside the checkout | nothing |
+| `build` | build: no secret, no write right | `ROUTE_COMMIT`, `ROUTE_OUT`, `ROUTE_NPM_DIR` | the settings' system packages, install, checks, then `node <npm>/package/bin/npm-cli.js pack --ignore-scripts` (the runner's `npm` when `ROUTE_NPM_DIR` is not given), one archive check | `file` (`package.tgz`) |
 | `inspect` | publish, just before `npm publish` | `ROUTE_COMMIT`, `ROUTE_TARBALL_DIR` | the archive check again, with this repository's inspector | nothing |
+| `ready` | publish, after `inspect` | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR` | npm lacks the version → publish; npm has exactly these bytes → do not publish again (a re-run after npm accepted); other bytes → `registry-differs` | `publish` (`yes`/`no`) |
 | `verify` | verify | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR` | waits a bounded time for npm to show the version, then compares npm's integrity AND the downloaded tarball with the built file | nothing |
+| `tag` | release | `ROUTE_COMMIT`, `ROUTE_VERSION`, `GITHUB_REPOSITORY`, optional `GITHUB_TOKEN` | tag on origin: absent → create, at the commit → skip, elsewhere → `tag-elsewhere`; GitHub release: absent → create, present for the tag → skip, else `release-unexpected` | `tag`, `release` (`create`/`skip`) |
 | `notes` | release | `ROUTE_COMMIT`, `ROUTE_OUT` | title and notes from `CHANGELOG.md` | `title-file`, `notes-file` |
+
+The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
+publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).
 
 `ROUTE_SOURCE` (default `.`) is the repository checkout in which every git question is asked.
 Each step prints a short summary to the log and the same lines to `$GITHUB_STEP_SUMMARY`, and
 exits 0 or 1 (`plan` exits 0 for `nothing`). Outputs only ever come from closed alphabets (a mode,
-a rule id, `yes`/`no`, a 40-hex commit, a plain version, an npm name, a fixed file name): free
-text such as the release title travels in a file.
+a rule id, `yes`/`no`, `create`/`skip`, a 40-hex commit, a plain version, an npm name, a fixed
+file name): free text such as the release title travels in a file.
 
 Example, the plan for footprint-storydeck as it is today (from `test/release-route/command.test.mjs`):
 
@@ -53,21 +64,24 @@ Each file has one job; the WHY of each choice is in its header comment.
 |---|---|
 | `refusals.mjs` | THE table of refusal codes and sentences. An unknown code is itself a refusal (`unknown-refusal`); an exception with no name is `unexpected-failure`. |
 | `identity.mjs` | The shapes of a commit, a plain `x.y.z` and an npm name; "newer than every published version". |
-| `text.mjs` | Cleans text the route does not control: control, format and bidi characters out, `::` and `##[` broken apart, bounded. |
 | `report.mjs` | Lines to the log and the job summary (no line starts with untrusted text); outputs from closed alphabets only. |
 | `settings.mjs` | Reads and validates `.github/release.json`; splits commands into argv lists. |
 | `changelog.mjs` | Finds one version's section and title, in the `titled` and `keepachangelog` styles. |
-| `http.mjs` | The one bounded GET: https only, redirects refused, one timeout, a byte bound. |
+| `http.mjs` | The route's words for the shared bounded GET (every failure a named refusal) and strict JSON answers. |
 | `registry.mjs` | npm's answers from `registry.npmjs.org` only, never with a token; the bounded wait; the byte comparison. |
-| `github.mjs` | The one GitHub question: is the tool commit on `footprintjs/ci` `main`? |
-| `repo.mjs` | git with fixed arguments: committed blobs at a commit, the tag on origin, a clean checkout. |
+| `github.mjs` | The route's two GitHub questions: is the tool commit on `footprintjs/ci` `main`; is there a release for tag `v<version>`. |
+| `repo.mjs` | git with fixed arguments: committed blobs at a commit, the tag's commit and the tip of `main` on origin, a clean checkout. |
 | `rules.mjs` | The facts with their domains and the ordered rule table: data only. |
 | `plan.mjs` | The pure evaluator of the table. |
 | `observe.mjs` | Gathers the facts through injected doors; decides nothing. |
 | `build.mjs` | The ONLY module that starts the repository's own commands. |
 | `notes.mjs` | The release title and notes, written to files. |
+| `ready.mjs` | The publish job's re-run decision (`decideReady`) and its facts. |
+| `tag.mjs` | The release job's decisions (`decideTag`, `decideRelease`) and their facts. |
+| `npm-tool.mjs` | The pinned npm: digests checked, unpacked, handed to build and publish. |
 | `command.mjs` | The steps, wired to the doors; `scripts/release-route.mjs` is its process entry. |
 | `archive/` | The archive inspector: ONE port (`check-archive.cjs`), described below. |
+| `../shared/` | Shared with the hold check: `http.mjs · boundedGet` (https only, redirects refused, a held timer over the request and the body, a streaming byte bound), `text.mjs · clean` (control, format and bidi characters out, `::` and `##[` broken apart, bounded), `github.mjs` (the fixed host `https://api.github.com`, the token's shape, the headers). |
 
 ## The settings file, `.github/release.json`
 
@@ -91,17 +105,20 @@ every timeout. storydeck's (also `test/release-route/fixtures/family/storydeck.r
 |---|---|
 | `schema` | the number `1` |
 | `node` | the Node major as a string, `"22"` to `"99"`; build refuses when the running Node differs |
-| `systemPackages` | up to 10 distinct Debian package names (`^[a-z0-9][a-z0-9+.-]{1,62}$`), installed with `sudo apt-get install -y --no-install-recommends` |
+| `systemPackages` | up to 10 distinct Debian package names (`^[a-z0-9][a-z0-9+.-]{0,61}[a-z0-9+]$`: never ending in `-`, which apt-get reads as "remove"), installed with `sudo apt-get install -y --no-install-recommends` |
 | `install` | one command |
 | `checks` | 1 to 20 commands, run in order; the package is packed after the last, with lifecycle scripts off, so the list must build it |
 | `archive` | what the tarball may hold (below) |
 | `changelog` | `titled` or `keepachangelog` |
 
 Every key is required and an unknown key is refused by name (`proposer` too, until the route
-knows it). **Commands never reach a shell**: the text is split on single spaces into a program
-(`npm`, `npx` or `node`) and arguments from `[A-Za-z0-9@%+=:,./_^~-]`; at most 32 parts, 200
-characters. `&&`, `|`, `$( )`, quotes and redirects are refused, not passed on. Anything more
-needs an npm script in `package.json`.
+knows it). **Commands are started without a shell**: the text is split on single spaces into a
+program (`npm`, `npx` or `node`) and arguments from `[A-Za-z0-9@%+=:,./_^~-]`; at most 32 parts,
+200 characters. `&&`, `|`, `$( )`, quotes and redirects are refused, not passed on, so the
+settings TEXT cannot be used for shell injection. That is all it does: the commands are still
+the repository's own code (`npm run` uses a shell anyway, and `node --import=data:...` runs
+whatever it is given) and can do anything the build job can. The job is the boundary, not the
+alphabet. Anything more than one command needs an npm script in `package.json`.
 
 The settings written for the four packages that proved the shape are in
 `test/release-route/fixtures/family/`. storyreel's publish check today runs
@@ -118,8 +135,26 @@ substitution; its settings leave that check out until it is an npm script.
 - anything else in the tarball is refused (`archive-path:<member>`); a required entry that is
   not there is `archive-missing:<entry>`.
 
-Segments use `[A-Za-z0-9._@+-]`; no `.`, `..`, empty segment, leading `/`, `**`, braces or
-second `*`. Owner: `src/release-route/archive/allowed.cjs`.
+Segments use `[A-Za-z0-9._@+-]`; no `.`, `..`, empty segment, leading `/`, `**`, braces, second
+`*` or bare `*`. Owner: `src/release-route/archive/allowed.cjs`.
+
+**What no setting may allow** (`archive-denied:<member>`, compared without letter case). The
+copied inspector admitted a closed list and its README says why: "sibling `.npmrc`,
+`binding.gyp` and `server.js` files refuse independently of manifest contents". Once the list
+became a setting, `["dist/", "*"]` could have re-admitted them (found by the second reader).
+These are the files npm gives a meaning of its own, so a build that adds one changes what a
+consumer's install does while `package.json` still equals the source:
+
+| Denied | Why |
+|---|---|
+| root `binding.gyp` | npm's default install script is `node-gyp rebuild` when it is there: code on every install |
+| root `server.js` | npm's default start script is `node server.js` when it is there |
+| root `npm-shrinkwrap.json` | npm installs the tree it pins, not the declared ranges (the one addition to the three the README names; the original refused it too) |
+| any `.npmrc` | npm configuration: registry, scripts, credentials |
+| any `node_modules` folder | dependency code shipped inside the package, around the declared dependencies |
+
+A setting that names one of these, or is a bare `*`, is refused (`archive-setting`); a wildcard
+that happens to match one (`*.js` and `server.js`) is allowed, because the deny list wins.
 
 ## The decision
 
@@ -177,11 +212,18 @@ Why this order:
   rows must name the real reason before `facts-unreadable` would.
 - `facts-unreadable` stands before every row that yields a mode: no mode is chosen while any
   fact is unknown.
-- **Every mode that writes requires `refIsMain = true`** (`WRITING_MODES`: `publish` writes npm,
-  the tag and the release; `recover` writes the tag and the release). Off `main` the same facts
-  meet a named refusal (`publish-off-main`, `recover-off-main`). `dry-run` writes nothing and is
-  allowed from any branch. A test holds every writing row to this, so a future writing mode
-  cannot be added without it.
+- **Every mode that writes requires `refIsMain = true` and `commitIsMainTip = true`**
+  (`WRITING_MODES`: `publish` writes npm, the tag and the release; `recover` writes the tag and
+  the release). Off `main` the same facts meet a named refusal (`publish-off-main`,
+  `recover-off-main`). `dry-run` writes nothing and is allowed from any branch. A test holds
+  every writing row to both, so a future writing mode cannot be added without them.
+- **`commitIsMainTip` is measured**, not told: `git ls-remote origin refs/heads/main` must equal
+  the planned commit. "Re-run" of an old run of `main` plans that run's OLD commit; with the
+  version still unreleased it would otherwise publish older code. Such a run, for a version with
+  no tag, is `nothing` with its own rule (`not-main-tip`): a newer commit on `main` decides and
+  its own run plans. Not a refusal, because an old run must not turn red for being old, so it
+  also stands before `changelog-missing` and `version-not-newer` (those are the tip's run to
+  raise). `refIsMain` is still read from `GITHUB_REF`, which the runner sets.
 - A missing CHANGELOG section stops `recover` as well as `publish`: both write a GitHub release
   whose notes come from that section. A dry run is refused the same way, so it tells the truth
   about what a publish would do.
@@ -190,11 +232,15 @@ Why this order:
   (which shows whether the build is byte-reproducible).
 
 Rows that can match the same facts with different results say so (`outranks`: `'later'` for the
-first seven, explicit lists for `changelog-missing` and `version-not-newer`).
-`test/release-route/plan.test.mjs` enumerates all 4096 combinations of readable facts (and each
+first seven, explicit lists for `not-main-tip`, `changelog-missing` and `version-not-newer`).
+`test/release-route/plan.test.mjs` enumerates all 8192 combinations of readable facts (and each
 with one fact unknown) and fails on an overlap nobody declared, on a declaration that never
 overlaps, on a combination no row meets, on any mode chosen with a fact unknown, and on any
-writing mode chosen off `main`.
+writing mode chosen off `main` or off its tip.
+
+One thing the facts cannot see: npm's abbreviated document leaves out versions that were
+published and then unpublished, so such a version reads as "newer" and plans `publish`; npm
+itself then refuses the publish (it never reuses a version), so nothing wrong is written.
 
 ## Every refusal
 
@@ -215,7 +261,7 @@ code names is in the table, nothing in the table is dead, and every code is name
 | `settings-unknown-key` | .github/release.json has a key the route does not know. |
 | `settings-missing-key` | .github/release.json lacks a key every package must set. |
 | `settings-invalid` | A setting in .github/release.json has the wrong type or is out of bounds. |
-| `archive-setting` | The archive setting has a malformed, duplicate or always-allowed entry. |
+| `archive-setting` | The archive setting has a malformed, duplicate or always-allowed entry, a bare *, or an entry naming a file no setting may allow. |
 | `package-unreadable` | package.json is missing, not a regular file, or larger than its bound. |
 | `package-json` | package.json is not strict JSON (malformed, a duplicate key, or over a bound). |
 | `not-publishable` | package.json says "private": true or has no name, so nothing is published. |
@@ -285,8 +331,8 @@ fails if a file drifts without that record changing. What changed:
 
 | File | Change |
 |---|---|
-| `inspector.cjs` | Allowed members from the `archive` setting (`allowed.cjs`) instead of `package/dist/` + `AGENTS.md`; the package name only from the source manifest; named refusals `archive-path`, `archive-missing`, `archive-version`, `archive-publish-config` where the copy said `invalid-archive`. |
-| `allowed.cjs` | New: the one owner of the `archive` setting. |
+| `inspector.cjs` | Allowed members from the `archive` setting (`allowed.cjs`) instead of `package/dist/` + `AGENTS.md`, with a fixed deny list no setting lifts; the package name only from the source manifest; named refusals `archive-path`, `archive-denied`, `archive-missing`, `archive-version`, `archive-publish-config` where the copy said `invalid-archive`. The gzip/tar walk is split out unchanged as `readTar` (exported as `readArchiveMembers`), so the vendored npm is unpacked by this same reader. |
+| `allowed.cjs` | New: the one owner of the `archive` setting and of what no setting may allow. |
 | `check-archive.cjs` | The port: `readIntake(intake)` (the one reader of a built tarball) and `checkArchive(intake, sourceBytes, version, archive)`; the package name is no longer written in; the release-candidate operation and the CLI are gone (prereleases are a later phase; `candidate-version.cjs` was not copied); refusals go through `refusal.cjs`. `preparePublishDirectory` is kept for the publish job. |
 | `refusal.cjs` | A `{ text }` field prints a label the route bounded first (a member path that passed the closed tar profile, or `entry-<n>`); otherwise hashed as before. |
 | `strict-json.cjs` | `parseStrictJson(bytes, { maxBytes, maxValues })`, so every JSON the route reads uses this reader (npm's document for agentfootprint is over 1 MiB). `parseManifest` keeps its bounds. |
@@ -301,15 +347,27 @@ files).
 
 | Input or power | What stops it here |
 |---|---|
-| `package.json`, `CHANGELOG.md`, the settings file | Read as committed blobs at the planned commit (a symlink is refused, never followed), bounded (1 MiB, 2 MiB, 64 KiB), strict JSON with duplicate keys refused, exact types; text cleaned before printing or writing. |
-| Tag names, git output | git runs with fixed arguments; a version reaches git only as plain `x.y.z`, a commit only as 40 hex; `ls-remote` output must match one exact line or nothing. |
-| npm's and GitHub's answers | GET only to `registry.npmjs.org` and the GitHub API host, https, redirects refused, 30 s timeout over request and body, byte and value bounds, strict JSON, exact shapes; the tarball address must be exactly the one npm's rules give. |
-| Every byte of the tarball | The archive inspector: closed gzip/tar profile, allowed paths only, manifest equal to the source except version, version equal to the plan, no `publishConfig`. |
-| The log and later jobs | No line starts with untrusted text; `::` and `##[` are broken apart; control, format and bidi characters removed; the job summary is escaped inside `<pre>`; outputs from closed alphabets only. |
-| The repository's own commands | Only `build` runs them, with no shell (argv lists from a closed alphabet), on the planned commit with a clean tree, with token variables removed from their environment. System package names match a strict pattern. |
-| A token | Sent in one header to the GitHub API host only, never to npm, never in a message (and masked if one ever were). |
-| A caller pinning an unreviewed ci commit | `tool-not-reviewed` unless the commit is on `footprintjs/ci` `main`. |
-| A branch run that writes | Every writing mode requires `main`. |
+| `package.json`, `CHANGELOG.md`, the settings file | Read as committed blobs at the planned commit (a symlink is refused, never followed), bounded (1 MiB, 2 MiB, 64 KiB), strict JSON with duplicate keys refused, exact types; CHANGELOG fences read as CommonMark does; text cleaned before printing or writing. |
+| Tag names, git output | git runs with fixed arguments; a version reaches git only as plain `x.y.z`, a commit only as 40 hex; `ls-remote` answers must be exactly the asked ref (and its peeled line) or nothing. |
+| npm's and GitHub's answers | GET only to `registry.npmjs.org` and the FIXED host `https://api.github.com` (`GITHUB_API_URL` is not read; GitHub Enterprise is not supported), https, redirects refused, a held 30 s timer over the request and the body, byte and value bounds, strict JSON, exact shapes; the tarball address must be exactly the one npm's rules give. |
+| Every byte of the tarball | The archive inspector in the publish job: closed gzip/tar profile, allowed paths only, the fixed deny list (`binding.gyp`, `server.js`, `npm-shrinkwrap.json` at the root; any `.npmrc` or `node_modules`) whatever the setting says, manifest equal to the source except version, version equal to the plan, no `publishConfig`. This is the one check between a poisoned build and the publish right. |
+| The log and later jobs | The route's own writes: no line starts with untrusted text; `::` and `##[` broken apart; control, format and bidi characters removed; the job summary escaped inside `<pre>`; outputs from closed alphabets only. |
+| The repository's own commands | Only `build` runs them. They are started without a shell, so the settings text cannot inject shell; they are still the repository's own code and can do anything the build job can. They run on the planned commit with a clean tree (ignored files counted), and their environment has no file-command variable (`GITHUB_OUTPUT`, `GITHUB_ENV`, `GITHUB_PATH`, `GITHUB_STATE`, `GITHUB_STEP_SUMMARY`), no `ROUTE_*` input and nothing named like a secret (`token`, `secret`, `password`, `key`, `auth`, `credential`). That narrows; it is not a wall: code running as the runner user can find the file-command files, and on a hosted runner can read the runner's own credentials. So "no secrets in build" means "nothing this job's identity can do matters". System package names match a strict pattern. |
+| A token | Sent in one header to `api.github.com` only, never to npm, never to a host an environment variable named, never in a message (and masked if one ever were). |
+| A caller pinning a ci commit that is not on `main` | `tool-not-reviewed` catches the MISTAKE (a branch commit, a fork commit addressed through this repository). It cannot stop a caller who pins unreviewed code on purpose: that code is the code doing the check and can leave it out. The real gates are ci `main`'s review and the review of the caller's pin. |
+| A run that writes from a branch, or from an old commit of `main` | Every writing mode requires `refIsMain` and the measured `commitIsMainTip`. |
+
+**Rules the workflow must keep** (the next pull requests; nothing here can enforce them):
+
+- No later job reads anything the build job produced except the artifact `package.tgz`, which
+  the publish job inspects again (`inspect`). Name, version and commit come from the plan job's
+  outputs.
+- Every job checks out with `persist-credentials: false` (otherwise the checkout leaves a token in
+  `.git/config` for the repository's commands to read).
+- The build job holds no secret and no write right; only the publish job has `id-token: write`
+  and it runs `npm-tool`, `inspect`, `ready` and the publish, nothing of the repository's.
+- The first step checks `job.workflow_sha` is 40 lowercase hex, in shell, before any checkout
+  (an empty value would check out ci's default branch).
 
 **What this does not stop.** The content of the files the build produces is trusted as built: a
 poisoned dependency at build time is not caught here. A reviewed change can weaken `checks`. A
@@ -319,10 +377,11 @@ step of design section 8 is done). A commit merged into ci `main` runs everywher
 
 ## Proof
 
-Run on Node 24.21.0 and Node 22.16.0 (macOS), 12 Nov 2026.
+Run on Node 24.21.0 and Node 22.16.0 (macOS), 12 Nov 2026, at this pull request's head.
 
-- `npm run check`: 924 tests, 924 pass, 0 fail, then the build (and `npm test` on Node 22.16.0: 924 pass); `git diff --stat origin/main -- dist`
-  is empty (these modules are not bundled into `dist/release.cjs`).
+- `npm run check` on Node 24.21.0: 1033 tests, 1033 pass, 0 fail, then the build; `npm test` on
+  Node 22.16.0: 1033 pass. `git diff --stat origin/main -- dist` is empty (these modules are not
+  bundled into `dist/release.cjs`).
 - **The four published tarballs through the port** (`checkArchive`, with the settings in
   `test/release-route/fixtures/family/` and each package's `package.json` at its release
   commit): footprint-storydeck 0.13.1 (81 files), footprint-storyreel 0.29.1 (365) and
@@ -334,32 +393,45 @@ Run on Node 24.21.0 and Node 22.16.0 (macOS), 12 Nov 2026.
 - **The same real storydeck tarball, made wrong**, each refused by name: no `*.css` entry →
   `archive-path:package/deck.css`; `types/` listed → `archive-missing:types/`; another name in
   the source → `manifest-source:name`; source and plan say 0.13.2 → `archive-version`; the plan
-  differs from the source → `archive-version`. The member lists (paths only) are fixtures;
-  `archive-family.test.mjs` repeats these on tarballs built from them.
+  differs from the source → `archive-version`. With `binding.gyp`, `.npmrc`, `server.js`,
+  `node_modules/...` or `npm-shrinkwrap.json` added, under a setting widened with `*.js`, `*.gyp`,
+  `*.json` and `*npmrc`: `archive-denied:<member>` each (`archive-family.test.mjs`). The second
+  reader's `widen.mjs`: its widened settings `["dist/","*"]`, `["dist/","node_modules/"]`,
+  `["dist/","binding.gyp"]`, `["dist/",".npmrc"]` are now refused, and its tarball is refused.
 - **The plan against the family today**: footprint-storydeck `main` at
-  `a3936e304d8670f7fcec40d227df1309a994d46c` (real `package.json` and `CHANGELOG.md` blobs,
-  checked by git blob id), its tags from `git ls-remote` on github.com, npm's real package
-  document and GitHub's real compare answer for a ci commit on `main`, all saved on 12 Nov 2026,
-  plus the `.github/release.json` storydeck's first pull request will add: rule `released`, mode
-  `nothing` (`observe.test.mjs`, `command.test.mjs`).
+  `a3936e304d8670f7fcec40d227df1309a994d46c` (real `package.json` and `CHANGELOG.md` blobs, the
+  author value made neutral), its tag and its tip of `main` from `git ls-remote` on github.com,
+  npm's real package document and GitHub's real compare answer for a ci commit on `main`, all
+  saved on 12 Nov 2026, plus the `.github/release.json` storydeck's first pull request will
+  add: rule `released`, mode `nothing` (`observe.test.mjs`, `command.test.mjs`).
 - **The command, live** (GitHub, npm and github.com read over the network, GET only; Node's
-  fetch needed `NODE_USE_ENV_PROXY=1` in the sandbox used): `plan` on storydeck `main` as it is
-  refuses `fact-unreadable` (`settingsRead`: there is no `.github/release.json` yet) with every
-  other fact read; with that file added in a local commit that was never pushed, `plan` gives
-  `released` → `nothing`, and as a dry run from a branch `dry-run-released`. `verify` on the
-  published storydeck 0.13.1 tarball passes; on another file it is `registry-differs`. `notes`
-  writes `v0.13.1 — works beside footprintjs 12`. `inspect` of the published 0.13.1 tarball
-  against `main` is refused `manifest-source:devDependencies`: `main` changed `package.json`
-  after 0.13.1 was published, so a dry run of a released version on today's `main` cannot be
-  byte-equal to npm. A reproducibility measurement must run at the release commit.
-- **A red test for every refusal**: for each of the 55 codes the code raises, every quoted use of
-  it in `src/release-route/` was replaced by `unexpected-failure` and the route's tests run again
-  (a scratch script, not committed): every one of the 55 turned at least one test red. The other
-  two codes (`unexpected-failure`, `unknown-refusal`) are what the table itself makes, pinned in
-  `refusals.test.mjs`.
+  fetch needed `NODE_USE_ENV_PROXY=1` in the sandbox used): with the settings file in a local
+  commit that was never pushed, `plan` gives `released` → `nothing` and reads
+  `commitIsMainTip=false` (the local commit is not origin's tip). `ready` on the published
+  storydeck 0.13.1 tarball: "npm already serves ... with exactly these bytes", `publish=no`.
+  `tag` for 0.13.1 at `c94c2a6` (the tagged commit): tag `skip`, release `skip`; at today's
+  `main`: `tag-elsewhere`. `verify` of the published tarball passes; of another file,
+  `registry-differs`. `npm-tool` unpacks the vendored npm and `node <dir>/package/bin/npm-cli.js
+  --version` prints 11.19.0. `inspect` of the published 0.13.1 tarball against today's `main` is
+  refused `manifest-source:devDependencies`: `main` changed `package.json` after 0.13.1 was
+  published, so a reproducibility measurement must run at the release commit.
+- **A red test for every refusal**: for each of the 59 codes the code raises (of 61), every
+  quoted use of it in `src/release-route/` was replaced by `unexpected-failure` and the route's
+  tests run again (a scratch script, not committed): every one of the 59 turned at least one test
+  red, among them the new `archive-denied`, `tag-elsewhere`, `release-unexpected` and `npm-tool`.
+  The other two (`unexpected-failure`, `unknown-refusal`) are what the table itself makes, pinned
+  in `refusals.test.mjs`.
 
 ## Not in this pull request
 
-The workflow files, the tag and GitHub release calls, the hold check calls, change notes,
-`prepare`, the bot, `release-check.yml`, and any change in another repository. Prereleases are
-refused (`version-not-plain`). The decision does not yet run inside a footprintjs chart.
+The workflow files, the hold check calls, change notes, `prepare`, the bot, `release-check.yml`,
+and any change in another repository. Prereleases are refused (`version-not-plain`).
+
+## The next two pull requests
+
+1. **The decisions inside a footprintjs chart** (design section 13, the owner's word): `plan`
+   (observe the facts, decide with `decide()` over this same rule table) and `verify` become
+   stages of one small chart per job; each run saves its record as an artifact and prints the
+   story of its decision in the job summary. The publish step itself stays plain.
+2. **The workflows**: `release-route.yml` and `release-check.yml`, wiring the steps above and
+   keeping the rules listed under "Rules the workflow must keep".

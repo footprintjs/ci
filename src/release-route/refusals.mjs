@@ -21,7 +21,7 @@ export const REFUSALS = Object.freeze({
   'settings-unknown-key': '.github/release.json has a key the route does not know.',
   'settings-missing-key': '.github/release.json lacks a key every package must set.',
   'settings-invalid': 'A setting in .github/release.json has the wrong type or is out of bounds.',
-  'archive-setting': 'The archive setting has a malformed, duplicate or always-allowed entry.',
+  'archive-setting': 'The archive setting has a malformed, duplicate or always-allowed entry, a bare *, or an entry naming a file no setting may allow.',
 
   // package.json and CHANGELOG.md at the commit being released.
   'package-unreadable': 'package.json is missing, not a regular file, or larger than its bound.',
