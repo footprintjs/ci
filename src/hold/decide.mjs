@@ -11,14 +11,17 @@ const MAX_LISTED = 50;
 const REPO = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 
 // Titles and versions come from people (a pull request's head can say anything), and
-// they are printed into a CI log where a line starting with `::` is a workflow command.
-// So: control, format (bidi overrides), line/paragraph separators and unassigned
-// characters never survive, whitespace collapses to single spaces, and the text is
-// cut. A line we print never STARTS with untrusted text either (see `lines` below).
+// they are printed into a CI log where a line starting with `::` is a workflow command
+// and, in the runner's older syntax, `##[` starts one ANYWHERE in a line. So: control,
+// format (bidi overrides), line/paragraph separators and unassigned characters never
+// survive, whitespace collapses to single spaces, `::` and `##[` are broken up wherever
+// they appear ("a ::error:: b" prints as "a : :error: : b", "x ##[add-mask]y" as
+// "x # #[add-mask]y": still readable, no longer a command), and the text is cut. A line
+// we print never STARTS with untrusted text either (see `lines` below).
 export function clean(value, max = 80) {
   const text = typeof value === 'string' ? value : '';
   const flat = text.replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, ' ').replace(/[\p{Cf}\p{Cs}\p{Co}\p{Cn}]/gu, '')
-    .replace(/\s+/gu, ' ').trim();
+    .replace(/\s+/gu, ' ').trim().replace(/:(?=:)/g, ': ').replace(/#(?=#\[)/g, '# ');
   const points = Array.from(flat);
   return points.length > max ? `${points.slice(0, max).join('')}...` : flat;
 }

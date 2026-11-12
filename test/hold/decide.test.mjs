@@ -60,7 +60,19 @@ test('a title with newlines, control characters and 500 characters prints as one
     assert.equal(line.length < 400, true);
   }
   const row = result.lines.find((line) => line.includes('#5'));
-  assert.match(row, /^ {2}- #5 "::error::pwned ::set-output name=x::y a+\.\.\." /);
+  assert.match(row, /^ {2}- #5 ": :error: :pwned : :set-output name=x: :y a+\.\.\." /);
+});
+test('clean breaks up "##[" and "::" wherever they appear, so no workflow command survives mid-line', () => {
+  assert.equal(clean('x ##[add-mask]FAILED'), 'x # #[add-mask]FAILED');
+  assert.equal(clean('a ::error:: b'), 'a : :error: : b');
+  for (const hostile of ['x ##[add-mask]FAILED', 'a ::error:: b', '###[error]x ::::warning::y :::', '##[##[a]]', 'a\n::set-output name=x::y']) {
+    const result = clean(hostile);
+    assert.doesNotMatch(result, /##\[|::/, hostile);
+    // The printed lines for a title and a version carry the same guarantee.
+    const printed = decide({ mode: 'pull-request', holds: [hold(2, hostile)], versions: { base: hostile, head: `${hostile}!` } });
+    for (const line of printed.lines) assert.doesNotMatch(line, /##\[|::/, hostile);
+  }
+  assert.equal(clean('plain title: with one colon, 2 # and #[x]'), 'plain title: with one colon, 2 # and #[x]');
 });
 test('a hostile version string is cleaned and bounded too', () => {
   const result = decide({ mode: 'pull-request', holds: [hold(1)], versions: { base: '1.0.0', head: `9\n::error::x${'z'.repeat(300)}` } });

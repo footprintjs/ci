@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
 import { runHold } from '../../src/hold/run.mjs';
 
@@ -20,6 +21,37 @@ test('the command exits 1 when the API cannot be reached (a name that never reso
   const result = run({ HOLD_MODE: 'publish', GITHUB_REPOSITORY: 'a/b', GH_TOKEN: 'ghs_x', GITHUB_API_URL: 'https://hold-check.invalid' });
   assert.equal(result.status, 1);
   assert.match(result.stdout, /could not check/);
+});
+
+// The exit code is the whole product, so these run the REAL command (scripts/hold.mjs) with the network
+// replaced by test/hold/support/fetch-stub.mjs, loaded with `node --import`. The stub answers what the
+// test says and echoes each request (method and URL, never headers) to stderr.
+const stub = pathToFileURL(resolve('test/hold/support/fetch-stub.mjs')).href;
+const runStubbed = (answer, env = {}) => spawnSync(process.execPath, ['--import', stub, cli], { encoding: 'utf8',
+  env: { PATH: process.env.PATH, HOLD_MODE: 'publish', GITHUB_REPOSITORY: 'footprintjs/example', GH_TOKEN: 'ghs_secret_token_value',
+    ...(answer.status ? { HOLD_STUB_STATUS: String(answer.status) } : {}), ...(answer.body !== undefined ? { HOLD_STUB_BODY: answer.body } : {}), ...env } });
+
+test('exit code: one open hold makes the command exit 1 and print the listing', () => {
+  const result = runStubbed({ body: JSON.stringify([{ number: 12, title: 'Hold 10.8 until review' }, { number: 15, title: 'Heading', pull_request: {} }]) });
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stdout, /Hold check FAILED: a release is on hold in footprintjs\/example\./);
+  assert.match(result.stdout, /#12 "Hold 10.8 until review" https:\/\/github\.com\/footprintjs\/example\/issues\/12/);
+  assert.match(result.stdout, /#15 \(pull request\) "Heading"/);
+  assert.equal(result.stderr.trim(), 'STUB-REQUEST GET https://api.github.com/repos/footprintjs/example/issues?state=open&labels=hold-release&per_page=100');
+  assert.equal((result.stdout + result.stderr).includes('ghs_secret_token_value'), false);
+});
+test('exit code: an empty list makes the command exit 0 and print the pass line', () => {
+  const result = runStubbed({ body: '[]' });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(result.stdout.trim(), 'Hold check passed: no open issue or pull request in footprintjs/example carries "hold-release".');
+  assert.equal((result.stdout + result.stderr).includes('ghs_secret_token_value'), false);
+});
+test('exit code: a failed answer, or one that is not a list, is exit 1 and says it could not check (never 0)', () => {
+  for (const answer of [{ status: 500, body: '[]' }, { status: 403, body: '[]' }, { body: '{"message":"x"}' }, { body: 'not json' }, { body: 'null' }]) {
+    const result = runStubbed(answer);
+    assert.equal(result.status, 1, JSON.stringify(answer));
+    assert.match(result.stdout, /Hold check FAILED: could not check/);
+  }
 });
 
 // A real repository with a real merge commit M = merge(base tip, pull request head), the way

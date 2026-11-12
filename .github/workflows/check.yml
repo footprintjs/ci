@@ -23,3 +23,34 @@ jobs:
       - run: npm run build
       - name: Verify committed bundle and metadata
         run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json
+  # The two forms of the hold check (docs/HOLD.md), run on this repository's own commits so the
+  # action and the reusable workflow are exercised on GitHub Actions at least here. They are RED
+  # while an open issue or pull request in footprintjs/ci carries hold-release: that is the check
+  # telling the truth, not a flake. Neither is meant to be a required check.
+  hold-step:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Run the hold check as a step (the form that holds on a re-run)
+        uses: ./.github/actions/hold
+  # pull-request mode refuses every event but pull_request by design, so only that event calls it.
+  # tool_sha is github.sha: for a pull request that is its merge commit, the very commit this
+  # caller file and the called hold.yml come from, so the tool and the caller cannot differ.
+  hold-workflow:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/hold.yml
+    with:
+      tool_sha: ${{ github.sha }}
+      mode: pull-request
