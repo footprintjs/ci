@@ -30041,7 +30041,7 @@ function readRouteRecord(file) {
   return record;
 }
 var defaultKey = (state) => ["mode", "refusal", "verified"].find((key) => Object.hasOwn(state, key)) ?? "rule";
-function readerOf(record, fact) {
+function observerOf(record, fact) {
   const runs = isObject5(record.state.runs) ? record.state.runs : {};
   for (const id of Object.keys(runs)) {
     if (!isObject5(runs[id]) || !Object.hasOwn(runs[id], fact)) continue;
@@ -30050,18 +30050,21 @@ function readerOf(record, fact) {
   }
   return findLastWriter(record.commitLog, fact);
 }
-var SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another; only the "read by" lines above say which step read a fact.';
+var SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.';
+var observedBy = (stage) => stage ? `${clean(stage.stage, 60)} (${clean(stage.runtimeStageId, 60)})` : "no stage";
 function decisionLines(record, key, writer) {
   if (!writer) return [];
   const edge = Object.hasOwn(record.control.controlDeps, writer.runtimeStageId) ? record.control.controlDeps[writer.runtimeStageId] : void 0;
   const decision = isObject5(edge) ? record.control.decisions.find((one) => isObject5(one) && one.deciderRuntimeStageId === edge.deciderId) : void 0;
   if (!decision || !isObject5(decision.evidence) || !Array.isArray(decision.evidence.rules))
-    return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`];
+    return [
+      `No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`,
+      `Observed by ${observedBy(observerOf(record, key))}.`
+    ];
   const matched = decision.evidence.rules.find((rule) => isObject5(rule) && rule.matched === true);
   const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
-    const reader = readerOf(record, condition.key);
-    lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; read by ${reader ? `${clean(reader.stage, 60)} (${clean(reader.runtimeStageId, 60)})` : "no stage"}.`);
+    lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; observed by ${observedBy(observerOf(record, condition.key))}.`);
   }
   return lines;
 }

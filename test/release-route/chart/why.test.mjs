@@ -29,14 +29,14 @@ async function savedPlan(t, options = {}) {
 }
 const code = (fn) => { try { fn(); } catch (error) { return asRefusal(error).code; } return 'answered'; };
 
-test('why mode: the decision, the rule, each fact with the stage that read it, and the walk back', async (t) => {
+test('why mode: the decision, the rule, each fact with the stage that observed it, and the walk back', async (t) => {
   const lines = explain(readRouteRecord(await savedPlan(t)));
   assert.match(lines[0], /^Why mode = "nothing" in the plan record of run \S+\.$/);
   assert.equal(lines[1], 'Decision at decide#11: rule released matched.');
   assert.deepEqual(lines.slice(2, 5), [
-    'Fact tagExists eq true: was true, holds; read by Look for the tag (look-tag#6).',
-    'Fact npmHasVersion eq true: was true, holds; read by Ask npm (look-npm#7).',
-    'Fact action eq "publish": was "publish", holds; read by Read the request (request#0).',
+    'Fact tagExists eq true: was true, holds; observed by Look for the tag (look-tag#6).',
+    'Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#7).',
+    'Fact action eq "publish": was "publish", holds; observed by Read the request (request#0).',
   ]);
   assert.ok(lines.includes('Walk: . Decide by the rule table (decide#11) ← [control: released]'));
 });
@@ -45,7 +45,7 @@ test('why on a refusal names the rule and the fact that decided it', async (t) =
   const lines = explain(readRouteRecord(await savedPlan(t, { lsRemote: '', mainTip: 'f'.repeat(40) })));
   assert.match(lines[0], /^Why refusal = "release-unfinished"/);
   assert.equal(lines[1], 'Decision at decide#11: rule unfinished-not-tip matched.');
-  assert.ok(lines.includes('Fact commitIsMainTip eq false: was false, holds; read by Look at the tip of main (look-tip#1).'));
+  assert.ok(lines.includes('Fact commitIsMainTip eq false: was false, holds; observed by Look at the tip of main (look-tip#1).'));
 });
 
 test('an unreadable fact is named with its cause', async (t) => {
@@ -123,21 +123,28 @@ test('why names the decision that governs the value asked about, or says that no
   const run = await execute(chart);
   const record = { ...routeRecord({ step: 'plan', chart, run }) };
   assert.equal(record.control.decisions.length, 2);
-  assert.deepEqual(explain(record, 'z').slice(1, 3), ['Decision at second#3: rule y is two matched.', 'Fact y eq 2: was 2, holds; read by One (one#2).']);
-  assert.deepEqual(explain(record, 'y').slice(1, 3), ['Decision at first#1: rule x is one matched.', 'Fact x eq 1: was 1, holds; read by Seed (seed#0).']);
-  assert.deepEqual(explain(record, 'x').slice(1, 2), ['No decision governs x: Seed (seed#0) wrote it, and that stage runs whatever is decided.']);
+  assert.deepEqual(explain(record, 'z').slice(1, 3), ['Decision at second#3: rule y is two matched.', 'Fact y eq 2: was 2, holds; observed by One (one#2).']);
+  assert.deepEqual(explain(record, 'y').slice(1, 3), ['Decision at first#1: rule x is one matched.', 'Fact x eq 1: was 1, holds; observed by Seed (seed#0).']);
+  assert.deepEqual(explain(record, 'x').slice(1, 3), ['No decision governs x: Seed (seed#0) wrote it, and that stage runs whatever is decided.', 'Observed by Seed (seed#0).']);
 });
 
-test('why on a fact of the plan: no decision governs it, and no rule is named', async (t) => {
-  const lines = explain(readRouteRecord(await savedPlan(t)), 'tagExists');
+test('why on a fact of the plan: no decision governs it, no rule is named, and one line names the stage that observed it', async (t) => {
+  const record = readRouteRecord(await savedPlan(t));
+  const lines = explain(record, 'tagExists');
   assert.equal(lines[1], 'No decision governs tagExists: Gather what was seen (gather-second#9) wrote it, and that stage runs whatever is decided.');
+  assert.equal(lines[2], 'Observed by Look for the tag (look-tag#6).');
   assert.ok(!lines.some((line) => line.startsWith('Decision at') || line.startsWith('Fact ')), lines.join('\n'));
+  // The look that measured the fact, even where the walk shows it four steps down (R2-N3).
+  assert.equal(explain(record, 'commitIsMainTip')[2], 'Observed by Look at the tip of main (look-tip#1).');
+  assert.equal(explain(record, 'packageName')[2], 'Observed by Read package.json (look-package#4).');
+  assert.ok(!explain(record).concat(explain(record, 'tagExists')).some((line) => /read by|"read by"/.test(line)), 'a line still says "read by"');
 });
 
 test('above every walk, one fixed line says side-by-side steps may be shown one under another', async (t) => {
   const lines = explain(readRouteRecord(await savedPlan(t)));
   const at = lines.findIndex((line) => line.startsWith('Walk back'));
   assert.equal(lines[at + 1], SIDE_BY_SIDE);
+  assert.equal(SIDE_BY_SIDE, 'Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.');
   assert.ok(lines[at + 2].startsWith('Walk: '));
 });
 

@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "caca72c1dffefed88583c1345ce177bc4ba9eb1c3d4b0e968920d9e7ad5c5e3f",
-  "bytes": 1224565,
+  "sha256": "bf31d637a2e6b284f6c8d8377278e8057a76feaba9608cf5d834495e3d94a292",
+  "bytes": 1224675,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1400,7 +1400,7 @@
     },
     {
       "path": "src/release-route/chart/why.mjs",
-      "bytes": 7508
+      "bytes": 7878
     },
     {
       "path": "src/release-route/github.mjs",

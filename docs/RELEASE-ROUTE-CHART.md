@@ -253,8 +253,10 @@ decision channel as not collected from it, and the decision's evidence would be 
 no network, why a top-level key (default: `mode`, else `refusal`, else `verified`) has its value:
 the decision that governs it (the decision whose branch let the key's last writer run, from the
 record's control edges) with the rule that matched and each fact the rule tested, its value and the
-stage that read it; or, for a key no decision governs (a fact, the package name), one line saying
-so and no rule. Then each unreadable fact with its cause, then the walk back. Every walk is foottrace's
+stage that observed it; or, for a key no decision governs (a fact, the package name), one line saying
+so, no rule, and one line naming the stage that observed the key (`Observed by Look at the tip of
+main (look-tip#1).`). The stage that observed a fact is the one that wrote it into the record,
+foottrace's `findLastWriter` on the look's own path. Then each unreadable fact with its cause, then the walk back. Every walk is foottrace's
 (`findLastWriter`, `causalChain` with the control edges the record kept, `formatCausalChain`,
 `keysReadFromExecutionTree`); `why.mjs` only arranges the answers into lines. Every line is
 cleaned and starts with a fixed word, so no line can start a workflow command. A file that is not
@@ -265,11 +267,11 @@ From the recorded storydeck case (`why.test.mjs`), cut short:
 ```
 Why mode = "nothing" in the plan record of run 1794509344113-0000000001.
 Decision at decide#11: rule released matched.
-Fact tagExists eq true: was true, holds; read by Look for the tag (look-tag#6).
-Fact npmHasVersion eq true: was true, holds; read by Ask npm (look-npm#7).
-Fact action eq "publish": was "publish", holds; read by Read the request (request#0).
+Fact tagExists eq true: was true, holds; observed by Look for the tag (look-tag#6).
+Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#7).
+Fact action eq "publish": was "publish", holds; observed by Read the request (request#0).
 Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):
-Note: steps that ran side by side may be shown one under another; only the "read by" lines above say which step read a fact.
+Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.
 Walk: Rule released (released#12) [wrote: rule, mode, compare]
 Walk: . Decide by the rule table (decide#11) ← [control: released]
 Walk: . . Read the request (request#0) ← via toolCommitPlain [wrote: action, refIsMain, toolCommitPlain, commit]
@@ -278,8 +280,8 @@ Walk: . . Read the request (request#0) ← via toolCommitPlain [wrote: action, r
 
 ## What the record cannot show yet
 
-Steps that ran side by side may be shown one under another; only the "read by" lines above say
-which step read a fact. This holds for footprintjs 12.1.0 with foottrace 1.15.0: foottrace's
+Steps that ran side by side may be shown one under another in the walk; the "observed by" line says
+which step observed the fact. This holds for footprintjs 12.1.0 with foottrace 1.15.0: foottrace's
 `causalChain` reads a fork's `runs` namespace as one key, so looks that ran side by side appear
 built on each other. It is being fixed in the library; until then `why` prints this sentence, in
 the same words, directly above every walk, and draws nothing of its own.
@@ -303,7 +305,7 @@ the same words, directly above every walk, and draws nothing of its own.
    decision channel. The record is the snapshot plus the control recorder's snapshot instead.
 2. **A fork's `runs` namespace is one key for `causalChain`.** Sibling looks show "built on runs"
    edges to each other; `edgeAttribution: 'per-write'` does not separate them. `why` adds exact
-   "read by" lines from `findLastWriter` on each look's own path.
+   "observed by" lines from `findLastWriter` on each look's own path.
 3. **No reader rebuilds the control lookup from a saved `controlDepRecorder` snapshot.** `why`
    reads `control.controlDeps` itself and hands `causalChain` a function over it.
 4. **A fork's writes need a gather stage** to reach their names; a decider cannot read

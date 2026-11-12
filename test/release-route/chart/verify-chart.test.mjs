@@ -62,7 +62,7 @@ test('the record explains registry-differs: which digest, and the rule that deci
   const lines = explain(readRouteRecord(join(dir, 'verify.record.json')));
   assert.equal(lines[0].replace(/run \S+\./, 'run X.'), 'Why refusal = "registry-differs" in the verify record of run X.');
   assert.ok(lines.includes('Decision at compare#4: rule npm records another integrity matched.'), lines.join('\n'));
-  assert.ok(lines.some((line) => /^Fact integrityEqual eq false: was false, holds; read by Weigh the bytes/.test(line)));
+  assert.ok(lines.some((line) => /^Fact integrityEqual eq false: was false, holds; observed by Weigh the bytes/.test(line)));
 });
 
 test('the record explains registry-late: how many looks', async (t) => {

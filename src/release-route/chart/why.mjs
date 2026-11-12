@@ -57,9 +57,10 @@ export function readRouteRecord(file) {
 
 const defaultKey = (state) => ['mode', 'refusal', 'verified'].find((key) => Object.hasOwn(state, key)) ?? 'rule';
 
-// Which stage first read a fact: the look whose own writes under runs/<id>/ hold it, or, for the
-// request's facts, the stage that wrote the name itself.
-function readerOf(record, fact) {
+// Which stage OBSERVED a fact: the look whose own writes under runs/<id>/ hold it, or, for the
+// request's facts, the stage that wrote the name itself. (The stage that wrote a fact into the
+// record is the one that observed it; nothing "read" it.) foottrace's findLastWriter answers both.
+function observerOf(record, fact) {
   const runs = isObject(record.state.runs) ? record.state.runs : {};
   for (const id of Object.keys(runs)) {
     if (!isObject(runs[id]) || !Object.hasOwn(runs[id], fact)) continue;
@@ -71,8 +72,11 @@ function readerOf(record, fact) {
 
 // Until the library tells apart steps that ran side by side (foottrace causalChain reads a fork's
 // `runs` namespace as one key), the walk may show such steps one under another. Said once, above
-// every walk; nothing here filters or redraws the library's walk.
-export const SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another; only the "read by" lines above say which step read a fact.';
+// every walk; nothing here filters or redraws the library's walk. The "observed by" line it points
+// at is printed for every key that has a writer: one per fact a rule tested, or one for the key.
+export const SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.';
+
+const observedBy = (stage) => (stage ? `${clean(stage.stage, 60)} (${clean(stage.runtimeStageId, 60)})` : 'no stage');
 
 // The decision that governs a key: the one whose branch let the key's last writer run (the
 // record's control edges, controlDeps[writer]). A writer under no decision ran on every path, so no
@@ -82,13 +86,13 @@ function decisionLines(record, key, writer) {
   const edge = Object.hasOwn(record.control.controlDeps, writer.runtimeStageId) ? record.control.controlDeps[writer.runtimeStageId] : undefined;
   const decision = isObject(edge) ? record.control.decisions.find((one) => isObject(one) && one.deciderRuntimeStageId === edge.deciderId) : undefined;
   if (!decision || !isObject(decision.evidence) || !Array.isArray(decision.evidence.rules))
-    return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`];
+    return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`,
+      `Observed by ${observedBy(observerOf(record, key))}.`];
   const matched = decision.evidence.rules.find((rule) => isObject(rule) && rule.matched === true);
   const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
-    const reader = readerOf(record, condition.key);
     lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ` +
-      `${condition.result ? 'holds' : 'does not hold'}; read by ${reader ? `${clean(reader.stage, 60)} (${clean(reader.runtimeStageId, 60)})` : 'no stage'}.`);
+      `${condition.result ? 'holds' : 'does not hold'}; observed by ${observedBy(observerOf(record, condition.key))}.`);
   }
   return lines;
 }
