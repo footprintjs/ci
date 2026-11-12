@@ -3,19 +3,19 @@
 // refusal is a refusal (the refusal wins, exit 1).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { runChartStep } from '../../../src/release-route/chart/cli.mjs';
 import { PLAN_STAGES } from '../../../src/release-route/chart/plan-chart.mjs';
 import { chartResult } from '../../../src/release-route/chart/plan-run.mjs';
 import { FACT_NAMES } from '../../../src/release-route/chart/state.mjs';
 import { RESULTS } from '../../../src/release-route/chart/stages/result.mjs';
 import { createReport } from '../../../src/release-route/report.mjs';
 import { storydeckDoors } from '../storydeck-today.mjs';
+import { runWithStages } from './stand-in.mjs';
 
 async function plan(stages) {
   const written = {};
   const printed = [];
   const report = createReport({ env: { GITHUB_OUTPUT: 'out' }, print: (line) => printed.push(line), append: (path, text) => { written[path] = (written[path] ?? '') + text; } });
-  const code = await runChartStep('plan', { ...storydeckDoors(), stages, report, argv: [] });
+  const code = await runWithStages('plan', stages, { ...storydeckDoors(), report, argv: [] });
   return { code, printed, output: written.out ?? '' };
 }
 

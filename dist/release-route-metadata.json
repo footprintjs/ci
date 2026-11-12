@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "e48b5ec5a8535b56734575b2b39a0cba8e627f1130a30ca85352bcba86772353",
-  "bytes": 1223770,
+  "sha256": "65cd04e3688cf2d2ed812a592784ae9b48fe5e4e2e481e27272b2892005c387f",
+  "bytes": 1224029,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1312,7 +1312,7 @@
     },
     {
       "path": "src/release-route/chart/plan-run.mjs",
-      "bytes": 1776
+      "bytes": 1786
     },
     {
       "path": "src/release-route/chart/record.mjs",
@@ -1376,7 +1376,7 @@
     },
     {
       "path": "src/release-route/chart/steps.mjs",
-      "bytes": 3330
+      "bytes": 3733
     },
     {
       "path": "src/release-route/chart/verify-chart.mjs",
@@ -1448,7 +1448,7 @@
     },
     {
       "path": "src/release-route/step-common.mjs",
-      "bytes": 4848
+      "bytes": 5438
     },
     {
       "path": "src/shared/github.mjs",

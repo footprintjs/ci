@@ -63,7 +63,15 @@ export function shownRefusal(error) {
   return new Refusal(refusal.code, shownDetail(refusal.detail));
 }
 
-export async function runHandlers(handlers, step, doors) {
+// The doors a handler receives are the given object's OWN properties, copied onto an object with
+// no prototype: a handler destructures them (`{ env, git, fetcher, report }`), and destructuring
+// reads the prototype chain, so a name set on Object.prototype (`wait`, `fetcher`) would otherwise
+// become a door. Example: with Object.prototype.wait = { tries: 0 }, verify still waits the route's
+// own bounded time, because the handler's `wait` is undefined and the default applies.
+const ownDoors = (doors) => Object.assign(Object.create(null), doors);
+
+export async function runHandlers(handlers, step, given) {
+  const doors = ownDoors(given);
   const { report } = doors;
   try {
     if (typeof step !== 'string' || !Object.hasOwn(handlers, step)) refuse('unknown-step', step);

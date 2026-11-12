@@ -9,9 +9,10 @@
 import { reportPlan, reportVerified, verifyInputs } from '../step-common.mjs';
 import { asRefusal, refuse } from '../refusals.mjs';
 import { execute } from './execute.mjs';
+import { PLAN_STAGES } from './plan-chart.mjs';
 import { runPlanChart } from './plan-run.mjs';
 import { routeRecord, saveRecord } from './record.mjs';
-import { buildVerifyChart } from './verify-chart.mjs';
+import { buildVerifyChart, VERIFY_STAGES } from './verify-chart.mjs';
 import { explain, readRouteRecord } from './why.mjs';
 
 // The story: decide()'s own sentence for the decision, as the narrative wrote it.
@@ -40,13 +41,15 @@ function finish({ env, step, chart, run, report }, decide) {
   if (decision) throw decision;
 }
 
-export async function chartPlanStep({ env, git, fetcher, report, stages }) {
-  const planned = await runPlanChart({ env, git, fetcher, stages });
+// The stages a step runs are its own argument, never a door: the shipped steps (CHART_STEPS) run
+// the real ones, and a test that stands a stage in calls these two with its own stages.
+export async function planStepWith(stages, { env, git, fetcher, report }) {
+  const planned = await runPlanChart({ env, git, fetcher }, stages);
   finish({ env, step: 'plan', chart: planned.chart, run: planned.run, report }, () =>
     reportPlan({ result: planned.result, causes: planned.causes, context: planned.context, report }));
 }
 
-export async function chartVerifyStep({ env, fetcher, sleep, report, wait, stages }) {
+export async function verifyStepWith(stages, { env, fetcher, sleep, report, wait }) {
   const { name, version, bytes } = verifyInputs(env);
   const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep, wait }, stages);
   const run = await execute(chart);
@@ -57,6 +60,9 @@ export async function chartVerifyStep({ env, fetcher, sleep, report, wait, stage
     reportVerified({ name, version, integrity: state.localIntegrity, report });
   });
 }
+
+export const chartPlanStep = (doors) => planStepWith(PLAN_STAGES, doors);
+export const chartVerifyStep = (doors) => verifyStepWith(VERIFY_STAGES, doors);
 
 // why <record file> [key]: prints the answer; the file is the only input, no network.
 export function whyStep({ argv, report }) {

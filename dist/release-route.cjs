@@ -804,7 +804,9 @@ function shownRefusal(error) {
   const refusal = asRefusal(error);
   return new Refusal(refusal.code, shownDetail(refusal.detail));
 }
-async function runHandlers(handlers, step, doors) {
+var ownDoors = (doors) => Object.assign(/* @__PURE__ */ Object.create(null), doors);
+async function runHandlers(handlers, step, given) {
+  const doors = ownDoors(given);
   const { report: report2 } = doors;
   try {
     if (typeof step !== "string" || !Object.hasOwn(handlers, step)) refuse("unknown-step", step);
@@ -29444,7 +29446,7 @@ function chartResult(state) {
   const seen2 = seenFacts(fromState(state).facts);
   return state.refusal ? { rule: state.rule, refuse: state.refusal, seen: seen2 } : { rule: state.rule, mode: state.mode, compare: state.compare, seen: seen2 };
 }
-async function runPlanChart({ stages, ...doors }) {
+async function runPlanChart(doors, stages = PLAN_STAGES) {
   const chart = buildPlanChart(doors, stages);
   const run = await execute(chart);
   const state = run.snapshot.sharedState;
@@ -30097,11 +30099,11 @@ function finish({ env: env2, step, chart, run, report: report2 }, decide2) {
   }
   if (decision) throw decision;
 }
-async function chartPlanStep({ env: env2, git: git2, fetcher, report: report2, stages }) {
-  const planned = await runPlanChart({ env: env2, git: git2, fetcher, stages });
+async function planStepWith(stages, { env: env2, git: git2, fetcher, report: report2 }) {
+  const planned = await runPlanChart({ env: env2, git: git2, fetcher }, stages);
   finish({ env: env2, step: "plan", chart: planned.chart, run: planned.run, report: report2 }, () => reportPlan({ result: planned.result, causes: planned.causes, context: planned.context, report: report2 }));
 }
-async function chartVerifyStep({ env: env2, fetcher, sleep: sleep2, report: report2, wait: wait2, stages }) {
+async function verifyStepWith(stages, { env: env2, fetcher, sleep: sleep2, report: report2, wait: wait2 }) {
   const { name, version, bytes } = verifyInputs(env2);
   const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep: sleep2, wait: wait2 }, stages);
   const run = await execute(chart);
@@ -30112,6 +30114,8 @@ async function chartVerifyStep({ env: env2, fetcher, sleep: sleep2, report: repo
     reportVerified({ name, version, integrity: state.localIntegrity, report: report2 });
   });
 }
+var chartPlanStep = (doors) => planStepWith(PLAN_STAGES, doors);
+var chartVerifyStep = (doors) => verifyStepWith(VERIFY_STAGES, doors);
 function whyStep({ argv, report: report2 }) {
   const [file, key] = argv;
   if (typeof file !== "string" || file.length === 0 || file.length > 4096 || argv.length > 2) refuse("input-invalid", "why <record file> [key]");
