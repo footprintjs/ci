@@ -37,6 +37,12 @@ test('a payload that differs from its pinned digest is refused before anything i
   const out = join(folder(t), 'npm');
   assert.equal(code(() => unpackNpm({ out, source: process.cwd(), vendorDir: vendor })), 'npm-tool sha256 differs from vendor/npm/manifest.json');
   assert.equal(code(() => statSync(out)), 'unexpected-failure');
+  // Only the integrity changed (the sha256 still matches): the sha512 check alone must refuse it.
+  writeFileSync(join(vendor, 'npm-11.19.0.tgz'), readFileSync(join(VENDOR_DIR, 'npm-11.19.0.tgz')));
+  const pinned = JSON.parse(readFileSync(join(VENDOR_DIR, 'manifest.json'), 'utf8'));
+  writeFileSync(join(vendor, 'manifest.json'), JSON.stringify({ ...pinned, integrity: `sha512-${'A'.repeat(86)}==` }));
+  assert.equal(code(() => unpackNpm({ out, source: process.cwd(), vendorDir: vendor })), 'npm-tool sha512 differs from vendor/npm/manifest.json');
+  assert.equal(code(() => statSync(out)), 'unexpected-failure');
   writeFileSync(join(vendor, 'manifest.json'), '{"name":"npm","name":"npm"}');
   assert.equal(code(() => vendoredNpm(vendor)), 'npm-tool vendor/npm/manifest.json unreadable');
   writeFileSync(join(vendor, 'manifest.json'), JSON.stringify({ name: 'npm', version: '11.19.0', file: '../x.tgz', sha256: 'a'.repeat(64), integrity: `sha512-${'A'.repeat(86)}==` }));
