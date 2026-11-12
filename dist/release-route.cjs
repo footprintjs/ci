@@ -29211,7 +29211,7 @@ function readAtCommit(git2, commit, path2, maxBytes, unreadable) {
   if (bytes.length !== size) refuse("git-failed", `read ${path2}`);
   return bytes;
 }
-function remoteCommit(git2, ref, question) {
+function remoteCommit(git2, ref, question, peeled) {
   const out = ask(git2, ["ls-remote", "origin", ref, `${ref}^{}`], question).toString("utf8");
   if (out === "") return null;
   if (!out.endsWith("\n")) refuse("git-failed", question);
@@ -29223,6 +29223,7 @@ function remoteCommit(git2, ref, question) {
     if (found.has(match[2])) refuse("git-failed", question);
     found.set(match[2], match[1]);
   }
+  if (peeled === "refuse" && found.has(`${ref}^{}`)) refuse("git-failed", question);
   if (!found.has(ref)) {
     if (found.size > 0) refuse("git-failed", question);
     return null;
@@ -29231,11 +29232,11 @@ function remoteCommit(git2, ref, question) {
 }
 function tagCommit(git2, version) {
   if (!isPlainVersion(version)) refuse("input-invalid", "version");
-  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags");
+  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags", "follow");
 }
 var tagExists = (git2, version) => tagCommit(git2, version) !== null;
 function mainTip(git2) {
-  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main");
+  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main", "refuse");
   if (tip === null) refuse("git-failed", "ls-remote main");
   return tip;
 }
