@@ -61,7 +61,7 @@ function headerSize(header) {
   return octal(header.subarray(124, 136));
 }
 // Release route: a path segment some file system resolves to another file (see readTar).
-const DEVICE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+const DEVICE = /^(con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$)$/i;
 const foldedByAFileSystem = (segment) =>
   segment.endsWith('.') || segment.endsWith(' ') || segment.includes('~') || segment.includes(':') ||
   DEVICE.test(segment.split('.')[0].trimEnd());
@@ -93,6 +93,7 @@ function readTar(bytes, limits, admit) {
   if (tar.length % 512 !== 0) fail();
   const names = new Set(),
     folds = new Set(),
+    folders = new Set(),
     members = [];
   let at = 0,
     ended = false;
@@ -126,10 +127,14 @@ function readTar(bytes, limits, admit) {
     // member other than the exact package/package.json equal to it without case; and in any
     // segment a trailing "." or space, a "~" (Windows short names: PACKAG~1.JSO), a ":" (a drive
     // or an alternate data stream: package.json:x), or a Windows device base name (CON, PRN, AUX,
-    // NUL, COM1-9, LPT1-9, any case, any extension). "\\" and anything outside printable ASCII
-    // were already refused above.
+    // NUL, COM0-9, LPT0-9, CONIN$, CONOUT$, any case, any extension); and one path that is a file
+    // in one member and a folder in another (npm then keeps one and silently drops the other).
+    // "\\" and anything outside printable ASCII were already refused above.
     const folded = name.toLowerCase();
-    if (folds.has(folded)) fail('archive-name', { text: name });
+    if (folds.has(folded) || folders.has(folded)) fail('archive-name', { text: name });
+    const parents = folded.split('/').slice(1, -1).map((_, i, all) => `package/${all.slice(0, i + 1).join('/')}`);
+    if (parents.some((parent) => folds.has(parent))) fail('archive-name', { text: name });
+    for (const parent of parents) folders.add(parent);
     if (folded === 'package/package.json' && name !== 'package/package.json') fail('archive-name', { text: name });
     if (name.split('/').some(foldedByAFileSystem)) fail('archive-name', { text: name });
     folds.add(folded);

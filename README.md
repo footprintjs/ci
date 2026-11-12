@@ -53,7 +53,7 @@ The reader uses Foottrace's existing causal slice APIs. It explains recorded rea
 
 Six production guards are copied byte-for-byte from a pinned Foottrace source commit; the complete native release corpus is retained. Adapted guard/helper tests exercise the production copies; historical runner/workflow compatibility tests retain their snapshots. [Provenance](provenance/upstream.json) records every source hash and test-only adaptation. The adapter preserves source closure, reviewed/tested trees, App identity, archive/producer binding, retained history, reservation and unknown-outcome refusals. Uniform review policy additionally requires an exact-head public Claude verdict and disclosed delegated eligible-User approval. Normal security gates are mandatory.
 
-The runtime is pinned independently of the candidate: FootPrint 10.7.1 and Foottrace 1.10.0, with a dependency-complete committed bundle. npm 11.19.0 is separately vendored with its digest for a future reviewed publisher; it is **not executable through this shadow**. [Third-party notices](provenance/THIRD_PARTY_NOTICES.md).
+The runtime is pinned independently of the candidate: FootPrint 12.1.0 and Foottrace 1.15.0, with a dependency-complete committed bundle. npm 11.19.0 is separately vendored with its digest for a future reviewed publisher; it is **not executable through this shadow**. [Third-party notices](provenance/THIRD_PARTY_NOTICES.md).
 
 ## Develop and review
 

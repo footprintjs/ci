@@ -56,6 +56,8 @@ function entryProblem(entry) {
   if (typeof entry !== 'string' || entry.length === 0 || entry.length > MAX_LENGTH) return true;
   // A bare `*` admits every root file there is; list what the package ships instead.
   if (entry === '*') return true;
+  // An always-allowed FILE named as a folder ("package.json/"): npm then cannot read the manifest.
+  if (entry.endsWith('/') && ALWAYS.some((name) => name.toLowerCase() === entry.slice(0, -1).toLowerCase())) return true;
   const folder = entry.endsWith('/');
   const segments = (folder ? entry.slice(0, -1) : entry).split('/');
   const stars = entry.split('*').length - 1;

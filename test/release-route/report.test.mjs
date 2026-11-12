@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { createReport, safeLine } from '../../src/release-route/report.mjs';
 import { Refusal } from '../../src/release-route/refusals.mjs';
+import { runHandlers } from '../../src/release-route/step-common.mjs';
 
 function capture(env = { GITHUB_OUTPUT: '/out', GITHUB_STEP_SUMMARY: '/summary' }) {
   const printed = [];
   const files = {};
-  const report = createReport({ env, print: (line) => printed.push(line), append: (path, text) => { files[path] = (files[path] ?? '') + text; } });
+  const report = createReport({ env, print: (line) => printed.push(line), append: (path, text) => { files[path] = (files[path] ?? '') + text; }, appendOutputs: (path, text) => { files[path] = (files[path] ?? '') + text; } });
   return { report, printed, files };
 }
 
@@ -14,7 +18,7 @@ test('lines go to the log and, escaped inside <pre>, to the job summary', () => 
   const { report, printed, files } = capture();
   report.say('Plan: publish 0.13.2');
   report.say('Title: <img src=x> & ![a](b)');
-  report.summary();
+  report.end(0);
   assert.deepEqual(printed, ['Plan: publish 0.13.2', 'Title: <img src=x> & ![a](b)']);
   assert.equal(files['/summary'], '<pre>\nPlan: publish 0.13.2\nTitle: &lt;img src=x&gt; &amp; ![a](b)\n</pre>\n');
 });
@@ -35,15 +39,89 @@ test('outputs are written only from their closed alphabets', () => {
   report.output('rule', 'released');
   report.output('file', 'package.tgz');
   for (const [key, value] of [['publish', 'yes'], ['publish', 'no'], ['tag', 'create'], ['tag', 'skip'], ['release', 'create'], ['release', 'skip']]) report.output(key, value);
-  assert.equal(files['/out'], 'mode=publish\ncommit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\ncompare=no\nrule=released\nfile=package.tgz\npublish=yes\npublish=no\ntag=create\ntag=skip\nrelease=create\nrelease=skip\n');
+  report.end(0);
+  assert.equal(files['/out'], 'commit=c94c2a6fed62378c428df22d316d36f576511d6a\nversion=0.13.1\npackage=@footprintjs/release-flow\nrule=released\ncompare=no\nfile=package.tgz\npublish=yes\npublish=no\ntag=create\ntag=skip\nrelease=create\nrelease=skip\nmode=publish\n');
+  const fresh = capture().report;
   for (const [key, value] of [['mode', 'ship'], ['version', '1.0.0\nmode=publish'], ['commit', 'HEAD'], ['title', 'x'], ['file', '../x.tgz'], ['package', 'A'], ['rule', 'x'], ['mode', 1], ['publish', 'maybe'], ['tag', 'move'], ['release', 'yes']])
-    assert.throws(() => report.output(key, value), (error) => error instanceof Refusal && error.code === 'output-invalid');
+    assert.throws(() => fresh.output(key, value), (error) => error instanceof Refusal && error.code === 'output-invalid');
 });
 
 test('without the runner files nothing is appended', () => {
   const { report, files } = capture({});
   report.say('Plan: nothing');
   report.output('mode', 'nothing');
-  report.summary();
+  report.end(0);
   assert.deepEqual(files, {});
+});
+
+test('outputs wait for the step\'s end; a step that exits 1 keeps only those that name the run', () => {
+  const { report, files } = capture();
+  for (const [key, value] of [['rule', 'publish'], ['commit', 'c94c2a6fed62378c428df22d316d36f576511d6a'], ['package', 'footprint-storydeck'],
+    ['version', '0.13.2'], ['mode', 'publish'], ['compare', 'yes'], ['publish', 'yes'], ['tag', 'create'], ['release', 'create'], ['file', 'package.tgz']])
+    report.output(key, value);
+  assert.equal(files['/out'], undefined, 'nothing is written before the end');
+  report.end(1);
+  assert.equal(files['/out'], 'rule=publish\ncommit=c94c2a6fed62378c428df22d316d36f576511d6a\npackage=footprint-storydeck\nversion=0.13.2\n');
+});
+
+// A writer that records every append, and fails for the paths named in `fails`.
+function failing(fails = {}) {
+  const printed = [];
+  const files = {};
+  const calls = [];
+  const append = (path, text) => {
+    calls.push(path);
+    if (Object.hasOwn(fails, path)) throw Object.assign(new Error(fails[path]), { code: fails[path] });
+    files[path] = (files[path] ?? '') + text;
+  };
+  const report = createReport({ env: { GITHUB_OUTPUT: '/out', GITHUB_STEP_SUMMARY: '/summary' }, print: (line) => printed.push(line), append, appendOutputs: append });
+  return { report, printed, files, calls };
+}
+const PASS = [['mode', 'publish'], ['compare', 'yes'], ['rule', 'publish'], ['commit', 'c94c2a6fed62378c428df22d316d36f576511d6a'], ['package', 'footprint-storydeck'], ['version', '0.13.2']];
+
+test('the end runs once: a second end writes nothing, and an output after the end is a fault', () => {
+  const { report, files, calls } = failing();
+  report.output('rule', 'publish');
+  report.output('mode', 'publish');
+  report.end(0);
+  report.end(0);
+  report.end(1);
+  assert.deepEqual(calls, ['/summary', '/out']);
+  assert.equal(files['/out'], 'rule=publish\nmode=publish\n');
+  assert.throws(() => report.output('mode', 'nothing'), /after the step ended/);
+  report.end(0);
+  assert.equal(files['/out'], 'rule=publish\nmode=publish\n');
+});
+
+test('the summary is written first, then every output in ONE append: the names of the run first, mode last', () => {
+  const { report, files, calls } = failing();
+  for (const [key, value] of PASS) report.output(key, value);
+  report.end(0);
+  assert.deepEqual(calls, ['/summary', '/out']);
+  const text = 'rule=publish\ncommit=c94c2a6fed62378c428df22d316d36f576511d6a\npackage=footprint-storydeck\nversion=0.13.2\ncompare=yes\nmode=publish\n';
+  assert.equal(files['/out'], text);
+  // A write cut short leaves a prefix: no prefix short of the whole text holds a whole mode line.
+  for (let cut = 0; cut < text.length; cut++) assert.doesNotMatch(text.slice(0, cut), /^mode=[a-z-]+\n/m, `cut at ${cut}`);
+});
+
+for (const [label, fails] of [['the summary append fails', { '/summary': 'EISDIR' }], ['the output append fails', { '/out': 'EFBIG' }]])
+  test(`${label}: the step exits 1, GITHUB_OUTPUT holds nothing, and nothing is written after the failed write`, async () => {
+    const { report, printed, files, calls } = failing(fails);
+    const code = await runHandlers({ plan: () => { for (const [key, value] of PASS) report.output(key, value); } }, 'plan', { report });
+    assert.equal(code, 1);
+    assert.equal(files['/out'], undefined);
+    assert.deepEqual(calls, Object.hasOwn(fails, '/summary') ? ['/summary'] : ['/summary', '/out']);
+    assert.match(printed.at(-1), /^Refused: unexpected-failure\./, 'the refusal reaches the log');
+  });
+
+test('the summary goes through the plain append; the outputs, by default, through the whole-or-nothing append', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'report-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const calls = [];
+  const report = createReport({ env: { GITHUB_OUTPUT: join(dir, 'out'), GITHUB_STEP_SUMMARY: '/summary' }, print: () => {}, append: (path) => calls.push(path) });
+  report.output('rule', 'publish');
+  report.output('mode', 'publish');
+  report.end(0);
+  assert.deepEqual(calls, ['/summary']);
+  assert.equal(readFileSync(join(dir, 'out'), 'utf8'), 'rule=publish\nmode=publish\n');
 });

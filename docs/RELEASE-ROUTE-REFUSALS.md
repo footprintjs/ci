@@ -9,7 +9,7 @@ by a test.
 
 | Code | Sentence |
 |---|---|
-| `unknown-step` | The step is not one of plan, npm-tool, build, inspect, ready, verify, tag, notes. |
+| `unknown-step` | The step is not one this command runs (the plain command: plan, npm-tool, build, inspect, ready, verify, tag, notes; the bundle: plan, verify, why). |
 | `input-invalid` | An input the workflow passes is missing or malformed. |
 | `output-invalid` | A value meant for a later job is outside its closed alphabet, so it is not written. |
 | `unexpected-failure` | Something failed that the route has no name for; it stops rather than guess. |
@@ -59,6 +59,9 @@ by a test.
 | `tag-elsewhere` | The tag for this version exists at another commit; the route never moves or reuses a tag. |
 | `release-unexpected` | A GitHub release for this tag exists but is a draft or names another tag; decide by hand. |
 | `npm-tool` | The vendored npm does not match its pinned digest, or its folder is not new, private and outside the checkout. |
+| `record-unwritten` | The run's record could not be written to ROUTE_RECORD_DIR; a release with no record is not what this route promises. |
+| `bundle-unloadable` | The charted steps' bundle could not be read or loaded, or it is not the file dist/release-route-metadata.json names; nothing was decided. |
+| `record-unreadable` | The file is not a release route record this reader can read (missing, too large, not strict JSON, or another shape). |
 | `invalid-archive` | The tarball is not the closed gzip/tar shape the route accepts. |
 | `archive-profile` | The tarball uses a tar extension (long or non-ASCII path, PAX, GNU) the route refuses. |
 | `manifest-json` | A package.json is not strict JSON (malformed, a duplicate key, or over a bound). |

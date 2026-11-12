@@ -5,11 +5,12 @@
 //
 // Why one table: a release that stops with "failed" teaches people to re-run until it is green.
 // A code with a sentence says what to fix, and a test can pin each one (test/release-route/refusals.test.mjs).
+import { types } from 'node:util';
 import archiveRefusal from './archive/refusal.cjs';
 
 export const REFUSALS = Object.freeze({
   // The command itself.
-  'unknown-step': 'The step is not one of plan, npm-tool, build, inspect, ready, verify, tag, notes.',
+  'unknown-step': 'The step is not one this command runs (the plain command: plan, npm-tool, build, inspect, ready, verify, tag, notes; the bundle: plan, verify, why).',
   'input-invalid': 'An input the workflow passes is missing or malformed.',
   'output-invalid': 'A value meant for a later job is outside its closed alphabet, so it is not written.',
   'unexpected-failure': 'Something failed that the route has no name for; it stops rather than guess.',
@@ -76,6 +77,11 @@ export const REFUSALS = Object.freeze({
   'release-unexpected': 'A GitHub release for this tag exists but is a draft or names another tag; decide by hand.',
   'npm-tool': 'The vendored npm does not match its pinned digest, or its folder is not new, private and outside the checkout.',
 
+  // The charted steps' record and its reader.
+  'record-unwritten': 'The run\'s record could not be written to ROUTE_RECORD_DIR; a release with no record is not what this route promises.',
+  'bundle-unloadable': 'The charted steps\' bundle could not be read or loaded, or it is not the file dist/release-route-metadata.json names; nothing was decided.',
+  'record-unreadable': 'The file is not a release route record this reader can read (missing, too large, not strict JSON, or another shape).',
+
   // The archive inspector (src/release-route/archive/); codes may carry ":<field>".
   'invalid-archive': 'The tarball is not the closed gzip/tar shape the route accepts.',
   'archive-profile': 'The tarball uses a tar extension (long or non-ASCII path, PAX, GNU) the route refuses.',
@@ -92,14 +98,28 @@ export const REFUSALS = Object.freeze({
   'publish-directory': 'The publish folder is not a new empty folder apart from the tarball and the source.',
 });
 
+// A refusal is whatever THIS constructor made. Its code and detail are kept twice: in the public
+// properties (for callers and tests, and anyone may reassign them) and in private fields only the
+// constructor sets. `asRefusal` serves the private ones and never reads the public ones, so the
+// test "is this a refusal" is the brand `#code in value`, which runs no getter and no Proxy trap
+// (a Proxy, Object.create(Refusal.prototype) and a look-alike object all lack the field).
+let privateRefusal;
 export class Refusal extends Error {
+  #code;
+  #detail;
+  static {
+    // Reads the private fields of a value, or null when the constructor never made it.
+    privateRefusal = (value) => (#code in value ? { code: value.#code, detail: value.#detail } : null);
+  }
   constructor(code, detail) {
     const known = Object.hasOwn(REFUSALS, code);
     super(known ? code : 'unknown-refusal');
     this.name = 'Refusal';
-    this.code = known ? code : 'unknown-refusal';
+    this.#code = known ? code : 'unknown-refusal';
     // An unknown code is kept as the detail (the printer cleans it), so the bug is visible.
-    this.detail = known ? (detail === undefined ? '' : String(detail)) : String(code);
+    this.#detail = known ? (detail === undefined ? '' : String(detail)) : String(code);
+    this.code = this.#code;
+    this.detail = this.#detail;
   }
   get sentence() {
     return REFUSALS[this.code];
@@ -110,14 +130,49 @@ export function refuse(code, detail) {
   throw new Refusal(code, detail);
 }
 
-// Any thrown value to a Refusal. Archive refusals keep their code and field; everything else
-// the route did not name is `unexpected-failure` (never a pass, never a raw message).
+// Any thrown value as a refusal. It never throws, and it runs no code of the thrown value: a
+// getter or a Proxy trap could hold a secret or a message the route never cleaned, so the value is
+// never asked for a property, a prototype or a descriptor (a Proxy answers each of those with its
+// own code). Every read is inside one try all the same.
+//
+// A value is a refusal only when the Refusal constructor made it (the private-field brand above);
+// what is served is the code and detail it was MADE with, even when its public fields were
+// changed afterwards. Example: Object.create(Refusal.prototype, { code: { get() { return secret; } } })
+// and a Proxy answering Refusal.prototype are unexpected-failure with an empty detail, and nothing
+// of them runs. Archive refusals keep their code and field (a WeakMap lookup by identity, which
+// runs no trap); everything else the route did not name is unexpected-failure (never a pass, never
+// a raw message).
 export function asRefusal(error) {
-  if (error instanceof Refusal) return error;
+  try {
+    return refusalOf(error);
+  } catch {
+    return new Refusal('unexpected-failure', '');
+  }
+}
+
+// The value of an own data property, or undefined (a getter is never called). Only for a value
+// that is not a Proxy.
+const ownData = (value, key) => Object.getOwnPropertyDescriptor(value, key)?.value;
+const isObject = (value) => (typeof value === 'object' || typeof value === 'function') && value !== null;
+
+function refusalOf(error) {
+  if (isObject(error)) {
+    const made = privateRefusal(error);
+    if (made !== null) return new Refusal(made.code, made.detail);
+  }
   const archive = archiveRefusal.archiveRefusalCode(error);
   if (typeof archive === 'string') {
     const cut = archive.indexOf(':');
     return cut < 0 ? new Refusal(archive) : new Refusal(archive.slice(0, cut), archive.slice(cut + 1));
   }
-  return new Refusal('unexpected-failure', error?.name === 'TimeoutError' ? 'timeout' : '');
+  return new Refusal('unexpected-failure', isTimeout(error) ? 'timeout' : '');
+}
+
+// A timeout keeps its name: an Error whose own `name` is the data value 'TimeoutError', or the
+// platform's DOMException (whose `name` is the platform's own getter, not the thrown value's code).
+// A Proxy is never asked: any question to it (a prototype, a descriptor) runs its trap.
+function isTimeout(error) {
+  if (!isObject(error) || types.isProxy(error)) return false;
+  if (Object.hasOwn(error, 'name')) return ownData(error, 'name') === 'TimeoutError';
+  return Object.getPrototypeOf(error) === DOMException.prototype && error.name === 'TimeoutError';
 }

@@ -81,6 +81,9 @@ Files npm gives a meaning of its own (`archive-denied`, any letter case):
 | any `.npmrc` | npm configuration: registry, scripts, credentials |
 | any `node_modules` folder | dependency code shipped inside the package, around the declared dependencies |
 
+The setting also refuses `package.json/`, `README.md/` or `LICENSE/` as a folder entry: npm then cannot
+read the manifest.
+
 Names a file system resolves to a different file (`archive-name`):
 
 | Name | Why |
@@ -90,7 +93,8 @@ Names a file system resolves to a different file (`archive-name`):
 | a segment ending in `.` or a space | Windows drops them: `binding.gyp.` becomes `binding.gyp` |
 | `~` in a segment | Windows short names: `PACKAG~1.JSO` can resolve to an existing `package.json` (no family tarball uses `~`) |
 | `:` in a segment | a drive letter or an alternate data stream on Windows: `package.json:x` |
-| a Windows device base name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, `LPT1`-`LPT9`, any case, any extension) | Windows opens the device, not a file |
+| a Windows device base name (`CON`, `PRN`, `AUX`, `NUL`, `COM0`-`COM9`, `LPT0`-`LPT9`, `CONIN$`, `CONOUT$`, any case, any extension) | Windows opens the device, not a file |
+| one path as a file in one member and a folder in another (any case) | npm keeps one and silently drops the other |
 
 Already refused by the copied profile (`invalid-archive` / `archive-profile`): `\` anywhere (a path
 separator on Windows), `.` and `..` segments, empty segments, and any character outside printable

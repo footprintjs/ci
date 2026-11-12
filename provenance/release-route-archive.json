@@ -15,7 +15,7 @@
       "source": "scripts/publish-release/archive/README.md",
       "destination": "src/release-route/archive/README.md",
       "sourceSha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
-      "sha256": "15135e3f7a2dba5ae9b3109f2fde0f1df20dc6dbd851b13171c990241ada0dc3",
+      "sha256": "9071d7462758ea42c41d478ac7a7d04dced674a03e1677cbd59f57d7ea527754",
       "adaptation": "Route deltas listed at the top; a section 'Names no archive may hold' (the fixed npm deny list and the file-system name class, with why for each); profile and test-location sentences updated."
     },
     {
@@ -344,8 +344,8 @@
       "source": "scripts/publish-release/archive/inspector.cjs",
       "destination": "src/release-route/archive/inspector.cjs",
       "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "sha256": "7d53d9c7cec39a041ac93a00e5375b5bbbad01250f928e3419c7d00a708dd739",
-      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader. NEW in the profile, which the original's closed list never needed: no member may have a name some file system resolves to a different file (archive-name): two paths equal without letter case, a root member other than the exact package/package.json equal to it without case, and any segment ending in '.' or a space, holding '~' or ':', or with a Windows device base name (CON, PRN, AUX, NUL, COM1-9, LPT1-9)."
+      "sha256": "690209e69ce95f6b3ff349e26012ff34b71a311297fc64f9222396917fd6b4fc",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader. NEW in the profile, which the original's closed list never needed: no member may have a name some file system resolves to a different file (archive-name): two paths equal without letter case, a root member other than the exact package/package.json equal to it without case, one path as a file in one member and a folder in another, and any segment ending in '.' or a space, holding '~' or ':', or with a Windows device base name (CON, PRN, AUX, NUL, COM0-9, LPT0-9, CONIN$, CONOUT$)."
     },
     {
       "source": "scripts/publish-release/archive/inspector.test.cjs",

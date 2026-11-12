@@ -22,7 +22,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Verify committed bundle and metadata
-        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json
+        run: git diff --exit-code -- dist/release.cjs dist/build-metadata.json dist/release-route.cjs dist/release-route-metadata.json
   # The two forms of the hold check (docs/HOLD.md), run on this repository's own commits so the
   # action and the reusable workflow are exercised on GitHub Actions at least here. They are RED
   # while an open issue or pull request in footprintjs/ci carries hold-release: that is the check

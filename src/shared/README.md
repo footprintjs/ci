@@ -8,6 +8,9 @@ Small rules that BOTH release tools use: the hold check (`src/hold/`) and the re
   feature words them in its own vocabulary.
 - `text.mjs · clean / flatten / cleanLines`: the one cleaner for untrusted text (control, format and
   bidi characters out, `::` and `##[` broken apart for the log, bounded).
+- `append-whole.mjs · appendWhole`: an append that lands whole or not at all (a write that fails
+  part-way is cut back to the file's old size). The release route writes `$GITHUB_OUTPUT` with it,
+  so a step that fails while writing its outputs leaves none of them behind.
 - `github.mjs`: the fixed API host `https://api.github.com` (GITHUB_API_URL is not read; GitHub
   Enterprise is not supported), the token's shape, the request headers, a repository name's shape.
 
