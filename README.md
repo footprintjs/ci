@@ -19,6 +19,12 @@ Current REST pages remain **history-incomplete**, so a matching comment alone ne
 becomes an admitted verdict or authority to merge or publish. No active ledger is
 seeded and no live release route is changed.
 
+## Shared release route (core scripts, no workflow yet)
+
+[`docs/RELEASE-ROUTE.md`](docs/RELEASE-ROUTE.md): the modules in `src/release-route/` and the one
+command `node scripts/release-route.mjs <plan|build|inspect|verify|notes>` that a later workflow
+will call to build, check, publish, verify and release one package. No workflow uses it yet.
+
 ## Try the committed bundle
 
 Use Node 22.14 or newer. Download/checkout one **reviewed full commit** of this repository, then run:
