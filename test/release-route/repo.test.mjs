@@ -76,11 +76,15 @@ test('an annotated tag is answered by its peeled commit; the tip of main is meas
   assert.equal(tagCommit(git, '3.0.0'), null);
   assert.equal(mainTip(git), commit);
   const answer = (text) => () => Buffer.from(text);
-  for (const text of [`${commit}\trefs/tags/x/refs/tags/v1.0.0\n`, `${commit}\trefs/tags/v1.0.0`, `${commit}\trefs/tags/v1.0.0\n${commit}\trefs/tags/v1.0.0\n`,
-    `${commit}\trefs/tags/v1.0.0^{}\n`, 'HEAD\trefs/tags/v1.0.0\n'])
+  for (const text of [`${commit}\trefs/tags/v1.0.0`, `${commit}\trefs/tags/v1.0.0\n${commit}\trefs/tags/v1.0.0\n`,
+    `${commit}\trefs/tags/v1.0.0^{}\n`, 'HEAD\trefs/tags/v1.0.0\n', `${commit}\trefs/tags/v1.0.0\nnot a line\n`])
     assert.equal(code(() => tagCommit(answer(text), '1.0.0')), 'git-failed ls-remote tags');
+  // Lines for OTHER refs that end like the asked one are ignored, not refused (round 2 of the second read).
+  assert.equal(tagCommit(answer(`${commit}\trefs/tags/x/refs/tags/v1.0.0\n`), '1.0.0'), null);
+  assert.equal(tagCommit(answer(`${'b'.repeat(40)}\trefs/heads/refs/tags/v1.0.0\n${commit}\trefs/tags/v1.0.0\n`), '1.0.0'), commit);
   assert.equal(code(() => mainTip(answer(''))), 'git-failed ls-remote main');
   assert.equal(code(() => mainTip(answer(`${commit}\trefs/heads/x/refs/heads/main\n`))), 'git-failed ls-remote main');
+  assert.equal(mainTip(answer(`${'b'.repeat(40)}\trefs/heads/x/refs/heads/main\n${commit}\trefs/heads/main\n`)), commit);
 });
 
 test('build runs only on the planned commit with a clean tree', (t) => {
@@ -97,4 +101,27 @@ test('build runs only on the planned commit with a clean tree', (t) => {
   mkdirSync(join(dir, 'ignored'));
   writeFileSync(join(dir, 'ignored/leftover.js'), 'x');
   assert.equal(code(() => requireCleanCheckout(git, commit)), 'checkout-mismatch the tree has changes');
+});
+
+// The reader's lsremote.mjs cases, against a real origin: a branch or a nested tag whose name ENDS
+// like the asked ref is ignored, so pushing such a branch cannot stop every plan.
+test('ref names that end like the asked ref: ignored on a real origin; tag objects peel to the commit', (t) => {
+  const { dir, commit, git } = fixture(t);
+  const run = (...args) => execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
+  writeFileSync(join(dir, 'b.txt'), 'b');
+  run('add', 'b.txt');
+  run('commit', '--quiet', '-m', 'b');
+  const later = run('rev-parse', 'HEAD');
+  run('push', '--quiet', 'origin', `${later}:refs/heads/refs/tags/v1.5.0`);
+  assert.equal(tagCommit(git, '1.5.0'), null);
+  run('push', '--quiet', 'origin', `${later}:refs/heads/x/refs/heads/main`);
+  assert.equal(mainTip(git), commit);
+  run('push', '--quiet', 'origin', `${commit}:refs/tags/x/refs/tags/v1.6.0`);
+  assert.equal(tagCommit(git, '1.6.0'), null);
+  run('push', '--quiet', 'origin', `${commit}:refs/tags/v1.7.0`, `${later}:refs/heads/v1.7.0`);
+  assert.equal(tagCommit(git, '1.7.0'), commit);
+  run('tag', '-a', '-m', 'a', 'v1.8.0', commit);
+  run('tag', '-a', '-m', 'b', 'v1.9.0', 'v1.8.0');
+  run('push', '--quiet', 'origin', 'v1.9.0');
+  assert.equal(tagCommit(git, '1.9.0'), commit);
 });

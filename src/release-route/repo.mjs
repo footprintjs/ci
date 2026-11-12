@@ -38,19 +38,29 @@ export function readAtCommit(git, commit, path, maxBytes, unreadable) {
 
 // The commit `ref` names on origin, or null when origin has no such ref. Asked of `origin`
 // itself, not of the local refs, which a shallow checkout does not hold. An annotated tag is
-// answered with its peeled line (`<ref>^{}`), whose commit is the one returned. Any other line
-// (another ref the pattern matched, a malformed line) is git-failed: never guessed.
+// answered with its peeled line (`<ref>^{}`), whose commit is the one returned.
+// `ls-remote` matches the END of ref names, so a branch named `x/refs/heads/main` or
+// `refs/tags/v1.5.0` adds lines of its own: those are IGNORED (refusing them would let anyone who
+// can push a branch stop every release; found by the second reader). Only the lines whose ref is
+// EXACTLY the one asked for, or its peeled line, count; a malformed line, or the exact ref twice,
+// is git-failed: never guessed.
 function remoteCommit(git, ref, question) {
   // Both patterns: git prints the peeled line of an annotated tag only when it is asked for.
   const out = ask(git, ['ls-remote', 'origin', ref, `${ref}^{}`], question).toString('utf8');
   if (out === '') return null;
+  if (!out.endsWith('\n')) refuse('git-failed', question);
   const found = new Map();
-  for (const line of out.split('\n').slice(0, -1)) {
-    const match = /^([a-f0-9]{40})\t(.+)$/.exec(line);
-    if (!match || (match[2] !== ref && match[2] !== `${ref}^{}`) || found.has(match[2])) refuse('git-failed', question);
+  for (const line of out.slice(0, -1).split('\n')) {
+    const match = /^([a-f0-9]{40})\t(\S+)$/.exec(line);
+    if (!match) refuse('git-failed', question);
+    if (match[2] !== ref && match[2] !== `${ref}^{}`) continue;
+    if (found.has(match[2])) refuse('git-failed', question);
     found.set(match[2], match[1]);
   }
-  if (!out.endsWith('\n') || !found.has(ref)) refuse('git-failed', question);
+  if (!found.has(ref)) {
+    if (found.size > 0) refuse('git-failed', question);
+    return null;
+  }
   return found.get(`${ref}^{}`) ?? found.get(ref);
 }
 
