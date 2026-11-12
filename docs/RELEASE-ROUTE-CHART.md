@@ -23,10 +23,20 @@ file `dist/release-route-metadata.json` names (sha256) and loads it; anything el
 check. The bundle is built by `npm run build` from `bin/release-route.mjs` with footprintjs and
 foottrace inside it (no import but `node:`), and CI rebuilds it and compares it with the commit.
 
-`node scripts/release-route.mjs plan` and `verify` stay as they were: they are the oracle the
-charted steps are tested against (`test/release-route/chart/steps.test.mjs` runs both on the same
-inputs and compares every printed line, output and exit code), and a way to decide by hand when
-the bundle cannot run.
+What the digest check does: it refuses a bundle cut short, damaged or missing after checkout. It is
+not a defence against someone who can write to the checkout: the metadata sits beside the bundle
+and can be changed with it, and the file is read a second time when it is loaded. What makes the
+bundle the reviewed code is the review of the commit and CI's check that the committed bundle
+equals a rebuild.
+
+`node scripts/release-route.mjs plan` and `verify` stay as they were, and the workflow never falls
+back to them (RELEASE-ROUTE.md, W14): they leave no record. They are the oracle the charted steps
+are tested against, and a way for a person, outside the workflow, to read a failure.
+`same-as-plain-plan.test.mjs` (38 inputs reaching all 20 rows of the table; no input reaches
+`no-rule-matched`, since the table answers every combination of readable facts and
+`facts-unreadable` answers the rest, so `decision.test.mjs` reaches it with a stand-in stage) and `same-as-plain-verify.test.mjs` (9 answers from npm) run both paths on the
+same inputs and compare the exit code, every printed line, `GITHUB_OUTPUT` and the job summary; the
+only lines the charted path adds are its `Story:` and `Record:` lines.
 
 **What stays plain, on purpose.** `build`, `inspect`, `ready`, `tag`, `notes` and `npm-tool` stay
 plain Node files with no engine, because `ready` and `inspect` run in the job that holds the right
@@ -137,6 +147,12 @@ it to each child and to the stage after it. The `default` box is the library's d
 
 Each result branch (`Rule <id>`) writes `rule`, and either `mode` and `compare` or `refusal`.
 
+**The decision reads exactly what the plain path decides on.** A fact enters state as its
+observer's value when that value is one of the fact's values in `rules.mjs`, and as `null`
+otherwise; it is never cleaned into a value (`state.mjs`). The action is outside text: `"publish "`
+with a space, or with a hidden character, is not `publish`; on both paths it is unreadable, with
+the cause `input-invalid` (`ROUTE_ACTION`), and the plan refuses (`facts-unreadable`).
+
 Side by side, each look writes under `runs/<stage id>/` (the library's rule for a fork, so siblings
 cannot overwrite each other); the gather stage lifts those facts to their names. A fact that could
 not be read is `null`, and its cause (`{ code, detail }`, a refusal code of THE table and its
@@ -235,8 +251,10 @@ decision channel as not collected from it, and the decision's evidence would be 
 
 `node scripts/release-route-chart.mjs why <record file> [key]` prints, from the file alone and with
 no network, why a top-level key (default: `mode`, else `refusal`, else `verified`) has its value:
-the decision and the rule that matched, each fact the rule tested with its value and the stage that
-read it, each unreadable fact with its cause, then the walk back. Every walk is foottrace's
+the decision that governs it (the decision whose branch let the key's last writer run, from the
+record's control edges) with the rule that matched and each fact the rule tested, its value and the
+stage that read it; or, for a key no decision governs (a fact, the package name), one line saying
+so and no rule. Then each unreadable fact with its cause, then the walk back. Every walk is foottrace's
 (`findLastWriter`, `causalChain` with the control edges the record kept, `formatCausalChain`,
 `keysReadFromExecutionTree`); `why.mjs` only arranges the answers into lines. Every line is
 cleaned and starts with a fixed word, so no line can start a workflow command. A file that is not
@@ -251,26 +269,32 @@ Fact tagExists eq true: was true, holds; read by Look for the tag (look-tag#6).
 Fact npmHasVersion eq true: was true, holds; read by Ask npm (look-npm#7).
 Fact action eq "publish": was "publish", holds; read by Read the request (request#0).
 Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):
+Note: steps that ran side by side may be shown one under another; only the "read by" lines above say which step read a fact.
 Walk: Rule released (released#12) [wrote: rule, mode, compare]
 Walk: . Decide by the rule table (decide#11) ← [control: released]
 Walk: . . Read the request (request#0) ← via toolCommitPlain [wrote: action, refIsMain, toolCommitPlain, commit]
 ...
 ```
 
-In the walk, the looks that ran side by side show "built on runs" edges between each other: the
-library treats the fork's `runs` namespace as one key. The "read by" lines above the walk are exact
-(`findLastWriter` on each look's own path).
+## What the record cannot show yet
+
+Steps that ran side by side may be shown one under another; only the "read by" lines above say
+which step read a fact. This holds for footprintjs 12.1.0 with foottrace 1.15.0: foottrace's
+`causalChain` reads a fork's `runs` namespace as one key, so looks that ran side by side appear
+built on each other. It is being fixed in the library; until then `why` prints this sentence, in
+the same words, directly above every walk, and draws nothing of its own.
 
 ## It fails closed
 
 | What goes wrong | What the step does |
 |---|---|
-| A look throws (a fault) | the run stops (`failFast`); the step refuses with that refusal (or `unexpected-failure`), exit 1 |
+| A stage throws (a fault) | every stage function passes through `stage.mjs · stageFn`: what it throws leaves it as a refusal with only its code and its shown detail (no raw message reaches the record); the run stops (`failFast` in the forks); the step refuses with it, exit 1; the engine's logger is silent (`QUIET_LOGGER`), so nothing goes to stderr |
 | A malformed `GITHUB_SHA` | `input-invalid` in the first stage, before anything is read, exit 1 |
-| No rule matches | the default branch `no-rule-matched`, exit 1 |
-| The record cannot be written (relative path, not a folder, a file already there, a failed write, over its bound) | the decision is printed first; a pass ends in `record-unwritten`, exit 1 (a release with no record is not what this route promises); a refusal stays that refusal, exit 1, with the line `Record: not saved (record-unwritten); the decision below stands.` |
+| No rule matches | the default branch `no-rule-matched`, exit 1, no `mode` written |
+| A state that holds a mode and a refusal | the refusal wins, exit 1 |
+| The record cannot be written (relative path, not a folder, a link, a file already there, a failed write, over its bound) | the decision is printed first; a pass ends in `record-unwritten`, exit 1 (a release with no record is not what this route promises), and `GITHUB_OUTPUT` holds no `mode` and no `compare` (a step that exits 1 never tells a later job to act, `report.mjs`); a refusal stays that refusal, exit 1, with the line `Record: not saved (record-unwritten); the decision below stands.` |
 | The bundle is missing, changed or will not load | `bundle-unloadable`, exit 1 (through `scripts/release-route-chart.mjs`) |
-| A record the reader cannot read | `record-unreadable`, exit 1 |
+| A record the reader cannot read (missing, not a regular file such as `/dev/zero` or a FIFO, a folder, over the bound, not strict JSON, another shape) | `record-unreadable`, exit 1, before a byte is read when the file is not a regular file within the bound |
 
 ## What the library did not do for us
 
@@ -287,3 +311,10 @@ library treats the fork's `runs` namespace as one key. The "read by" lines above
 5. **`sliceForKey` has no control edges**, so `why` uses `causalChain`, which takes them.
 6. **`toMermaid()` draws `setDefault(id)` as a second box** named `default` beside the branch it
    names.
+7. **The engine records a thrown value's raw text** (the execution tree's
+   `errors.stageExecutionError` and the story's error line), unbounded and uncleaned. The route
+   wraps every stage function (`stage.mjs · stageFn`) so only a refusal's code and shown detail
+   can be thrown into it.
+8. **The logger is a chart property, not an executor option.** footprintjs 12.1.0's default logger
+   writes a stage error with its stack (and the checkout's paths) to stderr; the only door is
+   `FlowChartBuilder · setLogger`, which each chart calls with a silent logger.

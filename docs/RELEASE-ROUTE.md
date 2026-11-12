@@ -42,7 +42,13 @@ Why it is built this way, in one line each:
 
 In the workflow, `plan` and `verify` run charted, from the committed bundle, with the same inputs,
 outputs and exit codes and one more input, `ROUTE_RECORD_DIR` (where the run's record is saved):
-[RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md).
+[RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md). The workflow never falls back to the plain steps
+(W14): they leave no record, and exist as the oracle the charted steps are tested against and for
+a person reading a failure.
+
+A step that exits 1 never tells a later job to act: outputs are held until the step ends, and a
+refused step writes only those that name the run (`rule`, `commit`, `package`, `version`), never
+`mode`, `compare`, `publish`, `tag`, `release` or a file name (`report.mjs`).
 
 The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
 publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).
@@ -337,6 +343,11 @@ of its read of this pull request, in its words; nothing in these scripts can enf
 - **W12.** `ROUTE_OUT`, `ROUTE_TARBALL_DIR` and `ROUTE_NPM_DIR` are fresh folders under `RUNNER_TEMP`, one per job.
 - **W13.** The run summary must surface a `not-main-tip` decision with `npmHasVersion=true` (or the doc must tell people
   to use "Re-run failed jobs"), until the route prints it itself.
+
+- **W14.** The workflow runs only the charted `plan` and `verify` (`node scripts/release-route-chart.mjs`), with
+  `ROUTE_RECORD_DIR` set; no step ever falls back to the plain `plan` or `verify`, and a bundle that will not load
+  (`bundle-unloadable`) stops the run. The plain steps leave no record; they are the oracle the charted steps are
+  tested against, and a way for a person, outside the workflow, to read a failure.
 
 Since round 3, the case W13 names is refused by the route itself (`unfinished-not-tip`,
 `release-unfinished`), so the run is red and names what to do.

@@ -719,7 +719,15 @@ function refuse(code, detail) {
   throw new Refusal(code, detail);
 }
 function asRefusal(error) {
-  if (error instanceof Refusal) return error;
+  try {
+    return refusalOf(error);
+  } catch {
+    return new Refusal("unexpected-failure", "");
+  }
+}
+var plainString = (value, key) => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "string";
+function refusalOf(error) {
+  if (error instanceof Refusal) return plainString(error, "code") && plainString(error, "detail") ? error : new Refusal(String(error.code), error.detail);
   const archive = import_refusal.default.archiveRefusalCode(error);
   if (typeof archive === "string") {
     const cut2 = archive.indexOf(":");
@@ -791,12 +799,17 @@ function verifyInputs(env2) {
   return { name, version, bytes };
 }
 var reportVerified = ({ name, version, integrity, report: report2 }) => report2.say(`Verified: npm serves ${name}@${version} with the same bytes as the built file (${integrity}).`);
+var shownDetail = (detail) => clean(detail, 200);
+function shownRefusal(error) {
+  const refusal = asRefusal(error);
+  return new Refusal(refusal.code, shownDetail(refusal.detail));
+}
 async function runHandlers(handlers, step, doors) {
   const { report: report2 } = doors;
   try {
     if (typeof step !== "string" || !Object.hasOwn(handlers, step)) refuse("unknown-step", step);
     await handlers[step](doors);
-    report2.summary();
+    report2.end(0);
     return 0;
   } catch (error) {
     return printRefusal(report2, error);
@@ -806,8 +819,8 @@ function printRefusal(report2, error) {
   const refusal = asRefusal(error);
   try {
     report2.say(`Refused: ${refusal.code}. ${REFUSALS[refusal.code]}`);
-    if (refusal.detail) report2.say(`Detail: ${clean(refusal.detail, 200)}`);
-    report2.summary();
+    if (refusal.detail) report2.say(`Detail: ${shownDetail(refusal.detail)}`);
+    report2.end(1);
   } catch {
   }
   return 1;
@@ -2128,7 +2141,7 @@ function layoutOf(log) {
     return kept;
   const starts = [0];
   const earliest = new Array(log.length);
-  const silent = [];
+  const silent2 = [];
   let last = -1;
   let frozen = Object.isFrozen(log);
   for (let at = 0; at < log.length; at++) {
@@ -2140,22 +2153,22 @@ function layoutOf(log) {
         starts.push(at);
       last = idx;
     } else {
-      silent.push(at);
+      silent2.push(at);
       last += 1;
     }
     earliest[at] = last;
   }
-  const pinned = silent.length === 0 || silent.length === log.length;
-  const layout = { starts, earliest, latest: pinned ? earliest : latestOf(earliest, starts, silent) };
+  const pinned = silent2.length === 0 || silent2.length === log.length;
+  const layout = { starts, earliest, latest: pinned ? earliest : latestOf(earliest, starts, silent2) };
   if (frozen)
     LAYOUTS.set(log, layout);
   return layout;
 }
-function latestOf(earliest, starts, silent) {
+function latestOf(earliest, starts, silent2) {
   const latest = earliest.slice();
   let stretch = starts.length - 1;
-  for (let k = silent.length - 1; k >= 0; k--) {
-    const at = silent[k];
+  for (let k = silent2.length - 1; k >= 0; k--) {
+    const at = silent2[k];
     if (at + 1 === latest.length)
       continue;
     while (starts[stretch] > at + 1)
@@ -4641,15 +4654,15 @@ var RedactionRule = class _RedactionRule {
   dottedTargets(base) {
     const prefix = base === void 0 ? "" : `${base}.`;
     const out = [];
-    const add4 = (name) => {
+    const add2 = (name) => {
       if (!name.includes(".") || !name.startsWith(prefix) || name.length === prefix.length)
         return;
       out.push(name.slice(prefix.length).split("."));
     };
     for (const name of this.marked)
-      add4(name);
+      add2(name);
     for (const name of this.policy?.keys ?? [])
-      add4(name);
+      add2(name);
     return out;
   }
   /**
@@ -18661,21 +18674,21 @@ var StageAttention = class {
       }
     }
     this.projectSummary();
-    const add4 = (kind, reason) => {
+    const add2 = (kind, reason) => {
       if (reference)
         this.append({ kind, reason, evidence: [reference] });
       else
         this.missing();
     };
     if (record.effect === "unknown")
-      add4("unknown-effect", "UNKNOWN_EFFECT_RECORDED");
+      add2("unknown-effect", "UNKNOWN_EFFECT_RECORDED");
     if (record.outcome === "timeout")
-      add4("timeout", "TIMEOUT_RECORDED");
+      add2("timeout", "TIMEOUT_RECORDED");
     const observed = record.kind === "observed";
     if (!observed && record.next === "retry" || record.attempt > 1)
-      add4("retried", "RETRY_RECORDED");
+      add2("retried", "RETRY_RECORDED");
     if (!observed && record.next === "stop" && STOPPED_REASONS.has(record.reason) && (record.of ?? 1) > 1 && record.retryLoop === void 0)
-      add4("gave-up", "RETRY_STOP_RECORDED");
+      add2("gave-up", "RETRY_STOP_RECORDED");
   }
   recordSummary(summary) {
     this.summary = summary;
@@ -18688,7 +18701,7 @@ var StageAttention = class {
       return;
     const terminal = this.terminal;
     const matching = terminal?.next === last.next && terminal.reason === last.reason;
-    const add4 = (kind, reason, proof) => {
+    const add2 = (kind, reason, proof) => {
       const reference = proof ?? "attemptSummary";
       const key = kind + ":" + reason;
       const marks = this.marks;
@@ -18699,9 +18712,9 @@ var StageAttention = class {
       this.append({ kind, reason, evidence: [reference] });
     };
     if (this.summary?.effect === "unknown")
-      add4("unknown-effect", "UNKNOWN_EFFECT_RECORDED", matching && terminal.effect === "unknown" ? terminal.evidence : void 0);
+      add2("unknown-effect", "UNKNOWN_EFFECT_RECORDED", matching && terminal.effect === "unknown" ? terminal.evidence : void 0);
     if (this.retryPossible && last.next === "stop" && STOPPED_REASONS.has(last.reason))
-      add4("gave-up", "RETRY_STOP_RECORDED", matching ? terminal.evidence : void 0);
+      add2("gave-up", "RETRY_STOP_RECORDED", matching ? terminal.evidence : void 0);
   }
   /** Only the explicit retained stage-error path calls this; a diagnostic value never classifies itself. */
   stageFailed(errors) {
@@ -26918,15 +26931,15 @@ var FlowChartBuilder = class {
     if (this._root)
       fail2("root already defined; create a new builder");
     const isPausable = typeof fn === "object" && fn !== null && "execute" in fn;
-    const stageFn = isPausable ? fn.execute : fn;
-    const node = { name, id, fn: stageFn };
+    const stageFn2 = isPausable ? fn.execute : fn;
+    const node = { name, id, fn: stageFn2 };
     if (isPausable) {
       node.isPausable = true;
       node.resumeFn = fn.resume;
     }
     if (description)
       node.description = description;
-    this._addToMap(id, stageFn);
+    this._addToMap(id, stageFn2);
     const spec = { name, id, type: "stage" };
     if (isPausable)
       spec.isPausable = true;
@@ -28716,6 +28729,25 @@ async function execute(chart) {
   return { snapshot: executor.getSnapshot(), control, narrative: executor.getNarrativeEntries(), failure };
 }
 
+// src/release-route/chart/stage.mjs
+var silent = () => {
+};
+var QUIET_LOGGER = Object.freeze({ info: silent, log: silent, debug: silent, error: silent, warn: silent });
+function stageFn(stage, doors) {
+  const fn = stage.make(doors);
+  return (scope) => {
+    try {
+      const out = fn(scope);
+      return out instanceof Promise ? out.catch((error) => {
+        throw shownRefusal(error);
+      }) : out;
+    } catch (error) {
+      throw shownRefusal(error);
+    }
+  };
+}
+var addStage = (builder, stage, doors) => builder.addFunction(stage.name, stageFn(stage, doors), stage.id, stage.description);
+
 // src/release-route/chart/stages/decide.mjs
 var NO_RULE = "no-rule-matched";
 var RULE_FILTERS = Object.freeze(RULES.map((row2) => Object.freeze({
@@ -28801,9 +28833,8 @@ function readSettings(bytes) {
 
 // src/release-route/chart/state.mjs
 var FACT_NAMES = Object.freeze(Object.keys(FACTS));
-var factValue = (value) => value === true || value === false ? value : null;
-var actionValue = (value) => typeof value === "string" ? flatten(value, 40) : null;
-var causeValue = (refusal) => ({ code: refusal.code, detail: flatten(refusal.detail, 120) });
+var factValue = (name, value) => FACTS[name].includes(value) ? value : null;
+var causeValue = (refusal) => ({ code: refusal.code, detail: shownDetail(refusal.detail) });
 var causeRefusal = (cause) => new Refusal(cause.code, cause.detail);
 var CONTEXT_CHECKS = Object.freeze({
   commit: isCommit,
@@ -28812,7 +28843,7 @@ var CONTEXT_CHECKS = Object.freeze({
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value)
 });
 function writeObservation(scope, found) {
-  for (const [name, value] of Object.entries(found.facts)) scope[name] = name === "action" ? actionValue(value) : factValue(value);
+  for (const [name, value] of Object.entries(found.facts)) scope[name] = factValue(name, value);
   const causes = Object.fromEntries(Object.entries(found.causes).map(([name, refusal]) => [name, causeValue(refusal)]));
   if (Object.keys(causes).length > 0) scope.causes = causes;
   const context = { ...found.context, packageName: found.context.name };
@@ -28836,9 +28867,11 @@ var WEIGH = Object.freeze({
 });
 
 // src/release-route/chart/decision.mjs
-function addDecision(builder) {
-  let list = builder.addFunction(WEIGH.name, WEIGH.make(), WEIGH.id, WEIGH.description).addDeciderFunction(DECIDE.name, DECIDE.make(), DECIDE.id, DECIDE.description);
-  for (const result of RESULTS) list = list.addFunctionBranch(result.id, result.name, result.make(), result.description);
+var DECISION_STAGES = Object.freeze({ weigh: WEIGH, decide: DECIDE, results: RESULTS });
+function addDecision(builder, stages = DECISION_STAGES) {
+  const { weigh, decide: decide2, results } = stages;
+  let list = addStage(builder, weigh).addDeciderFunction(decide2.name, stageFn(decide2), decide2.id, decide2.description);
+  for (const result of results) list = list.addFunctionBranch(result.id, result.name, stageFn(result), result.description);
   return list.setDefault(NO_RULE).end();
 }
 
@@ -29207,13 +29240,14 @@ function observation() {
 function observeRequest(env2) {
   const commit = env2.GITHUB_SHA;
   if (!isCommit(commit)) refuse("input-invalid", "GITHUB_SHA");
+  const action = FACTS.action.includes(env2.ROUTE_ACTION) ? env2.ROUTE_ACTION : null;
   return {
     facts: {
-      action: env2.ROUTE_ACTION ?? null,
+      action,
       refIsMain: typeof env2.GITHUB_REF === "string" && env2.GITHUB_REF !== "" ? env2.GITHUB_REF === "refs/heads/main" : null,
       toolCommitPlain: isCommit(env2.ROUTE_TOOL_SHA)
     },
-    causes: {},
+    causes: action === null ? { action: new Refusal("input-invalid", "ROUTE_ACTION") } : {},
     context: { commit }
   };
 }
@@ -29379,16 +29413,22 @@ var TOOL = Object.freeze({
 // src/release-route/chart/plan-chart.mjs
 var FIRST_LOOKS = Object.freeze([TIP, TOOL, SETTINGS, PACKAGE]);
 var SECOND_LOOKS = Object.freeze([TAG, NPM, CHANGELOG]);
-var GATHER_FIRST = gather("gather-first", FIRST_LOOKS);
-var GATHER_SECOND = gather("gather-second", SECOND_LOOKS);
-var children = (looks, doors) => looks.map((look) => ({ id: look.id, name: look.name, fn: look.make(doors), description: look.description }));
-var add2 = (builder, stage, doors) => builder.addFunction(stage.name, stage.make(doors), stage.id, stage.description);
-function planChartBuilder(doors) {
-  let builder = flowChart(REQUEST.name, REQUEST.make(doors), REQUEST.id, { description: REQUEST.description }).addListOfFunction(children(FIRST_LOOKS, doors), { failFast: true });
-  builder = add2(builder, GATHER_FIRST, doors).addListOfFunction(children(SECOND_LOOKS, doors), { failFast: true });
-  return addDecision(add2(builder, GATHER_SECOND, doors));
+var PLAN_STAGES = Object.freeze({
+  request: REQUEST,
+  firstLooks: FIRST_LOOKS,
+  gatherFirst: gather("gather-first", FIRST_LOOKS),
+  secondLooks: SECOND_LOOKS,
+  gatherSecond: gather("gather-second", SECOND_LOOKS),
+  ...DECISION_STAGES
+});
+var children = (looks, doors) => looks.map((look) => ({ id: look.id, name: look.name, fn: stageFn(look, doors), description: look.description }));
+function planChartBuilder(doors, stages = PLAN_STAGES) {
+  const { request } = stages;
+  let builder = flowChart(request.name, stageFn(request, doors), request.id, { description: request.description }).setLogger(QUIET_LOGGER).addListOfFunction(children(stages.firstLooks, doors), { failFast: true });
+  builder = addStage(builder, stages.gatherFirst, doors).addListOfFunction(children(stages.secondLooks, doors), { failFast: true });
+  return addDecision(addStage(builder, stages.gatherSecond, doors), stages);
 }
-var buildPlanChart = (doors) => planChartBuilder(doors).build();
+var buildPlanChart = (doors, stages) => planChartBuilder(doors, stages).build();
 
 // src/release-route/chart/plan-run.mjs
 var fromState = (state) => {
@@ -29404,8 +29444,8 @@ function chartResult(state) {
   const seen2 = seenFacts(fromState(state).facts);
   return state.refusal ? { rule: state.rule, refuse: state.refusal, seen: seen2 } : { rule: state.rule, mode: state.mode, compare: state.compare, seen: seen2 };
 }
-async function runPlanChart(doors) {
-  const chart = buildPlanChart(doors);
+async function runPlanChart({ stages, ...doors }) {
+  const chart = buildPlanChart(doors, stages);
   const run = await execute(chart);
   const state = run.snapshot.sharedState;
   return { chart, run, ...fromState(state), result: run.failure ? null : chartResult(state) };
@@ -29943,15 +29983,16 @@ var DOWNLOAD = Object.freeze({
 });
 
 // src/release-route/chart/verify-chart.mjs
-var add3 = (builder, stage, doors) => builder.addFunction(stage.name, stage.make(doors), stage.id, stage.description);
-function verifyChartBuilder(doors) {
-  let builder = flowChart(BUILT.name, BUILT.make(doors), BUILT.id, { description: BUILT.description });
-  for (const stage of [ASK, DOWNLOAD, WEIGH_BYTES]) builder = add3(builder, stage, doors);
-  let list = builder.addDeciderFunction(COMPARE2.name, COMPARE2.make(doors), COMPARE2.id, COMPARE2.description);
-  for (const outcome2 of OUTCOMES2) list = list.addFunctionBranch(outcome2.id, outcome2.name, outcome2.make(doors), outcome2.description);
+var VERIFY_STAGES = Object.freeze({ built: BUILT, ask: ASK, download: DOWNLOAD, weighBytes: WEIGH_BYTES, compare: COMPARE2, outcomes: OUTCOMES2 });
+function verifyChartBuilder(doors, stages = VERIFY_STAGES) {
+  const { built, compare } = stages;
+  let builder = flowChart(built.name, stageFn(built, doors), built.id, { description: built.description }).setLogger(QUIET_LOGGER);
+  for (const stage of [stages.ask, stages.download, stages.weighBytes]) builder = addStage(builder, stage, doors);
+  let list = builder.addDeciderFunction(compare.name, stageFn(compare, doors), compare.id, compare.description);
+  for (const outcome2 of stages.outcomes) list = list.addFunctionBranch(outcome2.id, outcome2.name, stageFn(outcome2, doors), outcome2.description);
   return list.setDefault("differs-unknown").end();
 }
-var buildVerifyChart = (doors) => verifyChartBuilder(doors).build();
+var buildVerifyChart = (doors, stages) => verifyChartBuilder(doors, stages).build();
 
 // src/release-route/chart/why.mjs
 var import_node_fs2 = require("node:fs");
@@ -29959,15 +30000,31 @@ var import_strict_json4 = __toESM(require_strict_json(), 1);
 var KEY = /^[A-Za-z][A-Za-z0-9]{0,40}$/;
 var isObject4 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var show = (value) => clean(JSON.stringify(value) ?? "undefined", 80);
+function readBounded(file) {
+  const fd = (0, import_node_fs2.openSync)(file, import_node_fs2.constants.O_RDONLY | import_node_fs2.constants.O_NONBLOCK);
+  try {
+    const stat = (0, import_node_fs2.fstatSync)(fd);
+    if (!stat.isFile() || stat.size > MAX_RECORD_BYTES) throw new Error("not a regular file within the bound");
+    const bytes = Buffer.alloc(stat.size);
+    let read2 = 0;
+    while (read2 < bytes.length) {
+      const got = (0, import_node_fs2.readSync)(fd, bytes, read2, bytes.length - read2, read2);
+      if (got === 0) break;
+      read2 += got;
+    }
+    return bytes.subarray(0, read2);
+  } finally {
+    (0, import_node_fs2.closeSync)(fd);
+  }
+}
 function readRouteRecord(file) {
   let record;
   try {
-    const bytes = (0, import_node_fs2.readFileSync)(file);
-    record = import_strict_json4.default.parseStrictJson(bytes, { maxBytes: MAX_RECORD_BYTES, maxValues: 2e6 });
+    record = import_strict_json4.default.parseStrictJson(readBounded(file), { maxBytes: MAX_RECORD_BYTES, maxValues: 2e6 });
   } catch {
     refuse("record-unreadable", "not a readable strict JSON file within the bound");
   }
-  if (record.format !== RECORD_FORMAT || record.version !== RECORD_VERSION || !["plan", "verify"].includes(record.step) || !isObject4(record.state) || !Array.isArray(record.commitLog) || !isObject4(record.executionTree) || !isObject4(record.control) || !isObject4(record.control.controlDeps) || !Array.isArray(record.control.decisions)) refuse("record-unreadable", "not a release route record");
+  if (!isObject4(record) || record.format !== RECORD_FORMAT || record.version !== RECORD_VERSION || !["plan", "verify"].includes(record.step) || !isObject4(record.state) || !Array.isArray(record.commitLog) || !isObject4(record.executionTree) || !isObject4(record.control) || !isObject4(record.control.controlDeps) || !Array.isArray(record.control.decisions)) refuse("record-unreadable", "not a release route record");
   return record;
 }
 var defaultKey = (state) => ["mode", "refusal", "verified"].find((key) => Object.hasOwn(state, key)) ?? "rule";
@@ -29980,28 +30037,36 @@ function readerOf(record, fact) {
   }
   return findLastWriter(record.commitLog, fact);
 }
+var SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another; only the "read by" lines above say which step read a fact.';
+function decisionLines(record, key, writer) {
+  if (!writer) return [];
+  const edge = Object.hasOwn(record.control.controlDeps, writer.runtimeStageId) ? record.control.controlDeps[writer.runtimeStageId] : void 0;
+  const decision = isObject4(edge) ? record.control.decisions.find((one) => isObject4(one) && one.deciderRuntimeStageId === edge.deciderId) : void 0;
+  if (!decision || !isObject4(decision.evidence) || !Array.isArray(decision.evidence.rules))
+    return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`];
+  const matched = decision.evidence.rules.find((rule) => isObject4(rule) && rule.matched === true);
+  const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
+  for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
+    const reader = readerOf(record, condition.key);
+    lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; read by ${reader ? `${clean(reader.stage, 60)} (${clean(reader.runtimeStageId, 60)})` : "no stage"}.`);
+  }
+  return lines;
+}
 function explain(record, key = defaultKey(record.state)) {
   if (typeof key !== "string" || !KEY.test(key)) refuse("input-invalid", "key");
   const { state } = record;
   const lines = [`Why ${key} = ${show(state[key])} in the ${record.step} record of run ${clean(String(record.runId), 60)}.`];
   if (!Object.hasOwn(state, key)) return [...lines, "The run never wrote that key."];
-  const decision = record.control.decisions.find((one) => isObject4(one) && isObject4(one.evidence) && Array.isArray(one.evidence.rules));
-  if (decision) {
-    const matched = decision.evidence.rules.find((rule) => rule.matched === true);
-    lines.push(`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`);
-    for (const condition of matched?.conditions ?? []) {
-      const reader = readerOf(record, condition.key);
-      lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; read by ${reader ? `${clean(reader.stage, 60)} (${clean(reader.runtimeStageId, 60)})` : "no stage"}.`);
-    }
-  }
+  const writer = findLastWriter(record.commitLog, key);
+  lines.push(...decisionLines(record, key, writer));
   for (const [fact, cause] of Object.entries(isObject4(state.causes) ? state.causes : {}))
     lines.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
-  const writer = findLastWriter(record.commitLog, key);
   if (!writer) return [...lines, "No commit in the record wrote that key."];
   const reads = keysReadFromExecutionTree(record.executionTree);
   const controlDeps = (id) => Object.hasOwn(record.control.controlDeps, id) ? record.control.controlDeps[id] : void 0;
   const chain = causalChain(record.commitLog, writer.runtimeStageId, reads.lookup, { controlDeps, edgeAttribution: "per-write" });
   lines.push('Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):');
+  lines.push(SIDE_BY_SIDE);
   if (chain) for (const line of formatCausalChain(chain).split("\n")) {
     const [, indent, text] = /^( *)(.*)$/.exec(line);
     lines.push(`Walk: ${". ".repeat(Math.floor(indent.length / 2))}${text}`);
@@ -30032,13 +30097,13 @@ function finish({ env: env2, step, chart, run, report: report2 }, decide2) {
   }
   if (decision) throw decision;
 }
-async function chartPlanStep({ env: env2, git: git2, fetcher, report: report2 }) {
-  const planned = await runPlanChart({ env: env2, git: git2, fetcher });
+async function chartPlanStep({ env: env2, git: git2, fetcher, report: report2, stages }) {
+  const planned = await runPlanChart({ env: env2, git: git2, fetcher, stages });
   finish({ env: env2, step: "plan", chart: planned.chart, run: planned.run, report: report2 }, () => reportPlan({ result: planned.result, causes: planned.causes, context: planned.context, report: report2 }));
 }
-async function chartVerifyStep({ env: env2, fetcher, sleep: sleep2, report: report2, wait: wait2 }) {
+async function chartVerifyStep({ env: env2, fetcher, sleep: sleep2, report: report2, wait: wait2, stages }) {
   const { name, version, bytes } = verifyInputs(env2);
-  const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep: sleep2, wait: wait2 });
+  const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep: sleep2, wait: wait2 }, stages);
   const run = await execute(chart);
   const state = run.snapshot.sharedState;
   finish({ env: env2, step: "verify", chart, run, report: report2 }, () => {
@@ -30077,10 +30142,12 @@ function safeLine(line) {
   const text = clean(String(line), 400);
   return /^[A-Za-z]/.test(text) ? text : `Note: ${text}`;
 }
+var NAMES_THE_RUN = Object.freeze(["rule", "commit", "package", "version"]);
 var escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout.write(`${line}
 `), append = import_node_fs3.appendFileSync } = {}) {
   const lines = [];
+  const outputs = [];
   return {
     say(line) {
       const safe = safeLine(line);
@@ -30089,12 +30156,16 @@ function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout
     },
     output(key, value) {
       if (!Object.hasOwn(OUTPUTS, key) || typeof value !== "string" || !OUTPUTS[key](value)) refuse("output-invalid", key);
-      if (env2.GITHUB_OUTPUT) append(env2.GITHUB_OUTPUT, `${key}=${value}
-`);
+      outputs.push([key, value]);
     },
-    // The summary is a <pre> block with every character that HTML or Markdown could act on
+    // The step's end, once: its outputs (all on exit 0; on exit 1 only those that name the run),
+    // then the summary, a <pre> block with every character that HTML or Markdown could act on
     // escaped, so a title cannot add a link or an image to the job page.
-    summary() {
+    end(code) {
+      const kept = code === 0 ? outputs : outputs.filter(([key]) => NAMES_THE_RUN.includes(key));
+      if (env2.GITHUB_OUTPUT) for (const [key, value] of kept) append(env2.GITHUB_OUTPUT, `${key}=${value}
+`);
+      outputs.length = 0;
       if (env2.GITHUB_STEP_SUMMARY) append(env2.GITHUB_STEP_SUMMARY, `<pre>
 ${lines.map(escapeHtml).join("\n")}
 </pre>

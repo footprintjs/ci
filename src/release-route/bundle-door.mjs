@@ -1,7 +1,10 @@
 // Opening the charted steps' bundle (dist/release-route.cjs) from a plain checkout. The file must
-// be the one its metadata names (sha256): CI already proves the committed bundle equals a rebuild
-// of the reviewed source, and this check refuses a bundle changed or cut short after checkout.
-// A bundle that will not load is a named refusal, not a stack trace. Built-in Node modules only.
+// be the one its metadata names (sha256). What that catches: a bundle cut short, damaged or missing
+// after checkout. What it does NOT catch: someone who can write to the checkout (the metadata sits
+// beside the bundle and can be changed with it, and the file is read a second time when it is
+// loaded). What makes the bundle the reviewed code is the review of the commit and CI's check that
+// the committed bundle equals a rebuild of the reviewed source. A bundle that will not load is a
+// named refusal, not a stack trace. Built-in Node modules only.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
