@@ -13,10 +13,12 @@
 //      whole file, counted as plain text, wherever it stands (in a fence, in HTML, in a <code>
 //      span, mid-line). More than once is changelog-duplicate. A changelog must therefore never
 //      quote its own version heading.
-//   2. That one occurrence must be a heading line, outside fenced code (CommonMark fences: the
-//      same character, at least as long, an unclosed fence runs to the end of the file), and
-//      not after an opening <pre>, <script>, <style> or <textarea> with no closing tag before it
-//      (the four tags CommonMark keeps raw until their closing tag). Otherwise it is missing.
+//   2. That one occurrence must be a heading line outside fenced code (CommonMark fences: the
+//      same character, at least as long, an unclosed fence runs to the end of the file).
+//      Otherwise it is missing.
+//   HTML is not modelled: rule 1 already refuses a second, fake section, and a single heading
+//   inside a <pre> is the repository's own reviewed text; a rule that guessed at HTML refused
+//   80 of lens's 96 real sections over one `<script>` written in inline code.
 //   3. The section runs from that heading to the next "## " line OUTSIDE a fence: a "## " inside
 //      a fence does not end it. Link definitions ("[4.1.0]: https://...") at its end are dropped.
 //
@@ -37,7 +39,6 @@ const MARKERS = Object.freeze({
   keepachangelog: (version) => new RegExp(`## \\[${escape(version)}\\]`, 'g'),
 });
 const LINK_DEFINITION = /^\[[^\]\n]{1,100}\]: \S+$/;
-const RAW_TAGS = Object.freeze(['pre', 'script', 'style', 'textarea']);
 const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*$/;
 // The fence a line opens ({ char, length }), or null. (A backtick fence whose info text holds a
@@ -65,16 +66,6 @@ function fencedLines(lines) {
   });
 }
 
-// Is the text before an occurrence inside a raw HTML block: an opening <pre|script|style|textarea>
-// after the last closing tag of the same name?
-function insideRawHtml(before) {
-  const lower = before.toLowerCase();
-  return RAW_TAGS.some((tag) => {
-    const opening = [...lower.matchAll(new RegExp(`<${tag}(?=[\\s>/]|$)`, 'g'))].at(-1);
-    return opening !== undefined && lower.lastIndexOf(`</${tag}>`) < opening.index;
-  });
-}
-
 // bytes -> text: strict UTF-8, bounded. Anything else is changelog-unreadable.
 export function decodeChangelog(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length > MAX_CHANGELOG_BYTES) refuse('changelog-unreadable');
@@ -94,7 +85,7 @@ export function findSection(text, version, style) {
   if (occurrences.length === 0) return null;
   const at = occurrences[0].index;
   const lineStart = Math.max(text.lastIndexOf('\n', at - 1), text.lastIndexOf('\r', at - 1)) + 1;
-  if (lineStart !== at || insideRawHtml(text.slice(0, at))) return null;
+  if (lineStart !== at) return null;
   const lines = text.split(/\r\n|\n|\r/);
   const index = text.slice(0, at).split(/\r\n|\n|\r/).length - 1;
   const match = HEADINGS[style].exec(lines[index]);

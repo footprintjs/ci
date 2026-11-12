@@ -133,12 +133,10 @@ alphabet. Anything more than one command needs an npm script in `package.json`.
 Markdown): the version's heading text (`## 0.13.1`, `## [4.1.0]`) must occur exactly once in the
 whole file as plain text (twice, even in a fence, a `<code>` span or mid-line, is
 `changelog-duplicate`, so a changelog must never quote its own version heading); that occurrence
-must be a heading line outside fenced code and not after an unclosed `<pre>`, `<script>`,
-`<style>` or `<textarea>` (else `changelog-missing`); the section ends at the next `## ` line
-outside a fence. On agentfootprint-lens's real CHANGELOG this rule finds the 16 newest sections
-and not the older 80: line 443 mentions `` `<script>` `` in inline code with no closing tag, so
-everything below it reads as raw HTML. That fails closed and does not touch a new release, whose
-heading is at the top.
+must be a heading line outside fenced code (else `changelog-missing`); the section ends at the
+next `## ` line outside a fence. HTML is not modelled: uniqueness already refuses a fake second
+section, and a guess at HTML refused 80 of lens's 96 real sections over one `` `<script>` `` in
+inline code.
 
 The settings written for the four packages that proved the shape are in
 `test/release-route/fixtures/family/`. storyreel's publish check today runs

@@ -4,8 +4,8 @@ Part of [RELEASE-ROUTE.md](RELEASE-ROUTE.md).
 
 Run on Node 24.21.0 and Node 22.16.0 (macOS), 12 Nov 2026, at this pull request's head.
 
-- `npm run check` on Node 24.21.0: 1064 tests, 1064 pass, 0 fail, then the build; `npm run check`
-  on Node 22.16.0: 1064 pass. `git diff --stat origin/main -- dist` is empty (these modules are not
+- `npm run check` on Node 24.21.0: 1065 tests, 1065 pass, 0 fail, then the build; `npm run check`
+  on Node 22.16.0: 1065 pass. `git diff --stat origin/main -- dist` is empty (these modules are not
   bundled into `dist/release.cjs`).
 - **The four published tarballs through the port** (`checkArchive`, with the settings in
   `test/release-route/fixtures/family/` and each package's `package.json` at its release

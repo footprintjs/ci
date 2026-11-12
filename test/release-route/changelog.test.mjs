@@ -59,7 +59,7 @@ test('a "## " inside a fence does not END the section (only a "## " outside one 
 });
 
 // The rule fails closed instead of modelling Markdown: the version's heading text must occur
-// exactly once in the whole file, as plain text, outside fenced code and outside raw HTML.
+// exactly once in the whole file, as plain text, and outside fenced code. HTML is not modelled.
 const F3 = '`'.repeat(3);
 const F4 = '`'.repeat(4);
 test('the reader\'s fenced spoof: the heading text twice is changelog-duplicate, wherever the second one stands', () => {
@@ -78,20 +78,20 @@ test('a real heading plus the same text in a <code> span or mid-line is changelo
   assert.equal(code(() => findSection(keep, '1.2.0', 'keepachangelog')), 'changelog-duplicate');
 });
 
-test('the one occurrence only inside a fence, after an unclosed fence, or inside raw <pre> is missing', () => {
+test('the one occurrence only inside a fence, after an unclosed fence, or mid-line is missing', () => {
   assert.equal(findSection([F3, `## 1.2.0 ${DASH} fenced`, F3].join('\n'), '1.2.0', 'titled'), null);
   assert.equal(findSection([F4, F3, `## 1.2.0 ${DASH} fenced`, F3].join('\n'), '1.2.0', 'titled'), null);
-  assert.equal(findSection(['<pre>', `## 1.2.0 ${DASH} raw`, '</pre>'].join('\n'), '1.2.0', 'titled'), null);
-  assert.equal(findSection(['<PRE class="x">', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
-  assert.equal(findSection(['<script>', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
-  assert.equal(findSection(['text <textarea>', `## 1.2.0 ${DASH} raw`].join('\n'), '1.2.0', 'titled'), null);
   assert.equal(findSection(['- see 1.2.0 ## 1.2.0'].join('\n'), '1.2.0', 'titled'), null);
 });
 
-test('closed raw HTML, other tags, and a fence before the heading leave it found', () => {
-  assert.equal(findSection(['<pre>x</pre>', `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
-  assert.equal(findSection(['<preamble>', `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
-  assert.equal(findSection(['<code>', `## 1.2.0 ${DASH} real`, '</code>'].join('\n'), '1.2.0', 'titled').title, 'real');
+test('HTML is not modelled: a heading below a `<script>` mentioned in inline code IS found (the shape of lens line 443)', () => {
+  const lens = ['## [0.68.0] - 2026-09-20', '', '- own voucher in a `title`. Pinned with a `<script>`, an `<img onerror>` and a', '  test.', '',
+    '## [0.67.1] - 2026-09-18', '', '### Fixed', '', '- x'].join('\n');
+  assert.deepEqual(findSection(lens, '0.67.1', 'keepachangelog'), { title: '', lines: ['### Fixed', '', '- x'] });
+  assert.equal(findSection(['<pre>', `## 1.2.0 ${DASH} in pre`, '</pre>'].join('\n'), '1.2.0', 'titled').title, 'in pre');
+});
+
+test('a fence closed before the heading, and another version\'s prerelease heading, leave it found', () => {
   assert.equal(findSection([F4, F3, F4, `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
   assert.equal(findSection([`## 1.2.0-rc.1 ${DASH} candidate`, `## 1.2.0 ${DASH} real`].join('\n'), '1.2.0', 'titled').title, 'real');
 });
