@@ -30143,11 +30143,17 @@ function safeLine(line) {
   return /^[A-Za-z]/.test(text) ? text : `Note: ${text}`;
 }
 var NAMES_THE_RUN = Object.freeze(["rule", "commit", "package", "version"]);
+var inWriteOrder = (kept) => [
+  ...kept.filter(([key]) => NAMES_THE_RUN.includes(key)),
+  ...kept.filter(([key]) => !NAMES_THE_RUN.includes(key) && key !== "mode"),
+  ...kept.filter(([key]) => key === "mode")
+];
 var escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout.write(`${line}
 `), append = import_node_fs3.appendFileSync } = {}) {
   const lines = [];
   const outputs = [];
+  let ended = false;
   return {
     say(line) {
       const safe = safeLine(line);
@@ -30155,21 +30161,24 @@ function createReport({ env: env2 = {}, print: print2 = (line) => process.stdout
       print2(safe);
     },
     output(key, value) {
+      if (ended) throw new Error("an output after the step ended");
       if (!Object.hasOwn(OUTPUTS, key) || typeof value !== "string" || !OUTPUTS[key](value)) refuse("output-invalid", key);
       outputs.push([key, value]);
     },
-    // The step's end, once: its outputs (all on exit 0; on exit 1 only those that name the run),
-    // then the summary, a <pre> block with every character that HTML or Markdown could act on
-    // escaped, so a title cannot add a link or an image to the job page.
+    // The step's end, once (the four orders above). The summary is a <pre> block with every
+    // character that HTML or Markdown could act on escaped, so a title cannot add a link or an
+    // image to the job page.
     end(code) {
-      const kept = code === 0 ? outputs : outputs.filter(([key]) => NAMES_THE_RUN.includes(key));
-      if (env2.GITHUB_OUTPUT) for (const [key, value] of kept) append(env2.GITHUB_OUTPUT, `${key}=${value}
-`);
-      outputs.length = 0;
+      if (ended) return;
+      ended = true;
+      const held = outputs.splice(0);
       if (env2.GITHUB_STEP_SUMMARY) append(env2.GITHUB_STEP_SUMMARY, `<pre>
 ${lines.map(escapeHtml).join("\n")}
 </pre>
 `);
+      const kept = inWriteOrder(code === 0 ? held : held.filter(([key]) => NAMES_THE_RUN.includes(key)));
+      if (env2.GITHUB_OUTPUT && kept.length > 0) append(env2.GITHUB_OUTPUT, kept.map(([key, value]) => `${key}=${value}
+`).join(""));
     },
     get lines() {
       return [...lines];

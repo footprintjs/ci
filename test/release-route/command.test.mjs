@@ -66,7 +66,7 @@ test('the script writes outputs and summary only to the runner files, and masks 
 test('plan for storydeck today: nothing, exit 0, closed outputs', async () => {
   const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL });
   assert.equal(await runStep('plan', d), 0);
-  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nmode=nothing\ncompare=no\n`);
+  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\ncompare=no\nmode=nothing\n`);
   assert.match(printed.at(-1), /^Decision: rule released gives mode nothing, nothing to do/);
   assert.match(written.summary, /Facts seen: action=publish, .*tagExists=true/);
 });
