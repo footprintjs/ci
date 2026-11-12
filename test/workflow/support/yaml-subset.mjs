@@ -7,32 +7,61 @@
 //
 // Read: block mappings (`key: value`, `key:` + a deeper block), block sequences (`- value`,
 // `- key: value` + the rest of that mapping two columns deeper), comments (a line starting with
-// `#`, or ` #` after a value outside quotes), literal block scalars (`|`, kept with one final
+// `#`, or from the first ` #` of a plain scalar, as YAML reads them), literal block scalars (`|`, kept with one final
 // newline), plain scalars (true, false, null, integers, text), 'single' and "double" quoted
 // scalars (no escapes), and the flow forms `{}` and `[a, b]` of plain scalars.
-// Refused: tabs, anchors, aliases, tags, folded scalars, `?` keys, documents (`---`), a duplicate
-// key, a plain scalar holding `: ` or starting with a YAML indicator, a sequence at its key's own
-// indentation. Values follow YAML 1.2's core schema (so `on` stays the text "on", as GitHub reads it).
+// Refused: tabs, carriage returns, anchors, aliases, tags, folded scalars, `?` keys, documents
+// (`---`), a duplicate key, more than one space after `key:`, a plain scalar holding `: ` or
+// starting with a YAML indicator, a ` #` inside a quoted part of a plain scalar, text after a
+// quoted scalar, numbers and booleans of the core schema other than the forms kept, a sequence at
+// its key's own indentation. Values follow YAML 1.2's core schema (so `on` stays the text "on", as GitHub reads it).
 //
 // test/workflow/yaml-subset.test.mjs holds this reader against a real YAML parser (Ruby's Psych)
 // on both workflow files, where Ruby is installed.
 
 const fail = (line, why) => { throw new Error(`yaml-subset: line ${line + 1}: ${why}`); };
 
-// The value part of a line without its trailing comment (a ` #` outside quotes).
-function stripComment(text, line) {
-  let quote = null;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quote) { if (c === quote) quote = null; continue; }
-    if ((c === "'" || c === '"') && (i === 0 || /[\s[,{]/.test(text[i - 1]))) quote = c;
-    else if (c === '#' && (i === 0 || /\s/.test(text[i - 1]))) return text.slice(0, i).trimEnd();
+// The value part of a line without its trailing comment, read as YAML reads it:
+// - a quoted scalar ends at its closing quote ('' is a quote inside single quotes), and after it
+//   only a comment may follow (two quoted scalars side by side are refused);
+// - a flow sequence ends at its `]`, and after it only a comment may follow;
+// - in a plain scalar a comment starts at the FIRST ` #`, whatever quotes stand before it. YAML
+//   reads `${{ x == 'a # b' }}` as `${{ x == 'a`; this reader refuses a ` #` that falls inside a
+//   quoted part (an odd number of quotes before it), so the author quotes the whole value.
+const COMMENT_ONLY = /^(\s+#.*)?$/;
+function valueOf(text, line) {
+  if (text.startsWith("'") || text.startsWith('"')) {
+    const quote = text[0];
+    let end = 1;
+    for (; end < text.length; end++) {
+      if (text[end] !== quote) continue;
+      if (quote === "'" && text[end + 1] === "'") { end++; continue; }
+      break;
+    }
+    if (end >= text.length) fail(line, 'an unclosed quote');
+    if (!COMMENT_ONLY.test(text.slice(end + 1))) fail(line, `text after a quoted scalar: ${text}`);
+    return text.slice(0, end + 1);
   }
-  if (quote) fail(line, 'an unclosed quote');
-  return text.trimEnd();
+  if (text.startsWith('[')) {
+    const end = text.indexOf(']');
+    if (end === -1 || !COMMENT_ONLY.test(text.slice(end + 1))) fail(line, `a flow sequence not alone on its line: ${text}`);
+    return text.slice(0, end + 1);
+  }
+  const at = text.search(/\s#/);
+  const plain = (at === -1 ? text : text.slice(0, at)).trimEnd();
+  if (at !== -1 && ((plain.match(/'/g) ?? []).length % 2 === 1 || (plain.match(/"/g) ?? []).length % 2 === 1))
+    fail(line, `a " #" inside a quoted part of a plain scalar (YAML reads it as a comment); quote the whole value: ${text}`);
+  return plain;
 }
 
 const PLAIN_START = /^[&*!|>%@`?,[\]{}#'"]|^- |^-$/;
+// What YAML 1.2's core schema reads as a number, a boolean or null, beyond the forms this reader
+// keeps (true, false, null, ~ and decimal integers without a leading zero): refused, never text.
+const CORE_OTHER = [
+  /^[-+]?[0-9]+$/, /^0o[0-7]+$/, /^0x[0-9a-fA-F]+$/,
+  /^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$/, /^[-+]?\.(inf|Inf|INF)$/, /^\.(nan|NaN|NAN)$/,
+  /^(True|TRUE|False|FALSE|Null|NULL)$/,
+];
 
 function scalar(text, line) {
   if (text === '' || text === 'null' || text === '~') return null;
@@ -54,11 +83,13 @@ function scalar(text, line) {
   if (text.includes(': ') || text.endsWith(':')) fail(line, `a plain scalar holding ": ": ${text}`);
   if (text === 'true') return true;
   if (text === 'false') return false;
-  if (/^-?(0|[1-9][0-9]*)$/.test(text)) return Number(text);
+  if (/^(0|-?[1-9][0-9]*)$/.test(text)) return Number(text);
+  if (CORE_OTHER.some((form) => form.test(text))) fail(line, `a number, boolean or null this reader does not read: ${text}`);
   return text;
 }
 
 export function parseYaml(source) {
+  if (source.includes('\r')) fail(source.slice(0, source.indexOf('\r')).split('\n').length - 1, 'a carriage return');
   const raw = source.split('\n');
   if (raw.at(-1) === '') raw.pop();
   // Significant lines: { line, indent, text } (comments and blank lines left out); block scalar
@@ -87,7 +118,8 @@ export function parseYaml(source) {
     for (; next < raw.length && (raw[next].trim() === '' || raw[next].search(/\S/) > indent); next++) body.push(raw[next]);
     while (body.length && body.at(-1).trim() === '') body.pop();
     if (body.length === 0) fail(owner.line, 'an empty block scalar');
-    const cut = body[0].search(/\S/);
+    // The indentation of the first line with text (a leading blank line has none).
+    const cut = body.find((text) => text.trim() !== '').search(/\S/);
     for (const [i, text] of body.entries()) if (text.trim() !== '' && text.search(/\S/) < cut) fail(owner.line + 1 + i, 'a block scalar line left of its indentation');
     while (at < lines.length && lines[at].line < next) at++;
     return `${body.map((text) => text.slice(cut)).join('\n')}\n`;
@@ -100,7 +132,8 @@ export function parseYaml(source) {
       if (!match) fail(entry.line, `not a "key: value" line: ${entry.text}`);
       const [, key, rest = ''] = match;
       if (Object.hasOwn(out, key)) fail(entry.line, `duplicate key ${key}`);
-      const value = stripComment(rest, entry.line);
+      if (rest.startsWith(' ')) fail(entry.line, `more than one space after "${key}:"`);
+      const value = valueOf(rest, entry.line);
       at++;
       if (value === '|') out[key] = blockScalar(entry, indent);
       else if (/^[|>]/.test(value)) fail(entry.line, 'a block scalar other than "|"');
@@ -129,7 +162,7 @@ export function parseYaml(source) {
         out.push(mapping(indent + 2));
       } else {
         at++;
-        out.push(scalar(stripComment(content, entry.line), entry.line));
+        out.push(scalar(valueOf(content, entry.line), entry.line));
       }
     }
     return out;

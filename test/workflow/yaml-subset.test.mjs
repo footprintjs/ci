@@ -20,7 +20,9 @@ test('the subset: mappings, sequences, block scalars, scalars of the core schema
     '    timeout-minutes: 10',
     '    steps:',
     '      - name: one # a trailing comment',
-    "        if: ${{ x == 'a # b' }}",
+    // A ` #` inside a plain scalar starts a comment in YAML, quotes or not; quoted whole, it is text.
+    '        if: "${{ x == \'a # b\' }}"',
+    "        with: ${{ x == 'a' }} # a comment after a balanced plain scalar",
     '        run: |',
     '          echo "#1"',
     '',
@@ -31,7 +33,20 @@ test('the subset: mappings, sequences, block scalars, scalars of the core schema
     '',
   ].join('\n'));
   assert.deepEqual(doc, { on: { workflow_call: null }, permissions: {}, jobs: { a: { needs: ['plan', 'hold'], 'timeout-minutes': 10,
-    steps: [{ name: 'one', if: "${{ x == 'a # b' }}", run: 'echo "#1"\n\necho two\n' }, 'plain', "quoted 'x'", true] } } });
+    steps: [{ name: 'one', if: "${{ x == 'a # b' }}", with: "${{ x == 'a' }}", run: 'echo "#1"\n\necho two\n' }, 'plain', "quoted 'x'", true] } } });
+});
+
+// The second reader's probes (N4): each is read differently by YAML than by a careless reader, so
+// the subset refuses it. A workflow line that needs ` #` inside a scalar quotes the whole value.
+test('the subset refuses what YAML would read differently: a ` #` inside quotes of a plain scalar, a second space, numbers it does not read, a carriage return, two quoted scalars', () => {
+  for (const source of ["a: ${{ x == 'a # b' }}", 'a: say "x # y"', 'a:  b', 'a:  # c', 'a: 22.10', 'a: 0x1F', 'a: 0o17', 'a: 1e3', 'a: .5',
+    'a: +1', 'a: 012', 'a: -0', 'a: .inf', 'a: .NaN', 'a: True', 'a: FALSE', 'a: Null', 'a: |\r\n  b\r\n', 'a: b\r\n', "a: 'x' 'y'", 'a: "x" "y"',
+    "a: 'x'y", "- 'x' # ok\n- 'y' z"])
+    assert.throws(() => parseYaml(source), /yaml-subset/, JSON.stringify(source));
+  // A block scalar whose first line is blank takes its indentation from the first line with text.
+  assert.deepEqual(parseYaml('a: |\n\n  bc\n    d\n'), { a: '\nbc\n  d\n' });
+  // What stays readable: a comment after a quoted scalar, and plain text that only looks numeric.
+  assert.deepEqual(parseYaml("a: 'x' # c\nb: 0.13.2\nc: ubuntu-24.04\nd: -1\n"), { a: 'x', b: '0.13.2', c: 'ubuntu-24.04', d: -1 });
 });
 
 test('the subset refuses what it does not read', () => {
