@@ -386,8 +386,8 @@
       "source": "scripts/publish-release/check-archive.cjs",
       "destination": "src/release-route/archive/check-archive.cjs",
       "sourceSha256": "b9391d1f9e071f7938339fc8e990eabd9676a40de4d7a85bd4fcf745a3404cca",
-      "sha256": "0efce9fb17b49a57898b3dfaf6881e1dcfa3f3667be0c9283cd1c96eec919a52",
-      "adaptation": "The route port: checkArchive(intake, sourceBytes, version, archive); package name no longer hard-coded; release-candidate operation and CLI removed; refusals through refusal.cjs (archive-intake, archive-file, archive-version, publish-directory)."
+      "sha256": "21a87d1e42ca83514c845e5a89a70ade7732ecc1a489e4d7e36a8b9964f31374",
+      "adaptation": "The route port: readIntake(intake) (the one reader of a built tarball) and checkArchive(intake, sourceBytes, version, archive); package name no longer hard-coded; release-candidate operation and CLI removed; refusals through refusal.cjs (archive-intake, archive-file, archive-version, publish-directory)."
     },
     {
       "source": "package.json",

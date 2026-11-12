@@ -28,9 +28,9 @@ function sourceManifest(bytes) {
   return source;
 }
 
-// intake: an absolute folder holding exactly `package.tgz`. version: the planned version, which
-// the source manifest AND the packed manifest must both carry. archive: the `archive` setting.
-function checkArchive(intake, sourceBytes, version, archive) {
+// intake: an absolute folder holding exactly `package.tgz`. Returns its path and bytes; the
+// one reader of a built tarball (the archive check and the npm comparison both use it).
+function readIntake(intake) {
   if (typeof intake !== 'string' || !path.isAbsolute(intake)) fail('archive-intake');
   let stat;
   try {
@@ -42,15 +42,20 @@ function checkArchive(intake, sourceBytes, version, archive) {
   const entries = fs.readdirSync(intake);
   if (entries.length !== 1 || entries[0] !== 'package.tgz') fail('archive-intake');
   const file = path.join(intake, 'package.tgz');
-  const source = sourceManifest(sourceBytes);
-  if (source.version !== version) fail('archive-version');
-  let bytes;
   try {
-    bytes = regularBytes(file, MAX_ARCHIVE_BYTES);
+    return { file, bytes: regularBytes(file, MAX_ARCHIVE_BYTES) };
   } catch (error) {
     if (error && error.code === 'archive-file') throw error;
     fail('archive-file');
   }
+}
+
+// version: the planned version, which the source manifest AND the packed manifest must both
+// carry. archive: the `archive` setting.
+function checkArchive(intake, sourceBytes, version, archive) {
+  const { file, bytes } = readIntake(intake);
+  const source = sourceManifest(sourceBytes);
+  if (source.version !== version) fail('archive-version');
   return { file, ...inspectArchive(bytes, { version, sourceManifest: source, archive }) };
 }
 
@@ -72,4 +77,4 @@ function preparePublishDirectory(directory, intake, source) {
   if (!stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(directory).length !== 0) fail('publish-directory');
 }
 
-module.exports = { sourceManifest, checkArchive, preparePublishDirectory, regularBytes, MAX_ARCHIVE_BYTES };
+module.exports = { sourceManifest, readIntake, checkArchive, preparePublishDirectory, regularBytes, MAX_ARCHIVE_BYTES };
