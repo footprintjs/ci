@@ -54,9 +54,9 @@ function inspectStep({ env, git, report }) {
   report.say(`Inspected ${printable(checked.package, 214)} ${checked.version}: ${checked.files.length} files, all allowed, ${checked.integrity}.`);
 }
 
-async function verifyStep({ env, fetcher, sleep, report }) {
+async function verifyStep({ env, fetcher, sleep, wait, report }) {
   const { name, version, bytes } = verifyInputs(env);
-  const result = await compareWithNpm({ fetcher, name, version, localBytes: bytes, sleep });
+  const result = await compareWithNpm({ fetcher, name, version, localBytes: bytes, sleep, wait });
   reportVerified({ name, version, integrity: result.integrity, report });
 }
 

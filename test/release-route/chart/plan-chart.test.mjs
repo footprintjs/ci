@@ -6,7 +6,6 @@ import { runPlanChart } from '../../../src/release-route/chart/plan-run.mjs';
 import { observe } from '../../../src/release-route/observe.mjs';
 import { plan } from '../../../src/release-route/plan.mjs';
 import { asRefusal } from '../../../src/release-route/refusals.mjs';
-import { flatten } from '../../../src/shared/text.mjs';
 import { FILES, storydeckDoors } from '../storydeck-today.mjs';
 
 const causes = (found) => Object.fromEntries(Object.entries(found).map(([name, refusal]) => [name, `${refusal.code} ${refusal.detail}`]));
@@ -35,16 +34,18 @@ for (const [label, options] of [
   ['npm answers 503', { routes: { 'https://registry.npmjs.org/footprint-storydeck': () => new Response('{}', { status: 503 }) } }],
   ['the tool commit is not plain', { extra: { ROUTE_TOOL_SHA: 'main' } }],
   ['an odd action', { extra: { ROUTE_ACTION: 'prepare\u{202E}::x' } }],
+  // The second reader's four: each looks like an allowed action once cleaned, and is not one.
+  ['"publish " (a trailing space)', { extra: { ROUTE_ACTION: 'publish ' } }],
+  ['"publish" + a zero-width space', { extra: { ROUTE_ACTION: 'publish\u{200B}' } }],
+  ['"\\tpublish\\n"', { extra: { ROUTE_ACTION: '\tpublish\n' } }],
+  ['"dry-run" + a direction mark', { extra: { ROUTE_ACTION: 'dry-run\u{202E}' } }],
 ])
   test(`chart and plain agree: ${label}`, async () => {
     const { plain, chart } = await both(options);
     assert.equal(chart.run.failure, null);
-    // The chart cleans the one fact that is outside text (the action) before it enters state.
-    const withoutAction = (result) => ({ ...result, seen: { ...result.seen, action: undefined } });
-    assert.deepEqual(withoutAction(chart.result), withoutAction(plain.result));
-    assert.equal(chart.result.seen.action, flatten(plain.result.seen.action, 40));
-    assert.deepEqual(nulls(chart.facts), { ...Object.fromEntries(Object.keys(chart.facts).map((n) => [n, null])), ...nulls(plain.facts),
-      action: chart.facts.action });
+    // Every fact, the action included, is exactly what the plain path decides on.
+    assert.deepEqual(chart.result, plain.result);
+    assert.deepEqual(nulls(chart.facts), { ...Object.fromEntries(Object.keys(chart.facts).map((n) => [n, null])), ...nulls(plain.facts) });
     assert.deepEqual(causes(chart.causes), causes(plain.causes));
     assert.deepEqual(chart.context, { commit: plain.context.commit, name: plain.context.name, version: plain.context.version });
   });

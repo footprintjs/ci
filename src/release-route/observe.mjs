@@ -15,7 +15,8 @@ import { toolReviewed } from './github.mjs';
 import { isCommit, isPackageName, isPlainVersion, newerThanAll } from './identity.mjs';
 import { readVersions } from './registry.mjs';
 import { mainTip, readAtCommit, tagExists } from './repo.mjs';
-import { asRefusal, refuse } from './refusals.mjs';
+import { asRefusal, Refusal, refuse } from './refusals.mjs';
+import { FACTS } from './rules.mjs';
 import { readSettings, MAX_SETTINGS_BYTES, SETTINGS_PATH } from './settings.mjs';
 
 const MAX_PACKAGE_BYTES = 1024 * 1024;
@@ -48,16 +49,21 @@ function observation() {
 
 // The request the workflow made. A malformed GITHUB_SHA stops everything (input-invalid): every
 // other fact is read at that commit.
+// The action is text from outside (the workflow's input). It is a fact only when it is EXACTLY one
+// of the values rules.mjs allows; anything else ("publish " with a space, a hidden character) is
+// unreadable, with its cause, never a cleaned look-alike. Both the plain step and the chart decide
+// on what this returns.
 export function observeRequest(env) {
   const commit = env.GITHUB_SHA;
   if (!isCommit(commit)) refuse('input-invalid', 'GITHUB_SHA');
+  const action = FACTS.action.includes(env.ROUTE_ACTION) ? env.ROUTE_ACTION : null;
   return {
     facts: {
-      action: env.ROUTE_ACTION ?? null,
+      action,
       refIsMain: typeof env.GITHUB_REF === 'string' && env.GITHUB_REF !== '' ? env.GITHUB_REF === 'refs/heads/main' : null,
       toolCommitPlain: isCommit(env.ROUTE_TOOL_SHA),
     },
-    causes: {},
+    causes: action === null ? { action: new Refusal('input-invalid', 'ROUTE_ACTION') } : {},
     context: { commit },
   };
 }
