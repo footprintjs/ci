@@ -81,6 +81,10 @@ test('the tip of main is measured: a run of an older commit of main does nothing
   assert.deepEqual([old.result.rule, old.result.mode], ['not-main-tip', 'nothing']);
   const noMain = await run({ mainTip: null });
   assert.deepEqual([noMain.observed.causes.commitIsMainTip.code, noMain.result.rule], ['git-failed', 'facts-unreadable']);
+  // The reader's case: npm has the version, its tag was never written, and main moved on. That
+  // is unfinished work, red on purpose, not an old run.
+  const unfinished = await run({ lsRemote: '', mainTip: 'f'.repeat(40) });
+  assert.deepEqual([unfinished.result.rule, unfinished.result.refuse], ['unfinished-not-tip', 'release-unfinished']);
   const dry = await run({ files, lsRemote: '', mainTip: 'f'.repeat(40), extra: { ROUTE_ACTION: 'dry-run' } });
   assert.equal(dry.result.rule, 'dry-run-would-publish');
 });

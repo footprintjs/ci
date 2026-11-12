@@ -24,10 +24,14 @@
 // - `commitIsMainTip` is MEASURED (`git ls-remote origin refs/heads/main` equals the planned
 //   commit), not told. Why: "Re-run" of an old run of main plans that run's OLD commit; with
 //   the version still unreleased it would publish older code. A run of main whose commit is no
-//   longer the tip, for a version with no tag, is `nothing` (row `not-main-tip`): a newer
+//   longer the tip, for a version npm does NOT have, is `nothing` (row `not-main-tip`): a newer
 //   commit on main decides, and its own run plans. It is not a refusal, because an old run must
 //   not turn red for being old; so it stands before the changelog and newer-version refusals
 //   too (they are the tip's run to raise).
+// - But not the tip with npm HAVING the version and no tag is unfinished work, not an old run:
+//   the version was published from this commit and its release job never finished, and no later
+//   run will name it again. Row `unfinished-not-tip` refuses (`release-unfinished`), red on
+//   purpose, and the sentence says what to do (found by the second reader, round 2).
 // - A missing CHANGELOG section stops `recover` too, not only `publish`: both write a GitHub
 //   release whose notes come from that section. A dry run says the same, so it tells the truth
 //   about what a publish would do.
@@ -68,8 +72,10 @@ export const RULES = Object.freeze([
   row({ id: 'dry-run-released', when: { tagExists: true, npmHasVersion: true, action: 'dry-run' }, mode: 'dry-run', compare: 'yes' }),
   row({ id: 'tag-without-package', when: { tagExists: true, npmHasVersion: false }, refuse: 'tag-without-package' }),
 
-  row({ id: 'not-main-tip', when: { tagExists: false, action: 'publish', refIsMain: true, commitIsMainTip: false }, mode: 'nothing', compare: 'no',
-    outranks: ['changelog-missing', 'version-not-newer'] }),
+  row({ id: 'not-main-tip', when: { tagExists: false, npmHasVersion: false, action: 'publish', refIsMain: true, commitIsMainTip: false },
+    mode: 'nothing', compare: 'no', outranks: ['changelog-missing', 'version-not-newer'] }),
+  row({ id: 'unfinished-not-tip', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: true, commitIsMainTip: false },
+    refuse: 'release-unfinished', outranks: ['changelog-missing'] }),
   row({ id: 'changelog-missing', when: { tagExists: false, changelogFound: false }, refuse: 'changelog-missing',
     outranks: ['recover-off-main', 'recover', 'dry-run-recover', 'version-not-newer', 'publish-off-main', 'publish', 'dry-run-would-publish'] }),
   row({ id: 'recover-off-main', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: false }, refuse: 'recover-off-main' }),

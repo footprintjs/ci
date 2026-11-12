@@ -195,15 +195,16 @@ The rows, first match wins (`src/release-route/rules.mjs`):
 | 8 | `released` | tagExists = true, npmHasVersion = true, action = publish | **nothing** (compare with npm: no) |
 | 9 | `dry-run-released` | tagExists = true, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
 | 10 | `tag-without-package` | tagExists = true, npmHasVersion = false | refuse `tag-without-package` |
-| 11 | `not-main-tip` | tagExists = false, action = publish, refIsMain = true, commitIsMainTip = false | **nothing** (compare with npm: no) |
-| 12 | `changelog-missing` | tagExists = false, changelogFound = false | refuse `changelog-missing` |
-| 13 | `recover-off-main` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = false | refuse `recover-off-main` |
-| 14 | `recover` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = true, commitIsMainTip = true | **recover** (compare with npm: yes) |
-| 15 | `dry-run-recover` | tagExists = false, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
-| 16 | `version-not-newer` | tagExists = false, npmHasVersion = false, versionNewer = false | refuse `version-not-newer` |
-| 17 | `publish-off-main` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = false | refuse `publish-off-main` |
-| 18 | `publish` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = true, commitIsMainTip = true | **publish** (compare with npm: yes) |
-| 19 | `dry-run-would-publish` | tagExists = false, npmHasVersion = false, action = dry-run | **dry-run** (compare with npm: no) |
+| 11 | `not-main-tip` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = true, commitIsMainTip = false | **nothing** (compare with npm: no) |
+| 12 | `unfinished-not-tip` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = true, commitIsMainTip = false | refuse `release-unfinished` |
+| 13 | `changelog-missing` | tagExists = false, changelogFound = false | refuse `changelog-missing` |
+| 14 | `recover-off-main` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = false | refuse `recover-off-main` |
+| 15 | `recover` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = true, commitIsMainTip = true | **recover** (compare with npm: yes) |
+| 16 | `dry-run-recover` | tagExists = false, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
+| 17 | `version-not-newer` | tagExists = false, npmHasVersion = false, versionNewer = false | refuse `version-not-newer` |
+| 18 | `publish-off-main` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = false | refuse `publish-off-main` |
+| 19 | `publish` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = true, commitIsMainTip = true | **publish** (compare with npm: yes) |
+| 20 | `dry-run-would-publish` | tagExists = false, npmHasVersion = false, action = dry-run | **dry-run** (compare with npm: no) |
 
 Why this order:
 
@@ -219,11 +220,15 @@ Why this order:
   every writing row to both, so a future writing mode cannot be added without them.
 - **`commitIsMainTip` is measured**, not told: `git ls-remote origin refs/heads/main` must equal
   the planned commit. "Re-run" of an old run of `main` plans that run's OLD commit; with the
-  version still unreleased it would otherwise publish older code. Such a run, for a version with
-  no tag, is `nothing` with its own rule (`not-main-tip`): a newer commit on `main` decides and
-  its own run plans. Not a refusal, because an old run must not turn red for being old, so it
-  also stands before `changelog-missing` and `version-not-newer` (those are the tip's run to
-  raise). `refIsMain` is still read from `GITHUB_REF`, which the runner sets.
+  version still unreleased it would otherwise publish older code. Such a run, for a version npm
+  does NOT have, is `nothing` with its own rule (`not-main-tip`): a newer commit on `main`
+  decides and its own run plans. Not a refusal, because an old run must not turn red for being
+  old, so it also stands before `changelog-missing` and `version-not-newer` (those are the tip's
+  run to raise). But when npm HAS the version and there is no tag, the version was published
+  from this commit and its release never finished, and no later run will name it again: that is
+  `unfinished-not-tip`, refused (`release-unfinished`) on purpose, telling the person to use
+  "Re-run failed jobs" on the run that published it (it reuses that run's plan) or to write the
+  tag at that commit by hand. `refIsMain` is still read from `GITHUB_REF`, which the runner sets.
 - A missing CHANGELOG section stops `recover` as well as `publish`: both write a GitHub release
   whose notes come from that section. A dry run is refused the same way, so it tells the truth
   about what a publish would do.
@@ -232,7 +237,8 @@ Why this order:
   (which shows whether the build is byte-reproducible).
 
 Rows that can match the same facts with different results say so (`outranks`: `'later'` for the
-first seven, explicit lists for `not-main-tip`, `changelog-missing` and `version-not-newer`).
+first seven, explicit lists for `not-main-tip`, `unfinished-not-tip`, `changelog-missing` and
+`version-not-newer`).
 `test/release-route/plan.test.mjs` enumerates all 8192 combinations of readable facts (and each
 with one fact unknown) and fails on an overlap nobody declared, on a declaration that never
 overlaps, on a combination no row meets, on any mode chosen with a fact unknown, and on any

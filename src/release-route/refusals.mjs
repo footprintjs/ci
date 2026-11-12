@@ -55,6 +55,7 @@ export const REFUSALS = Object.freeze({
   'version-not-newer': 'The version is not newer than every version npm already has.',
   'publish-off-main': 'A real publish runs only from main.',
   'recover-off-main': 'Recovering a release writes a tag and a GitHub release, so it runs only from main.',
+  'release-unfinished': 'npm has this version but no tag: use Re-run failed jobs on the run that published it, or tag v<version> at that commit by hand.',
   'no-rule-matched': 'No rule of the decision matched these facts, so nothing is decided.',
 
   // Building the package.
