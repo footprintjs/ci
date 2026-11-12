@@ -18,19 +18,28 @@ export async function boundedGet({ fetcher, url, headers = {}, maxBytes, timeout
   try { parsed = new URL(url); } catch { refuse('input-invalid', 'url'); }
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password) refuse('input-invalid', 'url');
   if (typeof fetcher !== 'function' || !Number.isSafeInteger(maxBytes) || maxBytes < 1) refuse('input-invalid', 'request');
-  const signal = AbortSignal.timeout(timeoutMs);
-  let response;
+  // A timer we hold (not AbortSignal.timeout, whose timer Node does not keep alive: on Node 22
+  // a stalled request with no open socket let the process end before the timeout fired).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException('timeout', 'TimeoutError')), timeoutMs);
+  const signal = controller.signal;
   try {
-    response = await fetcher(parsed.href, { method: 'GET', redirect: 'manual', signal, headers });
-  } catch (error) {
-    refuse('request-failed', `${parsed.host} ${error?.name === 'TimeoutError' ? 'timeout' : 'network error'}`);
+    let response;
+    try {
+      response = await fetcher(parsed.href, { method: 'GET', redirect: 'manual', signal, headers });
+    } catch (error) {
+      refuse('request-failed', `${parsed.host} ${error?.name === 'TimeoutError' ? 'timeout' : 'network error'}`);
+    }
+    const status = response?.status;
+    if (!Number.isInteger(status)) refuse('request-failed', `${parsed.host} no usable response`);
+    if (status >= 300 && status < 400) refuse('response-redirect', `${parsed.host} HTTP ${status}`);
+    const length = Number(response.headers?.get?.('content-length'));
+    if (Number.isFinite(length) && length > maxBytes) refuse('response-too-large', parsed.host);
+    return { status, bytes: await readBody(response, maxBytes, parsed.host, signal) };
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
   }
-  const status = response?.status;
-  if (!Number.isInteger(status)) refuse('request-failed', `${parsed.host} no usable response`);
-  if (status >= 300 && status < 400) refuse('response-redirect', `${parsed.host} HTTP ${status}`);
-  const length = Number(response.headers?.get?.('content-length'));
-  if (Number.isFinite(length) && length > maxBytes) refuse('response-too-large', parsed.host);
-  return { status, bytes: await readBody(response, maxBytes, parsed.host, signal) };
 }
 
 async function readBody(response, maxBytes, host, signal) {

@@ -313,9 +313,9 @@ step of design section 8 is done). A commit merged into ci `main` runs everywher
 
 ## Proof
 
-Run on Node 24.21.0 (macOS), 12 Nov 2026.
+Run on Node 24.21.0 and Node 22.16.0 (macOS), 12 Nov 2026.
 
-- `npm run check`: 924 tests, 924 pass, 0 fail, then the build; `git diff --stat origin/main -- dist`
+- `npm run check`: 924 tests, 924 pass, 0 fail, then the build (and `npm test` on Node 22.16.0: 924 pass); `git diff --stat origin/main -- dist`
   is empty (these modules are not bundled into `dist/release.cjs`).
 - **The four published tarballs through the port** (`checkArchive`, with the settings in
   `test/release-route/fixtures/family/` and each package's `package.json` at its release
