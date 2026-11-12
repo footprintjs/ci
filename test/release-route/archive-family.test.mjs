@@ -122,3 +122,24 @@ test('names no archive may hold: ordinary names with dots, dashes and digits sti
     .map((member) => fixture.entry(member, 'x')));
   assert.equal(inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: ['dist/'] }).files.length, 6);
 });
+
+// Round 3 of the second read: one path as a FILE in one member and a FOLDER in another (npm keeps
+// one and silently drops the other), and three more Windows device names.
+test('a path that is a file in one member and a folder in another is refused, in either order and any case', () => {
+  const manifest = fixture.entry('package/package.json', JSON.stringify(twinSource));
+  for (const members of [
+    [manifest, fixture.entry('package/dist/index.js', 'x'), fixture.entry('package/dist', 'FILE')],
+    [manifest, fixture.entry('package/dist', 'FILE'), fixture.entry('package/dist/index.js', 'x')],
+    [manifest, fixture.entry('package/dist/index.js', 'x'), fixture.entry('package/DIST', 'FILE')],
+    [manifest, fixture.entry('package/Dist', 'FILE'), fixture.entry('package/dist/a/b.js', 'x')],
+  ]) {
+    const bytes = gzipSync(fixture.tar(members));
+    assert.match(refusedWith(() => inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: ['dist/', 'di*', 'Di*', 'DI*'] })), /^archive-name:package\//);
+  }
+});
+
+for (const member of ['package/dist/CONIN$', 'package/dist/conout$.txt', 'package/dist/COM0', 'package/dist/lpt0.js'])
+  test(`the device name ${member.split('/').at(-1)} is refused`, () => {
+    const bytes = fixture.pack(twinSource, [fixture.entry(member, 'x')]);
+    assert.equal(refusedWith(() => inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: ['dist/'] })), `archive-name:${member}`);
+  });

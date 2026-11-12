@@ -100,3 +100,8 @@ for (const [label, entries] of [
 ])
   test(`the setting refuses an entry that names what no setting may allow: ${label}`, () =>
     assert.equal(code(() => compileArchiveRule(entries)), 'archive-setting:entry-1'));
+
+test('an always-allowed file named as a folder is refused as a setting (npm then cannot read package.json)', () => {
+  for (const entry of ['package.json/', 'README.md/', 'license/', 'Package.JSON/'])
+    assert.equal(code(() => compileArchiveRule(['dist/', entry])), 'archive-setting:entry-2', entry);
+});
