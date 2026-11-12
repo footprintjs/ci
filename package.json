@@ -16,7 +16,7 @@
     "esbuild": "0.28.0"
   },
   "scripts": {
-    "test": "node --test test/eco/*.test.mjs test/flow/*.test.mjs test/policy/*.test.mjs test/shadow/*.test.mjs test/workflow/*.test.mjs test/upstream/test/release/*.test.mjs",
+    "test": "node --test test/eco/*.test.mjs test/flow/*.test.mjs test/hold/*.test.mjs test/policy/*.test.mjs test/shadow/*.test.mjs test/workflow/*.test.mjs test/upstream/test/release/*.test.mjs",
     "build": "node scripts/build.mjs",
     "check": "npm test && npm run build",
     "eco": "node bin/eco.mjs"
