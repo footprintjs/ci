@@ -725,15 +725,26 @@ function asRefusal(error) {
     return new Refusal("unexpected-failure", "");
   }
 }
-var plainString = (value, key) => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "string";
+var ownData = (value, key) => Object.getOwnPropertyDescriptor(value, key)?.value;
+var isObject = (value) => (typeof value === "object" || typeof value === "function") && value !== null;
 function refusalOf(error) {
-  if (error instanceof Refusal) return plainString(error, "code") && plainString(error, "detail") ? error : new Refusal(String(error.code), error.detail);
+  if (isObject(error) && Object.getPrototypeOf(error) === Refusal.prototype) {
+    const code = ownData(error, "code");
+    const detail = ownData(error, "detail");
+    const known = typeof code === "string" && Object.hasOwn(REFUSALS, code) && typeof detail === "string";
+    return known ? new Refusal(code, detail) : new Refusal("unexpected-failure", "");
+  }
   const archive = import_refusal.default.archiveRefusalCode(error);
   if (typeof archive === "string") {
     const cut2 = archive.indexOf(":");
     return cut2 < 0 ? new Refusal(archive) : new Refusal(archive.slice(0, cut2), archive.slice(cut2 + 1));
   }
-  return new Refusal("unexpected-failure", error?.name === "TimeoutError" ? "timeout" : "");
+  return new Refusal("unexpected-failure", isTimeout(error) ? "timeout" : "");
+}
+function isTimeout(error) {
+  if (!isObject(error)) return false;
+  if (Object.hasOwn(error, "name")) return ownData(error, "name") === "TimeoutError";
+  return Object.getPrototypeOf(error) === DOMException.prototype && error.name === "TimeoutError";
 }
 
 // src/shared/text.mjs
@@ -1739,12 +1750,12 @@ var ERROR_NAMES = /* @__PURE__ */ new Set(["EvalError", "RangeError", "Reference
 function equalErrors(a, b, seen2, opaque) {
   if (errorKindOf(a) !== errorKindOf(b) || stackOf(a) !== stackOf(b))
     return false;
-  const aMessage = ownData(a, "message");
-  const bMessage = ownData(b, "message");
+  const aMessage = ownData2(a, "message");
+  const bMessage = ownData2(b, "message");
   if (String(aMessage?.value) !== String(bMessage?.value) || !aMessage !== !bMessage)
     return false;
-  const aCause = ownData(a, "cause");
-  const bCause = ownData(b, "cause");
+  const aCause = ownData2(a, "cause");
+  const bCause = ownData2(b, "cause");
   if (!aCause || !bCause)
     return !aCause === !bCause;
   return equalPairs(aCause.value, bCause.value, seen2, opaque);
@@ -1757,7 +1768,7 @@ function stackOf(error) {
   const stack = error.stack;
   return typeof stack === "string" ? stack : void 0;
 }
-function ownData(value, key) {
+function ownData2(value, key) {
   const descriptor = Object.getOwnPropertyDescriptor(value, key);
   return descriptor !== void 0 && Object.prototype.hasOwnProperty.call(descriptor, "value") ? { value: descriptor.value } : void 0;
 }
@@ -2654,7 +2665,7 @@ function sendEntry(sink, entry) {
 }
 
 // node_modules/foottrace/dist/esm/lib/evidence/admission.js
-function ownData2(value, key, refuse4, policy) {
+function ownData3(value, key, refuse4, policy) {
   if (!value || typeof value !== "object")
     throw refuse4();
   let descriptor;
@@ -2690,7 +2701,7 @@ function boundedList(value, maximum, read2, options) {
     array = Array.isArray(value);
   if (!array)
     throw refuse4();
-  const length = ownData2(value, "length", refuse4, descriptors2);
+  const length = ownData3(value, "length", refuse4, descriptors2);
   if (typeof length !== "number" || !Number.isSafeInteger(length) || length < 0)
     throw refuse4();
   if (options.expectedLength !== void 0 && length !== options.expectedLength)
@@ -2699,7 +2710,7 @@ function boundedList(value, maximum, read2, options) {
     throw refuse4(overflow);
   const result = [];
   for (let index = 0; index < length; index++)
-    result.push(read2(ownData2(value, String(index), refuse4, descriptors2)));
+    result.push(read2(ownData3(value, String(index), refuse4, descriptors2)));
   return freeze ? Object.freeze(result) : result;
 }
 
@@ -2757,13 +2768,13 @@ function admitMarks(value, admission) {
     if (!item || typeof item !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(item))) {
       throw refuse4();
     }
-    const kind = ownData2(item, "kind", refuse4, descriptors2);
-    const reason = ownData2(item, "reason", refuse4, descriptors2);
+    const kind = ownData3(item, "kind", refuse4, descriptors2);
+    const reason = ownData3(item, "reason", refuse4, descriptors2);
     if (typeof kind !== "string" || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(kind))
       throw refuse4();
     if (typeof reason !== "string" || !REASONS.has(reason))
       throw refuse4();
-    const evidence = ordinaryList(ownData2(item, "evidence", refuse4, descriptors2), refs2, (ref) => boundedName(ref, ATTENTION_LIMITS.refLength, refuse4));
+    const evidence = ordinaryList(ownData3(item, "evidence", refuse4, descriptors2), refs2, (ref) => boundedName(ref, ATTENTION_LIMITS.refLength, refuse4));
     if (kind !== "not-collected" && evidence.length === 0)
       throw refuse4();
     return Object.freeze({ kind, reason, evidence });
@@ -7488,13 +7499,13 @@ function retireComponentControl(frame, end) {
 // node_modules/footprintjs/dist/esm/lib/scope/runtime.js
 var runtimes = /* @__PURE__ */ new WeakMap();
 var nativeFrames = /* @__PURE__ */ new WeakMap();
-function isObject(value) {
+function isObject2(value) {
   return typeof value === "object" && value !== null || typeof value === "function";
 }
 function registerScopeRuntime(scope, runtime) {
-  if (!isObject(scope))
+  if (!isObject2(scope))
     throw new TypeError("registerScopeRuntime: scope must be an object");
-  if (!runtime || !isObject(runtime.target) || typeof runtime.handlesAssignments !== "boolean") {
+  if (!runtime || !isObject2(runtime.target) || typeof runtime.handlesAssignments !== "boolean") {
     throw new TypeError("registerScopeRuntime: provide a target port and boolean handlesAssignments");
   }
   if (runtime.setBreak !== void 0 && typeof runtime.setBreak !== "function") {
@@ -7514,7 +7525,7 @@ function registerScopeRuntime(scope, runtime) {
   return scope;
 }
 function scopeRuntimeFor(scope) {
-  return isObject(scope) ? runtimes.get(scope) : void 0;
+  return isObject2(scope) ? runtimes.get(scope) : void 0;
 }
 var UNREGISTERED = "[footprint] Unregistered scope. Custom scope factories must call registerScopeRuntime(scope, { target, handlesAssignments }) from footprintjs/advanced. ScopeFacade and built-in scope factories register automatically.";
 var UNREGISTERED_DECISION = "[footprint] decide()/select() needs the stage's scope (the object your stage function receives), not a plain object. A hand-built scope must be registered with registerScopeRuntime(scope, { target, handlesAssignments }) from footprintjs/advanced.";
@@ -7545,7 +7556,7 @@ function scopeRunFrame(scope) {
   const mapping = nativeMappingFrameFor(scope);
   if (mapping)
     return mapping;
-  return isObject(scope) ? nativeFrames.get(scope) : void 0;
+  return isObject2(scope) ? nativeFrames.get(scope) : void 0;
 }
 
 // node_modules/foottrace/dist/esm/lib/read-sources/bindings.js
@@ -8071,7 +8082,7 @@ function utf8Bytes(value) {
 // node_modules/foottrace/dist/esm/lib/read-sources/admission.js
 var refuse2 = () => new TypeError("read sources: invalid data");
 var descriptors = { translateTrapErrors: true, requireOwnValue: true };
-var sourceOwn = (value, key) => ownData2(value, key, refuse2, descriptors);
+var sourceOwn = (value, key) => ownData3(value, key, refuse2, descriptors);
 var sourceList = (value, maximum, read2) => boundedList(value, maximum, read2, {
   refuse: refuse2,
   overflow: "node-limit",
@@ -11700,7 +11711,7 @@ function copyCaptureAcknowledgement(value) {
 }
 
 // node_modules/footprintjs/dist/esm/lib/capture/noteShape.js
-function ownData3(record, key) {
+function ownData4(record, key) {
   if (!record || typeof record !== "object" || Object.getPrototypeOf(record) !== Object.prototype)
     return void 0;
   return Object.getOwnPropertyDescriptor(record, key)?.value;
@@ -11715,14 +11726,14 @@ function shapeKeys(value, fields2, exact3) {
   return !exact3 || !!value && typeof value === "object" && Object.keys(value).length === fields2.length;
 }
 function copyIdentity(value, exact3 = false, version = 1) {
-  const runId = ownData3(value, "runId");
-  const address = ownData3(value, "logAddress");
-  const logRunId = ownData3(address, "logRunId");
-  const drill = ownData3(address, "drillPath");
-  const commits = ownData3(value, "commits");
-  const from = ownData3(commits, "from");
-  const to = ownData3(commits, "to");
-  if (ownData3(value, "version") !== version || !captureIdentifier(runId) || !captureIdentifier(logRunId) || !Array.isArray(drill) || Object.getPrototypeOf(drill) !== Array.prototype || Object.getOwnPropertyDescriptor(drill, "length")?.value !== 0 || !count(from) || !count(to) || from > to || !shapeKeys(address, ["logRunId", "drillPath"], exact3) || !shapeKeys(commits, ["from", "to"], exact3))
+  const runId = ownData4(value, "runId");
+  const address = ownData4(value, "logAddress");
+  const logRunId = ownData4(address, "logRunId");
+  const drill = ownData4(address, "drillPath");
+  const commits = ownData4(value, "commits");
+  const from = ownData4(commits, "from");
+  const to = ownData4(commits, "to");
+  if (ownData4(value, "version") !== version || !captureIdentifier(runId) || !captureIdentifier(logRunId) || !Array.isArray(drill) || Object.getPrototypeOf(drill) !== Array.prototype || Object.getOwnPropertyDescriptor(drill, "length")?.value !== 0 || !count(from) || !count(to) || from > to || !shapeKeys(address, ["logRunId", "drillPath"], exact3) || !shapeKeys(commits, ["from", "to"], exact3))
     return void 0;
   return {
     runId,
@@ -11731,25 +11742,25 @@ function copyIdentity(value, exact3 = false, version = 1) {
   };
 }
 function copyModes(value, exact3 = false) {
-  const readTracking = ownData3(value, "readTracking");
-  const writeTracking = ownData3(value, "writeTracking");
-  const commitValues = ownData3(value, "commitValues");
-  const writeProvenance = ownData3(value, "writeProvenance");
+  const readTracking = ownData4(value, "readTracking");
+  const writeTracking = ownData4(value, "writeTracking");
+  const commitValues = ownData4(value, "commitValues");
+  const writeProvenance = ownData4(value, "writeProvenance");
   if (!isCaptureValue(readTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(writeTracking, CAPTURE_RETENTION_MODES) || !isCaptureValue(commitValues, CAPTURE_COMMIT_VALUE_MODES) || !isCaptureValue(writeProvenance, CAPTURE_PROVENANCE_MODES) || !shapeKeys(value, ["readTracking", "writeTracking", "commitValues", "writeProvenance"], exact3))
     return void 0;
   return Object.freeze({ readTracking, writeTracking, commitValues, writeProvenance });
 }
 function copyChannels(value, exact3 = false) {
   const observed = copyObservedChannels(value);
-  if (!observed || ownData3(value, "readSources") !== "not-collected" || !shapeKeys(value, ["reads", "writes", "attention", "control", "readSources"], exact3))
+  if (!observed || ownData4(value, "readSources") !== "not-collected" || !shapeKeys(value, ["reads", "writes", "attention", "control", "readSources"], exact3))
     return void 0;
   return Object.freeze({ ...observed, readSources: "not-collected" });
 }
 function copyObservedChannels(value) {
-  const reads = ownData3(value, "reads");
-  const writes = ownData3(value, "writes");
-  const attention = ownData3(value, "attention");
-  const control = ownData3(value, "control");
+  const reads = ownData4(value, "reads");
+  const writes = ownData4(value, "writes");
+  const attention = ownData4(value, "attention");
+  const control = ownData4(value, "control");
   if (!isCaptureValue(reads, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(writes, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(attention, CAPTURE_CHANNEL_STATUSES) || !isCaptureValue(control, CAPTURE_CHANNEL_STATUSES))
     return void 0;
   return Object.freeze({ reads, writes, attention, control });
@@ -11776,22 +11787,22 @@ function captureRefusal() {
 }
 function copyCheckpointCapture(value) {
   try {
-    if (ownData3(value, "scope") !== "root-log" || ownData3(value, "persistence") !== "memory-only" || ownData3(ownData3(value, "boundary"), "status") !== "paused")
+    if (ownData4(value, "scope") !== "root-log" || ownData4(value, "persistence") !== "memory-only" || ownData4(ownData4(value, "boundary"), "status") !== "paused")
       return void 0;
-    const version = ownData3(value, "version") === 2 ? 2 : 1;
+    const version = ownData4(value, "version") === 2 ? 2 : 1;
     const identity = copyIdentity(value, false, version);
     if (!identity)
       return void 0;
-    const modes = copyModes(ownData3(value, "modes"));
+    const modes = copyModes(ownData4(value, "modes"));
     if (!modes)
       return void 0;
-    const storedChannels = ownData3(value, "channels");
+    const storedChannels = ownData4(value, "channels");
     const channels = version === 1 ? copyChannels(storedChannels) : copyObservedChannels(storedChannels);
     if (!channels)
       return void 0;
-    if (version === 2 && !isCaptureValue(ownData3(storedChannels, "readSources"), CAPTURE_CHANNEL_STATUSES))
+    if (version === 2 && !isCaptureValue(ownData4(storedChannels, "readSources"), CAPTURE_CHANNEL_STATUSES))
       return void 0;
-    const limitations = copyLimitations(ownData3(value, "limitations"));
+    const limitations = copyLimitations(ownData4(value, "limitations"));
     if (!limitations)
       return void 0;
     const common = {
@@ -17705,7 +17716,7 @@ function copyCaptureEvidence(value, maxBytes) {
 function validateAbsentEntries(payload) {
   if (!Object.hasOwn(payload, "absent"))
     return true;
-  const absent2 = ownData3(payload, "absent");
+  const absent2 = ownData4(payload, "absent");
   if (!Array.isArray(absent2) || !absent2.length || absent2.length > MAX_ABSENT_ENTRIES)
     return false;
   let previous;
@@ -17736,7 +17747,7 @@ function historyNote(value, target) {
   if (!value || typeof value !== "object")
     return void 0;
   const v = value;
-  const version = ownData3(v, "version") === 2 ? 2 : 1;
+  const version = ownData4(v, "version") === 2 ? 2 : 1;
   const identity = copyIdentity(v, true, version);
   const limitations = copyLimitations(v.limitations);
   if (!identity || JSON.stringify(identity) !== JSON.stringify(copyIdentity(target)) || v.scope !== "root-log" || v.persistence !== "memory-only" || !v.boundary || !["completed", "failed", "paused", "cancelled"].includes(v.boundary.status) || !v.modes || !v.channels || !limitations || !baseLimitationsFor(version).every((g) => limitations.includes(g)) || !copyModes(v.modes, true) || !(version === 1 ? copyChannels(v.channels, true) : copyObservedChannels(v.channels)) || version === 2 && (!isCaptureValue(v.channels.readSources, CAPTURE_CHANNEL_STATUSES) || Object.keys(v.channels).length !== 5 || limitations.includes("read-sources-not-collected")))
@@ -17766,8 +17777,8 @@ function historyNote(value, target) {
 function copyHistoryTarget(value) {
   try {
     const identity = copyIdentity(value);
-    const evidenceId = ownData3(value, "evidenceId");
-    const digest = ownData3(value, "digest");
+    const evidenceId = ownData4(value, "evidenceId");
+    const digest = ownData4(value, "digest");
     if (!identity || !captureIdentifier(evidenceId) || typeof digest !== "string" || !/^[a-f0-9]{64}$/.test(digest))
       return void 0;
     return Object.freeze({
@@ -17785,7 +17796,7 @@ function copyHistoryTarget(value) {
 function copyHistoryReceipt(value, target) {
   try {
     const copied = copyHistoryTarget(value);
-    if (!copied || ownData3(value, "durability") !== "durable" || JSON.stringify(copied) !== JSON.stringify(target))
+    if (!copied || ownData4(value, "durability") !== "durable" || JSON.stringify(copied) !== JSON.stringify(target))
       return void 0;
     return Object.freeze({ ...copied, durability: "durable" });
   } catch {
@@ -17823,9 +17834,9 @@ function exact(value, keys) {
 }
 function copyExtentIdentity(value, binding) {
   const identity = copyIdentity(value, true);
-  if (!identity || ownData3(value, "extentId") !== identity.runId || ownData3(value, "scope") !== "root-log" || ownData3(value, "persistence") !== "memory-only" || identity.runId !== binding.runId || identity.logAddress.logRunId !== binding.logAddress.logRunId || binding.logAddress.drillPath.length !== 0 || identity.commits.from !== binding.commits.from || identity.commits.to !== binding.commits.to || !exact(ownData3(value, "logAddress"), ["logRunId", "drillPath"]) || !exact(ownData3(value, "commits"), ["from", "to"]))
+  if (!identity || ownData4(value, "extentId") !== identity.runId || ownData4(value, "scope") !== "root-log" || ownData4(value, "persistence") !== "memory-only" || identity.runId !== binding.runId || identity.logAddress.logRunId !== binding.logAddress.logRunId || binding.logAddress.drillPath.length !== 0 || identity.commits.from !== binding.commits.from || identity.commits.to !== binding.commits.to || !exact(ownData4(value, "logAddress"), ["logRunId", "drillPath"]) || !exact(ownData4(value, "commits"), ["from", "to"]))
     return;
-  const drill = ownData3(ownData3(value, "logAddress"), "drillPath");
+  const drill = ownData4(ownData4(value, "logAddress"), "drillPath");
   if (!Array.isArray(drill) || Reflect.ownKeys(drill).length !== 1 || Object.is(identity.commits.from, -0) || Object.is(identity.commits.to, -0))
     return;
   return identity;
@@ -17833,10 +17844,10 @@ function copyExtentIdentity(value, binding) {
 function copyInvocationCounts(value) {
   if (!exact(value, ["started", "settled", "pending", "abandoned"]))
     return;
-  const started = ownData3(value, "started");
-  const settled = ownData3(value, "settled");
-  const pending = ownData3(value, "pending");
-  const abandoned = ownData3(value, "abandoned");
+  const started = ownData4(value, "started");
+  const settled = ownData4(value, "settled");
+  const pending = ownData4(value, "pending");
+  const abandoned = ownData4(value, "abandoned");
   const count3 = (n) => Number.isSafeInteger(n) && !Object.is(n, -0) && n >= 0 && n <= NATIVE_EXTENT_MAX_INVOCATIONS;
   if (!count3(started) || !count3(settled) || !count3(pending) || !count3(abandoned) || settled + pending !== started || abandoned > started)
     return;
@@ -17875,13 +17886,13 @@ function copyNativeCaptureExtent(value, binding, terminalOnly = false) {
     ]))
       return;
     const identity = copyExtentIdentity(value, binding);
-    const status = ownData3(value, "status");
+    const status = ownData4(value, "status");
     if (!identity || status !== TERMINAL_STATUS && (status !== RUNNING_STATUS || terminalOnly))
       return;
-    const invocations = copyInvocationCounts(ownData3(value, "invocations"));
+    const invocations = copyInvocationCounts(ownData4(value, "invocations"));
     if (!invocations)
       return;
-    const limitations = copyExtentLimitations(ownData3(value, "limitations"), invocations);
+    const limitations = copyExtentLimitations(ownData4(value, "limitations"), invocations);
     if (!limitations)
       return;
     return Object.freeze({
@@ -17922,14 +17933,14 @@ function copyLimitations2(value) {
   return seen2.size === CAPTURE_CLOSURE_LIMITATIONS.length ? CAPTURE_CLOSURE_LIMITATIONS : void 0;
 }
 function copyFailure(value, binding, invocations) {
-  if (!exact2(value, ["kind", "runId", "runtimeStageId", "attemptId"]) || ownData3(value, "kind") !== "invocation")
+  if (!exact2(value, ["kind", "runId", "runtimeStageId", "attemptId"]) || ownData4(value, "kind") !== "invocation")
     return;
-  const runId = ownData3(value, "runId");
-  const runtimeStageId = ownData3(value, "runtimeStageId");
-  const attemptId = ownData3(value, "attemptId");
-  const failure = ownData3(ownData3(binding, "boundary"), "failure");
-  const stage = ownData3(failure, "stage");
-  if (!captureIdentifier(runId) || runId !== ownData3(binding, "runId") || !captureIdentifier(runtimeStageId) || runtimeStageId.length > 1024 || !isNativeSourceExecution(runtimeStageId) || !captureIdentifier(attemptId) || !exact2(stage, ["runId", "runtimeStageId"]) || ownData3(stage, "runId") !== runId || ownData3(stage, "runtimeStageId") !== runtimeStageId)
+  const runId = ownData4(value, "runId");
+  const runtimeStageId = ownData4(value, "runtimeStageId");
+  const attemptId = ownData4(value, "attemptId");
+  const failure = ownData4(ownData4(binding, "boundary"), "failure");
+  const stage = ownData4(failure, "stage");
+  if (!captureIdentifier(runId) || runId !== ownData4(binding, "runId") || !captureIdentifier(runtimeStageId) || runtimeStageId.length > 1024 || !isNativeSourceExecution(runtimeStageId) || !captureIdentifier(attemptId) || !exact2(stage, ["runId", "runtimeStageId"]) || ownData4(stage, "runId") !== runId || ownData4(stage, "runtimeStageId") !== runtimeStageId)
     return;
   const parsed = parseAttemptId(attemptId);
   if (!parsed || parsed.call !== void 0 || parsed.runtimeStageId !== runtimeStageId || !Number.isSafeInteger(parsed.attempt) || parsed.attempt < 1 || parsed.attempt > invocations || buildAttemptId(runtimeStageId, parsed.attempt) !== attemptId)
@@ -17938,7 +17949,7 @@ function copyFailure(value, binding, invocations) {
 }
 function copyCaptureClosure(value, binding, extent) {
   try {
-    const boundary = ownData3(value, "boundary");
+    const boundary = ownData4(value, "boundary");
     if (!exact2(value, [
       "version",
       "policy",
@@ -17950,22 +17961,22 @@ function copyCaptureClosure(value, binding, extent) {
       "boundary",
       ...boundary === "failed" ? ["selectedFailure"] : [],
       "limitations"
-    ]) || ownData3(value, "policy") !== "native-root-prefix-v1" || ownData3(value, "scope") !== "root-log" || ownData3(value, "status") !== "closed" || boundary !== "completed" && boundary !== "failed" || ownData3(binding, "scope") !== "root-log" || ownData3(binding, "persistence") !== "memory-only" || boundary === "completed" && ownData3(ownData3(binding, "boundary"), "failure") !== void 0 || ownData3(ownData3(binding, "boundary"), "status") !== boundary)
+    ]) || ownData4(value, "policy") !== "native-root-prefix-v1" || ownData4(value, "scope") !== "root-log" || ownData4(value, "status") !== "closed" || boundary !== "completed" && boundary !== "failed" || ownData4(binding, "scope") !== "root-log" || ownData4(binding, "persistence") !== "memory-only" || boundary === "completed" && ownData4(ownData4(binding, "boundary"), "failure") !== void 0 || ownData4(ownData4(binding, "boundary"), "status") !== boundary)
       return;
-    const version = ownData3(binding, "version");
+    const version = ownData4(binding, "version");
     if (version !== 1 && version !== 2)
       return;
     const identity = copyIdentity(value, true);
     const bound = copyIdentity(binding, false, version);
-    if (!identity || !bound || !exact2(ownData3(value, "logAddress"), ["logRunId", "drillPath"]) || !exact2(ownData3(value, "commits"), ["from", "to"]) || Reflect.ownKeys(ownData3(ownData3(value, "logAddress"), "drillPath")).length !== 1 || identity.commits.from !== 0 || Object.is(identity.commits.from, -0) || Object.is(identity.commits.to, -0) || identity.runId !== identity.logAddress.logRunId || identity.runId !== bound.runId || identity.logAddress.logRunId !== bound.logAddress.logRunId || identity.commits.from !== bound.commits.from || identity.commits.to !== bound.commits.to)
+    if (!identity || !bound || !exact2(ownData4(value, "logAddress"), ["logRunId", "drillPath"]) || !exact2(ownData4(value, "commits"), ["from", "to"]) || Reflect.ownKeys(ownData4(ownData4(value, "logAddress"), "drillPath")).length !== 1 || identity.commits.from !== 0 || Object.is(identity.commits.from, -0) || Object.is(identity.commits.to, -0) || identity.runId !== identity.logAddress.logRunId || identity.runId !== bound.runId || identity.logAddress.logRunId !== bound.logAddress.logRunId || identity.commits.from !== bound.commits.from || identity.commits.to !== bound.commits.to)
       return;
     const book = copyNativeCaptureExtent(extent, bound, true);
     if (!book || book.invocations.pending !== 0 || book.invocations.abandoned !== 0 || book.limitations.length !== BASE_LIMITATIONS.length || !BASE_LIMITATIONS.every((gap) => book.limitations.includes(gap)))
       return;
-    const limitations = copyLimitations2(ownData3(value, "limitations"));
+    const limitations = copyLimitations2(ownData4(value, "limitations"));
     if (!limitations)
       return;
-    const selectedFailure = boundary === "failed" ? copyFailure(ownData3(value, "selectedFailure"), binding, book.invocations.started) : void 0;
+    const selectedFailure = boundary === "failed" ? copyFailure(ownData4(value, "selectedFailure"), binding, book.invocations.started) : void 0;
     if (boundary === "failed" && !selectedFailure)
       return;
     return Object.freeze({
@@ -18109,10 +18120,10 @@ function samePath(value, expected) {
   return Array.isArray(value) && value.length === expected.length && value.every((part, index) => part === expected[index]);
 }
 function execution(value, firstCommits) {
-  const id = ownData3(value, "runtimeStageId");
-  const address = ownData3(value, "stateAddress");
-  const attempts = ownData3(value, "attemptIds");
-  const firstCommit = ownData3(value, "firstCommit");
+  const id = ownData4(value, "runtimeStageId");
+  const address = ownData4(value, "stateAddress");
+  const attempts = ownData4(value, "attemptIds");
+  const firstCommit = ownData4(value, "firstCommit");
   if (!fields(value, [
     "runtimeStageId",
     "stateAddress",
@@ -18957,7 +18968,7 @@ function entriesOf(node) {
   return void 0;
 }
 function ownMember(node, key) {
-  if (!isObject2(node) || Array.isArray(node))
+  if (!isObject3(node) || Array.isArray(node))
     return void 0;
   return Object.prototype.hasOwnProperty.call(node, key) ? node[key] : void 0;
 }
@@ -19079,7 +19090,7 @@ var SelectedObjects = class {
         was.open = false;
         continue;
       }
-      if (!isObject2(node) || at.named?.kind === "whole")
+      if (!isObject3(node) || at.named?.kind === "whole")
         continue;
       if (node === was || node === base && at.up !== void 0)
         kept = true;
@@ -19102,7 +19113,7 @@ var SelectedObjects = class {
       } else if (covers(its, rule)) {
         holds3(rule, at);
       } else {
-        if (same !== void 0 && isObject2(was) && same(node, was))
+        if (same !== void 0 && isObject3(was) && same(node, was))
           continue;
         const list = rule.kind === "fields" && Array.isArray(node) && rule.paths.some(namesAnIndex);
         hide(rule, at, list);
@@ -19153,7 +19164,7 @@ var SelectedObjects = class {
       } else {
         for (const key of Object.keys(node)) {
           const member = node[key];
-          if (isObject2(member)) {
+          if (isObject3(member)) {
             const place = { up: at, key, list: at.list, within: here, named: nameBelow(its, key) };
             todo.push([member, ownMember(old, key), place]);
           }
@@ -19184,7 +19195,7 @@ function pathOf(place) {
   return path2.reverse();
 }
 function pushObject(todo, value, rule) {
-  if (rule !== void 0 && isObject2(value))
+  if (rule !== void 0 && isObject3(value))
     todo.push([value, rule]);
 }
 function widest(known, asked) {
@@ -19204,7 +19215,7 @@ function newItems(list, was) {
   const items = [];
   if (!Array.isArray(was)) {
     for (let i = 0; i < list.length; i++)
-      if (isObject2(list[i]))
+      if (isObject3(list[i]))
         items.push([list[i], void 0, i]);
     return { items, passedOver: false };
   }
@@ -19214,7 +19225,7 @@ function newItems(list, was) {
   for (let i = 0; i < list.length; i++) {
     const item = list[i];
     if (lookup !== void 0) {
-      if (!isObject2(item))
+      if (!isObject3(item))
         continue;
       if (lookup.has(item))
         passedOver = true;
@@ -19222,8 +19233,8 @@ function newItems(list, was) {
         items.push([item, void 0, i]);
     } else if (was[old] === item) {
       old++;
-      passedOver ||= isObject2(item);
-    } else if (!isObject2(item))
+      passedOver ||= isObject3(item);
+    } else if (!isObject3(item))
       continue;
     else if (old >= was.length)
       items.push([item, void 0, i]);
@@ -19250,7 +19261,7 @@ function isIndex2(first) {
 function namesAnIndex(path2) {
   return /^\d+(\.|$)/.test(path2);
 }
-function isObject2(value) {
+function isObject3(value) {
   return value !== null && typeof value === "object";
 }
 
@@ -21255,11 +21266,11 @@ function validateClosureEvidence(closure, extent, tree, commitLog) {
     const node = pending.pop();
     if (!node || typeof node !== "object" || Object.getPrototypeOf(node) !== Object.prototype)
       return false;
-    const id = ownData3(node, "runtimeStageId");
-    const count3 = ownData3(node, "nativeInvocations");
+    const id = ownData4(node, "runtimeStageId");
+    const count3 = ownData4(node, "nativeInvocations");
     if (typeof id !== "string" || !id || nodes.has(id) || !Number.isSafeInteger(count3) || Object.is(count3, -0) || count3 < 0 || count3 > NATIVE_EXTENT_MAX_INVOCATIONS)
       return false;
-    const sourceCount = ownData3(node, "readSourceInvocations");
+    const sourceCount = ownData4(node, "readSourceInvocations");
     if (Object.hasOwn(node, "readSourceInvocations") && sourceCount !== count3)
       return false;
     nodes.set(id, count3);
@@ -21267,9 +21278,9 @@ function validateClosureEvidence(closure, extent, tree, commitLog) {
     if (entered > extent.invocations.started)
       return false;
     if (Object.hasOwn(node, "next"))
-      pending.push(ownData3(node, "next"));
+      pending.push(ownData4(node, "next"));
     if (Object.hasOwn(node, "children")) {
-      const children2 = ownData3(node, "children");
+      const children2 = ownData4(node, "children");
       if (!Array.isArray(children2) || children2.length > 1e5 - visited - pending.length)
         return false;
       for (const child of children2)
@@ -29102,7 +29113,7 @@ var PACKUMENT = { maxBytes: 32 * 1024 * 1024, maxValues: 2e6 };
 var VERSION_DOC = { maxBytes: 1024 * 1024, maxValues: 1e5 };
 var INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
 var WAIT = Object.freeze({ tries: 20, delayMs: 15e3 });
-var isObject3 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var isObject4 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var path = (name) => name.startsWith("@") ? name.replace("/", "%2f") : name;
 function checkName(name, version) {
   if (!isPackageName(name)) refuse("input-invalid", "package");
@@ -29124,10 +29135,10 @@ async function readVersions({ fetcher, name }) {
   if (status === 404) return { known: false, versions: [] };
   if (status !== 200) refuse("response-status", `npm HTTP ${status}`);
   const doc = answerJson(bytes, PACKUMENT, REGISTRY_HOST);
-  if (doc.name !== name || !isObject3(doc.versions)) refuse("response-shape", "npm package document");
+  if (doc.name !== name || !isObject4(doc.versions)) refuse("response-shape", "npm package document");
   const versions = Object.keys(doc.versions);
   for (const version of versions)
-    if (!isObject3(doc.versions[version]) || doc.versions[version].version !== version) refuse("response-shape", "npm versions");
+    if (!isObject4(doc.versions[version]) || doc.versions[version].version !== version) refuse("response-shape", "npm versions");
   return { known: true, versions };
 }
 async function readDist({ fetcher, name, version }) {
@@ -29142,7 +29153,7 @@ async function readDist({ fetcher, name, version }) {
   if (status !== 200) refuse("response-status", `npm HTTP ${status}`);
   const doc = answerJson(bytes, VERSION_DOC, REGISTRY_HOST);
   const dist = doc.dist;
-  if (doc.name !== name || doc.version !== version || !isObject3(dist) || typeof dist.integrity !== "string" || !INTEGRITY.test(dist.integrity) || typeof dist.tarball !== "string") refuse("response-shape", "npm version document");
+  if (doc.name !== name || doc.version !== version || !isObject4(dist) || typeof dist.integrity !== "string" || !INTEGRITY.test(dist.integrity) || typeof dist.tarball !== "string") refuse("response-shape", "npm version document");
   if (dist.tarball !== tarballUrl(name, version)) refuse("tarball-url");
   return { integrity: dist.integrity, tarball: dist.tarball };
 }
@@ -30000,7 +30011,7 @@ var buildVerifyChart = (doors, stages) => verifyChartBuilder(doors, stages).buil
 var import_node_fs2 = require("node:fs");
 var import_strict_json4 = __toESM(require_strict_json(), 1);
 var KEY = /^[A-Za-z][A-Za-z0-9]{0,40}$/;
-var isObject4 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var isObject5 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var show = (value) => clean(JSON.stringify(value) ?? "undefined", 80);
 function readBounded(file) {
   const fd = (0, import_node_fs2.openSync)(file, import_node_fs2.constants.O_RDONLY | import_node_fs2.constants.O_NONBLOCK);
@@ -30026,14 +30037,14 @@ function readRouteRecord(file) {
   } catch {
     refuse("record-unreadable", "not a readable strict JSON file within the bound");
   }
-  if (!isObject4(record) || record.format !== RECORD_FORMAT || record.version !== RECORD_VERSION || !["plan", "verify"].includes(record.step) || !isObject4(record.state) || !Array.isArray(record.commitLog) || !isObject4(record.executionTree) || !isObject4(record.control) || !isObject4(record.control.controlDeps) || !Array.isArray(record.control.decisions)) refuse("record-unreadable", "not a release route record");
+  if (!isObject5(record) || record.format !== RECORD_FORMAT || record.version !== RECORD_VERSION || !["plan", "verify"].includes(record.step) || !isObject5(record.state) || !Array.isArray(record.commitLog) || !isObject5(record.executionTree) || !isObject5(record.control) || !isObject5(record.control.controlDeps) || !Array.isArray(record.control.decisions)) refuse("record-unreadable", "not a release route record");
   return record;
 }
 var defaultKey = (state) => ["mode", "refusal", "verified"].find((key) => Object.hasOwn(state, key)) ?? "rule";
 function readerOf(record, fact) {
-  const runs = isObject4(record.state.runs) ? record.state.runs : {};
+  const runs = isObject5(record.state.runs) ? record.state.runs : {};
   for (const id of Object.keys(runs)) {
-    if (!isObject4(runs[id]) || !Object.hasOwn(runs[id], fact)) continue;
+    if (!isObject5(runs[id]) || !Object.hasOwn(runs[id], fact)) continue;
     const writer = findLastWriter(record.commitLog, normaliseStateKey(["runs", id, fact]));
     if (writer) return writer;
   }
@@ -30043,10 +30054,10 @@ var SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under ano
 function decisionLines(record, key, writer) {
   if (!writer) return [];
   const edge = Object.hasOwn(record.control.controlDeps, writer.runtimeStageId) ? record.control.controlDeps[writer.runtimeStageId] : void 0;
-  const decision = isObject4(edge) ? record.control.decisions.find((one) => isObject4(one) && one.deciderRuntimeStageId === edge.deciderId) : void 0;
-  if (!decision || !isObject4(decision.evidence) || !Array.isArray(decision.evidence.rules))
+  const decision = isObject5(edge) ? record.control.decisions.find((one) => isObject5(one) && one.deciderRuntimeStageId === edge.deciderId) : void 0;
+  if (!decision || !isObject5(decision.evidence) || !Array.isArray(decision.evidence.rules))
     return [`No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`];
-  const matched = decision.evidence.rules.find((rule) => isObject4(rule) && rule.matched === true);
+  const matched = decision.evidence.rules.find((rule) => isObject5(rule) && rule.matched === true);
   const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
     const reader = readerOf(record, condition.key);
@@ -30061,7 +30072,7 @@ function explain(record, key = defaultKey(record.state)) {
   if (!Object.hasOwn(state, key)) return [...lines, "The run never wrote that key."];
   const writer = findLastWriter(record.commitLog, key);
   lines.push(...decisionLines(record, key, writer));
-  for (const [fact, cause] of Object.entries(isObject4(state.causes) ? state.causes : {}))
+  for (const [fact, cause] of Object.entries(isObject5(state.causes) ? state.causes : {}))
     lines.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
   if (!writer) return [...lines, "No commit in the record wrote that key."];
   const reads = keysReadFromExecutionTree(record.executionTree);

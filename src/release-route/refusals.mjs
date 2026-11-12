@@ -115,11 +115,17 @@ export function refuse(code, detail) {
   throw new Refusal(code, detail);
 }
 
-// Any thrown value to a Refusal. Archive refusals keep their code and field; everything else
-// the route did not name is `unexpected-failure` (never a pass, never a raw message).
-// Any thrown value as a refusal. It never throws: reading a thrown value's fields can run its
-// code (a getter, a Proxy trap), so every read is inside one try, and a value that throws while
-// being read is unexpected-failure like any other unnamed exception.
+// Any thrown value as a refusal. It never throws, and it runs no code of the thrown value: a
+// getter or a Proxy trap could hold a secret or a message the route never cleaned, so fields are
+// read through their property descriptors, and every read is inside one try (a Proxy trap that
+// throws ends as unexpected-failure like any other unnamed exception).
+//
+// A value is a refusal only when its prototype is exactly Refusal.prototype and `code` and
+// `detail` are own DATA properties holding strings, with `code` in the table: every Refusal this
+// route makes. Example: Object.create(Refusal.prototype, { code: { get() { return secret; } } }) is
+// unexpected-failure with an empty detail, and the getter never runs. Archive refusals keep their
+// code and field; everything else the route did not name is unexpected-failure (never a pass,
+// never a raw message).
 export function asRefusal(error) {
   try {
     return refusalOf(error);
@@ -128,16 +134,29 @@ export function asRefusal(error) {
   }
 }
 
-// A Refusal is handed back as it is when its code and detail are plain own strings (every Refusal
-// this route makes); anything else that claims to be one is rebuilt from its fields.
-const plainString = (value, key) => typeof Object.getOwnPropertyDescriptor(value, key)?.value === 'string';
+// The value of an own data property, or undefined (a getter is never called).
+const ownData = (value, key) => Object.getOwnPropertyDescriptor(value, key)?.value;
+const isObject = (value) => (typeof value === 'object' || typeof value === 'function') && value !== null;
 
 function refusalOf(error) {
-  if (error instanceof Refusal) return plainString(error, 'code') && plainString(error, 'detail') ? error : new Refusal(String(error.code), error.detail);
+  if (isObject(error) && Object.getPrototypeOf(error) === Refusal.prototype) {
+    const code = ownData(error, 'code');
+    const detail = ownData(error, 'detail');
+    const known = typeof code === 'string' && Object.hasOwn(REFUSALS, code) && typeof detail === 'string';
+    return known ? new Refusal(code, detail) : new Refusal('unexpected-failure', '');
+  }
   const archive = archiveRefusal.archiveRefusalCode(error);
   if (typeof archive === 'string') {
     const cut = archive.indexOf(':');
     return cut < 0 ? new Refusal(archive) : new Refusal(archive.slice(0, cut), archive.slice(cut + 1));
   }
-  return new Refusal('unexpected-failure', error?.name === 'TimeoutError' ? 'timeout' : '');
+  return new Refusal('unexpected-failure', isTimeout(error) ? 'timeout' : '');
+}
+
+// A timeout keeps its name: an Error whose own `name` is the data value 'TimeoutError', or the
+// platform's DOMException (whose `name` is the platform's own getter, not the thrown value's code).
+function isTimeout(error) {
+  if (!isObject(error)) return false;
+  if (Object.hasOwn(error, 'name')) return ownData(error, 'name') === 'TimeoutError';
+  return Object.getPrototypeOf(error) === DOMException.prototype && error.name === 'TimeoutError';
 }
