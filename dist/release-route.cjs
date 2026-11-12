@@ -623,6 +623,7 @@ function seenFacts(facts) {
 var unreadableFacts = (seen2) => Object.keys(FACTS).filter((name) => !inDomain(name, seen2[name]));
 
 // src/release-route/refusals.mjs
+var import_node_util = require("node:util");
 var import_refusal = __toESM(require_refusal(), 1);
 var REFUSALS = Object.freeze({
   // The command itself.
@@ -703,13 +704,21 @@ var REFUSALS = Object.freeze({
   "archive-file": "package.tgz is not one regular, non-empty, unlinked file within the size bound.",
   "publish-directory": "The publish folder is not a new empty folder apart from the tarball and the source."
 });
+var privateRefusal;
 var Refusal = class extends Error {
+  #code;
+  #detail;
+  static {
+    privateRefusal = (value) => #code in value ? { code: value.#code, detail: value.#detail } : null;
+  }
   constructor(code, detail) {
     const known = Object.hasOwn(REFUSALS, code);
     super(known ? code : "unknown-refusal");
     this.name = "Refusal";
-    this.code = known ? code : "unknown-refusal";
-    this.detail = known ? detail === void 0 ? "" : String(detail) : String(code);
+    this.#code = known ? code : "unknown-refusal";
+    this.#detail = known ? detail === void 0 ? "" : String(detail) : String(code);
+    this.code = this.#code;
+    this.detail = this.#detail;
   }
   get sentence() {
     return REFUSALS[this.code];
@@ -728,11 +737,9 @@ function asRefusal(error) {
 var ownData = (value, key) => Object.getOwnPropertyDescriptor(value, key)?.value;
 var isObject = (value) => (typeof value === "object" || typeof value === "function") && value !== null;
 function refusalOf(error) {
-  if (isObject(error) && Object.getPrototypeOf(error) === Refusal.prototype) {
-    const code = ownData(error, "code");
-    const detail = ownData(error, "detail");
-    const known = typeof code === "string" && Object.hasOwn(REFUSALS, code) && typeof detail === "string";
-    return known ? new Refusal(code, detail) : new Refusal("unexpected-failure", "");
+  if (isObject(error)) {
+    const made = privateRefusal(error);
+    if (made !== null) return new Refusal(made.code, made.detail);
   }
   const archive = import_refusal.default.archiveRefusalCode(error);
   if (typeof archive === "string") {
@@ -742,7 +749,7 @@ function refusalOf(error) {
   return new Refusal("unexpected-failure", isTimeout(error) ? "timeout" : "");
 }
 function isTimeout(error) {
-  if (!isObject(error)) return false;
+  if (!isObject(error) || import_node_util.types.isProxy(error)) return false;
   if (Object.hasOwn(error, "name")) return ownData(error, "name") === "TimeoutError";
   return Object.getPrototypeOf(error) === DOMException.prototype && error.name === "TimeoutError";
 }
@@ -28855,6 +28862,7 @@ var CONTEXT_CHECKS = Object.freeze({
   version: isPlainVersion,
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value)
 });
+var CONTEXT_NAMES = Object.freeze(Object.keys(CONTEXT_CHECKS));
 function writeObservation(scope, found) {
   for (const [name, value] of Object.entries(found.facts)) scope[name] = factValue(name, value);
   const causes = Object.fromEntries(Object.entries(found.causes).map(([name, refusal]) => [name, causeValue(refusal)]));
@@ -30051,6 +30059,7 @@ function observerOf(record, fact) {
   return findLastWriter(record.commitLog, fact);
 }
 var SIDE_BY_SIDE = 'Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.';
+var OBSERVED_KEYS = /* @__PURE__ */ new Set([...FACT_NAMES, ...CONTEXT_NAMES]);
 var observedBy = (stage) => stage ? `${clean(stage.stage, 60)} (${clean(stage.runtimeStageId, 60)})` : "no stage";
 function decisionLines(record, key, writer) {
   if (!writer) return [];
@@ -30059,7 +30068,7 @@ function decisionLines(record, key, writer) {
   if (!decision || !isObject5(decision.evidence) || !Array.isArray(decision.evidence.rules))
     return [
       `No decision governs ${key}: ${clean(writer.stage, 60)} (${clean(writer.runtimeStageId, 60)}) wrote it, and that stage runs whatever is decided.`,
-      `Observed by ${observedBy(observerOf(record, key))}.`
+      `${OBSERVED_KEYS.has(key) ? "Observed" : "Written"} by ${observedBy(observerOf(record, key))}.`
     ];
   const matched = decision.evidence.rules.find((rule) => isObject5(rule) && rule.matched === true);
   const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];

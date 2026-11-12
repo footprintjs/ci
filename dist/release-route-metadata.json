@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "e03bab94085f54529bfec5fcd85d3cb5a718e0b90630eaf6e5e2fd7c4973a059",
-  "bytes": 1225769,
+  "sha256": "7f7b993f42bc04e2f1a2ce633fcb1b76c4552f7757c4eb2b38e00549facff056",
+  "bytes": 1226034,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1372,7 +1372,7 @@
     },
     {
       "path": "src/release-route/chart/state.mjs",
-      "bytes": 2654
+      "bytes": 2823
     },
     {
       "path": "src/release-route/chart/steps.mjs",
@@ -1400,7 +1400,7 @@
     },
     {
       "path": "src/release-route/chart/why.mjs",
-      "bytes": 7878
+      "bytes": 8343
     },
     {
       "path": "src/release-route/github.mjs",
@@ -1424,7 +1424,7 @@
     },
     {
       "path": "src/release-route/refusals.mjs",
-      "bytes": 10849
+      "bytes": 11696
     },
     {
       "path": "src/release-route/registry.mjs",
@@ -1436,7 +1436,7 @@
     },
     {
       "path": "src/release-route/report.mjs",
-      "bytes": 5727
+      "bytes": 6010
     },
     {
       "path": "src/release-route/rules.mjs",
@@ -1456,7 +1456,7 @@
     },
     {
       "path": "src/shared/append-whole.mjs",
-      "bytes": 2314
+      "bytes": 3167
     },
     {
       "path": "src/shared/github.mjs",
@@ -1477,6 +1477,7 @@
     "node:fs",
     "node:path",
     "node:timers/promises",
+    "node:util",
     "node:zlib"
   ]
 }
