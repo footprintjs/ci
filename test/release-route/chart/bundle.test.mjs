@@ -4,9 +4,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { openBundle } from '../../../src/release-route/bundle-door.mjs';
 import { asRefusal } from '../../../src/release-route/refusals.mjs';
@@ -72,6 +72,22 @@ test('a stage that throws, in the bundle: the refusal on stdout and nothing on s
     const result = spawnSync(process.execPath, [...runner, 'plan'], { encoding: 'utf8', env });
     assert.equal(result.status, 1);
     assert.match(result.stdout, /^Refused: input-invalid\./m);
+    assert.equal(result.stderr, '');
+  }
+});
+
+test('a verify stage that throws, in the bundle: the refusal on stdout and nothing on stderr (the verify chart\'s logger is quiet too)', (t) => {
+  // npm's version document is not among the saved answers, so the ask stage's fetch fails as a
+  // network error does: request-failed, thrown from inside the chart.
+  const intake = join(folder(t), 'tarball');
+  mkdirSync(intake);
+  writeFileSync(join(intake, 'package.tgz'), 'the built tarball');
+  const env = { PATH: process.env.PATH, ROUTE_PACKAGE: 'footprint-storydeck', ROUTE_VERSION: '0.13.1', ROUTE_TARBALL_DIR: intake };
+  const answers = resolve('test/release-route/chart/answers-from-fixtures.mjs');
+  for (const runner of [['dist/release-route.cjs'], ['scripts/release-route-chart.mjs']]) {
+    const result = spawnSync(process.execPath, ['--import', answers, ...runner, 'verify'], { encoding: 'utf8', env, timeout: 30_000 });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /^Refused: request-failed\./m);
     assert.equal(result.stderr, '');
   }
 });
