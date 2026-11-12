@@ -42,6 +42,15 @@ Why it is built this way, in one line each:
 The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
 publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).
 
+**What `tag` cannot see: a draft release.** GitHub's REST documentation says the endpoint `tag`
+reads, `GET /repos/{owner}/{repo}/releases/tags/{tag}`, returns "a published release with the
+specified tag", so a draft is not found there and reads as absent (`create`); the `draft` branch of
+`decideRelease` stays only as a guard. Only "List releases" shows drafts, and only to "users with
+push access". A draft left by hand is therefore not detected, and the documentation for "Create a
+release" says nothing about an existing draft with the same tag: the workflow's create step is
+expected to make the published release beside it, leaving the draft for a person to delete. No
+second GitHub question was added for this.
+
 `ROUTE_SOURCE` (default `.`) is the repository checkout in which every git question is asked.
 Each step prints a short summary to the log and the same lines to `$GITHUB_STEP_SUMMARY`, and
 exits 0 or 1 (`plan` exits 0 for `nothing`). Outputs only ever come from closed alphabets (a mode,
@@ -256,33 +265,9 @@ from that table and held to it by `test/release-route/doc.test.mjs`.
 
 ## The archive inspector
 
-There were three: footPrint's `scripts/publish-release/archive/` with `check-archive.cjs`,
-agentfootprint's `scripts/publish-archive/`, and `src/guards/release-archive.cjs` here (a byte
-copy of foottrace's, pinned in `provenance/upstream.json`, used only by the shadow; untouched and
-not imported). **The base is footPrint's**, as the design recommends, because it is already split
-into small modules (inspector, manifest, refusal, strict JSON), it reads every JSON with a strict
-reader that refuses duplicate keys (the other two use `JSON.parse`, where the last duplicate
-wins), and it carries its provenance file and its attack corpus (42 hostile archives).
-
-It was copied byte for byte first (commit "copy footPrint's archive inspector byte for byte",
-footPrint `531160b2124c11e373338bb65584909a1496a1f8`), and changed in the following commit, so a
-reviewer reads only the difference. `provenance/release-route-archive.json` pins every file's
-source path and SHA-256 and names each adaptation; `test/release-route/provenance.test.mjs`
-fails if a file drifts without that record changing. What changed:
-
-| File | Change |
-|---|---|
-| `inspector.cjs` | Allowed members from the `archive` setting (`allowed.cjs`) instead of `package/dist/` + `AGENTS.md`, with a fixed deny list no setting lifts; the package name only from the source manifest; named refusals `archive-path`, `archive-denied`, `archive-missing`, `archive-version`, `archive-publish-config` where the copy said `invalid-archive`. The gzip/tar walk is split out unchanged as `readTar` (exported as `readArchiveMembers`), so the vendored npm is unpacked by this same reader. |
-| `allowed.cjs` | New: the one owner of the `archive` setting and of what no setting may allow. |
-| `check-archive.cjs` | The port: `readIntake(intake)` (the one reader of a built tarball) and `checkArchive(intake, sourceBytes, version, archive)`; the package name is no longer written in; the release-candidate operation and the CLI are gone (prereleases are a later phase; `candidate-version.cjs` was not copied); refusals go through `refusal.cjs`. `preparePublishDirectory` is kept for the publish job. |
-| `refusal.cjs` | A `{ text }` field prints a label the route bounded first (a member path that passed the closed tar profile, or `entry-<n>`); otherwise hashed as before. |
-| `strict-json.cjs` | `parseStrictJson(bytes, { maxBytes, maxValues })`, so every JSON the route reads uses this reader (npm's document for agentfootprint is over 1 MiB). `parseManifest` keeps its bounds. |
-| tests | Moved to `test/release-route/archive/`, with footPrint's `package.json` at the same commit as their source-manifest fixture; refusal patterns name the new codes. |
-
-Unchanged: the gzip and closed tar profile, checksums, padding, one member per name, regular
-files only, no PAX/GNU/long/non-ASCII paths, the whole-manifest comparison except `version`,
-the refusal of `publishConfig`, the resource bounds (16 MiB compressed, 64 MiB expanded, 10,000
-files).
+One port, footPrint's inspector copied byte for byte and then adapted; which base and why, what
+changed file by file, and what is unchanged: [RELEASE-ROUTE-ARCHIVE.md](RELEASE-ROUTE-ARCHIVE.md).
+The names no archive may hold, with why for each: `src/release-route/archive/README.md`.
 
 ## Who can attack this, and what stops it
 
@@ -298,23 +283,46 @@ files).
 | A caller pinning a ci commit that is not on `main` | `tool-not-reviewed` catches the MISTAKE (a branch commit, a fork commit addressed through this repository). It cannot stop a caller who pins unreviewed code on purpose: that code is the code doing the check and can leave it out. The real gates are ci `main`'s review and the review of the caller's pin. |
 | A run that writes from a branch, or from an old commit of `main` | Every writing mode requires `refIsMain` and the measured `commitIsMainTip`. |
 
-**Rules the workflow must keep** (the next pull requests; nothing here can enforce them):
-
-- No later job reads anything the build job produced except the artifact `package.tgz`, which
-  the publish job inspects again (`inspect`). Name, version and commit come from the plan job's
-  outputs.
-- Every job checks out with `persist-credentials: false` (otherwise the checkout leaves a token in
-  `.git/config` for the repository's commands to read).
-- The build job holds no secret and no write right; only the publish job has `id-token: write`
-  and it runs `npm-tool`, `inspect`, `ready` and the publish, nothing of the repository's.
-- The first step checks `job.workflow_sha` is 40 lowercase hex, in shell, before any checkout
-  (an empty value would check out ci's default branch).
-
 **What this does not stop.** The content of the files the build produces is trusted as built: a
 poisoned dependency at build time is not caught here. A reviewed change can weaken `checks`. A
 person with write access can go around any workflow (including dispatching their own
 `publish.yml` from a branch, which npm's trusted publishing accepts until the `npm` environment
 step of design section 8 is done). A commit merged into ci `main` runs everywhere that pins it.
+
+## What the workflow must keep
+
+The workflow pull request is checked against this list. It is the second reader's, from round 2
+of its read of this pull request, in its words; nothing in these scripts can enforce it.
+
+- **W1.** `plan` runs in its own job, first, with no repository command before it; it checks out the CALLER at
+  `GITHUB_SHA` with `persist-credentials: false`, and `ROUTE_SOURCE` points at that checkout, never at the ci tool's
+  checkout (otherwise `origin`, the tags and the main tip are ci's).
+- **W2.** No step before `plan` in that job writes git config, `insteadOf`, `GIT_*` variables, or `HOME`.
+- **W3.** Before checking out ci, a step refuses a `job.workflow_sha` that is not 40 lowercase hex, and `ROUTE_TOOL_SHA`
+  is set from that value only.
+- **W4.** No job reads any output or file of the build job except the uploaded artifact. The build job's printed
+  integrity and archive check are not evidence. The publish job re-runs `inspect` on the downloaded artifact.
+- **W5.** The build job has `contents: read` only, no `id-token`, `persist-credentials: false`, no cache restore or
+  save, and nothing after `build` in that job may be trusted (a detached process outlives the step).
+- **W6.** The publish job installs nothing and runs no repository code: it runs `npm-tool` into a NEW folder under
+  `RUNNER_TEMP` in that same job (never a folder or npm from another job), then `inspect`, the hold check, `ready`, and
+  only on `publish=yes` `node <npm-dir>/package/bin/npm-cli.js publish <absolute package.tgz> --ignore-scripts
+  --provenance` from an empty working folder.
+- **W7.** `verify` runs after the publish job on both `publish=yes` and `publish=no` (and after a failed publish); the
+  release job needs `verify` green.
+- **W8.** The release job acts on `tag`'s answer in the same job: create with a non-force push of
+  `<commit>:refs/tags/v<version>` (or the API), never `--force`, never moving a tag; the release title is passed from
+  `title.txt` through an environment variable as ONE argument, notes with `--notes-file`.
+- **W9.** `notes.md` is never printed to the log (it keeps `::`).
+- **W10.** Every input reaches `run:` through `env:`; no `${{ … }}` inside a `run:` line.
+- **W11.** The caller's concurrency group is per ref with `cancel-in-progress: false`, so two runs of `main` never
+  plan/publish the same version at once.
+- **W12.** `ROUTE_OUT`, `ROUTE_TARBALL_DIR` and `ROUTE_NPM_DIR` are fresh folders under `RUNNER_TEMP`, one per job.
+- **W13.** The run summary must surface a `not-main-tip` decision with `npmHasVersion=true` (or the doc must tell people
+  to use "Re-run failed jobs"), until the route prints it itself.
+
+Since round 3, the case W13 names is refused by the route itself (`unfinished-not-tip`,
+`release-unfinished`), so the run is red and names what to do.
 
 ## Proof
 
@@ -375,4 +383,4 @@ and any change in another repository. Prereleases are refused (`version-not-plai
    stages of one small chart per job; each run saves its record as an artifact and prints the
    story of its decision in the job summary. The publish step itself stays plain.
 2. **The workflows**: `release-route.yml` and `release-check.yml`, wiring the steps above and
-   keeping the rules listed under "Rules the workflow must keep".
+   keeping every rule under "What the workflow must keep".
