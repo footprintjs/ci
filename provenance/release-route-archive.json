@@ -15,7 +15,7 @@
       "source": "scripts/publish-release/archive/README.md",
       "destination": "src/release-route/archive/README.md",
       "sourceSha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
-      "sha256": "fbb403143d8058da0c91057414fdaca832f34e83b6ba283456fade5c14856c65",
+      "sha256": "15135e3f7a2dba5ae9b3109f2fde0f1df20dc6dbd851b13171c990241ada0dc3",
       "adaptation": "Route deltas listed at the top; a section 'Names no archive may hold' (the fixed npm deny list and the file-system name class, with why for each); profile and test-location sentences updated."
     },
     {

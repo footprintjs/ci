@@ -25,9 +25,12 @@ package, runs package code, installs a dependency or publishes a folder.
 
 `inspector.cjs` exports:
 
-- `inspectArchive(bytes, { package, version, sourceManifest })`: requires the
+- `inspectArchive(bytes, { version, sourceManifest, archive })`: requires the
   admitted source manifest and returns package identity, archive hashes and the
   inspected file list. The caller publishes these same bytes by absolute path.
+- `readArchiveMembers(bytes)` (release route): the same gzip and closed tar profile
+  alone, with every member's bytes, for a payload the caller pinned by digest (the
+  vendored npm, which `npm-tool.mjs` unpacks).
 - `parseManifest(bytes)`: reads source or packed JSON with a 1 MiB input bound,
   depth 64 and 100,000 values. Both roots are objects; decoded duplicate keys at
   every depth refuse. Root callers use this before passing sourceManifest.
