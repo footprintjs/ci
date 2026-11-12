@@ -170,9 +170,10 @@ jobs:
           if-no-files-found: error
 
   # The ONLY job with id-token: write. It installs nothing and runs no repository code (W6): the
-  # caller's checkout is data for inspect, the npm is the vendored one unpacked in THIS job, and
-  # the publish runs from an empty folder. The hold step sits directly before the publishing step,
-  # so it is asked again whenever this job runs again.
+  # caller's checkout is data for inspect and ready, the npm is the vendored one unpacked in THIS
+  # job, and the publish runs from an empty folder. Everything that must be true at the moment of
+  # publishing is measured HERE, directly before the publishing step, because a re-run of this job
+  # reuses the old plan: ready (the tip of main, the newest version, npm's bytes), then the hold.
   publish:
     needs: [plan, build]
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success' && needs.plan.outputs.mode == 'publish' }}
@@ -222,12 +223,17 @@ jobs:
           ROUTE_TARBALL_DIR: ${{ runner.temp }}/package
           ROUTE_SOURCE: source
         run: node tool/scripts/release-route.mjs inspect
+      # The plan is never the proof: "Re-run failed jobs" reuses the old plan's outputs, so when npm
+      # lacks the version, ready measures again that the commit is still the tip of main (in the
+      # caller's checkout) and the version still the newest, and refuses a stale plan (plan-stale).
       - name: Ask npm whether to publish
         id: ready
         env:
           ROUTE_PACKAGE: ${{ needs.plan.outputs.package }}
           ROUTE_VERSION: ${{ needs.plan.outputs.version }}
           ROUTE_TARBALL_DIR: ${{ runner.temp }}/package
+          ROUTE_COMMIT: ${{ needs.plan.outputs.commit }}
+          ROUTE_SOURCE: source
         run: node tool/scripts/release-route.mjs ready
       - name: Refuse while a hold-release label is open
         uses: ./tool/.github/actions/hold

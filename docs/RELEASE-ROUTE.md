@@ -35,7 +35,7 @@ Why it is built this way, in one line each:
 | `npm-tool` | build and publish, first | `ROUTE_NPM_DIR` | checks `vendor/npm/npm-11.19.0.tgz` against both digests in `vendor/npm/manifest.json` and unpacks it (with the inspector's tar reader) into that new, private folder outside the checkout | nothing |
 | `build` | build: no secret, no write right | `ROUTE_COMMIT`, `ROUTE_OUT`, `ROUTE_NPM_DIR` | the settings' system packages, install, checks, then `node <npm>/package/bin/npm-cli.js pack --ignore-scripts` (the runner's `npm` when `ROUTE_NPM_DIR` is not given), one archive check | `file` (`package.tgz`) |
 | `inspect` | publish, just before `npm publish` | `ROUTE_COMMIT`, `ROUTE_TARBALL_DIR` | the archive check again, with this repository's inspector | nothing |
-| `ready` | publish, after `inspect` | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR` | npm lacks the version → publish; npm has exactly these bytes → do not publish again (a re-run after npm accepted); other bytes → `registry-differs` | `publish` (`yes`/`no`) |
+| `ready` | publish, after `inspect` | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR`, `ROUTE_COMMIT`, `ROUTE_SOURCE` | npm lacks the version → measures again, with the plan's own readers, that the commit is still the tip of `main` and the version still newer than every published one: both → publish; either not → `plan-stale`; either unreadable → `fact-unreadable`. npm has exactly these bytes → do not publish again (a re-run after npm accepted; the tip is not asked); other bytes → `registry-differs` | `publish` (`yes`/`no`) |
 | `verify` | verify | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR` | waits a bounded time for npm to show the version, then compares npm's integrity AND the downloaded tarball with the built file | nothing |
 | `tag` | release | `ROUTE_COMMIT`, `ROUTE_VERSION`, `GITHUB_REPOSITORY`, optional `GITHUB_TOKEN` | tag on origin: absent → create, at the commit → skip, elsewhere → `tag-elsewhere`; GitHub release: absent → create, present for the tag → skip, else `release-unexpected` | `tag`, `release` (`create`/`skip`) |
 | `notes` | release | `ROUTE_COMMIT`, `ROUTE_OUT` | title and notes from `CHANGELOG.md` | `title-file`, `notes-file` |
@@ -269,8 +269,11 @@ Why this order:
   `recover-off-main`). `dry-run` writes nothing and is allowed from any branch. A test holds
   every writing row to both, so a future writing mode cannot be added without them.
 - **`commitIsMainTip` is measured**, not told: `git ls-remote origin refs/heads/main` must equal
-  the planned commit. "Re-run" of an old run of `main` plans that run's OLD commit; with the
-  version still unreleased it would otherwise publish older code. Such a run, for a version npm
+  the planned commit. "Re-run all jobs" of an old run of `main` plans that run's OLD commit
+  again; with the version still unreleased it would otherwise publish older code. ("Re-run failed
+  jobs" does not plan again at all: it reuses the old plan's outputs, which is why `ready`
+  measures the tip and the newest version again in the publish job; see "The rule of the publish
+  job" below.) Such a run, for a version npm
   does NOT have, is `nothing` with its own rule (`not-main-tip`): a newer commit on `main`
   decides and its own run plans. Not a refusal, because an old run must not turn red for being
   old, so it also stands before `changelog-missing` and `version-not-newer` (those are the tip's
@@ -438,6 +441,17 @@ checkout (an empty value would check out ci's default branch).
 
 One input, `action` (`publish` or `dry-run`; anything else is refused by `plan`, not by YAML). No secret.
 `permissions: {}` at the top; each job asks for its own.
+
+**The rule of the publish job.** Everything that must be true at the moment of publishing is
+measured in the publish job, directly before the publishing step. The plan decides whether to try;
+it is never the proof. GitHub's "Re-run failed jobs" keeps the outputs of the jobs it does not
+re-run, so a publish job re-run days later works from the OLD plan: its commit and its version.
+Without this rule a held 1.4.0, re-run after 1.5.0 was published, would publish 1.4.0 and move
+npm's `latest` backward. So the publish job asks, in this order: `inspect` (the package is the
+commit's), `ready` (when npm lacks the version: the commit is still the tip of `main` and the
+version still newer than every published one, else `plan-stale`; when npm has it: the same
+bytes), and the hold check, directly before the publish. The hold is the same lesson one level
+down (the hold JOB's green result is reused on a re-run; the step is asked again).
 
 ```
 plan ─┬─▶ hold ─▶ build ─▶ publish ─▶ verify ─▶ release    publish
@@ -614,14 +628,14 @@ with npm. Nothing is written anywhere.
 | Case | What the route does | What a person does |
 |---|---|---|
 | Version merged, not published (build red, a hold, machine trouble) | nothing more; the version stays untagged and unpublished | machine trouble: re-run the whole run once. A real failure: merge a fix WITHOUT a new version; that push publishes |
-| A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs" |
+| A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs". That is safe: the publish job measures again; if `main` moved on or a newer version was published meanwhile, `ready` refuses (`plan-stale`) and publishes nothing, and the newer run's plan decides |
 | npm accepted, verify red with `registry-differs` | stops; no tag, no release | investigate; never tag over a mismatch |
 | npm shows the version late (`registry-late`) | verify red after its bounded wait; no tag | "Re-run failed jobs" later: verify compares again with the same run's package |
 | Published, then the tag or the release failed | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, re-run the ORIGINAL run's failed jobs (its package is kept 30 days) |
 | A run of an older commit of `main` finds its version on npm with no tag | refused, `release-unfinished` | "Re-run failed jobs" on the run that published it, or write the tag at that commit by hand |
 | Tag exists, npm does not have the version | refused, `tag-without-package` | decide by hand (delete the stray tag, or raise the version) |
 | Package unknown on npm | refused, `package-unknown` | the first publish of a new name is by hand (npm requires it) |
-| Any re-run | `ready` skips the publish when npm has the same bytes; `tag` skips a tag at the same commit and refuses one elsewhere; a release that exists is skipped | none |
+| "Re-run failed jobs", any time | the old plan is reused, so the publish job measures again: `ready` publishes only while the commit is the tip of `main` and the version the newest (else `plan-stale`), and skips the publish when npm has the same bytes; `tag` skips a tag at the same commit and refuses one elsewhere; a release that exists is skipped | none |
 
 ### Checked here, and what waits for a real run
 

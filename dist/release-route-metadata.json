@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "dd9c53eddee70a305006b363280ed4e9c7f9402c465abad73643e703eabfca78",
-  "bytes": 1226246,
+  "sha256": "6233460aae4e29f20200448096bc4c3dbe44ce271fb88b108b086acdbb5b0bea",
+  "bytes": 1226388,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1424,7 +1424,7 @@
     },
     {
       "path": "src/release-route/refusals.mjs",
-      "bytes": 11696
+      "bytes": 11838
     },
     {
       "path": "src/release-route/registry.mjs",

@@ -174,6 +174,14 @@ test('W6: the publish job installs nothing, runs no repository code, and publish
     { ROUTE_COMMIT: '${{ needs.plan.outputs.commit }}', ROUTE_TARBALL_DIR: '${{ runner.temp }}/package', ROUTE_SOURCE: 'source' });
 });
 
+// B1: the plan is never the proof. ready measures again, in the publish job, that the planned commit
+// is still the tip of main (asked in the caller's checkout) and the version still the newest.
+test('B1: the ready step gets exactly the five names it needs to measure the plan again', () => {
+  assert.deepEqual(stepNamed(jobs.publish, 'Ask npm whether to publish').env, {
+    ROUTE_PACKAGE: '${{ needs.plan.outputs.package }}', ROUTE_VERSION: '${{ needs.plan.outputs.version }}',
+    ROUTE_TARBALL_DIR: '${{ runner.temp }}/package', ROUTE_COMMIT: '${{ needs.plan.outputs.commit }}', ROUTE_SOURCE: 'source' });
+});
+
 test('W6: the hold check runs as a STEP directly before the publishing step, from the tool at this workflow\'s commit', () => {
   const steps = jobs.publish.steps;
   const at = steps.findIndex((step) => step.name === 'Publish package.tgz');
