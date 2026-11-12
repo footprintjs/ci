@@ -14,7 +14,7 @@ import { runWithStages } from './stand-in.mjs';
 async function plan(stages) {
   const written = {};
   const printed = [];
-  const report = createReport({ env: { GITHUB_OUTPUT: 'out' }, print: (line) => printed.push(line), append: (path, text) => { written[path] = (written[path] ?? '') + text; } });
+  const report = createReport({ env: { GITHUB_OUTPUT: 'out' }, print: (line) => printed.push(line), append: (path, text) => { written[path] = (written[path] ?? '') + text; }, appendOutputs: (path, text) => { written[path] = (written[path] ?? '') + text; } });
   const code = await runWithStages('plan', stages, { ...storydeckDoors(), report, argv: [] });
   return { code, printed, output: written.out ?? '' };
 }

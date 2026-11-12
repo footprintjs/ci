@@ -35,7 +35,7 @@ test('lines go out masked; a closed stdout makes print throw, and its error even
 test('a step whose stdout closes before its end exits 1 and writes no output', async () => {
   const files = {};
   const print = stdoutPrinter({ stream: stream(1), exit: () => {} });
-  const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print, append: (path, text) => { files[path] = text; } });
+  const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print, append: (path, text) => { files[path] = text; }, appendOutputs: (path, text) => { files[path] = text; } });
   const code = await runHandlers({ plan: () => {
     report.say('Release route plan.');
     report.output('rule', 'publish');

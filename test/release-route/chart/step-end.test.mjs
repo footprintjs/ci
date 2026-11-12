@@ -10,6 +10,8 @@ import { test } from 'node:test';
 import { runChartStep } from '../../../src/release-route/chart/cli.mjs';
 import { runStep } from '../../../src/release-route/command.mjs';
 import { createReport } from '../../../src/release-route/report.mjs';
+import { appendWhole } from '../../../src/shared/append-whole.mjs';
+import fs from 'node:fs';
 import { FILES, storydeckDoors } from '../storydeck-today.mjs';
 
 // storydeck 0.13.2 with its section and no tag, on main: the plan says mode=publish, compare=yes.
@@ -26,9 +28,9 @@ const folder = (t) => {
 };
 const read = (path) => { try { return statSync(path).isFile() ? readFileSync(path, 'utf8') : '<not a file>'; } catch { return '<none>'; } };
 
-async function plan(runner, env, append = appendFileSync) {
+async function plan(runner, env, append = appendFileSync, appendOutputs = undefined) {
   const printed = [];
-  const report = createReport({ env, print: (line) => printed.push(line), append });
+  const report = createReport({ env, print: (line) => printed.push(line), append, ...(appendOutputs ? { appendOutputs } : {}) });
   const code = await runner('plan', { ...storydeckDoors(PUBLISH), report, sleep: async () => {}, argv: [] });
   return { code, printed };
 }
@@ -65,7 +67,7 @@ for (const [path, runner] of Object.entries(PATHS)) {
       if (file === 'out') throw Object.assign(new Error('EFBIG: file too large, write'), { code: 'EFBIG' });
       files[file] = (files[file] ?? '') + text;
     };
-    const result = await plan(runner, { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, append);
+    const result = await plan(runner, { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, append, append);
     assert.equal(result.code, 1);
     assert.deepEqual(calls, ['summary', 'out'], 'the summary first, then one append, then nothing');
     assert.equal(files.out, undefined);
@@ -74,3 +76,25 @@ for (const [path, runner] of Object.entries(PATHS)) {
     assert.match(result.printed.at(-1), /^Refused: unexpected-failure\./);
   });
 }
+
+// The file system with a write that fails part-way: `keep(length)` is how many bytes the first
+// write really takes before the next one throws.
+const failingWrite = (keep) => {
+  let n = 0;
+  return { ...fs, writeSync: (fd, buffer, offset, length) => {
+    if (++n === 1) return fs.writeSync(fd, buffer, offset, keep(length));
+    throw Object.assign(new Error('ENOSPC: no space left on device, write'), { code: 'ENOSPC' });
+  } };
+};
+
+for (const [path, runner] of Object.entries(PATHS))
+  for (const [label, keep] of [['at half', (length) => Math.floor(length / 2)], ['3 bytes short', (length) => length - 3]])
+    test(`${path}: the output append fails ${label}: exit 1, and GITHUB_OUTPUT is left exactly as it was`, async (t) => {
+      const dir = folder(t);
+      const env = { GITHUB_OUTPUT: join(dir, 'out'), GITHUB_STEP_SUMMARY: join(dir, 'summary') };
+      writeFileSync(env.GITHUB_OUTPUT, 'earlier=yes\n');
+      const result = await plan(runner, env, appendFileSync, (file, text) => appendWhole(file, text, failingWrite(keep)));
+      assert.equal(result.code, 1);
+      assert.equal(read(env.GITHUB_OUTPUT), 'earlier=yes\n');
+      assert.match(result.printed.at(-1), /^Refused: unexpected-failure\./);
+    });

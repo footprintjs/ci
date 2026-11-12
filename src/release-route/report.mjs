@@ -16,16 +16,20 @@
 //      anywhere. A failure before that append (the summary path is a folder, read-only, or its
 //      parent is missing) leaves $GITHUB_OUTPUT untouched; after any failed write nothing more is
 //      written, so the refusal printed for it reaches the log only.
-//   3. Inside that append: the outputs that NAME the run (rule, commit, package, version), then the
-//      others, and `mode` as the very last line. A write cut short leaves a prefix of the append: a
-//      line cut part-way is not a value of its closed alphabet, and the `mode` line is whole only
-//      when everything before it is. Example: a cut inside the commit line leaves
-//      "rule=publish\ncommit=61e129bc3", which names the run and tells nothing to act. One window
-//      stays: a write that fails on its very last byte leaves `mode=<value>` without its newline,
-//      which the runner may still read.
+//   3. That append is whole or nothing (shared/append-whole.mjs · appendWhole): when it fails
+//      part-way, the file is cut back to the size it had, so a step that exits 1 after a failed
+//      output write leaves $GITHUB_OUTPUT exactly as it found it. Second line of defence, the
+//      order inside the append: the outputs that NAME the run (rule, commit, package, version),
+//      then the others, `mode` as the very last line, so a prefix the cut-back could not remove
+//      holds a line cut part-way (not a value of its closed alphabet) before it holds a whole
+//      `mode`. Example: a write that fails inside the commit line and is not cut back leaves
+//      "rule=publish\ncommit=61e129bc3", which names the run and tells nothing to act. What is
+//      left: a write that fails AND a cut-back that fails, two independent failures of the same
+//      file.
 //   4. On exit 1 only the four that name the run are written: a pass refused afterwards (the
 //      charted plan whose record cannot be written) leaves no `mode` and no `compare` behind.
 import { appendFileSync } from 'node:fs';
+import { appendWhole } from '../shared/append-whole.mjs';
 import { COMMIT, PLAIN_VERSION, isPackageName } from './identity.mjs';
 import { refuse } from './refusals.mjs';
 import { clean } from '../shared/text.mjs';
@@ -63,8 +67,11 @@ const inWriteOrder = (kept) => [
 const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // env: the process environment (only GITHUB_OUTPUT and GITHUB_STEP_SUMMARY are read).
-// print and append are injected so tests can see exactly what would be written.
-export function createReport({ env = {}, print = (line) => process.stdout.write(`${line}\n`), append = appendFileSync } = {}) {
+// print, append (the summary's plain append: a half-written summary tells no job anything) and
+// appendOutputs (the one output append, whole or nothing) are injected so tests can see exactly
+// what would be written.
+export function createReport({ env = {}, print = (line) => process.stdout.write(`${line}\n`), append = appendFileSync,
+  appendOutputs = appendWhole } = {}) {
   const lines = [];
   const outputs = [];
   let ended = false;
@@ -88,7 +95,7 @@ export function createReport({ env = {}, print = (line) => process.stdout.write(
       const held = outputs.splice(0);
       if (env.GITHUB_STEP_SUMMARY) append(env.GITHUB_STEP_SUMMARY, `<pre>\n${lines.map(escapeHtml).join('\n')}\n</pre>\n`);
       const kept = inWriteOrder(code === 0 ? held : held.filter(([key]) => NAMES_THE_RUN.includes(key)));
-      if (env.GITHUB_OUTPUT && kept.length > 0) append(env.GITHUB_OUTPUT, kept.map(([key, value]) => `${key}=${value}\n`).join(''));
+      if (env.GITHUB_OUTPUT && kept.length > 0) appendOutputs(env.GITHUB_OUTPUT, kept.map(([key, value]) => `${key}=${value}\n`).join(''));
     },
     get lines() {
       return [...lines];

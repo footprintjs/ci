@@ -23,7 +23,7 @@ async function step(runner, name, options = {}, extraEnv = {}) {
   const written = {};
   const printed = [];
   const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print: (line) => printed.push(line),
-    append: (path, text) => { written[path] = (written[path] ?? '') + text; } });
+    append: (path, text) => { written[path] = (written[path] ?? '') + text; }, appendOutputs: (path, text) => { written[path] = (written[path] ?? '') + text; } });
   const code = await runner(name, { ...doors, report, sleep: async () => {}, argv: [] });
   return { code, output: written.out ?? '', printed, calls: doors.calls };
 }

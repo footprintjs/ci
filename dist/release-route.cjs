@@ -448,19 +448,19 @@ var require_inspector = __commonJS({
 var require_check_archive = __commonJS({
   "src/release-route/archive/check-archive.cjs"(exports2, module2) {
     "use strict";
-    var fs = require("node:fs");
+    var fs2 = require("node:fs");
     var path2 = require("node:path");
     var { inspectArchive, parseManifest } = require_inspector();
     var { fail: fail3 } = require_refusal();
     var MAX_ARCHIVE_BYTES = 16 * 1024 * 1024;
     function regularBytes(file, maximum) {
-      const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      const fd = fs2.openSync(file, fs2.constants.O_RDONLY | fs2.constants.O_NOFOLLOW);
       try {
-        const stat = fs.fstatSync(fd);
+        const stat = fs2.fstatSync(fd);
         if (!stat.isFile() || stat.nlink !== 1 || stat.size < 1 || stat.size > maximum) fail3("archive-file");
-        return fs.readFileSync(fd);
+        return fs2.readFileSync(fd);
       } finally {
-        fs.closeSync(fd);
+        fs2.closeSync(fd);
       }
     }
     function sourceManifest(bytes) {
@@ -472,12 +472,12 @@ var require_check_archive = __commonJS({
       if (typeof intake !== "string" || !path2.isAbsolute(intake)) fail3("archive-intake");
       let stat;
       try {
-        stat = fs.lstatSync(intake);
+        stat = fs2.lstatSync(intake);
       } catch {
         fail3("archive-intake");
       }
       if (!stat.isDirectory() || stat.isSymbolicLink()) fail3("archive-intake");
-      const entries = fs.readdirSync(intake);
+      const entries = fs2.readdirSync(intake);
       if (entries.length !== 1 || entries[0] !== "package.tgz") fail3("archive-intake");
       const file = path2.join(intake, "package.tgz");
       try {
@@ -496,19 +496,19 @@ var require_check_archive = __commonJS({
     function preparePublishDirectory(directory, intake, source2) {
       if (!path2.isAbsolute(directory) || !path2.isAbsolute(intake) || !path2.isAbsolute(source2)) fail3("publish-directory");
       const resolved = [
-        path2.join(fs.realpathSync(path2.dirname(directory)), path2.basename(directory)),
-        fs.realpathSync(intake),
-        fs.realpathSync(source2)
+        path2.join(fs2.realpathSync(path2.dirname(directory)), path2.basename(directory)),
+        fs2.realpathSync(intake),
+        fs2.realpathSync(source2)
       ];
       const within = (a, b) => a === b || a.startsWith(b + path2.sep) || b.startsWith(a + path2.sep);
       if (within(resolved[0], resolved[1]) || within(resolved[0], resolved[2])) fail3("publish-directory");
       try {
-        fs.mkdirSync(directory, { mode: 448 });
+        fs2.mkdirSync(directory, { mode: 448 });
       } catch (error) {
         if (error.code !== "EEXIST") throw error;
       }
-      const stat = fs.lstatSync(directory);
-      if (!stat.isDirectory() || stat.isSymbolicLink() || fs.readdirSync(directory).length !== 0) fail3("publish-directory");
+      const stat = fs2.lstatSync(directory);
+      if (!stat.isDirectory() || stat.isSymbolicLink() || fs2.readdirSync(directory).length !== 0) fail3("publish-directory");
     }
     module2.exports = { sourceManifest, readIntake, checkArchive, preparePublishDirectory, regularBytes, MAX_ARCHIVE_BYTES };
   }
@@ -516,7 +516,7 @@ var require_check_archive = __commonJS({
 
 // bin/release-route.mjs
 var import_node_child_process = require("node:child_process");
-var import_node_fs4 = require("node:fs");
+var import_node_fs5 = require("node:fs");
 var import_promises = require("node:timers/promises");
 
 // src/release-route/step-common.mjs
@@ -30141,7 +30141,39 @@ var CHART_STEPS = Object.freeze({ plan: chartPlanStep, verify: chartVerifyStep, 
 var runChartStep = (step, doors) => runHandlers(CHART_STEPS, step, doors);
 
 // src/release-route/report.mjs
-var import_node_fs3 = require("node:fs");
+var import_node_fs4 = require("node:fs");
+
+// src/shared/append-whole.mjs
+var import_node_fs3 = __toESM(require("node:fs"), 1);
+function appendWhole(path2, text, io = import_node_fs3.default) {
+  const bytes = Buffer.from(String(text), "utf8");
+  const fd = io.openSync(path2, "a");
+  let size = null;
+  try {
+    size = io.fstatSync(fd).size;
+    let done = 0;
+    while (done < bytes.length) {
+      const wrote = io.writeSync(fd, bytes, done, bytes.length - done);
+      if (!(wrote > 0)) throw new Error("the write wrote nothing");
+      done += wrote;
+    }
+  } catch (error) {
+    if (size !== null) {
+      try {
+        io.ftruncateSync(fd, size);
+      } catch {
+      }
+    }
+    throw error;
+  } finally {
+    try {
+      io.closeSync(fd);
+    } catch {
+    }
+  }
+}
+
+// src/release-route/report.mjs
 var OUTPUTS = Object.freeze({
   mode: (v) => /^(publish|recover|dry-run|nothing)$/.test(v),
   rule: (v) => /^[a-z][a-z-]{1,40}$/.test(v),
@@ -30167,8 +30199,13 @@ var inWriteOrder = (kept) => [
   ...kept.filter(([key]) => key === "mode")
 ];
 var escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-function createReport({ env: env2 = {}, print = (line) => process.stdout.write(`${line}
-`), append = import_node_fs3.appendFileSync } = {}) {
+function createReport({
+  env: env2 = {},
+  print = (line) => process.stdout.write(`${line}
+`),
+  append = import_node_fs4.appendFileSync,
+  appendOutputs = appendWhole
+} = {}) {
   const lines = [];
   const outputs = [];
   let ended = false;
@@ -30195,7 +30232,7 @@ ${lines.map(escapeHtml).join("\n")}
 </pre>
 `);
       const kept = inWriteOrder(code === 0 ? held : held.filter(([key]) => NAMES_THE_RUN.includes(key)));
-      if (env2.GITHUB_OUTPUT && kept.length > 0) append(env2.GITHUB_OUTPUT, kept.map(([key, value]) => `${key}=${value}
+      if (env2.GITHUB_OUTPUT && kept.length > 0) appendOutputs(env2.GITHUB_OUTPUT, kept.map(([key, value]) => `${key}=${value}
 `).join(""));
     },
     get lines() {
@@ -30224,7 +30261,7 @@ var git = (args) => (0, import_node_child_process.execFileSync)("git", ["-C", so
   stdio: ["ignore", "pipe", "pipe"],
   env: { ...env, GIT_TERMINAL_PROMPT: "0" }
 });
-var report = createReport({ env, print: stdoutPrinter({ env }), append: import_node_fs4.appendFileSync });
+var report = createReport({ env, print: stdoutPrinter({ env }), append: import_node_fs5.appendFileSync });
 process.exitCode = 1;
 runChartStep(process.argv[2], { env, git, fetcher: globalThis.fetch, sleep: (ms) => (0, import_promises.setTimeout)(ms), report, argv: process.argv.slice(3) }).then((code) => {
   process.exitCode = code;

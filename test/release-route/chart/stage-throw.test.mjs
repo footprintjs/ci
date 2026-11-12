@@ -34,7 +34,7 @@ async function runWith(t, step, stages, doors) {
   const written = {};
   const printed = [];
   const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print: (line) => printed.push(line),
-    append: (path, text) => { written[path] = (written[path] ?? '') + text; } });
+    append: (path, text) => { written[path] = (written[path] ?? '') + text; }, appendOutputs: (path, text) => { written[path] = (written[path] ?? '') + text; } });
   const env = { ...doors.env, ROUTE_RECORD_DIR: join(dir, 'record') };
   const code = await runWithStages(step, stages, { ...doors, env, report, sleep: async () => {}, argv: [] });
   return { code, printed, written, record: readFileSync(join(dir, 'record', `${step}.record.json`), 'utf8'), dir };

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { createReport, safeLine } from '../../src/release-route/report.mjs';
 import { Refusal } from '../../src/release-route/refusals.mjs';
@@ -7,7 +10,7 @@ import { runHandlers } from '../../src/release-route/step-common.mjs';
 function capture(env = { GITHUB_OUTPUT: '/out', GITHUB_STEP_SUMMARY: '/summary' }) {
   const printed = [];
   const files = {};
-  const report = createReport({ env, print: (line) => printed.push(line), append: (path, text) => { files[path] = (files[path] ?? '') + text; } });
+  const report = createReport({ env, print: (line) => printed.push(line), append: (path, text) => { files[path] = (files[path] ?? '') + text; }, appendOutputs: (path, text) => { files[path] = (files[path] ?? '') + text; } });
   return { report, printed, files };
 }
 
@@ -71,7 +74,7 @@ function failing(fails = {}) {
     if (Object.hasOwn(fails, path)) throw Object.assign(new Error(fails[path]), { code: fails[path] });
     files[path] = (files[path] ?? '') + text;
   };
-  const report = createReport({ env: { GITHUB_OUTPUT: '/out', GITHUB_STEP_SUMMARY: '/summary' }, print: (line) => printed.push(line), append });
+  const report = createReport({ env: { GITHUB_OUTPUT: '/out', GITHUB_STEP_SUMMARY: '/summary' }, print: (line) => printed.push(line), append, appendOutputs: append });
   return { report, printed, files, calls };
 }
 const PASS = [['mode', 'publish'], ['compare', 'yes'], ['rule', 'publish'], ['commit', 'c94c2a6fed62378c428df22d316d36f576511d6a'], ['package', 'footprint-storydeck'], ['version', '0.13.2']];
@@ -110,3 +113,15 @@ for (const [label, fails] of [['the summary append fails', { '/summary': 'EISDIR
     assert.deepEqual(calls, Object.hasOwn(fails, '/summary') ? ['/summary'] : ['/summary', '/out']);
     assert.match(printed.at(-1), /^Refused: unexpected-failure\./, 'the refusal reaches the log');
   });
+
+test('the summary goes through the plain append; the outputs, by default, through the whole-or-nothing append', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'report-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const calls = [];
+  const report = createReport({ env: { GITHUB_OUTPUT: join(dir, 'out'), GITHUB_STEP_SUMMARY: '/summary' }, print: () => {}, append: (path) => calls.push(path) });
+  report.output('rule', 'publish');
+  report.output('mode', 'publish');
+  report.end(0);
+  assert.deepEqual(calls, ['/summary']);
+  assert.equal(readFileSync(join(dir, 'out'), 'utf8'), 'rule=publish\nmode=publish\n');
+});

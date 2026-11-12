@@ -30,7 +30,7 @@ function withInherited(t, name, value) {
 
 async function plan(doors) {
   const written = {};
-  const report = createReport({ env: { GITHUB_OUTPUT: 'out' }, print: () => {}, append: (path, text) => { written[path] = (written[path] ?? '') + text; } });
+  const report = createReport({ env: { GITHUB_OUTPUT: 'out' }, print: () => {}, append: (path, text) => { written[path] = (written[path] ?? '') + text; }, appendOutputs: (path, text) => { written[path] = (written[path] ?? '') + text; } });
   const code = await runChartStep('plan', { ...doors, report, sleep: async () => {}, argv: [] });
   return { code, output: written.out ?? '' };
 }

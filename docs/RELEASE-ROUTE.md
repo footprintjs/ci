@@ -48,7 +48,7 @@ a person reading a failure.
 
 A step that exits 1 never tells a later job to act (`report.mjs · end`). GitHub keeps a failed
 step's outputs, and a later job that runs after a failure reads them, so the rule is about what is
-in `$GITHUB_OUTPUT` when the step ends. It holds by an order:
+in `$GITHUB_OUTPUT` when the step ends. It holds by these rules:
 
 - Outputs are held until the step ends, and the end runs once.
 - The end writes the job summary first, then every output in ONE append, the step's last write.
@@ -56,11 +56,13 @@ in `$GITHUB_OUTPUT` when the step ends. It holds by an order:
   output append leaves no output at all, and after a failed write nothing more is written.
 - A refused step writes only the outputs that name the run (`rule`, `commit`, `package`,
   `version`), never `mode`, `compare`, `publish`, `tag`, `release` or a file name.
-- Inside the one append the names come first and `mode` is the last line. A write cut short leaves
-  a prefix of it: the names, perhaps other outputs such as `compare`, and a line cut part-way, which
-  is not a value of its closed alphabet; `mode` is whole only when everything before it is. The one
-  window an append cannot close: a write that fails on its very last byte leaves `mode=<value>`
-  without its newline, which the runner may still read.
+- That append is whole or nothing (`src/shared/append-whole.mjs · appendWhole`): when it fails
+  part-way, the file is cut back to the size it had, so a step that exits 1 after a failed output
+  write leaves `$GITHUB_OUTPUT` exactly as it found it.
+- Second line of defence, the order inside the append: the names come first and `mode` is the last
+  line, so a prefix the cut-back could not remove holds a line cut part-way (not a value of its
+  closed alphabet) before it holds a whole `mode`. What is left: a write that fails AND a cut-back
+  that fails, two independent failures of the same file.
 
 The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
 publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).

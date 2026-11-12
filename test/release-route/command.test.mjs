@@ -28,7 +28,7 @@ function doors(env, { files = storydeck, lsRemote = saved('storydeck-today/ls-re
   const written = {};
   const printed = [];
   const report = createReport({ env: { GITHUB_OUTPUT: 'out', GITHUB_STEP_SUMMARY: 'summary' }, print: (l) => printed.push(l),
-    append: (p, text) => { written[p] = (written[p] ?? '') + text; } });
+    append: (p, text) => { written[p] = (written[p] ?? '') + text; }, appendOutputs: (p, text) => { written[p] = (written[p] ?? '') + text; } });
   return { doors: { env, git: recordedGit({ commit: COMMIT, files, lsRemote }).git, fetcher: fakeFetch(fetched).fetcher, sleep: async () => {}, report }, written, printed };
 }
 const folder = (t) => {
