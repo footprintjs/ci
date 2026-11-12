@@ -21,10 +21,11 @@ Why it is built this way, in one line each:
   already has the bytes, whether to write the tag and the release) is a step here, so the
   workflow only wires steps together.
 - **The decision is data.** An ordered table of equality tests over named facts; the first row
-  that matches decides and its id is the printed reason. A later step runs the same table in a
-  footprintjs chart and keeps the run record.
+  that matches decides and its id is the printed reason. The workflow runs the same table inside a
+  footprintjs chart and keeps the run record: [RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md).
 - **Built-in Node modules only.** The workflow runs these files from a plain checkout with no
-  install, so nothing here imports an npm package.
+  install, so nothing here imports an npm package. The one exception, `chart/`, runs from a
+  committed bundle that holds its two libraries.
 
 ## The steps
 
@@ -38,6 +39,10 @@ Why it is built this way, in one line each:
 | `verify` | verify | `ROUTE_PACKAGE`, `ROUTE_VERSION`, `ROUTE_TARBALL_DIR` | waits a bounded time for npm to show the version, then compares npm's integrity AND the downloaded tarball with the built file | nothing |
 | `tag` | release | `ROUTE_COMMIT`, `ROUTE_VERSION`, `GITHUB_REPOSITORY`, optional `GITHUB_TOKEN` | tag on origin: absent → create, at the commit → skip, elsewhere → `tag-elsewhere`; GitHub release: absent → create, present for the tag → skip, else `release-unexpected` | `tag`, `release` (`create`/`skip`) |
 | `notes` | release | `ROUTE_COMMIT`, `ROUTE_OUT` | title and notes from `CHANGELOG.md` | `title-file`, `notes-file` |
+
+In the workflow, `plan` and `verify` run charted, from the committed bundle, with the same inputs,
+outputs and exit codes and one more input, `ROUTE_RECORD_DIR` (where the run's record is saved):
+[RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md).
 
 The workflow uses the vendored npm for both `build`'s pack and the publish, so a rebuild and the
 publish are made by one npm (`npm-tool`, then `build` with `ROUTE_NPM_DIR`).
@@ -88,7 +93,10 @@ Each file has one job; the WHY of each choice is in its header comment.
 | `ready.mjs` | The publish job's re-run decision (`decideReady`) and its facts. |
 | `tag.mjs` | The release job's decisions (`decideTag`, `decideRelease`) and their facts. |
 | `npm-tool.mjs` | The pinned npm: digests checked, unpacked, handed to build and publish. |
-| `command.mjs` | The steps, wired to the doors; `scripts/release-route.mjs` is its process entry. |
+| `command.mjs` | The plain steps, wired to the doors; `scripts/release-route.mjs` is its process entry. |
+| `step-common.mjs` | What the plain and the charted steps share: checked inputs, what plan and verify print, the step runner. |
+| `bundle-door.mjs` | Opens the charted steps' bundle only when it is the file its metadata names. |
+| `chart/` | `plan` and `verify` as footprintjs charts, the record, the `why` reader ([RELEASE-ROUTE-CHART.md](RELEASE-ROUTE-CHART.md)). |
 | `archive/` | The archive inspector: ONE port (`check-archive.cjs`), described below. |
 | `../shared/` | Shared with the hold check: `http.mjs · boundedGet` (https only, redirects refused, a held timer over the request and the body, a streaming byte bound), `text.mjs · clean` (control, format and bidi characters out, `::` and `##[` broken apart, bounded), `github.mjs` (the fixed host `https://api.github.com`, the token's shape, the headers). |
 
@@ -342,11 +350,8 @@ What was run, on which Node, and what it gave: [RELEASE-ROUTE-PROOF.md](RELEASE-
 The workflow files, the hold check calls, change notes, `prepare`, the bot, `release-check.yml`,
 and any change in another repository. Prereleases are refused (`version-not-plain`).
 
-## The next two pull requests
+## The next pull request
 
-1. **The decisions inside a footprintjs chart** (design section 13, the owner's word): `plan`
-   (observe the facts, decide with `decide()` over this same rule table) and `verify` become
-   stages of one small chart per job; each run saves its record as an artifact and prints the
-   story of its decision in the job summary. The publish step itself stays plain.
-2. **The workflows**: `release-route.yml` and `release-check.yml`, wiring the steps above and
-   keeping every rule under "What the workflow must keep".
+**The workflows**: `release-route.yml` and `release-check.yml`, wiring the steps above (the
+charted `plan` and `verify` through `scripts/release-route-chart.mjs`, with `ROUTE_RECORD_DIR`
+uploaded as an artifact) and keeping every rule under "What the workflow must keep".
