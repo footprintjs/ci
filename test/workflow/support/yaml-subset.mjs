@@ -10,7 +10,10 @@
 // `#`, or from the first ` #` of a plain scalar, as YAML reads them), literal block scalars (`|`, kept with one final
 // newline), plain scalars (true, false, null, integers, text), 'single' and "double" quoted
 // scalars (no escapes), and the flow forms `{}` and `[a, b]` of plain scalars.
-// Refused: tabs, carriage returns, anchors, aliases, tags, folded scalars, `?` keys, documents
+// Refused: any character other than a line feed and printable ASCII (0x20 to 0x7E: a tab, a carriage
+// return, a vertical tab, a form feed, a no-break space, any non-ASCII text; a real YAML parser reads
+// some of these as indentation or as a comment's start and refuses others, this reader would not
+// read them the same way), anchors, aliases, tags, folded scalars, `?` keys, documents
 // (`---`), a duplicate key, more than one space after `key:`, a plain scalar holding `: ` or
 // starting with a YAML indicator, a ` #` inside a quoted part of a plain scalar, text after a
 // quoted scalar, numbers and booleans of the core schema other than the forms kept, a sequence at
@@ -89,13 +92,16 @@ function scalar(text, line) {
 }
 
 export function parseYaml(source) {
-  if (source.includes('\r')) fail(source.slice(0, source.indexOf('\r')).split('\n').length - 1, 'a carriage return');
+  // One rule for the whole class of characters YAML reads otherwise than a plain space (second
+  // reader, N8: a no-break space as indentation, a no-break or em space before `#`, a vertical tab
+  // and a form feed). Both workflow files are printable ASCII.
+  const odd = /[^\n\x20-\x7e]/.exec(source);
+  if (odd) fail(source.slice(0, odd.index).split('\n').length - 1, `a character other than a line feed and printable ASCII: U+${source.codePointAt(odd.index).toString(16).toUpperCase().padStart(4, '0')}`);
   const raw = source.split('\n');
   if (raw.at(-1) === '') raw.pop();
   // Significant lines: { line, indent, text } (comments and blank lines left out); block scalar
   // bodies are read from `raw` by the mapping that owns them.
   const lines = raw.map((text, line) => {
-    if (text.includes('\t')) fail(line, 'a tab');
     if (/^(---|\.\.\.)(\s|$)/.test(text) || /^%/.test(text)) fail(line, 'a document marker or directive');
     return { line, indent: text.search(/\S/), text: text.trim() };
   });

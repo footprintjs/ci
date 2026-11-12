@@ -49,6 +49,18 @@ test('the subset refuses what YAML would read differently: a ` #` inside quotes 
   assert.deepEqual(parseYaml("a: 'x' # c\nb: 0.13.2\nc: ubuntu-24.04\nd: -1\n"), { a: 'x', b: '0.13.2', c: 'ubuntu-24.04', d: -1 });
 });
 
+// The second reader's N8 probes, compared with Ruby's Psych: a no-break space as indentation is read
+// as nesting here and as part of the key there; a no-break or em space before `#` starts a comment
+// here and not there; a vertical tab and a form feed are accepted here and refused there. One rule
+// closes the class: any character other than a line feed and printable ASCII is refused, naming its line.
+test('the subset refuses any character but a line feed and printable ASCII, and names the line', () => {
+  for (const [source, line] of [['a:\n\u00a0\u00a0b: 1', 2], ['x: 1\ny: a\u00a0#b', 2], ['x: a\u2003#b', 1], ['a: b\u000b', 1], ['a:\u000c\n  b: 1', 1],
+    ['a:\n\tb: 1', 2], ['a: b\r\n', 1], ['a: caf\u00e9', 1], ['a: \u{1F600}', 1], ['a: b\u0000', 1], ['a: b\u007f', 1], ['a: b\u0085', 1], ['a: b\u2028c', 1]])
+    assert.throws(() => parseYaml(source), new RegExp(`^Error: yaml-subset: line ${line}: a character other than a line feed and printable ASCII: U\\+[0-9A-F]{4,6}$`), JSON.stringify(source));
+  // Every printable ASCII character is still the reader's to judge (a plain scalar of letters is text).
+  assert.deepEqual(parseYaml('a: ~b c\n'), { a: '~b c' });
+});
+
 test('the subset refuses what it does not read', () => {
   for (const source of ['a: &x 1', 'a: *x', 'a: !tag x', 'a: >\n  b', 'a: 1\na: 2', '---\na: 1', 'a:\n\tb: 1', 'a: b: c', '? a\n: b',
     'a:\n- b', 'a: "x\\n"', 'a: [b, [c]]', "a: 'b", 'a: 1\n  b: 2', 'a: |\n'])
