@@ -33,38 +33,66 @@ test('any thrown value becomes a refusal: named archive codes keep their field, 
   assert.equal(kept.sentence, REFUSALS['git-failed']);
 });
 
-// A value is a refusal only when its prototype is exactly Refusal.prototype and `code` and `detail`
-// are own DATA properties holding strings, with `code` in the table. Anything else is
-// unexpected-failure with an empty detail, and no getter of the thrown value runs (a getter can
-// hold a secret, or a message the route never cleaned).
-test('a fake or altered Refusal is unexpected-failure with an empty detail, and none of its getters runs', () => {
+// A value is a refusal only when the Refusal constructor made it: the code and detail live in
+// private fields only the constructor sets, and `#field in value` is the test. Anything else is
+// unexpected-failure with an empty detail, and no getter, trap or property of the thrown value
+// runs (a getter can hold a secret, or a message the route never cleaned).
+test('a fake Refusal is unexpected-failure with an empty detail, and none of its getters runs', () => {
   const SECRET = 'ghs_PlantedSecret0123456789abcdef';
   const ran = [];
   const getter = (name) => ({ get() { ran.push(name); return SECRET; }, configurable: true });
-  const detailGetter = new Refusal('git-failed', '');
-  Object.defineProperty(detailGetter, 'detail', getter('detail'));
-  const codeGetter = new Refusal('git-failed', '');
-  Object.defineProperty(codeGetter, 'code', getter('code'));
-  class Sub extends Refusal {}
-  const unknownCode = new Refusal('git-failed', 'x');
-  unknownCode.code = 'no-such-code';
-  const numberDetail = new Refusal('git-failed', 'x');
-  numberDetail.detail = 42;
   for (const [label, thrown] of [
     ['a fake whose code is a getter', Object.create(Refusal.prototype, { code: getter('fake code'), detail: { value: 'd' } })],
     ['a fake whose detail is a getter', Object.create(Refusal.prototype, { code: { value: 'git-failed' }, detail: getter('fake detail') })],
     ['a fake with inherited fields', Object.create(Object.create(Refusal.prototype, { code: { value: 'git-failed' }, detail: { value: SECRET } }))],
-    ['a real Refusal whose detail became a getter', detailGetter],
-    ['a real Refusal whose code became a getter', codeGetter],
-    ['a subclass', new Sub('git-failed', SECRET)],
-    ['a code not in the table', unknownCode],
-    ['a detail that is not a string', numberDetail],
+    ['a fake with own data strings and a known code', Object.create(Refusal.prototype, { code: { value: 'git-failed' }, detail: { value: SECRET } })],
+    ['a look-alike object', { name: 'Refusal', code: 'git-failed', detail: SECRET }],
     ['a non-refusal whose name is a getter', Object.defineProperty(new Error('x'), 'name', getter('name'))],
   ]) {
     const refusal = asRefusal(thrown);
     assert.deepEqual([refusal.code, refusal.detail], ['unexpected-failure', ''], label);
   }
   assert.deepEqual(ran, [], 'a getter of the thrown value ran');
-  const plain = Object.create(Refusal.prototype, { code: { value: 'git-failed' }, detail: { value: 'tags' } });
-  assert.deepEqual([asRefusal(plain).code, asRefusal(plain).detail], ['git-failed', 'tags'], 'own data strings with a known code are a refusal');
+});
+
+// The code and detail a refusal was MADE with are what asRefusal serves; the public properties are
+// for callers and tests and asRefusal never reads them.
+test('a real Refusal prints the code and detail it was made with, whatever its public fields became', () => {
+  const ran = [];
+  const getter = (name) => ({ get() { ran.push(name); return 'ghs_PlantedSecret0123456789abcdef'; }, configurable: true });
+  const detailGetter = new Refusal('git-failed', 'tags');
+  Object.defineProperty(detailGetter, 'detail', getter('detail'));
+  const codeGetter = new Refusal('git-failed', 'tags');
+  Object.defineProperty(codeGetter, 'code', getter('code'));
+  const reassigned = new Refusal('git-failed', 'tags');
+  reassigned.code = 'no-such-code';
+  reassigned.detail = 42;
+  class Sub extends Refusal {}
+  for (const [label, thrown] of [['a detail getter', detailGetter], ['a code getter', codeGetter], ['reassigned fields', reassigned], ['a subclass', new Sub('git-failed', 'tags')]]) {
+    const refusal = asRefusal(thrown);
+    assert.deepEqual([refusal.code, refusal.detail], ['git-failed', 'tags'], label);
+  }
+  assert.deepEqual(ran, [], 'a getter of the refusal ran');
+  const unknown = asRefusal(new Refusal('no-such-code', 'x'));
+  assert.deepEqual([unknown.code, unknown.detail], ['unknown-refusal', 'no-such-code'], 'an unknown code stays visible');
+});
+
+// The reader's case: a Proxy that poses as a Refusal (a getPrototypeOf trap answering
+// Refusal.prototype, a descriptor trap answering a planted secret). Recognising it must run no trap.
+test('a Proxy posing as a Refusal is unexpected-failure with an empty detail, and no trap runs', () => {
+  const calls = [];
+  const trap = (name, answer) => (...args) => { calls.push(name); return answer(...args); };
+  const posing = new Proxy({}, {
+    getPrototypeOf: trap('getPrototypeOf', () => Refusal.prototype),
+    getOwnPropertyDescriptor: trap('getOwnPropertyDescriptor', (_target, key) => ({ value: key === 'code' ? 'git-failed' : 'token ghs_PlantedSecret0123456789abcdef', configurable: true, enumerable: true, writable: true })),
+    has: trap('has', () => true),
+    get: trap('get', () => 'ghs_PlantedSecret0123456789abcdef'),
+    ownKeys: trap('ownKeys', () => []),
+  });
+  const refusal = asRefusal(posing);
+  assert.deepEqual([refusal.code, refusal.detail], ['unexpected-failure', '']);
+  assert.deepEqual(calls, [], 'a trap of the thrown value ran');
+  const named = new Proxy({}, { getOwnPropertyDescriptor: trap('getOwnPropertyDescriptor', () => ({ value: 'TimeoutError', configurable: true })) });
+  assert.equal(asRefusal(named).detail, '', 'a Proxy is not asked for its name either');
+  assert.deepEqual(calls, [], 'a trap of the thrown value ran');
 });
