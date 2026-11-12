@@ -76,6 +76,7 @@ export const REFUSALS = Object.freeze({
   'manifest-json': 'A package.json is not strict JSON (malformed, a duplicate key, or over a bound).',
   'manifest-source': 'The packed package.json differs from the source package.json in a field other than version.',
   'archive-path': 'The tarball holds a file the archive setting does not allow.',
+  'archive-denied': 'The tarball holds a file no setting may allow (root binding.gyp, server.js or npm-shrinkwrap.json; any .npmrc or node_modules).',
   'archive-missing': 'A folder or file the archive setting requires is not in the tarball.',
   'archive-version': 'The tarball or the source package.json does not carry the planned version.',
   'archive-publish-config': 'package.json has publishConfig, which can move the registry or the tag; the route refuses it.',

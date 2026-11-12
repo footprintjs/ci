@@ -24,8 +24,8 @@ for (const item of corpus)
         assert.match(
           code,
           item.structuralRefusal
-            ? /^(invalid-archive|archive-profile|archive-path:.+)$/
-            : /^(invalid-archive|archive-profile|archive-path:|manifest-)/,
+            ? /^(invalid-archive|archive-profile|archive-path:.+|archive-denied:.+)$/
+            : /^(invalid-archive|archive-profile|archive-path:|archive-denied:|manifest-)/,
         );
         return true;
       },

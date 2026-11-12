@@ -114,6 +114,8 @@ function inspectArchive(bytes, expected) {
         names.has(name)
       )
         fail();
+      // A file npm gives a meaning of its own is refused whatever the setting says (allowed.cjs).
+      if (allowed.denied(name.slice('package/'.length))) fail('archive-denied', { text: name });
       if (!allowed.admits(name.slice('package/'.length))) fail('archive-path', { text: name });
       names.add(name);
       if (names.size > maxFiles) fail();

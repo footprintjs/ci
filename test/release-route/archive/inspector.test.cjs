@@ -6,7 +6,7 @@ const { createHash } = require('node:crypto');
 const { inspectArchive, archiveRefusalCode } = require('../../../src/release-route/archive/inspector.cjs');
 const { source, checksum, entry, tar, pack, expected } = require('./fixture.cjs');
 
-function refuses(bytes, options = expected(), code = /^(invalid-archive|archive-profile|archive-(path|missing|version)|manifest-)/) {
+function refuses(bytes, options = expected(), code = /^(invalid-archive|archive-profile|archive-(path|denied|missing|version)|manifest-)/) {
   assert.throws(
     () => inspectArchive(bytes, options),
     (error) => {
@@ -158,8 +158,10 @@ for (const manifest of ['[]', 'null', '"object"', '1', 'true'])
   );
 
 for (const name of ['package/.npmrc', 'package/binding.gyp', 'package/server.js'])
-  test('profile refuses sibling ' + name + ' before reading malformed JSON', () => {
-    refuses(pack('not JSON', [entry(name, 'fixture only')]), expected(), new RegExp('^archive-path:' + name + '$'));
+  test('profile refuses sibling ' + name + ' before reading malformed JSON, whatever the setting says', () => {
+    refuses(pack('not JSON', [entry(name, 'fixture only')]), expected(), new RegExp('^archive-denied:' + name + '$'));
+    refuses(pack('not JSON', [entry(name, 'fixture only')]), { ...expected(), archive: ['dist/', '*.js', '*.gyp', '*npmrc'] },
+      new RegExp('^archive-denied:' + name + '$'));
   });
 
 for (const name of [

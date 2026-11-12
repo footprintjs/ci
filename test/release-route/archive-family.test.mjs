@@ -61,3 +61,12 @@ test('a publishConfig in the packed manifest is refused by name (agentfootprint-
   assert.equal(refusedWith(() => inspectArchive(tarball(lens.list.members, manifest), { ...lens.expected, sourceManifest: manifest })),
     'archive-publish-config');
 });
+
+test('B1: the reader\'s widened setting no longer admits binding.gyp, .npmrc, server.js or node_modules', () => {
+  const extras = ['package/binding.gyp', 'package/.npmrc', 'package/server.js', 'package/node_modules/evil/index.js', 'package/npm-shrinkwrap.json'];
+  for (const extra of extras) {
+    const archive = tarball([...members, extra], manifest);
+    for (const setting of [['dist/', 'plugin/', 'site/public/deck-stage.js', '*.d.ts', '*.css', 'CHANGELOG.md', '*.js', '*.gyp', '*.json', '*npmrc']])
+      assert.equal(refusedWith(() => inspectArchive(archive, { ...expected, archive: setting })), `archive-denied:${extra}`);
+  }
+});

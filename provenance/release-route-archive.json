@@ -22,8 +22,8 @@
       "source": "scripts/publish-release/archive/corpus.test.cjs",
       "destination": "test/release-route/archive/corpus.test.cjs",
       "sourceSha256": "1ef507432720a29c21578325b6574b4f2b8d653762ab8faddbf95f541ca47610",
-      "sha256": "378e3cd21337fb9d08962b8c9d08ac7c0c5d9c1002addc486eb3c510959cb520",
-      "adaptation": "require path; structural refusals may be archive-path:<member>."
+      "sha256": "b65439e075e7db6f4e23a14a36c558e89f9147d1a1f40eb08d9c19d593f5a937",
+      "adaptation": "require path; structural refusals may be archive-path:<member> or archive-denied:<member>."
     },
     {
       "source": "scripts/publish-release/archive/fixture.cjs",
@@ -344,15 +344,15 @@
       "source": "scripts/publish-release/archive/inspector.cjs",
       "destination": "src/release-route/archive/inspector.cjs",
       "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "sha256": "9b6720b94e563d719f54c6e8991ec601648edfff7fcc3433122c77909ea46124",
-      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md; package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config."
+      "sha256": "c55be18405a11973c8f2afb5f53777d76b2561d3341dd756d6cc670e605b94bc",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config."
     },
     {
       "source": "scripts/publish-release/archive/inspector.test.cjs",
       "destination": "test/release-route/archive/inspector.test.cjs",
       "sourceSha256": "e1a81ba8ea773a700c59ec51d72823cc8c5af974c07653bdb1322213acec7f90",
-      "sha256": "31bca55b49578aba58621a1bd7335f526b645e9c5dd94adf5dd0c2f8f4fc2f95",
-      "adaptation": "require path; refusal patterns include the named archive-* codes; the AGENTS.md positive lists it in the archive setting; the sibling-file case expects archive-path:<member>."
+      "sha256": "ec7c5086e742163119a7bc4babb73cf21ce8576c637da3799e16e7717070fe76",
+      "adaptation": "require path; refusal patterns include the named archive-* codes; the AGENTS.md positive lists it in the archive setting; the sibling .npmrc/binding.gyp/server.js case expects archive-denied:<member>, also under a widened setting."
     },
     {
       "source": "scripts/publish-release/archive/manifest.cjs",
