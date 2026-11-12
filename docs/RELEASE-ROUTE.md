@@ -533,9 +533,11 @@ reuses an old plan, `ready` refuses it (`plan-stale`).
 
 **Four things to know when adopting the route.**
 
-- The build's Node is the newest minor of the major the settings name (`actions/setup-node` resolves
-  `22` when the job runs), so a rebuild weeks later may not be byte-equal to the first (a minor can
-  change Node's zlib). It matters for `recover` and for the dry run's compare with npm.
+- The build's Node is the major the settings name, at the minor `actions/setup-node` v4 finds when the
+  job runs: the runner image's cached 22.x when it has one, not always the newest (it looks for a
+  newer one only when asked with `check-latest`). So a rebuild weeks later may not be byte-equal to
+  the first (a minor can change Node's zlib). It matters for `recover` and for the dry run's compare
+  with npm.
 - Tags and releases made with the job's token start no `push: tags` or `release` workflow in the
   package's repository (GitHub starts no workflow from an event its job token made).
 - The caller's concurrency group keeps one running and one pending run: a newer queued run cancels a
@@ -650,7 +652,8 @@ with npm. Nothing is written anywhere.
 | Case | What the route does | What a person does |
 |---|---|---|
 | Version merged, not published (build red, a hold, machine trouble) | nothing more; the version stays untagged and unpublished | machine trouble: "Re-run failed jobs" (safe: the publish job measures again). After the build has turned green, never "Re-run all jobs" on that run: the build's second upload of `release-route-package` is expected to fail on the name, and a rebuild must not replace the bytes npm may already have; use "Re-run failed jobs", or start a new run from `main`. A real failure: merge a fix WITHOUT a new version; that push publishes |
-| A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs". That is safe: the publish job measures again; if `main` moved on or a newer version was published meanwhile, `ready` refuses (`plan-stale`) and publishes nothing, and the newer run's plan decides |
+| A hold set after the merge | the publish job's hold step (directly before the publish) refuses | lift the hold (`docs/HOLD.md`), then "Re-run failed jobs". That is safe: the publish job measures again; if `main` moved on or a newer version was published meanwhile, `ready` refuses (`plan-stale`; this job publishes nothing). Then start a new run from `main` (a push, or a dispatch): its plan decides afresh |
+| A merge into `main` while a release is running | that run's publish job measures again and refuses `plan-stale`: the commit it planned is no longer the tip. The run is red by design; verify, which also runs after a failed publish job, waits its bounded time and ends `registry-late` | nothing. The caller's concurrency group queues the new push behind this run, and the run of the new tip publishes (a docs-only merge too: that run plans the tip, and the version is still not on npm). Do not re-run the red one |
 | npm accepted, verify red with `registry-differs` | stops; no tag, no release | investigate; never tag over a mismatch |
 | npm shows the version late (`registry-late`) | verify red after its bounded wait; no tag | "Re-run failed jobs" later: verify compares again with the same run's package |
 | Published, then the TAG failed (no tag was made) | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, "Re-run failed jobs" on the ORIGINAL run (its package is kept 30 days) |
@@ -677,10 +680,11 @@ look at each of these:
   (an empty value is refused by the guard, so a wrong guess fails closed).
 - `./tool/.github/actions/hold` resolves: the hold job's log shows the action path under `tool/`.
 - `release-route-package` crosses jobs: the verify (and, on a release, the publish) download logs.
-- Across attempts, on a throwaway dry run: "Re-run failed jobs" on verify (does it find attempt 1's
-  package?) and "Re-run all jobs" (does the build's upload get a 409 Conflict?). How artifacts behave
-  across attempts is not known until the first dry run; the doc's advice above assumes one name space
-  per run, the reader's expectation.
+- Across attempts, on a throwaway dry run once it is green (there are no failed jobs to re-run): use
+  "Re-run job" on the verify job and look whether its download finds the first attempt's
+  `release-route-package`; then "Re-run all jobs" and look at the build's upload (does it get a 409
+  Conflict?). How artifacts behave across attempts is not known until the first dry run; the doc's
+  advice above assumes one name space per run, the reader's expectation.
 - The OIDC publish with the vendored npm and provenance from a called workflow, and that npm's trusted
   publisher matches the caller's `publish.yml` (first release).
 - `git ls-remote` on the caller's `origin` with no credentials kept (fine for a public repository; a
@@ -691,6 +695,10 @@ look at each of these:
   timed-out verify still uploads its record.
 - What `actions/checkout` writes to git config (W2): the plan job's checkout log.
 - A release made beside an existing draft with the same tag (first release, if one exists).
+- What GitHub marks as "Latest" when an older version is released after a newer one (for example a
+  release job re-run alone for 1.4.0 after 1.5.0 was released). The REST page for "Create a release"
+  says `make_latest` defaults to `true`; what `gh release create` sends is not established here. A
+  later pull request will set it on purpose; until then, look at the releases page after such a run.
 
 ## Not built yet
 
