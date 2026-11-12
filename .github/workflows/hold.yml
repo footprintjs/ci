@@ -16,7 +16,7 @@ permissions:
   pull-requests: read
 jobs:
   hold:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Validate tool pin and mode
@@ -50,6 +50,7 @@ jobs:
         env:
           HOLD_MODE: ${{ inputs.mode }}
           GH_TOKEN: ${{ github.token }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HOLD_EVENT_NAME: ${{ github.event_name }}
+          HOLD_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HOLD_SOURCE_DIR: source
         run: node hold-tool/scripts/hold.mjs

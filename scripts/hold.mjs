@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { runHold } from '../src/hold/run.mjs';
 
-// Environment in. The workflow sets HOLD_MODE, GH_TOKEN, BASE_SHA (pull-request mode) and
+// Environment in. The workflow sets HOLD_MODE, GH_TOKEN, HOLD_EVENT_NAME and HOLD_HEAD_SHA (the event's name and the pull
+// request's head SHA, used by pull-request mode to prove which commit it reads) and
 // HOLD_SOURCE_DIR (the caller's checkout, default ".") from `env:`, never from a script
 // string; the runner itself provides GITHUB_REPOSITORY (the CALLER's repository, also
 // inside a reusable workflow) and GITHUB_API_URL.

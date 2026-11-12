@@ -3,9 +3,10 @@ import { test } from 'node:test';
 import { runHold } from '../../src/hold/run.mjs';
 
 const TOKEN = 'ghs_SecretTokenValue123';
-const BASE = 'a'.repeat(40);
+const P1 = 'a'.repeat(40); // the base tip the merge was made on
+const P2 = 'b'.repeat(40); // the pull request head
 const env = (extra = {}) => ({ HOLD_MODE: 'publish', GITHUB_REPOSITORY: 'footprintjs/example', GH_TOKEN: TOKEN, ...extra });
-const prEnv = (extra = {}) => env({ HOLD_MODE: 'pull-request', BASE_SHA: BASE, ...extra });
+const prEnv = (extra = {}) => env({ HOLD_MODE: 'pull-request', HOLD_EVENT_NAME: 'pull_request', HOLD_HEAD_SHA: P2, ...extra });
 const item = (number, extra = {}) => ({ number, title: `hold ${number}`, ...extra });
 // A fetch that answers from a list of pages and records every call.
 function pages(...bodies) {
@@ -19,9 +20,12 @@ function pages(...bodies) {
   };
   return { fetcher, calls };
 }
-const gitOf = (base, head) => (args) => {
+// A fake git over a merge commit M = merge(P1, P2): `rev-list` answers with the parents and
+// `cat-file` answers by revision (P1 = base tip, HEAD = merged result).
+const gitOf = (base, head, row = `MERGE ${P1} ${P2}`) => (args) => {
+  if (args[0] === 'rev-list') return `${row.replace('MERGE', 'c'.repeat(40))}\n`;
   const spec = args.at(-1);
-  const value = spec === `${BASE}:package.json` ? base : spec === 'HEAD:package.json' ? head : undefined;
+  const value = spec === `${P1}:package.json` ? base : spec === 'HEAD:package.json' ? head : undefined;
   if (value === undefined) throw new Error('fatal: no such blob');
   return value;
 };
@@ -122,11 +126,12 @@ test('pull-request mode: version change with a hold fails; no change passes; no 
   const none = await runHold({ env: prEnv(), fetcher: pages([]).fetcher, git: gitOf(pkg('1.0.0'), pkg('2.0.0')) });
   assert.equal(none.code, 0);
 });
-test('pull-request mode asks git for the base blob by full SHA and the head by HEAD, and nothing else', async () => {
+test('pull-request mode asks git for the parents of HEAD, then the first parent blob and the HEAD blob, nothing else', async () => {
   const asked = [];
-  const git = (args) => { asked.push(args); return pkg('1.0.0'); };
+  const inner = gitOf(pkg('1.0.0'), pkg('1.0.0'));
+  const git = (args) => { asked.push(args); return inner(args); };
   await runHold({ env: prEnv(), fetcher: pages([]).fetcher, git });
-  assert.deepEqual(asked, [['cat-file', 'blob', `${BASE}:package.json`], ['cat-file', 'blob', 'HEAD:package.json']]);
+  assert.deepEqual(asked, [['rev-list', '--parents', '-n', '1', 'HEAD'], ['cat-file', 'blob', `${P1}:package.json`], ['cat-file', 'blob', 'HEAD:package.json']]);
 });
 test('fail closed: a version that cannot be read on either side, even with no hold open', async () => {
   const bad = [
@@ -148,9 +153,35 @@ test('fail closed: a version that cannot be read on either side, even with no ho
     }
   }
 });
-test('fail closed: pull-request mode with a missing, short, non-hex or all-zero base SHA', async () => {
-  for (const BASE_SHA of [undefined, '', 'abc', 'g'.repeat(40), '0'.repeat(40), `${BASE}\n`, 'A'.repeat(40)])
-    failedToCheck(await runHold({ env: prEnv({ BASE_SHA }), fetcher: pages([]).fetcher, git: gitOf(pkg('1'), pkg('1')) }));
+test('fail closed: not a pull_request event (including pull_request_target and push), with a hold open or not', async () => {
+  for (const HOLD_EVENT_NAME of [undefined, '', 'push', 'workflow_dispatch', 'pull_request_target', 'Pull_Request', 'pull_request ']) {
+    for (const body of [[], [item(1)]]) {
+      const result = await runHold({ env: prEnv({ HOLD_EVENT_NAME }), fetcher: pages(body).fetcher, git: gitOf(pkg('1.0.0'), pkg('1.0.0')) });
+      failedToCheck(result);
+      assert.match(said(result), /pull_request event/);
+    }
+  }
+});
+test('fail closed: a missing, short, non-hex, uppercase or all-zero pull request head SHA', async () => {
+  for (const HOLD_HEAD_SHA of [undefined, '', 'abc', 'g'.repeat(40), '0'.repeat(40), `${P2}\n`, 'B'.repeat(40)])
+    failedToCheck(await runHold({ env: prEnv({ HOLD_HEAD_SHA }), fetcher: pages([item(1)]).fetcher, git: gitOf(pkg('1'), pkg('1')) }));
+});
+test('fail closed: HEAD is not a merge commit with exactly two parents', async () => {
+  for (const row of ['MERGE', `MERGE ${P1}`, `MERGE ${P1} ${P2} ${'d'.repeat(40)}`, `MERGE ${P1} not-a-sha`, `MERGE ${P1} ${'0'.repeat(40)}`]) {
+    const result = await runHold({ env: prEnv(), fetcher: pages([item(1)]).fetcher, git: gitOf(pkg('1.0.0'), pkg('2.0.0'), row) });
+    failedToCheck(result);
+    assert.match(said(result), /two parents/);
+  }
+  const broken = () => { throw new Error('fatal: not a git repository'); };
+  failedToCheck(await runHold({ env: prEnv(), fetcher: pages([]).fetcher, git: broken }));
+});
+test('fail closed: the second parent is another commit than the pull request head', async () => {
+  const other = 'e'.repeat(40);
+  const result = await runHold({ env: prEnv(), fetcher: pages([item(1)]).fetcher, git: gitOf(pkg('1.0.0'), pkg('2.0.0'), `MERGE ${P1} ${other}`) });
+  failedToCheck(result);
+  assert.match(said(result), /not the merge of this pull request head/);
+  // the first parent being the head is not enough: it is the BASE side
+  failedToCheck(await runHold({ env: prEnv(), fetcher: pages([]).fetcher, git: gitOf(pkg('1.0.0'), pkg('1.0.0'), `MERGE ${P2} ${P1}`) }));
 });
 test('the token never appears in any output, even when an error carries it', async () => {
   const outputs = [];

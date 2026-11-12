@@ -74,7 +74,9 @@ jobs:
       mode: pull-request
 ```
 
-`pull-request` mode reads `package.json` at the pull request's base commit and at the checked-out merge commit, so the repository must have a root `package.json` with a string `version`. A repository without one cannot use this mode (it fails, see below).
+`pull-request` mode runs only for the `pull_request` event. It checks out the pull request's merge commit M (`refs/pull/N/merge`) and PROVES that is what it has: M must have exactly two parents and the second must equal the pull request's head SHA from the event. It then compares `package.json` `version` at M's first parent (the base tip the merge was really made on) with M itself. It never uses the event's recorded base SHA: if the base branch moved and bumped the version after that SHA was recorded, an ordinary pull request would look like a release (and the mirror case could hide one). Comparing M with its own first parent gives "unchanged" whatever the base branch did. The repository must have a root `package.json` with a string `version`.
+
+`pull_request_target` is NOT supported and fails: it runs against the base branch with no merge commit, so there is nothing to prove, and its higher-privilege token must not be combined with a checkout of a pull request's code.
 
 ## It fails closed
 
@@ -82,7 +84,7 @@ A release gate that says "no hold" because it could not look is worse than none.
 
 - the request fails, times out, is rate-limited (HTTP 403 or 429), is answered with a redirect or any non-2xx status, is not JSON, is not a list, has an item without a number or title, or has a page of more than 100 items;
 - a later page fails, or more than 500 open items carry the label (the bound is 5 pages of 100; past it the check refuses rather than guess);
-- `pull-request` mode and a version that cannot be read on either side (no file, not JSON, no string `version`, an empty one), or a base SHA that is missing, all zeros or not 40 hex characters, with or without a hold open;
+- `pull-request` mode and a version that cannot be read on either side (no file, not JSON, no string `version`, an empty one), or an event that is not exactly `pull_request`, a head SHA that is missing, all zeros or not 40 lowercase hex characters, a checkout that is not a merge commit with exactly two parents, or a second parent that is not the pull request's head SHA, with or without a hold open;
 - an unknown `mode`, a malformed `tool_sha`, a missing or malformed repository name, a missing or malformed token.
 
 Nothing turns an exception into a pass.
@@ -90,7 +92,7 @@ Nothing turns an exception into a pass.
 ## Safety
 
 - Titles and versions are text the check does not control. Control, bidirectional-format and separator characters are removed, whitespace collapses, text is cut, and no printed line starts with untrusted text, so a title cannot start a `::` workflow command.
-- `tool_sha`, `mode` and the event's base SHA reach the scripts through `env:` only, are validated, and are never interpolated into a `run:` script.
+- `tool_sha`, `mode`, the event name and the pull request head SHA reach the scripts through `env:` only, are validated, and are never interpolated into a `run:` script.
 - The token is the job's read-only `GITHUB_TOKEN`. It is sent in one header to `api.github.com` (or `GITHUB_API_URL`), never followed through a redirect, and never put in a message; if a library ever did, it is masked in the output.
 - A pull request from a fork runs with a read-only token and needs no secret.
 
@@ -98,6 +100,7 @@ Nothing turns an exception into a pass.
 
 - It does not stop a person with write access who goes around the workflow (a local `npm publish`, a different workflow without this job). It stops the workflows that call it.
 - It does not check who set the label, and it does not know about holds in other repositories.
+- A hold set AFTER a pull request's check ran does not turn that old check red. The `publish`-mode check, which runs at publish time, is the guarantee.
 - It does not stop ordinary merges: in `pull-request` mode only a pull request that changes `package.json` `version` is blocked.
 - It is not a release approval. A passing check means "no hold is open", nothing more.
 - Adopting it in a repository is a separate, reviewed change to that repository's workflows and ruleset.

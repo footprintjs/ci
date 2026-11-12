@@ -57,6 +57,11 @@ test('one job with a short timeout; the tool is checked out at tool_sha, the cal
 test('the validation step comes before any checkout and the command takes its inputs through env:', () => {
   assert.equal(source.indexOf('Validate tool pin and mode') < source.indexOf('actions/checkout'), true);
   const step = source.slice(source.indexOf('Refuse while a hold-release label is open'));
-  for (const name of ['HOLD_MODE: ${{ inputs.mode }}', 'GH_TOKEN: ${{ github.token }}', 'BASE_SHA: ${{ github.event.pull_request.base.sha }}'])
+  for (const name of ['HOLD_MODE: ${{ inputs.mode }}', 'GH_TOKEN: ${{ github.token }}', 'HOLD_EVENT_NAME: ${{ github.event_name }}', 'HOLD_HEAD_SHA: ${{ github.event.pull_request.head.sha }}'])
     assert.equal(step.includes(name), true, name);
+  assert.doesNotMatch(source, /base\.sha/, 'the event base SHA is not used: the merge commit first parent is');
+});
+test('the runner image is pinned, not a floating label', () => {
+  assert.equal([...source.matchAll(/^\s*runs-on:\s*(.+)$/gm)].map((m) => m[1].trim()).join(','), 'ubuntu-24.04');
+  assert.doesNotMatch(source, /-latest/);
 });

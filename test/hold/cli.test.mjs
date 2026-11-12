@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
-import { readVersions } from '../../src/hold/versions.mjs';
+import { runHold } from '../../src/hold/run.mjs';
 
 const cli = resolve('scripts/hold.mjs');
 const run = (env) => spawnSync(process.execPath, [cli], { encoding: 'utf8', env: { PATH: process.env.PATH, ...env } });
@@ -22,22 +22,49 @@ test('the command exits 1 when the API cannot be reached (a name that never reso
   assert.match(result.stdout, /could not check/);
 });
 
-function repoWith(t, files) {
+// A real repository with a real merge commit M = merge(base tip, pull request head), the way
+// refs/pull/N/merge is built. `pr` edits the branch, `main` edits the base after the branch left.
+function mergeFixture(t, { prVersion, mainVersion }) {
   const dir = mkdtempSync(join(tmpdir(), 'hold-test-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-  git('init', '--quiet');
-  git('config', 'user.name', 'Hold test');
-  git('config', 'user.email', 'hold@example.invalid');
-  const commit = (content) => { writeFileSync(join(dir, 'package.json'), content); git('add', 'package.json'); git('commit', '--quiet', '-m', 'fixture'); return git('rev-parse', 'HEAD'); };
-  return { dir, git, commit };
+  const commit = (files, message) => {
+    for (const [name, content] of Object.entries(files)) writeFileSync(join(dir, name), content);
+    git('add', '.'); git('commit', '--quiet', '-m', message); return git('rev-parse', 'HEAD');
+  };
+  const pkg = (version) => JSON.stringify({ name: 'x', version });
+  git('init', '--quiet', '-b', 'main');
+  git('config', 'user.name', 'Hold test'); git('config', 'user.email', 'hold@example.invalid');
+  commit({ 'package.json': pkg('1.0.0'), 'a.txt': 'a' }, 'start');
+  git('checkout', '--quiet', '-b', 'pr');
+  const head = commit(prVersion ? { 'package.json': pkg(prVersion) } : { 'a.txt': 'changed on the branch' }, 'pull request');
+  git('checkout', '--quiet', 'main');
+  if (mainVersion) commit({ 'package.json': pkg(mainVersion) }, 'base moved on');
+  git('merge', '--quiet', '--no-ff', '-m', 'merge', 'pr'); // HEAD is now the merge commit
+  return { dir, head, run: (extra = {}) => runHold({
+    env: { HOLD_MODE: 'pull-request', HOLD_EVENT_NAME: 'pull_request', HOLD_HEAD_SHA: head, GITHUB_REPOSITORY: 'a/b', GH_TOKEN: 'ghs_x', ...extra },
+    fetcher: async () => Response.json([{ number: 3, title: 'hold' }]),
+    git: (args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }) }) };
 }
-test('versions are read from real committed blobs: the base commit and HEAD', (t) => {
-  const f = repoWith(t);
-  const base = f.commit(JSON.stringify({ version: '1.0.0' }));
-  f.commit(JSON.stringify({ version: '1.1.0' }));
-  const git = (args) => execFileSync('git', ['-C', f.dir, ...args], { encoding: 'utf8' });
-  assert.deepEqual(readVersions(git, base), { base: '1.0.0', head: '1.1.0' });
-  assert.throws(() => readVersions(git, 'f'.repeat(40)), /base side/);
-  assert.throws(() => readVersions(git, 'HEAD'), /full commit SHA/);
+test('real merge commit: base moved and bumped the version, the pull request did not touch it: PASSES with a hold open', async (t) => {
+  const f = mergeFixture(t, { mainVersion: '2.0.0' });
+  const result = await f.run();
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.match(result.lines.join('\n'), /leaves the package.json version alone \(2\.0\.0\)/);
 });
+test('real merge commit: the pull request bumps the version: FAILS with a hold open, naming both versions', async (t) => {
+  const f = mergeFixture(t, { prVersion: '1.1.0' });
+  const result = await f.run();
+  assert.equal(result.code, 1);
+  assert.match(result.lines.join('\n'), /1\.0\.0 -> 1\.1\.0/);
+});
+test('real merge commit: a head SHA of another commit, and a checkout that is not a merge, fail closed', async (t) => {
+  const f = mergeFixture(t, { mainVersion: '2.0.0' });
+  failedToCheck(await f.run({ HOLD_HEAD_SHA: 'c'.repeat(40) }));
+  execFileSync('git', ['-C', f.dir, 'checkout', '--quiet', 'HEAD^1']); // a plain commit, as a push event would leave
+  failedToCheck(await f.run());
+});
+function failedToCheck(result) {
+  assert.equal(result.code, 1);
+  assert.match(result.lines.join('\n'), /could not check/);
+}
