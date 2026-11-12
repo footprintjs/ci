@@ -142,6 +142,7 @@ settings-unreadable ...`).
 | `changelogFound` | true, false |
 | `versionNewer` | true, false |
 | `refIsMain` | true, false |
+| `commitIsMainTip` | true, false |
 
 `factsReadable` is false when any fact is `null` or outside its values.
 
@@ -159,14 +160,15 @@ The rows, first match wins (`src/release-route/rules.mjs`):
 | 8 | `released` | tagExists = true, npmHasVersion = true, action = publish | **nothing** (compare with npm: no) |
 | 9 | `dry-run-released` | tagExists = true, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
 | 10 | `tag-without-package` | tagExists = true, npmHasVersion = false | refuse `tag-without-package` |
-| 11 | `changelog-missing` | tagExists = false, changelogFound = false | refuse `changelog-missing` |
-| 12 | `recover-off-main` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = false | refuse `recover-off-main` |
-| 13 | `recover` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = true | **recover** (compare with npm: yes) |
-| 14 | `dry-run-recover` | tagExists = false, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
-| 15 | `version-not-newer` | tagExists = false, npmHasVersion = false, versionNewer = false | refuse `version-not-newer` |
-| 16 | `publish-off-main` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = false | refuse `publish-off-main` |
-| 17 | `publish` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = true | **publish** (compare with npm: yes) |
-| 18 | `dry-run-would-publish` | tagExists = false, npmHasVersion = false, action = dry-run | **dry-run** (compare with npm: no) |
+| 11 | `not-main-tip` | tagExists = false, action = publish, refIsMain = true, commitIsMainTip = false | **nothing** (compare with npm: no) |
+| 12 | `changelog-missing` | tagExists = false, changelogFound = false | refuse `changelog-missing` |
+| 13 | `recover-off-main` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = false | refuse `recover-off-main` |
+| 14 | `recover` | tagExists = false, npmHasVersion = true, action = publish, refIsMain = true, commitIsMainTip = true | **recover** (compare with npm: yes) |
+| 15 | `dry-run-recover` | tagExists = false, npmHasVersion = true, action = dry-run | **dry-run** (compare with npm: yes) |
+| 16 | `version-not-newer` | tagExists = false, npmHasVersion = false, versionNewer = false | refuse `version-not-newer` |
+| 17 | `publish-off-main` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = false | refuse `publish-off-main` |
+| 18 | `publish` | tagExists = false, npmHasVersion = false, action = publish, refIsMain = true, commitIsMainTip = true | **publish** (compare with npm: yes) |
+| 19 | `dry-run-would-publish` | tagExists = false, npmHasVersion = false, action = dry-run | **dry-run** (compare with npm: no) |
 
 Why this order:
 

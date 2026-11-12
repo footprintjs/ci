@@ -36,15 +36,37 @@ export function readAtCommit(git, commit, path, maxBytes, unreadable) {
   return bytes;
 }
 
-// Does the remote have tag v<version>? Asked of `origin` itself, not of the local tag list,
-// which a shallow checkout does not hold.
-export function tagExists(git, version) {
+// The commit `ref` names on origin, or null when origin has no such ref. Asked of `origin`
+// itself, not of the local refs, which a shallow checkout does not hold. An annotated tag is
+// answered with its peeled line (`<ref>^{}`), whose commit is the one returned. Any other line
+// (another ref the pattern matched, a malformed line) is git-failed: never guessed.
+function remoteCommit(git, ref, question) {
+  // Both patterns: git prints the peeled line of an annotated tag only when it is asked for.
+  const out = ask(git, ['ls-remote', 'origin', ref, `${ref}^{}`], question).toString('utf8');
+  if (out === '') return null;
+  const found = new Map();
+  for (const line of out.split('\n').slice(0, -1)) {
+    const match = /^([a-f0-9]{40})\t(.+)$/.exec(line);
+    if (!match || (match[2] !== ref && match[2] !== `${ref}^{}`) || found.has(match[2])) refuse('git-failed', question);
+    found.set(match[2], match[1]);
+  }
+  if (!out.endsWith('\n') || !found.has(ref)) refuse('git-failed', question);
+  return found.get(`${ref}^{}`) ?? found.get(ref);
+}
+
+// The commit tag v<version> points at on origin, or null.
+export function tagCommit(git, version) {
   if (!isPlainVersion(version)) refuse('input-invalid', 'version');
-  const ref = `refs/tags/v${version}`;
-  const out = ask(git, ['ls-remote', '--tags', '--refs', 'origin', ref], 'ls-remote tags').toString('utf8');
-  if (out === '') return false;
-  if (new RegExp(`^[a-f0-9]{40}\\t${ref.replace(/\./g, '\\.')}\\n$`).test(out)) return true;
-  refuse('git-failed', 'ls-remote tags');
+  return remoteCommit(git, `refs/tags/v${version}`, 'ls-remote tags');
+}
+export const tagExists = (git, version) => tagCommit(git, version) !== null;
+
+// The commit at the tip of origin's main. Measured, so "is this run's commit still the tip of
+// main" is a fact the route reads, not one it is told.
+export function mainTip(git) {
+  const tip = remoteCommit(git, 'refs/heads/main', 'ls-remote main');
+  if (tip === null) refuse('git-failed', 'ls-remote main');
+  return tip;
 }
 
 // The checkout must be exactly `commit` with nothing changed or added (build runs repository

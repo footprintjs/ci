@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { asRefusal } from '../../src/release-route/refusals.mjs';
-import { readAtCommit, requireCleanCheckout, tagExists } from '../../src/release-route/repo.mjs';
+import { mainTip, readAtCommit, requireCleanCheckout, tagCommit, tagExists } from '../../src/release-route/repo.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'route-repo-'));
@@ -65,6 +65,22 @@ test('the tag is asked of origin', (t) => {
   assert.equal(code(() => tagExists(git, '1.0.0; rm -rf')), 'input-invalid version');
   assert.equal(code(() => tagExists(() => Buffer.from('x\trefs/tags/v1.0.0\n'), '1.0.0')), 'git-failed ls-remote tags');
   assert.equal(code(() => tagExists(() => { throw new Error('offline'); }, '1.0.0')), 'git-failed ls-remote tags');
+});
+
+test('an annotated tag is answered by its peeled commit; the tip of main is measured; odd answers are git-failed', (t) => {
+  const { dir, commit, git } = fixture(t);
+  execFileSync('git', ['-C', dir, 'tag', '-a', '-m', 'annotated', 'v2.0.0']);
+  execFileSync('git', ['-C', dir, 'push', '--quiet', 'origin', 'v2.0.0']);
+  assert.equal(tagCommit(git, '2.0.0'), commit);
+  assert.equal(tagCommit(git, '1.0.0'), commit);
+  assert.equal(tagCommit(git, '3.0.0'), null);
+  assert.equal(mainTip(git), commit);
+  const answer = (text) => () => Buffer.from(text);
+  for (const text of [`${commit}\trefs/tags/x/refs/tags/v1.0.0\n`, `${commit}\trefs/tags/v1.0.0`, `${commit}\trefs/tags/v1.0.0\n${commit}\trefs/tags/v1.0.0\n`,
+    `${commit}\trefs/tags/v1.0.0^{}\n`, 'HEAD\trefs/tags/v1.0.0\n'])
+    assert.equal(code(() => tagCommit(answer(text), '1.0.0')), 'git-failed ls-remote tags');
+  assert.equal(code(() => mainTip(answer(''))), 'git-failed ls-remote main');
+  assert.equal(code(() => mainTip(answer(`${commit}\trefs/heads/x/refs/heads/main\n`))), 'git-failed ls-remote main');
 });
 
 test('build runs only on the planned commit with a clean tree', (t) => {

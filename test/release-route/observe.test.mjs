@@ -24,8 +24,10 @@ const npmRoutes = {
   [`https://api.github.com/repos/footprintjs/ci/compare/main...${TOOL}?per_page=1`]: json(fixture('github/compare-behind.json').toString()),
 };
 const env = (extra = {}) => ({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL, ...extra });
-async function run({ files = today, lsRemote = fixture('storydeck-today/ls-remote.txt').toString(), routes = npmRoutes, extra } = {}) {
-  const { git } = recordedGit({ commit: COMMIT, files, lsRemote });
+// The tip of main as github.com answered on 2026-11-12 (`git ls-remote origin refs/heads/main`).
+const TIP = fixture('storydeck-today/ls-remote-main.txt').toString().split('\t')[0];
+async function run({ files = today, lsRemote = fixture('storydeck-today/ls-remote.txt').toString(), routes = npmRoutes, extra, mainTip = TIP } = {}) {
+  const { git } = recordedGit({ commit: COMMIT, files, lsRemote, mainTip });
   const observed = await observe({ env: env(extra), git, fetcher: fakeFetch(routes).fetcher });
   return { observed, result: plan({ facts: observed.facts }) };
 }
@@ -37,7 +39,7 @@ test('the fixtures are the real storydeck blobs at a3936e3', () => {
 
 test('footprint-storydeck 0.13.1 on main today: nothing to do', async () => {
   const { observed, result } = await run();
-  assert.deepEqual(observed.facts, { action: 'publish', refIsMain: true, toolCommitPlain: true, toolReviewed: true, settingsRead: true,
+  assert.deepEqual(observed.facts, { action: 'publish', refIsMain: true, commitIsMainTip: true, toolCommitPlain: true, toolReviewed: true, settingsRead: true,
     packageNamed: true, packagePrivate: false, versionPlain: true, tagExists: true, packageKnown: true, npmHasVersion: true,
     versionNewer: false, changelogFound: true });
   assert.deepEqual([result.rule, result.mode], ['released', 'nothing']);
@@ -63,6 +65,18 @@ test('0.13.2 with its section, no tag, on main: publish; from a branch as a dry 
   assert.deepEqual([dry.result.rule, dry.result.compare], ['dry-run-would-publish', 'no']);
   assert.equal((await run({ files: bumped('0.13.2', ''), lsRemote: '' })).result.rule, 'changelog-missing');
   assert.equal((await run({ files: bumped('0.12.9', '\n## 0.12.9 \u{2014} old\n- x\n'), lsRemote: '' })).result.rule, 'version-not-newer');
+});
+
+test('the tip of main is measured: a run of an older commit of main does nothing, a run with no readable tip refuses', async () => {
+  assert.equal(TIP, COMMIT);
+  const files = bumped('0.13.2', '\n## 0.13.2 \u{2014} a test\n\n- x\n');
+  const old = await run({ files, lsRemote: '', mainTip: 'f'.repeat(40) });
+  assert.equal(old.observed.facts.commitIsMainTip, false);
+  assert.deepEqual([old.result.rule, old.result.mode], ['not-main-tip', 'nothing']);
+  const noMain = await run({ mainTip: null });
+  assert.deepEqual([noMain.observed.causes.commitIsMainTip.code, noMain.result.rule], ['git-failed', 'facts-unreadable']);
+  const dry = await run({ files, lsRemote: '', mainTip: 'f'.repeat(40), extra: { ROUTE_ACTION: 'dry-run' } });
+  assert.equal(dry.result.rule, 'dry-run-would-publish');
 });
 
 test('an unreadable fact is null with its refusal kept, and the plan refuses naming it', async () => {

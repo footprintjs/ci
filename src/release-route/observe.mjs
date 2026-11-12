@@ -10,7 +10,7 @@ import { decodeChangelog, findSection, MAX_CHANGELOG_BYTES } from './changelog.m
 import { toolReviewed } from './github.mjs';
 import { isCommit, isPackageName, isPlainVersion, newerThanAll } from './identity.mjs';
 import { readVersions } from './registry.mjs';
-import { readAtCommit, tagExists } from './repo.mjs';
+import { mainTip, readAtCommit, tagExists } from './repo.mjs';
 import { asRefusal, refuse } from './refusals.mjs';
 import { readSettings, MAX_SETTINGS_BYTES, SETTINGS_PATH } from './settings.mjs';
 
@@ -45,6 +45,7 @@ export async function observe({ env, git, fetcher }) {
 
   facts.action = env.ROUTE_ACTION ?? null;
   facts.refIsMain = typeof env.GITHUB_REF === 'string' && env.GITHUB_REF !== '' ? env.GITHUB_REF === 'refs/heads/main' : null;
+  await read('commitIsMainTip', () => mainTip(git) === commit);
   facts.toolCommitPlain = isCommit(env.ROUTE_TOOL_SHA);
   if (facts.toolCommitPlain)
     await read('toolReviewed', () => toolReviewed({ fetcher, sha: env.ROUTE_TOOL_SHA, token: env.GITHUB_TOKEN }));

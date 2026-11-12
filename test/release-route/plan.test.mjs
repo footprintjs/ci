@@ -9,7 +9,7 @@ import { REFUSALS } from '../../src/release-route/refusals.mjs';
 // A publish that should go through; each row's case changes only what that row needs.
 const GOOD = Object.freeze({ action: 'publish', toolCommitPlain: true, toolReviewed: true, settingsRead: true, packageNamed: true,
   packagePrivate: false, versionPlain: true, packageKnown: true, tagExists: false, npmHasVersion: false, changelogFound: true,
-  versionNewer: true, refIsMain: true });
+  versionNewer: true, refIsMain: true, commitIsMainTip: true });
 const outcome = (facts) => {
   const result = plan({ facts });
   return result.refuse ? `${result.rule} -> refuse ${result.refuse}` : `${result.rule} -> ${result.mode} (compare ${result.compare})`;
@@ -35,6 +35,14 @@ for (const [change, expected] of [
   [{ npmHasVersion: true, versionNewer: false, action: 'dry-run' }, 'dry-run-recover -> dry-run (compare yes)'],
   [{ versionNewer: false }, 'version-not-newer -> refuse version-not-newer'],
   [{ refIsMain: false }, 'publish-off-main -> refuse publish-off-main'],
+  [{ commitIsMainTip: false }, 'not-main-tip -> nothing (compare no)'],
+  [{ commitIsMainTip: false, npmHasVersion: true, versionNewer: false }, 'not-main-tip -> nothing (compare no)'],
+  [{ commitIsMainTip: false, changelogFound: false }, 'not-main-tip -> nothing (compare no)'],
+  [{ commitIsMainTip: false, versionNewer: false }, 'not-main-tip -> nothing (compare no)'],
+  [{ commitIsMainTip: false, refIsMain: false }, 'publish-off-main -> refuse publish-off-main'],
+  [{ commitIsMainTip: false, action: 'dry-run' }, 'dry-run-would-publish -> dry-run (compare no)'],
+  [{ commitIsMainTip: false, tagExists: true, npmHasVersion: true }, 'released -> nothing (compare no)'],
+  [{ commitIsMainTip: null }, 'facts-unreadable -> refuse fact-unreadable'],
   [{}, 'publish -> publish (compare yes)'],
   [{ action: 'dry-run', refIsMain: false }, 'dry-run-would-publish -> dry-run (compare no)'],
 ])
@@ -60,7 +68,7 @@ function* combinations(names = Object.keys(FACTS), partial = {}) {
 const all = [...combinations()];
 
 test('the table is total: every combination of readable facts meets a row', () => {
-  assert.equal(all.length, 2 ** 12);
+  assert.equal(all.length, 2 ** 13);
   for (const facts of all) assert.notEqual(plan({ facts }).rule, 'no-rule-matched', JSON.stringify(facts));
 });
 
@@ -75,15 +83,21 @@ test('fail closed: with any one fact unknown or out of its domain, the result is
   assert.equal(plan({ facts: null }).refuse !== undefined, true);
 });
 
-test('every row whose mode writes requires main, so a future writing mode cannot be added without it', () => {
+test('every row whose mode writes requires main AND the tip of main, so a future writing mode cannot be added without them', () => {
   const writing = RULES.filter((rule) => WRITING_MODES.includes(rule.mode));
   assert.deepEqual(writing.map((rule) => rule.id), ['recover', 'publish']);
-  for (const rule of writing) assert.equal(rule.when.refIsMain, true, `${rule.id} writes but does not require refIsMain: true`);
+  for (const rule of writing) {
+    assert.equal(rule.when.refIsMain, true, `${rule.id} writes but does not require refIsMain: true`);
+    assert.equal(rule.when.commitIsMainTip, true, `${rule.id} writes but does not require commitIsMainTip: true`);
+  }
   for (const rule of RULES) assert.ok(rule.refuse !== undefined || WRITING_MODES.includes(rule.mode) || ['nothing', 'dry-run'].includes(rule.mode), rule.id);
 });
 
-test('over every combination of facts, nothing that writes is ever chosen off main', () => {
-  for (const facts of all) if (WRITING_MODES.includes(plan({ facts }).mode)) assert.equal(facts.refIsMain, true, JSON.stringify(facts));
+test('over every combination of facts, nothing that writes is ever chosen off main or off its tip', () => {
+  for (const facts of all) if (WRITING_MODES.includes(plan({ facts }).mode)) {
+    assert.equal(facts.refIsMain, true, JSON.stringify(facts));
+    assert.equal(facts.commitIsMainTip, true, JSON.stringify(facts));
+  }
   for (const facts of all) if (!facts.refIsMain && facts.action === 'dry-run' && plan({ facts }).mode) assert.equal(plan({ facts }).mode, 'dry-run');
 });
 

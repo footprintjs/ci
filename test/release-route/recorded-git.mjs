@@ -6,7 +6,9 @@ import { createHash } from 'node:crypto';
 
 export const blobId = (bytes) => createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
 
-export function recordedGit({ commit, files, lsRemote = '', modes = {} }) {
+// lsRemote answers `ls-remote origin refs/tags/...`; mainTip (default: `commit`) answers
+// `ls-remote origin refs/heads/main`, or `mainTip: null` for a remote with no main.
+export function recordedGit({ commit, files, lsRemote = '', modes = {}, mainTip = commit }) {
   const blobs = new Map(Object.values(files).map((bytes) => [blobId(bytes), bytes]));
   const calls = [];
   const git = (args) => {
@@ -18,7 +20,9 @@ export function recordedGit({ commit, files, lsRemote = '', modes = {} }) {
     }
     if (command === 'cat-file' && rest[0] === '-s' && blobs.has(rest[1])) return Buffer.from(`${blobs.get(rest[1]).length}\n`);
     if (command === 'cat-file' && rest[0] === 'blob' && blobs.has(rest[1])) return blobs.get(rest[1]);
-    if (command === 'ls-remote') return Buffer.from(lsRemote);
+    if (command === 'ls-remote' && rest[0] === 'origin' && rest[1] === 'refs/heads/main')
+      return Buffer.from(mainTip === null ? '' : `${mainTip}\trefs/heads/main\n`);
+    if (command === 'ls-remote' && rest[0] === 'origin' && rest[1].startsWith('refs/tags/')) return Buffer.from(lsRemote);
     throw new Error(`git ${args.join(' ')} failed`);
   };
   return { git, calls };

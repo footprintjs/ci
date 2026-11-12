@@ -18,8 +18,16 @@
 // - `facts-unreadable` comes before EVERY row that yields a mode: no mode is ever chosen while
 //   a fact is unknown.
 // - Every mode that WRITES anything (WRITING_MODES: a publish, a tag, a GitHub release) needs
-//   `refIsMain: true`; off main the same facts meet a named refusal row instead. A dry run
-//   writes nothing and stays allowed from any branch. A test holds every writing row to this.
+//   `refIsMain: true` AND `commitIsMainTip: true`; off main the same facts meet a named refusal
+//   row instead. A dry run writes nothing and stays allowed from any branch. A test holds every
+//   writing row to this class rule.
+// - `commitIsMainTip` is MEASURED (`git ls-remote origin refs/heads/main` equals the planned
+//   commit), not told. Why: "Re-run" of an old run of main plans that run's OLD commit; with
+//   the version still unreleased it would publish older code. A run of main whose commit is no
+//   longer the tip, for a version with no tag, is `nothing` (row `not-main-tip`): a newer
+//   commit on main decides, and its own run plans. It is not a refusal, because an old run must
+//   not turn red for being old; so it stands before the changelog and newer-version refusals
+//   too (they are the tip's run to raise).
 // - A missing CHANGELOG section stops `recover` too, not only `publish`: both write a GitHub
 //   release whose notes come from that section. A dry run says the same, so it tells the truth
 //   about what a publish would do.
@@ -38,6 +46,7 @@ export const FACTS = Object.freeze({
   changelogFound: Object.freeze([true, false]),
   versionNewer: Object.freeze([true, false]),
   refIsMain: Object.freeze([true, false]),
+  commitIsMainTip: Object.freeze([true, false]),
 });
 
 // The modes that write: `publish` (npm, then the tag and release) and `recover` (the tag and
@@ -59,15 +68,17 @@ export const RULES = Object.freeze([
   row({ id: 'dry-run-released', when: { tagExists: true, npmHasVersion: true, action: 'dry-run' }, mode: 'dry-run', compare: 'yes' }),
   row({ id: 'tag-without-package', when: { tagExists: true, npmHasVersion: false }, refuse: 'tag-without-package' }),
 
+  row({ id: 'not-main-tip', when: { tagExists: false, action: 'publish', refIsMain: true, commitIsMainTip: false }, mode: 'nothing', compare: 'no',
+    outranks: ['changelog-missing', 'version-not-newer'] }),
   row({ id: 'changelog-missing', when: { tagExists: false, changelogFound: false }, refuse: 'changelog-missing',
     outranks: ['recover-off-main', 'recover', 'dry-run-recover', 'version-not-newer', 'publish-off-main', 'publish', 'dry-run-would-publish'] }),
   row({ id: 'recover-off-main', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: false }, refuse: 'recover-off-main' }),
-  row({ id: 'recover', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: true }, mode: 'recover', compare: 'yes' }),
+  row({ id: 'recover', when: { tagExists: false, npmHasVersion: true, action: 'publish', refIsMain: true, commitIsMainTip: true }, mode: 'recover', compare: 'yes' }),
   row({ id: 'dry-run-recover', when: { tagExists: false, npmHasVersion: true, action: 'dry-run' }, mode: 'dry-run', compare: 'yes' }),
 
   row({ id: 'version-not-newer', when: { tagExists: false, npmHasVersion: false, versionNewer: false }, refuse: 'version-not-newer',
     outranks: ['publish-off-main', 'publish', 'dry-run-would-publish'] }),
   row({ id: 'publish-off-main', when: { tagExists: false, npmHasVersion: false, action: 'publish', refIsMain: false }, refuse: 'publish-off-main' }),
-  row({ id: 'publish', when: { tagExists: false, npmHasVersion: false, action: 'publish', refIsMain: true }, mode: 'publish', compare: 'yes' }),
+  row({ id: 'publish', when: { tagExists: false, npmHasVersion: false, action: 'publish', refIsMain: true, commitIsMainTip: true }, mode: 'publish', compare: 'yes' }),
   row({ id: 'dry-run-would-publish', when: { tagExists: false, npmHasVersion: false, action: 'dry-run' }, mode: 'dry-run', compare: 'no' }),
 ]);
