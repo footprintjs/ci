@@ -4,7 +4,7 @@
 import archivePort from './archive/check-archive.cjs';
 import { isCommit, isPackageName, isPlainVersion } from './identity.mjs';
 import { unreadableFacts } from './plan.mjs';
-import { asRefusal, REFUSALS, refuse } from './refusals.mjs';
+import { asRefusal, Refusal, REFUSALS, refuse } from './refusals.mjs';
 import { clean as printable } from '../shared/text.mjs';
 
 export const input = (env, name, check) => {
@@ -53,12 +53,22 @@ export const reportVerified = ({ name, version, integrity, report }) =>
 
 // One step from a handler table: 0 when it returns, 1 with its refusal printed when it throws.
 // The plain command and the charted bundle (chart/cli.mjs) both run their steps through this.
+// The one bound for a refusal's detail wherever it is shown or kept: printed by a step, kept in a
+// cause, kept in the record. One line, no control, format or direction characters, `::` broken.
+export const shownDetail = (detail) => printable(detail, 200);
+
+// A thrown value as the refusal it is shown as: its code and its shown detail, nothing else.
+export function shownRefusal(error) {
+  const refusal = asRefusal(error);
+  return new Refusal(refusal.code, shownDetail(refusal.detail));
+}
+
 export async function runHandlers(handlers, step, doors) {
   const { report } = doors;
   try {
     if (typeof step !== 'string' || !Object.hasOwn(handlers, step)) refuse('unknown-step', step);
     await handlers[step](doors);
-    report.summary();
+    report.end(0);
     return 0;
   } catch (error) {
     return printRefusal(report, error);
@@ -71,8 +81,8 @@ export function printRefusal(report, error) {
   const refusal = asRefusal(error);
   try {
     report.say(`Refused: ${refusal.code}. ${REFUSALS[refusal.code]}`);
-    if (refusal.detail) report.say(`Detail: ${printable(refusal.detail, 200)}`);
-    report.summary();
+    if (refusal.detail) report.say(`Detail: ${shownDetail(refusal.detail)}`);
+    report.end(1);
   } catch {
     // Printing failed too; the exit code still says "refused".
   }

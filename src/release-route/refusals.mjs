@@ -117,8 +117,23 @@ export function refuse(code, detail) {
 
 // Any thrown value to a Refusal. Archive refusals keep their code and field; everything else
 // the route did not name is `unexpected-failure` (never a pass, never a raw message).
+// Any thrown value as a refusal. It never throws: reading a thrown value's fields can run its
+// code (a getter, a Proxy trap), so every read is inside one try, and a value that throws while
+// being read is unexpected-failure like any other unnamed exception.
 export function asRefusal(error) {
-  if (error instanceof Refusal) return error;
+  try {
+    return refusalOf(error);
+  } catch {
+    return new Refusal('unexpected-failure', '');
+  }
+}
+
+// A Refusal is handed back as it is when its code and detail are plain own strings (every Refusal
+// this route makes); anything else that claims to be one is rebuilt from its fields.
+const plainString = (value, key) => typeof Object.getOwnPropertyDescriptor(value, key)?.value === 'string';
+
+function refusalOf(error) {
+  if (error instanceof Refusal) return plainString(error, 'code') && plainString(error, 'detail') ? error : new Refusal(String(error.code), error.detail);
   const archive = archiveRefusal.archiveRefusalCode(error);
   if (typeof archive === 'string') {
     const cut = archive.indexOf(':');

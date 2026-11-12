@@ -9,7 +9,8 @@ package (footprintjs, foottrace), and nothing outside it imports it.
 |---|---|
 | `plan-chart.mjs`, `decision.mjs`, `verify-chart.mjs` | Wiring only: which stage follows which. |
 | `stages/`, `verify/` | One stage per file: its id, name, one-line description and function. |
-| `state.mjs` | What may enter state, and in what shape (facts, causes, checked context). |
+| `stage.mjs` | Every stage function passes through `stageFn` (a throw leaves as a cleaned refusal); the silent engine logger. |
+| `state.mjs` | What may enter state, and in what shape: a fact is its observer's value exactly, or null. |
 | `execute.mjs` | Runs a chart with the recorders the record needs. |
 | `plan-run.mjs` | Reads back from the plan chart what the plain step reads from `observe` + `plan`. |
 | `record.mjs` | The record: its shape and the one way it is saved. |

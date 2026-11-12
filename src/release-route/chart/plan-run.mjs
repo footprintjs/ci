@@ -23,8 +23,9 @@ export function chartResult(state) {
   return state.refusal ? { rule: state.rule, refuse: state.refusal, seen } : { rule: state.rule, mode: state.mode, compare: state.compare, seen };
 }
 
-export async function runPlanChart(doors) {
-  const chart = buildPlanChart(doors);
+// doors: { env, git, fetcher, stages? } (stages: plan-chart.mjs · PLAN_STAGES unless a test stands one in).
+export async function runPlanChart({ stages, ...doors }) {
+  const chart = buildPlanChart(doors, stages);
   const run = await execute(chart);
   const state = run.snapshot.sharedState;
   return { chart, run, ...fromState(state), result: run.failure ? null : chartResult(state) };

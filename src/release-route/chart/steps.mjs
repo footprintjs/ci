@@ -40,15 +40,15 @@ function finish({ env, step, chart, run, report }, decide) {
   if (decision) throw decision;
 }
 
-export async function chartPlanStep({ env, git, fetcher, report }) {
-  const planned = await runPlanChart({ env, git, fetcher });
+export async function chartPlanStep({ env, git, fetcher, report, stages }) {
+  const planned = await runPlanChart({ env, git, fetcher, stages });
   finish({ env, step: 'plan', chart: planned.chart, run: planned.run, report }, () =>
     reportPlan({ result: planned.result, causes: planned.causes, context: planned.context, report }));
 }
 
-export async function chartVerifyStep({ env, fetcher, sleep, report, wait }) {
+export async function chartVerifyStep({ env, fetcher, sleep, report, wait, stages }) {
   const { name, version, bytes } = verifyInputs(env);
-  const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep, wait });
+  const chart = buildVerifyChart({ name, version, bytes, fetcher, sleep, wait }, stages);
   const run = await execute(chart);
   const state = run.snapshot.sharedState;
   finish({ env, step: 'verify', chart, run, report }, () => {

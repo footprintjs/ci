@@ -65,3 +65,13 @@ test('only chart/ imports a package; nothing outside chart/ imports chart/', () 
   for (const path of ['scripts/release-route.mjs', 'scripts/release-route-chart.mjs'])
     for (const target of imports(path)) assert.ok(target.startsWith('node:') || (target.startsWith('../src/release-route/') && !target.includes('/chart/')), `${path} imports ${target}`);
 });
+
+test('a stage that throws, in the bundle: the refusal on stdout and nothing on stderr (no library log, no stack, no path)', () => {
+  const env = { PATH: process.env.PATH, GITHUB_SHA: 'main', GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: 'a'.repeat(40) };
+  for (const runner of [['dist/release-route.cjs'], ['scripts/release-route-chart.mjs']]) {
+    const result = spawnSync(process.execPath, [...runner, 'plan'], { encoding: 'utf8', env });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /^Refused: input-invalid\./m);
+    assert.equal(result.stderr, '');
+  }
+});
