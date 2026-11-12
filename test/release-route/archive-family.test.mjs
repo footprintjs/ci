@@ -70,3 +70,24 @@ test('B1: the reader\'s widened setting no longer admits binding.gyp, .npmrc, se
       assert.equal(refusedWith(() => inspectArchive(archive, { ...expected, archive: setting })), `archive-denied:${extra}`);
   }
 });
+
+// B2 (second read, round 2): names a case-insensitive file system or Windows would merge.
+const twinSource = { name: 'twin-demo', version: '1.0.0', description: 'clean' };
+const twinManifest = JSON.stringify({ ...twinSource, description: 'TWIN', scripts: { install: 'node -e "require(\'fs\').writeFileSync(\'INSTALL-SCRIPT-RAN\',\'x\')"' } });
+for (const [label, extra, setting, code] of [
+  ['the reader\'s twin package/Package.json with an install script', ['package/Package.json', twinManifest], ['dist/', '*.json'], 'archive-name:package/Package.json'],
+  ['PACKAGE.JSON under "*.JSON"', ['package/PACKAGE.JSON', twinManifest], ['dist/', '*.JSON'], 'archive-name:package/PACKAGE.JSON'],
+  ['two files equal without case', ['package/dist/INDEX.js', 'x'], ['dist/'], 'archive-name:package/dist/INDEX.js'],
+  ['binding.gyp. (Windows drops the dot)', ['package/binding.gyp.', 'x'], ['dist/', 'binding*'], 'archive-name:package/binding.gyp.'],
+  ['"binding.gyp " (Windows drops the space)', ['package/binding.gyp ', 'x'], ['dist/', 'binding*'], 'archive-name:package/binding.gyp '],
+  ['a folder segment ending in a dot', ['package/dist./x.js', 'x'], ['dist/'], 'archive-name:package/dist./x.js'],
+])
+  test(`B2: ${label} is refused in the profile, whatever the setting says`, () => {
+    const bytes = fixture.pack(twinSource, [fixture.entry(...extra)]);
+    assert.equal(refusedWith(() => inspectArchive(bytes, { version: '1.0.0', sourceManifest: twinSource, archive: setting })), code);
+  });
+
+test('B2: the twin is refused by the profile before any setting is asked (readArchiveMembers too)', () => {
+  const bytes = fixture.pack(twinSource, [fixture.entry('package/Package.json', twinManifest)]);
+  assert.equal(refusedWith(() => inspector.readArchiveMembers(bytes)), 'archive-name:package/Package.json');
+});

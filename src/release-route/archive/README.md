@@ -13,6 +13,11 @@ what it needs, all visible in the commit after the copy:
 - Named refusals where the copy said `invalid-archive`: `archive-path:<member>`,
   `archive-missing:<entry>`, `archive-version`, `archive-publish-config`, and
   `archive-intake` / `archive-file` / `publish-directory` for the files around it.
+- What the port refuses that the original did not need to (its list was closed, so it never met
+  these): two members equal without letter case, a root member other than the exact
+  `package/package.json` equal to it without case, a path segment ending in `.` or a space
+  (`archive-name`); and the fixed deny list of `allowed.cjs` (`archive-denied`). A
+  case-insensitive or Windows file system would fold such names together.
 - `strict-json.cjs` exports `parseStrictJson(bytes, { maxBytes, maxValues })`, so the
   route reads every JSON (settings, npm's and GitHub's answers) with this one reader.
 - Tests live in `test/release-route/archive/`; `PROVENANCE.json` below is footPrint's

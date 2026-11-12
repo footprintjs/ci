@@ -15,8 +15,8 @@
       "source": "scripts/publish-release/archive/README.md",
       "destination": "src/release-route/archive/README.md",
       "sourceSha256": "8a9b2d0bf8a5003cac27c755f63b32afaa607472b6d2dfda45f4050063729bf2",
-      "sha256": "7263f6e25f4130f1cfb04e354d559c9d7693a0cce7d8fe76aa98b251cfe7aa95",
-      "adaptation": "Route deltas listed at the top; profile and test-location sentences updated."
+      "sha256": "aac927fb2407662c9555046132743dcf81e5a9f670213595085cde6e4dec19eb",
+      "adaptation": "Route deltas listed at the top (including what the port now refuses that the original did not need to); profile and test-location sentences updated."
     },
     {
       "source": "scripts/publish-release/archive/corpus.test.cjs",
@@ -344,8 +344,8 @@
       "source": "scripts/publish-release/archive/inspector.cjs",
       "destination": "src/release-route/archive/inspector.cjs",
       "sourceSha256": "0bbf6a5cfb26edddece4bf9db784298bde85725df882fc14731d0cc5ecc05be2",
-      "sha256": "43f9a71b551315e52496d446df827f8006c22781b2565c1783fa4f7ec2748140",
-      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader."
+      "sha256": "c1e89d5ce6994dab3c36059c57ce29126c86ccdb1f0f1b1c7a6e2f11f7196445",
+      "adaptation": "Allowed members from the archive setting (allowed.cjs) instead of package/dist/ + AGENTS.md, with a fixed deny list no setting lifts (archive-denied); package name from the source manifest only; named refusals archive-path, archive-missing, archive-version, archive-publish-config; the gzip/tar walk split out unchanged as readTar, exported as readArchiveMembers so the vendored npm is unpacked by the same reader. NEW in the profile, which the original's closed list never needed: two members equal without letter case, a root member other than the exact package/package.json equal to it without case, and a path segment ending in '.' or a space are refused (archive-name), because a case-insensitive or Windows file system folds them together (B2)."
     },
     {
       "source": "scripts/publish-release/archive/inspector.test.cjs",
@@ -365,8 +365,8 @@
       "source": "scripts/publish-release/archive/refusal.cjs",
       "destination": "src/release-route/archive/refusal.cjs",
       "sourceSha256": "78cd4728d1ca76698f347fe3fd8b5a5ce58e345ee3e117ccc5dc1f34ca0e222a",
-      "sha256": "f157bf29d6329886a28acfb40e67976ae6508879f2e731fcd864072420a3b1f9",
-      "adaptation": "A { text } field prints a route-bounded label (member path or entry-<n>) when it is printable ASCII without \":\"; otherwise hashed as before."
+      "sha256": "eb4cacec585dbb2c78510ce5fd1da1b490d9001805acc4487c14ffb239e9a56d",
+      "adaptation": "A { text } field prints a route-bounded label (member path, a space included, or entry-<n>) when it is printable ASCII without ':'; otherwise hashed as before."
     },
     {
       "source": "scripts/publish-release/archive/strict-json.cjs",

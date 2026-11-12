@@ -87,6 +87,7 @@ function readTar(bytes, limits, admit) {
     fail();
   if (tar.length % 512 !== 0) fail();
   const names = new Set(),
+    folds = new Set(),
     members = [];
   let at = 0,
     ended = false;
@@ -112,6 +113,17 @@ function readTar(bytes, limits, admit) {
       names.has(name)
     )
       fail();
+    // Release route (B2 of the second read): names a case-insensitive file system or Windows would
+    // fold together. npm on macOS or Windows extracts package/Package.json OVER package/package.json,
+    // so a twin could carry an install script past the manifest comparison. Refused in the profile,
+    // whatever the setting says: two paths equal without letter case; a root member other than the
+    // exact package/package.json equal to it without case; a segment ending in "." or a space
+    // (Windows drops those, so "binding.gyp." would become binding.gyp).
+    const folded = name.toLowerCase();
+    if (folds.has(folded)) fail('archive-name', { text: name });
+    if (folded === 'package/package.json' && name !== 'package/package.json') fail('archive-name', { text: name });
+    if (name.split('/').some((p) => p.endsWith('.') || p.endsWith(' '))) fail('archive-name', { text: name });
+    folds.add(folded);
     admit(name);
     names.add(name);
     if (names.size > maxFiles) fail();
