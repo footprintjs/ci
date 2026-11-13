@@ -57,8 +57,9 @@
 //   refuses a tag elsewhere), so the plan refuses at once with `tag-elsewhere` and the row's
 //   sentence gives the way out (WAY_OUT). Off the tip it is `nothing` (an old run does not turn
 //   red for being old), and its sentence gives the same way out and promises nothing about
-//   another run: a tip that keeps the version refuses tag-elsewhere, a tip that raised the version
-//   never looks at this one again. Off main it is a named refusal, as for publish and recover.
+//   another run: a tip at another commit that keeps the version refuses tag-elsewhere, a tip that
+//   raised the version never looks at this one again. Off main it is a named refusal, as for
+//   publish and recover.
 //   "Published": GitHub's endpoint for a tag's release answers only a published release, so a
 //   draft reads as no release (github.mjs · readRelease).
 
@@ -92,9 +93,10 @@ const row = (value) => Object.freeze({ ...value, when: Object.freeze(value.when)
 // The facts every row about a version that is tagged and on npm, asked to publish, starts from.
 const RELEASED = Object.freeze({ tagExists: true, npmHasVersion: true, action: 'publish' });
 // The one way out when a tagged version has no published GitHub release and this run cannot write
-// it (finish-not-tip, finish-tag-elsewhere): no later run of the route writes it either. A tip
-// that keeps the version refuses tag-elsewhere and names the gap; a tip that raised the version
-// never looks at the old version again.
+// it (finish-not-tip, finish-tag-elsewhere): no later run writes it unless the tagged commit is the
+// tip of main, where a run asked to publish plans finish. A tip at another commit that keeps the
+// version refuses tag-elsewhere and names the gap; a tip that raised the version never looks at
+// the old version again.
 const WAY_OUT = 'write the release for that tag by hand, or, if the release job of the run that made the tag failed, use Re-run failed jobs on that run while GitHub still allows it';
 const UNFINISHED = Object.freeze({ ...RELEASED, releaseExists: false });
 

@@ -28,8 +28,8 @@ test('the line rule: a `uses:` line naming release-route.yml or release-check.ym
     `    uses: other/ci/.github/workflows/release-route.yml@x`, `    uses: ./.github/workflows/release-route.yml`, `    with: { uses: ${ROUTE}@x }`].join('\n')), []);
 });
 
-test('a `uses:` line cannot hide behind a line break that is not a line feed, or a byte-order mark', () => {
-  for (const ch of ['\r', '\r\n', '\u0085', '\u2028', '\u2029'])
+test('a `uses:` line cannot hide behind a lone carriage return, or a byte-order mark', () => {
+  for (const ch of ['\r', '\r\n'])
     assert.deepEqual(routePins(`name: x${ch}    uses: ${ROUTE}@hidden${ch}`), ['hidden'], JSON.stringify(ch));
   assert.deepEqual(routePins(`\uFEFFuses: ${ROUTE}@first\n`), ['first']);
   assert.deepEqual(routePins(`\tuses:\t${ROUTE}@tab\n`), ['tab']);
@@ -113,6 +113,17 @@ const UNREAD_FORMS = {
   'a JSON workflow file': JSON.stringify({ name: 'publish', jobs: { release: { uses: `${ROUTE}@${B}` } } }),
   'a mention in a run script': `jobs:\n  x:\n    steps:\n      - run: echo uses: ${ROUTE}@${B}\n`,
   'a mention in a with value': `jobs:\n  x:\n    with: { uses: ${ROUTE}@${B} }\n`,
+  'an upper-case owner in a flow mapping': `jobs:\n  release: { uses: FootprintJS/CI/.github/workflows/release-route.yml@${B} }\n`,
+  // Round 3 (review round 2, pins-1): a `#` inside a quoted value is text, not a comment, so the
+  // rest of its line still counts.
+  'a one-line JSON file with "PR #checks"': JSON.stringify({ name: 'PR #checks', on: 'pull_request', jobs: { 'release-check': { uses: `${CHECK}@${B}` } } }),
+  'a flow mapping with "Release check #2"': `on: pull_request\njobs:\n  release-check: { name: "Release check #2", uses: ${CHECK}@${B} }\n`,
+  "a flow mapping with 'Release check #2'": `on: pull_request\njobs:\n  release-check: { name: 'Release check #2', uses: ${CHECK}@${B} }\n`,
+  'a flow mapping with a tab before the #': `on: pull_request\njobs:\n  release-check: { name: "Release check\t#2", uses: ${CHECK}@${B} }\n`,
+  'a with value after "x #y"': `jobs:\n  r:\n    with: { note: "x #y", other: ${ROUTE}@${B} }\n`,
+  'a uses-led line whose quoted value holds " #"': `jobs: { r: { with: {\n  uses: "a #" }, uses: ${ROUTE}@${B} } }\n`,
+  // pins-2: an escaped slash, as some JSON writers emit it.
+  'a JSON file with escaped slashes': JSON.stringify({ name: 'publish', jobs: { release: { uses: `${ROUTE}@${B}` } } }).replaceAll('/', '\\/'),
 };
 
 test('every spelling of a route pin the line rule does not read refuses workflows-unreadable, naming the file', () => {
@@ -125,14 +136,65 @@ test('every spelling of a route pin the line rule does not read refuses workflow
 });
 
 test('comments never count: a plain pin with a comment that names another pin agrees; a commented-out pin is nothing', () => {
-  for (const text of [`uses: ${ROUTE}@${SHA} # was ${ROUTE}@main\n`, `# uses: ${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`, `#${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`,
-    `  # ${CHECK}@main\n  - uses: "${CHECK}@${SHA}" # reviewed\n`]) {
+  for (const text of [`uses: ${ROUTE}@${SHA} # was ${ROUTE}@main\n`, `uses: ${ROUTE}@${SHA}\t# was ${ROUTE}@main\n`, `# uses: ${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`,
+    `#${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`, `\t # ${CHECK}@main\n  - uses: "${CHECK}@${SHA}" # reviewed\n`, `  - uses: '${CHECK}@${SHA}'\t#${CHECK}@main\n`]) {
     assert.equal(routeMentions(text), routePins(text).length, text);
     const { git } = recordedGit({ commit: COMMIT, files: { '.github/workflows/a.yml': Buffer.from(text) } });
     assert.deepEqual(workflowPins(git, COMMIT, SHA), { agree: true }, text);
   }
   // A `#` with no white space before it is not a comment (YAML's rule), so the mention counts.
   assert.equal(routeMentions(`x: y#${ROUTE}@main\n`), 1);
+});
+
+// The cost the header names: only what is CERTAINLY a comment is removed, so a mention of the path
+// with `@` in a trailing comment on any other line refuses, even when the file's pins agree.
+test('the accepted cost: a route mention in a trailing comment that is not right after a plain pin refuses', () => {
+  for (const text of [`uses: ${CHECK}@${SHA}\nother:\n  steps:\n    - run: echo hi # see ${CHECK}@main\n`,
+    `uses: ${CHECK}@${SHA}\nname: release # ${CHECK}@main\n`, `uses: a b # ${CHECK}@main\nuses: ${CHECK}@${SHA}\n`]) {
+    const { git } = recordedGit({ commit: COMMIT, files: { '.github/workflows/a.yml': Buffer.from(text) } });
+    assert.equal(answer(() => workflowPins(git, COMMIT, SHA)), 'workflows-unreadable a.yml: a route pin not on a plain uses line', text);
+  }
+});
+
+// Characters an honest workflow file does not hold (the header): YAML 1.1 ends a line at NEL, LS
+// and PS and YAML 1.2 does not, so a `#` after one may or may not start a line; a UTF-16 file
+// decodes to nothing the line rule sees. Each refuses with its reason, beside a plain pin that
+// agrees. The line-break forms are a pin the old reader missed: it split the line at the character
+// and dropped `#, uses: ...` as a comment line.
+test('a file with NEL, LS, PS or NUL, or not UTF-8 (UTF-16 with either mark), refuses workflows-unreadable with the reason', () => {
+  const unusual = 'workflows-unreadable odd.yml: an unusual line-break character';
+  const cases = [
+    [`jobs:\n  r: { name: x\u{85}#, uses: ${CHECK}@main }\n`, unusual],
+    [`jobs:\n  r: { name: x\u{2028}#, uses: ${CHECK}@main }\n`, unusual],
+    [`jobs:\n  r: { name: x\u{2029}#, uses: ${CHECK}@main }\n`, unusual],
+    [`jobs:\n  r:\n    uses: ${CHECK}@${SHA}\0\n`, 'workflows-unreadable odd.yml: a NUL character'],
+  ];
+  const other = `jobs:\n  r:\n    uses: ${CHECK}@main\n`;
+  const utf16le = Buffer.from(other, 'utf16le');
+  const files = (bytes) => ({ '.github/workflows/a.yml': Buffer.from(`uses: ${ROUTE}@${SHA}\n`), '.github/workflows/odd.yml': bytes });
+  for (const [text, expected] of cases) {
+    const { git } = recordedGit({ commit: COMMIT, files: files(Buffer.from(text)) });
+    assert.equal(answer(() => workflowPins(git, COMMIT, SHA)), expected, JSON.stringify(text));
+  }
+  for (const [label, bytes, expected] of [
+    ['UTF-16 LE with its mark', Buffer.concat([Buffer.from([0xff, 0xfe]), utf16le]), 'workflows-unreadable odd.yml: not UTF-8 text'],
+    ['UTF-16 BE with its mark', Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(utf16le).swap16()]), 'workflows-unreadable odd.yml: not UTF-8 text'],
+    ['UTF-16 LE without a mark', utf16le, 'workflows-unreadable odd.yml: a NUL character'],
+  ]) {
+    const { git } = recordedGit({ commit: COMMIT, files: files(bytes) });
+    assert.equal(answer(() => workflowPins(git, COMMIT, SHA)), expected, label);
+  }
+});
+
+// What the header says is NOT caught, pinned so the header and the code cannot drift apart: a line
+// inside a quoted value written over several lines that starts with `#`, or with `uses:` and a
+// value followed by ` #`, is read as if it stood outside the quotes; an escape other than `\/`
+// inside a quoted value hides the path. Each text below gives GitHub a pin at `main` and reads here
+// as no mention at all. If one starts to count, the reader got better: move it into UNREAD_FORMS.
+test('known gaps (the header): a #- or uses:-led line inside a multi-line quoted value, an escape other than \\/', () => {
+  for (const text of [`jobs: { r: { name: "a\n  # ", uses: ${CHECK}@main } }\n`, `jobs: { r: { name: "a\n  uses: x # ", uses: ${CHECK}@main } }\n`,
+    `jobs:\n  r:\n    uses: "footprintjs/ci/.github/workflows/release-check\\x2eyml@main"\n`])
+    assert.deepEqual([routePins(text), routeMentions(text)], [[], 0], text);
 });
 
 test('storydeck\'s two real caller files (main d7eef62) give one pin each and agree; its ci.yml gives none', () => {

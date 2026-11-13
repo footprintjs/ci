@@ -63,9 +63,11 @@ test('correction 4: W11 and the adoption notes say a dry run has its own group; 
 test('round 2: finish-not-tip promises nothing about another run; the way out and the hand command are written; W7 names finish', () => {
   const whole = doc.replace(/\s+/g, ' ');
   assert.doesNotMatch(whole, /takes it up/);
-  assert.match(whole, /a tip that keeps the version refuses `tag-elsewhere` and names the gap; a tip that raised the version never looks at the old version again/);
+  assert.match(whole, /no later run writes this release unless the tagged commit is the tip of main \(then a run of main asked to publish plans `finish`\); any other tip that keeps the version refuses `tag-elsewhere` and names the gap; a tip that raised the version never looks at the old version again/);
+  assert.match(whole, /not once someone has pressed "Re-run all jobs" on that run after main moved on: that attempt plans `finish-not-tip`, ends green, and leaves no failed job to re-run; then write the release by hand/);
   assert.match(whole, /if the release job of the run that made the tag failed, use "Re-run failed jobs" on that run while GitHub still allows it/);
-  assert.match(whole, /gh release create v<version> --verify-tag --title "\$\(cat <folder>\/title\.txt\)" --notes-file <folder>\/notes\.md/);
+  assert.match(whole, /ROUTE_OUT=<out> /);
+  assert.match(whole, /gh release create v<version> -R <owner>\/<repo> --verify-tag --title "\$\(cat <out>\/title\.txt\)" --notes-file <out>\/notes\.md/);
   assert.match(whole, /Kept, with one exception: mode `finish`/);
   assert.match(whole, /The package's current version must have its published GitHub release before the move/);
   assert.match(whole, /A draft is not seen: the endpoint answers only a published release/);
@@ -76,7 +78,7 @@ test('round 2: finish-not-tip promises nothing about another run; the way out an
 
 test('correction 9: the hold stops a publish, not a recover or a finish, said where the hold is described', () => {
   const whole = doc.replace(/\s+/g, ' ');
-  assert.match(whole, /A hold stops a publish only: `recover` and `finish` do not ask it, because they tag and release a version npm already serves/);
+  assert.match(whole, /A hold stops a publish \(and turns a dry run red at its hold job\); `recover` and `finish` do not ask it, because they tag and release a version npm already serves/);
   assert.match(whole, /\| hold \| mode `publish` or `dry-run` \(not `recover` or `finish`: a hold stops a publish, not the tag and release of a version npm already serves\)/);
   assert.match(whole, /It does not stop `recover` or `finish`/);
 });

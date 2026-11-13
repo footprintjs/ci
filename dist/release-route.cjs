@@ -29367,7 +29367,9 @@ var WORKFLOWS_DIR = ".github/workflows";
 var MAX_FILES = 200;
 var MAX_FILE_BYTES = 512 * 1024;
 var WORKFLOW_FILE = /\.ya?ml$/i;
-var LINE_BREAK = /\r\n|[\n\r\u0085\u2028\u2029]/u;
+var LINE_BREAK = /\r\n|[\n\r]/;
+var UNUSUAL_BREAK = /[\u{85}\u{2028}\u{2029}]/u;
+var UTF8 = new TextDecoder("utf-8", { fatal: true });
 var USES_LINE = /^[\t ]*(?:-[\t ]+)?uses:[\t ]+(\S+)/;
 var ROUTE_WORKFLOW = /^footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/i;
 var unquoted = (word) => /^(["']).*\1$/.test(word) && word.length >= 2 ? word.slice(1, -1) : word;
@@ -29382,12 +29384,32 @@ function routePins(text) {
   return pins;
 }
 var lines = (text) => text.replace(/^\uFEFF/, "").split(LINE_BREAK);
-var COMMENT = /(^|[\t ])#.*$/;
-var WHITE = /[\s\u0085]/gu;
+var COMMENT_LINE = /^[\t ]*#/;
+var TRAILING_COMMENT = /^[\t ]+#.*$/;
+var CLOSED_VALUE = /^(?:[^"']*|"[^"\\]*"|'[^']*')$/;
+var WHITE = /\s/gu;
+var ESCAPED_SLASH = /\\\//g;
 var MENTION = /footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/giu;
+function withoutCertainComment(line) {
+  if (COMMENT_LINE.test(line)) return "";
+  const uses = USES_LINE.exec(line);
+  if (!uses || !CLOSED_VALUE.test(uses[1])) return line;
+  return uses[0] + line.slice(uses[0].length).replace(TRAILING_COMMENT, "");
+}
 function routeMentions(text) {
-  const bare = lines(text).map((line) => line.replace(COMMENT, "$1")).join("").replace(WHITE, "");
+  const bare = lines(text).map(withoutCertainComment).join("").replace(WHITE, "").replace(ESCAPED_SLASH, "/");
   return (bare.match(MENTION) ?? []).length;
+}
+function workflowText(bytes, name) {
+  let text;
+  try {
+    text = UTF8.decode(bytes);
+  } catch {
+    refuse("workflows-unreadable", `${name}: not UTF-8 text`);
+  }
+  if (text.includes("\0")) refuse("workflows-unreadable", `${name}: a NUL character`);
+  if (UNUSUAL_BREAK.test(text)) refuse("workflows-unreadable", `${name}: an unusual line-break character`);
+  return text;
 }
 function workflowPins(git2, commit, sha) {
   if (!isCommit(sha)) refuse("input-invalid", "tool commit");
@@ -29396,7 +29418,7 @@ function workflowPins(git2, commit, sha) {
   for (const entry of files) {
     const name = clean(entry.path.slice(WORKFLOWS_DIR.length + 1), 100);
     if (!isRegularBlob(entry)) refuse("workflows-unreadable", name);
-    const text = readBlob(git2, entry.id, MAX_FILE_BYTES, "workflows-unreadable", name).toString("utf8");
+    const text = workflowText(readBlob(git2, entry.id, MAX_FILE_BYTES, "workflows-unreadable", name), name);
     const pins = routePins(text);
     if (routeMentions(text) > pins.length) refuse("workflows-unreadable", `${name}: a route pin not on a plain uses line`);
     read2 += pins.length;

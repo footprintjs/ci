@@ -189,13 +189,23 @@ The agreement test runs one decision chart (the weigh and decide stages, seeded 
 against `plan.mjs` on every combination `plan.test.mjs` enumerates (65,536 since the facts
 `pinsAgree`, `tagAtCommit` and `releaseExists` were added): the same rule, mode, compare and
 refusal every time (`test/release-route/chart/agreement-readable.test.mjs`). For a fact made
-unreadable (`null`, `undefined`, a string, a number), `agreement-unread.test.mjs` holds the chart's
-own part between the facts and the decision: the weigh stage's function on every combination with
-every fact made unreadable in every kind (a pure function, no engine), and the whole chart on one
-witness of every row with each fact made unreadable and each one-fact change. Together with
-`plan.test.mjs`'s exhaustive walk of the plain plan over the same unreadable cases, that is the
-proof four files used to give by running the whole chart 4.46 million times; the file's header
-says why.
+unreadable (`null`, `undefined`, a string, a number), `agreement-unread.test.mjs` runs three
+parts: (a) the weigh stage's function on every combination with every fact made unreadable in
+every kind (a pure function, no engine: it computes `factsReadable` exactly as `plan.mjs` does);
+(b) the whole chart on one witness of every row with each fact made unreadable in each kind and
+each one-fact change; (c) the whole chart on every combination once, with one fact made
+unreadable, the fact and its kind rotating with the combination's index (65,536 chart runs).
+Beside `plan.test.mjs`'s exhaustive walk of the plain plan over every combination with any one
+fact unreadable in any kind, they hold: the weigh stage on every case exhaustively; the chart's
+decision on every readable combination exhaustively, and with a fact unreadable on every row's
+witness (every fact, every kind) and on every combination once (one fact, one kind each). Part (c)
+is what catches a decide stage that departs from the rule table on a pattern of other facts (the
+review's mutants DM2 and DM4 passed the other parts). They do not hold what four files used to
+hold by running the whole chart 4.46 million times (every combination with every fact unreadable
+in every kind):
+a decide stage that departs only for one fact in one kind, on a pattern of the other facts that
+neither a witness nor the rotation pairs with that fact and kind, would pass. The file's header
+says the same with the counts.
 
 ## The verify chart
 

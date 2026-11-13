@@ -161,8 +161,9 @@ export async function observeTag({ git, version, commit }) {
 // decideRelease): a release for exactly this tag is true, none is false, and a release naming
 // another tag is the refusal release-unexpected (the fact unknown, the cause printed). A draft is
 // NOT seen: the endpoint asked, GET /repos/{repo}/releases/tags/{tag}, answers only a published
-// release, so a draft reads as no release, and finish (like publish and recover) then writes a
-// published release beside it (docs/RELEASE-ROUTE.md, "What tag cannot see: a draft release").
+// release, so a draft reads as no release, and finish (like publish and recover) is expected to
+// write a published release beside it (not yet seen in a run; see "Still open" in
+// docs/RELEASE-ROUTE.md, and "What tag cannot see: a draft release").
 export async function observeRelease({ env, fetcher, version, tagExists }) {
   const { found, read } = observation();
   if (!version || (tagExists !== true && tagExists !== false)) return found;
