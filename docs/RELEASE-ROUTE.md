@@ -273,8 +273,10 @@ Three facts came from the first real runs (13 November 2026):
   a block scalar (`run: |`, `uses: >-`), inside which a line that starts with `#`, or with `uses:`
   and a value followed by ` #`, is read as if it stood outside, so the rest of that line is
   dropped as a comment though YAML reads it as content (in a quoted value the dropped rest can be a
-  pin GitHub runs; in a block scalar it is that scalar's own text, so a `uses:` value built that
-  way starts with `#` or `uses:`, not with the path); (2) an escape sequence other than `\/`
+  pin GitHub runs; in a block scalar the dropped text is the scalar's own and begins with `#`,
+  after a space, a line break or the start of the value, so a `uses:` value built that way holds a
+  `#` before the dropped `@`, which the route's path at a pin never does; this is reasoned from
+  YAML's rules and was not run on GitHub); (2) an escape sequence other than `\/`
   inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation); (3) a
   YAML tag that rewrites the value: `uses: !!binary <base64 of the path and pin>` decodes, in a
   YAML parser, to the path and pin, and so do its other spellings (`!<tag:yaml.org,2002:binary>`,
@@ -296,7 +298,8 @@ Three facts came from the first real runs (13 November 2026):
   that holds NEL, LS, PS or a NUL character, or is not UTF-8 (even one that does not name the
   route); a pin that is not the lower-case commit; a pin written directly before `,`, `}` or `]`
   (a flow mapping over several lines), which is read with that character and so prints
-  `pins-differ` with a pin such as `<commit>,`; and the route's path with `@` named outside a
+  `pins-differ` with a pin such as `<commit>,` (a quoted pin there is refused
+  `workflows-unreadable` instead); and the route's path with `@` named outside a
   plain `uses:` line and outside the two comments the reader removes, which includes a mention in
   a trailing comment on a line that is not a plain `uses:` line
   (`- run: echo hi # see footprintjs/ci/.github/workflows/release-check.yml@main`) and a comment
@@ -418,9 +421,8 @@ Why this order:
   decides and its own run plans. Not a refusal, because an old run must not turn red for being
   old, so it also stands before `changelog-missing` and `version-not-newer` (those are the tip's
   run to raise). But when npm HAS the version and there is no tag, the version was published
-  from this commit and its release never finished, and a later run names it again only when the
-  tip of `main` keeps the version (it then plans `recover` at the tip, unless an earlier row
-  refuses): that is `unfinished-not-tip`, refused (`release-unfinished`) on purpose, telling the person to use
+  from this commit and its release never finished, and a later run plans a write for it only at a
+  tip of `main` that keeps the version (`recover`, unless an earlier row refuses): that is `unfinished-not-tip`, refused (`release-unfinished`) on purpose, telling the person to use
   "Re-run failed jobs" on the run that published it (it reuses that run's plan) or to write the
   tag at that commit by hand. `refIsMain` is still read from `GITHUB_REF`, which the runner sets.
 - A missing CHANGELOG section stops `recover` as well as `publish`: both write a GitHub release

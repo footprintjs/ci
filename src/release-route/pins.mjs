@@ -46,8 +46,10 @@
 // (`run: |`, `uses: >-`): inside it, a line that starts with `#`, or with `uses:` and a value
 // followed by ` #`, is read as if it stood outside, so the rest of that line is dropped as a
 // comment though YAML reads it as content. In a quoted value the dropped rest can be a pin GitHub
-// runs; in a block scalar it is that scalar's own text, so a `uses:` value built that way starts
-// with `#` or `uses:`, not with the path. (2) An escape sequence other than
+// runs; in a block scalar the dropped text is the scalar's own and begins with `#` (after a space,
+// a line break or the start of the value), so a `uses:` value built that way holds a `#` before
+// the dropped `@`, which the route's path at a pin never does (reasoned from YAML's rules, not
+// run on GitHub). (2) An escape sequence other than
 // `\/` inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation). (3) A YAML tag that
 // rewrites the value: `uses: !!binary <base64 of the path and pin>` decodes, in a YAML parser, to
 // the path and pin, and so do its other spellings (`!<tag:yaml.org,2002:binary>`, a `%TAG` handle,
@@ -63,7 +65,8 @@
 // not name the route); a file that holds NEL, LS, PS or a NUL character, or is not UTF-8 (refused
 // even when it does not name the route); a pin that is not the lower-case 40-character commit; a
 // pin written directly before `,`, `}` or `]` (a flow mapping over several lines), which is read
-// with that character and so prints `pins-differ` with a pin such as `<commit>,`; a mention of the
+// with that character and so prints `pins-differ` with a pin such as `<commit>,` (a quoted pin
+// there is refused `workflows-unreadable` instead); a mention of the
 // route's path with `@` outside a plain `uses:` line and outside the two comments removed above
 // (which includes a comment after a `uses:` value that holds a backslash or an inner quote). Two
 // of these are the price of the one rule: the file with NEL, LS, PS, NUL or bytes that are not
