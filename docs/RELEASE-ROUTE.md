@@ -251,9 +251,10 @@ Three facts came from the first real runs (13 November 2026):
   is all the reader reads (no YAML parser on untrusted text), so it refuses what it could not read
   (`workflows-unreadable`). One rule decides what that is: a mention is counted on the file's text
   with only what is certainly a comment removed, and anything the reader is not certain about
-  refuses. It refuses three things. A file it cannot be sure it sees as GitHub does, with the
-  reason in the detail: not UTF-8 ("not UTF-8 text", such as a UTF-16 file with either byte-order
-  mark), a NUL character ("a NUL character"), or NEL, LS or PS ("an unusual line-break character":
+  refuses. It refuses three things. A file it cannot be sure it sees as GitHub does ("not plain
+  text" in the refusal's sentence), with the reason in the detail: not UTF-8 ("not UTF-8 text",
+  such as a UTF-16 file with either byte-order mark), a NUL character ("a NUL character"), or
+  NEL, LS or PS ("an unusual line-break character":
   YAML 1.1 ends a line at those and YAML 1.2 does not, and which one GitHub follows was not
   measured, so a `#` after one may or may not start a line). A file in which the route's path is
   named in more places than the plain lines gave pins, counted after removing only a line whose

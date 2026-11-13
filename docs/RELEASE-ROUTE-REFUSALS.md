@@ -29,7 +29,7 @@ by a test.
 | `changelog-missing` | CHANGELOG.md has no heading line for this version outside fenced code. |
 | `changelog-duplicate` | CHANGELOG.md names this version's heading more than once, anywhere (a quote or code counts); it must appear once. |
 | `git-failed` | A git question failed, so the route could not see the repository. |
-| `workflows-unreadable` | A workflow file is a link, over its bound or one too many, names the route other than on a plain uses: line, or no route pin is found. |
+| `workflows-unreadable` | A workflow file is a link, over its bound, one too many or not plain text, names the route other than on a plain uses: line, or no route pin is found. |
 | `checkout-mismatch` | The checkout is not the planned commit with a clean tree. |
 | `request-failed` | A request could not be made or did not finish in time. |
 | `response-status` | The server answered with a status the route does not accept. |
