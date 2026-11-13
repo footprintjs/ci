@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "94f8a532c9ade78c0218d63762cd51c2846831900187c05fc180fb4fbf180743",
-  "bytes": 1226529,
+  "sha256": "dfa5a4049794b0d42182e1bf06db5849cbc29a458d4207e18e4a913d44d477a7",
+  "bytes": 1239697,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1308,11 +1308,11 @@
     },
     {
       "path": "src/release-route/chart/plan-chart.mjs",
-      "bytes": 2367
+      "bytes": 2454
     },
     {
       "path": "src/release-route/chart/plan-run.mjs",
-      "bytes": 1831
+      "bytes": 1945
     },
     {
       "path": "src/release-route/chart/record.mjs",
@@ -1343,6 +1343,10 @@
       "bytes": 488
     },
     {
+      "path": "src/release-route/chart/stages/pins.mjs",
+      "bytes": 590
+    },
+    {
       "path": "src/release-route/chart/stages/request.mjs",
       "bytes": 547
     },
@@ -1356,7 +1360,7 @@
     },
     {
       "path": "src/release-route/chart/stages/tag.mjs",
-      "bytes": 412
+      "bytes": 820
     },
     {
       "path": "src/release-route/chart/stages/tip.mjs",
@@ -1372,7 +1376,7 @@
     },
     {
       "path": "src/release-route/chart/state.mjs",
-      "bytes": 2888
+      "bytes": 3256
     },
     {
       "path": "src/release-route/chart/steps.mjs",
@@ -1416,7 +1420,11 @@
     },
     {
       "path": "src/release-route/observe.mjs",
-      "bytes": 7616
+      "bytes": 11081
+    },
+    {
+      "path": "src/release-route/pins.mjs",
+      "bytes": 13352
     },
     {
       "path": "src/release-route/plan.mjs",
@@ -1424,7 +1432,7 @@
     },
     {
       "path": "src/release-route/refusals.mjs",
-      "bytes": 11866
+      "bytes": 12409
     },
     {
       "path": "src/release-route/registry.mjs",
@@ -1432,15 +1440,15 @@
     },
     {
       "path": "src/release-route/repo.mjs",
-      "bytes": 5495
+      "bytes": 7427
     },
     {
       "path": "src/release-route/report.mjs",
-      "bytes": 6054
+      "bytes": 6105
     },
     {
       "path": "src/release-route/rules.mjs",
-      "bytes": 6941
+      "bytes": 14545
     },
     {
       "path": "src/release-route/settings.mjs",
@@ -1452,7 +1460,11 @@
     },
     {
       "path": "src/release-route/step-common.mjs",
-      "bytes": 5851
+      "bytes": 6573
+    },
+    {
+      "path": "src/release-route/tag.mjs",
+      "bytes": 2141
     },
     {
       "path": "src/shared/append-whole.mjs",

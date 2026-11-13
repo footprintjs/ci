@@ -1,6 +1,7 @@
 // Wiring only: the plan chart. Read the request; then, side by side, the tip of main, the tool
-// commit, the settings and package.json; gather; then, side by side, the tag, npm and the
-// changelog (they need the version and the name); gather; then the decision (decision.mjs).
+// commit, the settings, package.json and the caller's pins; gather; then, side by side, the tag
+// with its release, npm and the changelog (they need the version and the name); gather; then the
+// decision (decision.mjs).
 // Every stage is its own file under stages/; the doors (git, fetch, env) are bound here and
 // never enter state. The stages are data (PLAN_STAGES), so a test can stand one in for another.
 import { flowChart } from 'footprintjs';
@@ -10,13 +11,14 @@ import { CHANGELOG } from './stages/changelog.mjs';
 import { gather } from './stages/gather.mjs';
 import { NPM } from './stages/npm.mjs';
 import { PACKAGE } from './stages/package.mjs';
+import { PINS } from './stages/pins.mjs';
 import { REQUEST } from './stages/request.mjs';
 import { SETTINGS } from './stages/settings.mjs';
 import { TAG } from './stages/tag.mjs';
 import { TIP } from './stages/tip.mjs';
 import { TOOL } from './stages/tool.mjs';
 
-export const FIRST_LOOKS = Object.freeze([TIP, TOOL, SETTINGS, PACKAGE]);
+export const FIRST_LOOKS = Object.freeze([TIP, TOOL, SETTINGS, PACKAGE, PINS]);
 export const SECOND_LOOKS = Object.freeze([TAG, NPM, CHANGELOG]);
 export const PLAN_STAGES = Object.freeze({
   request: REQUEST,

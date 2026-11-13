@@ -16,10 +16,22 @@ const bump = (version, section = true) => ({ ...withPkg({ version }), 'CHANGELOG
 const without = (name) => Object.fromEntries(Object.entries(FILES).filter(([path]) => path !== name));
 const unnamed = (() => { const { name, ...rest } = pkg; return { ...FILES, 'package.json': Buffer.from(JSON.stringify(rest)) }; })();
 const next = { files: bump('0.13.2'), lsRemote: '' };
+const RELEASE = (version) => `https://api.github.com/repos/footprintjs/storydeck/releases/tags/v${version}`;
+const TAGGED_HERE = `${'a3936e304d8670f7fcec40d227df1309a994d46c'}\trefs/tags/v0.13.1\n`;
+const NO_RELEASE = { ...ROUTES, [RELEASE('0.13.1')]: answer('{"message":"Not Found"}', 404) };
+const pinned = (pin) => ({ ...FILES, '.github/workflows/publish.yml': Buffer.from(`    uses: footprintjs/ci/.github/workflows/release-route.yml@${pin}\n`) });
 
 const PLAN_CASES = [
   ['today: released', {}, 'released'],
-  ['dry run from a branch', { extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/x' } }, 'dry-run-released'],
+  ['dry run from a branch', { extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/x' } }, 'dry-run-not-released-commit'],
+  ['dry run at the tagged commit', { lsRemote: TAGGED_HERE, extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/x' } }, 'dry-run-released'],
+  ['finish: tagged here, on npm, no GitHub release', { lsRemote: TAGGED_HERE, routes: NO_RELEASE }, 'finish'],
+  ['no GitHub release, the tag at an older commit', { routes: NO_RELEASE }, 'finish-tag-elsewhere'],
+  ['no GitHub release, off main', { lsRemote: TAGGED_HERE, routes: NO_RELEASE, extra: { GITHUB_REF: 'refs/heads/x' } }, 'finish-off-main'],
+  ['no GitHub release, not the tip', { lsRemote: TAGGED_HERE, routes: NO_RELEASE, mainTip: 'f'.repeat(40) }, 'finish-not-tip'],
+  ['GitHub releases 502', { routes: { ...ROUTES, [RELEASE('0.13.1')]: answer('{}', 502) } }, 'facts-unreadable'],
+  ['a workflow pins the route elsewhere', { files: pinned('main') }, 'pins-differ'],
+  ['a workflow pins the route here', { files: pinned(TOOL) }, 'released'],
   ['0.13.2 publish', next, 'publish'],
   ['0.13.2 dry run', { ...next, extra: { ROUTE_ACTION: 'dry-run' } }, 'dry-run-would-publish'],
   ['0.13.2 off main', { ...next, extra: { GITHUB_REF: 'refs/heads/x' } }, 'publish-off-main'],
@@ -31,7 +43,8 @@ const PLAN_CASES = [
   ['recover as a dry run', { lsRemote: '', extra: { ROUTE_ACTION: 'dry-run' } }, 'dry-run-recover'],
   ['recover off main', { lsRemote: '', extra: { GITHUB_REF: 'refs/heads/x' } }, 'recover-off-main'],
   ['unfinished, not the tip', { lsRemote: '', mainTip: 'f'.repeat(40) }, 'unfinished-not-tip'],
-  ['a tag without the package', { files: bump('0.13.2'), lsRemote: `${'a'.repeat(40)}\trefs/tags/v0.13.2\n` }, 'tag-without-package'],
+  ['a tag without the package', { files: bump('0.13.2'), lsRemote: `${'a'.repeat(40)}\trefs/tags/v0.13.2\n`,
+    routes: { ...ROUTES, [RELEASE('0.13.2')]: answer('{"message":"Not Found"}', 404) } }, 'tag-without-package'],
   ['private', { files: withPkg({ private: true }) }, 'package-private'],
   ['no name', { files: unnamed }, 'package-unnamed'],
   ['a bad name', { files: withPkg({ name: 'Bad Name' }) }, 'facts-unreadable'],

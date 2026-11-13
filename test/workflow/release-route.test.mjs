@@ -4,11 +4,13 @@
 // release-check.test.mjs. Each test names the rule it holds.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { RULES } from '../../src/release-route/rules.mjs';
 import { parseCondition, pathsOf } from './support/expression.mjs';
-import { HOLD_ACTION, PINS, TOOL_GUARD, isCheckout, isToolCheckout, leaves, readWorkflow, stepNamed } from './support/route-workflow.mjs';
+import { HOLD_ACTION, PINS, RELEASE_CREATE, TOOL_GUARD, isCheckout, isToolCheckout, leaves, readWorkflow, stepNamed } from './support/route-workflow.mjs';
 import { parseYaml } from './support/yaml-subset.mjs';
 
 const { text, yaml } = readWorkflow('release-route.yml');
@@ -73,17 +75,21 @@ test('every action is pinned by full commit, with its release in a comment; no o
     const [, name, sha, release] = /uses: ([^@]+)@([a-f0-9]{40}) # (v\d+\.\d+\.\d+)$/.exec(line) ?? [];
     assert.deepEqual([sha, release], PINS[name], line);
   }
-  // The three pins this repository already uses elsewhere are the same commits.
-  const others = ['check.yml', 'hold.yml', 'structure-report.yml'].map((name) => readFileSync(`.github/workflows/${name}`, 'utf8')).join('\n');
-  for (const name of ['actions/checkout', 'actions/setup-node', 'actions/upload-artifact']) assert.ok(others.includes(`${name}@${PINS[name][0]}`), name);
+  // release-check.yml uses the same pins, line for line.
+  const check = readWorkflow('release-check.yml').text;
+  for (const line of check.split('\n').filter((l) => /^\s*(- )?uses: /.test(l))) {
+    const [, name, sha, release] = /uses: ([^@]+)@([a-f0-9]{40}) # (v\d+\.\d+\.\d+)$/.exec(line) ?? [];
+    assert.deepEqual([sha, release], PINS[name], line);
+  }
 });
 
-test('no cache restore or save anywhere (W5): no cache action, no cache input; setup-node v4 caches only when asked', () => {
+test('no cache restore or save anywhere (W5): no cache action, no cache input but setup-node\'s automatic cache turned off', () => {
   for (const [id, step] of allSteps()) {
     assert.doesNotMatch(String(step.uses ?? ''), /cache/, id);
-    for (const key of Object.keys(step.with ?? {})) assert.doesNotMatch(key, /cache/, `${id}: ${key}`);
+    for (const [key, value] of Object.entries(step.with ?? {}))
+      if (/cache/.test(key)) assert.deepEqual([key, value, String(step.uses).startsWith('actions/setup-node@')], ['package-manager-cache', false, true], `${id}: ${key}`);
   }
-  assert.doesNotMatch(body, /cache/i);
+  assert.doesNotMatch(body.replaceAll('"package-manager-cache":false', ''), /cache/i);
 });
 
 test('every checkout leaves no credentials behind; the tool is footprintjs/ci at this workflow\'s commit, the caller at the planned commit', () => {
@@ -146,7 +152,7 @@ test('W4: the build job hands on ONE artifact and nothing else; no job reads its
 test('W5: the build job: contents read only, its steps in order, nothing after the build but the upload', () => {
   assert.deepEqual(jobs.build.steps.map((step) => step.name), [TOOL_GUARD.name, 'Check out the release tool at this workflow\'s commit',
     'Check out the caller at the planned commit', 'Node the settings name', 'Unpack the pinned npm', 'Build', 'Hand on the package (the one thing other jobs may read)']);
-  assert.deepEqual(stepNamed(jobs.build, 'Node the settings name').with, { 'node-version': '${{ needs.plan.outputs.node }}' });
+  assert.deepEqual(stepNamed(jobs.build, 'Node the settings name').with, { 'node-version': '${{ needs.plan.outputs.node }}', 'package-manager-cache': false });
   assert.deepEqual(stepNamed(jobs.build, 'Build').env, { ROUTE_COMMIT: '${{ needs.plan.outputs.commit }}', ROUTE_OUT: '${{ runner.temp }}/out',
     ROUTE_NPM_DIR: '${{ runner.temp }}/npm', ROUTE_SOURCE: 'source' });
   assert.doesNotMatch(JSON.stringify(jobs.build), /token|secret/i, 'no token reaches the job that runs the caller\'s code');
@@ -200,18 +206,35 @@ test('W8, W9: the release job acts on tag\'s answers in the same job, create-onl
   assert.deepEqual(steps.slice(4).map((step) => [step.name, step.id ?? null, step.if ?? null]), [
     ['Ask about the tag and the GitHub release', 'tag', null],
     ['Write the release title and notes to files', null, null],
-    ['Create the tag', null, "${{ steps.tag.outputs.tag == 'create' }}"],
+    // Correction 7: the tag is created only in the modes that verified npm's bytes first; finish never makes one.
+    ['Create the tag', null, "${{ steps.tag.outputs.tag == 'create' && (needs.plan.outputs.mode == 'publish' || needs.plan.outputs.mode == 'recover') }}"],
     ['Create the GitHub release', null, "${{ steps.tag.outputs.release == 'create' }}"],
   ]);
   assert.equal(stepNamed(jobs.release, 'Create the tag').run,
     'gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/v$ROUTE_VERSION" -f "sha=$ROUTE_COMMIT" --silent');
-  assert.equal(stepNamed(jobs.release, 'Create the GitHub release').run,
-    'title="$(cat -- "$ROUTE_OUT/title.txt")"\ngh release create "v$ROUTE_VERSION" --verify-tag --title "$title" --notes-file "$ROUTE_OUT/notes.md"\n');
+  assert.equal(stepNamed(jobs.release, 'Create the GitHub release').run, RELEASE_CREATE);
+  assert.equal(stepNamed(jobs.release, 'Ask about the tag and the GitHub release').env.ROUTE_MODE, '${{ needs.plan.outputs.mode }}');
   assert.equal(stepNamed(jobs.release, 'Write the release title and notes to files').env.ROUTE_OUT, stepNamed(jobs.release, 'Create the GitHub release').env.ROUTE_OUT);
   assert.doesNotMatch(body, /--force|-f force|force=|PATCH|git push|git tag/);
   // notes.md appears in exactly one place: the --notes-file argument.
   assert.equal(body.match(/notes\.md/g).length, 1);
   for (const [, step] of allSteps()) assert.doesNotMatch(String(step.run ?? ''), /\b(cat|echo|printf|head|tail|less|more)\b[^\n]*notes/);
+});
+
+// Correction 8: "Latest" on purpose. The release step, run by bash as the runner runs it, with `gh`
+// standing in as a function that prints its arguments: yes gives --latest, no gives --latest=false,
+// and anything else (empty, a cut value, a look-alike) creates nothing and exits 1.
+test('the release step marks "Latest" only for the newest version, and refuses a latest that is not yes or no', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'route-latest-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'title.txt'), 'v1.4.0 \u2014 a title\n');
+  const run = (latest) => spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', `gh() { printf '<%s>' "$@"; }\n${RELEASE_CREATE}`],
+    { env: { PATH: process.env.PATH, ROUTE_LATEST: latest, ROUTE_VERSION: '1.4.0', ROUTE_OUT: dir }, encoding: 'utf8' });
+  const notes = `<--notes-file><${dir}/notes.md>`;
+  assert.deepEqual([run('yes').status, run('yes').stdout], [0, `<release><create><v1.4.0><--verify-tag><--latest><--title><v1.4.0 \u2014 a title>${notes}`]);
+  assert.deepEqual([run('no').status, run('no').stdout], [0, `<release><create><v1.4.0><--verify-tag><--latest=false><--title><v1.4.0 \u2014 a title>${notes}`]);
+  for (const bad of ['', 'YES', 'true', 'yes ', 'n', 'no\n'])
+    assert.deepEqual([run(bad).status, run(bad).stdout.includes('<create>')], [1, false], JSON.stringify(bad));
 });
 
 test('W10: no ${{ }} inside any run: line; every value reaches a script through env:', () => {
@@ -220,8 +243,8 @@ test('W10: no ${{ }} inside any run: line; every value reaches a script through 
   const ALLOWED = {
     if: /^needs\.(plan|hold|build|publish|verify)\.result$|^needs\.plan\.outputs\.(mode|compare)$|^steps\.(ready\.outputs\.publish|tag\.outputs\.(tag|release))$/,
     with: /^(needs\.plan\.outputs\.(commit|node)|job\.workflow_sha|github\.sha|runner\.temp|github\.run_attempt)$/,
-    env: /^(needs\.plan\.outputs\.(commit|package|version)|inputs\.action|job\.workflow_sha|runner\.temp|github\.(token|repository))$/,
-    outputs: /^steps\.plan\.outputs\.(rule|commit|package|version|node|compare|mode)$/,
+    env: /^(needs\.plan\.outputs\.(commit|package|version|mode|latest)|inputs\.action|job\.workflow_sha|runner\.temp|github\.(token|repository))$/,
+    outputs: /^steps\.plan\.outputs\.(rule|commit|package|version|node|latest|compare|mode)$/,
   };
   for (const [path, value] of leaves(yaml)) {
     if (typeof value !== 'string' || !value.includes('${{')) continue;
@@ -232,17 +255,28 @@ test('W10: no ${{ }} inside any run: line; every value reaches a script through 
   }
 });
 
-test('W11: the caller in the doc keeps one run per ref at a time, never cancelling one in progress', () => {
+// Correction 4: GitHub keeps one waiting run per concurrency group, so with one group per ref a manual
+// dry run queued behind a running release could cancel a release push still waiting (GitHub's rule,
+// read by the second reader of storydeck pull request 46; not seen in a run). Runs that may publish (a push, a dispatch of publish) share a group; a
+// dry run has its own.
+const CALLER_GROUP = "release-${{ github.ref }}-${{ github.event_name == 'push' && 'publish' || inputs.action }}";
+test('W11: the caller in the doc keeps one run that may publish per ref at a time, never cancelling one in progress, and a dry run in its own group', () => {
   const doc = readFileSync('docs/RELEASE-ROUTE.md', 'utf8');
   const from = doc.indexOf('<!-- caller -->');
   const block = doc.slice(from, doc.indexOf('<!-- /caller -->'));
   const caller = parseYaml(/```yaml\n([\s\S]*?)```/.exec(block)[1]);
-  assert.deepEqual(caller.concurrency, { group: 'release-${{ github.ref }}', 'cancel-in-progress': false });
+  assert.deepEqual(caller.concurrency, { group: CALLER_GROUP, 'cancel-in-progress': false });
   assert.deepEqual(caller.permissions, {});
   const [job] = Object.values(caller.jobs);
   assert.match(job.uses, /^footprintjs\/ci\/\.github\/workflows\/release-route\.yml@[a-f0-9]{40}$/);
   assert.deepEqual(job.permissions, { contents: 'write', 'id-token': 'write', issues: 'read', 'pull-requests': 'read' });
-  assert.deepEqual(Object.keys(job.with), ['action']);
+  // The caller passes exactly the route's inputs, and the action expression is the one the group reads.
+  assert.deepEqual(Object.keys(job.with), Object.keys(yaml.on.workflow_call.inputs));
+  assert.equal(job.with.action, "${{ github.event_name == 'push' && 'publish' || inputs.action }}");
+  assert.ok(CALLER_GROUP.endsWith(`-${job.with.action}`));
+  // The dispatch offers the two actions, dry-run by default.
+  assert.deepEqual(caller.on.workflow_dispatch.inputs.action.options, ['dry-run', 'publish']);
+  assert.equal(caller.on.workflow_dispatch.inputs.action.default, 'dry-run');
   assert.equal(Object.hasOwn(job, 'secrets'), false);
 });
 
@@ -285,7 +319,7 @@ test('W14: plan and verify run charted only, with ROUTE_RECORD_DIR set, and thei
 });
 
 test('the plan job hands on exactly the plan step\'s outputs', () => {
-  const NAMES = ['rule', 'commit', 'package', 'version', 'node', 'compare', 'mode'];
+  const NAMES = ['rule', 'commit', 'package', 'version', 'node', 'latest', 'compare', 'mode'];
   assert.deepEqual(jobs.plan.outputs, Object.fromEntries(NAMES.map((name) => [name, `\${{ steps.plan.outputs.${name} }}`])));
   assert.deepEqual(stepNamed(jobs.plan, 'Plan (charted)').env, { ROUTE_ACTION: '${{ inputs.action }}', ROUTE_TOOL_SHA: '${{ job.workflow_sha }}',
     ROUTE_SOURCE: 'source', ROUTE_RECORD_DIR: '${{ runner.temp }}/plan-record', GITHUB_TOKEN: '${{ github.token }}' });

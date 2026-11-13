@@ -1,0 +1,37 @@
+# The release route for footprint-storydeck. Every step (plan, build, inspect, publish, compare with npm,
+# tag, GitHub release) lives in footprintjs/ci, pinned below by full commit; what differs for this
+# package is .github/release.json. Keep this file's name, publish.yml, and its name line: npm's trusted
+# publisher for the package is bound to the repository + publish.yml. How to release: RELEASING.md here,
+# and footprintjs/ci docs/RELEASE-ROUTE.md for the route itself.
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "dry-run = build and compare, publish nothing. publish = release what main names."
+        type: choice
+        options: [dry-run, publish]
+        default: dry-run
+
+permissions: {}
+
+# Runs that may publish queue behind each other per ref and are never cancelled while running. A dry
+# run has a group of its own: GitHub keeps only ONE waiting run per group, so a dry run sharing the
+# group would cancel a release push that is still waiting, and that version would stay unpublished.
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event_name == 'push' && 'publish' || inputs.action }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: footprintjs/ci/.github/workflows/release-route.yml@67dc3738bfba1e8cdf960b0301450db6ff410692 # the reviewed ci commit
+    permissions:
+      contents: write
+      id-token: write
+      issues: read
+      pull-requests: read
+    with:
+      action: ${{ github.event_name == 'push' && 'publish' || inputs.action }}

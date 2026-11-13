@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { parseCondition } from './support/expression.mjs';
+import { evaluate, parseCondition } from './support/expression.mjs';
 import { readWorkflow, simulate } from './support/route-workflow.mjs';
 
 const { yaml } = readWorkflow('release-route.yml');
@@ -18,6 +18,7 @@ const NAMES = { rule: 'some-rule', commit: 'a'.repeat(40), package: 'footprint-s
 const MODES = {
   publish: { ...NAMES, node: '22', mode: 'publish', compare: 'yes' },
   recover: { ...NAMES, node: '22', mode: 'recover', compare: 'yes' },
+  finish: { ...NAMES, node: '22', mode: 'finish', compare: 'no' },
   'dry-run compare=yes': { ...NAMES, node: '22', mode: 'dry-run', compare: 'yes' },
   'dry-run compare=no': { ...NAMES, node: '22', mode: 'dry-run', compare: 'no' },
   nothing: { ...NAMES, node: '22', mode: 'nothing', compare: 'no' },
@@ -57,7 +58,8 @@ const EXPECTED = {
   publish: (w) => !w.cancelled && mode(w) === 'publish' && ok(w.state, 'build'),
   verify: (w) => !w.cancelled && w.plan.result === 'success' && w.plan.outputs.compare === 'yes' && ok(w.state, 'build') &&
     (mode(w) !== 'publish' || ['success', 'failure'].includes(w.state.publish.result)),
-  release: (w) => !w.cancelled && ['publish', 'recover'].includes(mode(w)) && ok(w.state, 'verify'),
+  // finish writes only the GitHub release for a tag that exists: no build, no verify, the release job alone.
+  release: (w) => !w.cancelled && ((['publish', 'recover'].includes(mode(w)) && ok(w.state, 'verify')) || mode(w) === 'finish'),
 };
 
 test('every job but plan starts its condition with !cancelled(), so the condition alone decides', () => {
@@ -89,11 +91,24 @@ test('no job runs because a job it needs FAILED, except verify after a failed pu
     }
 });
 
-test('nothing writes (publish, release) unless the plan PASSED with mode publish or recover', () => {
+test('nothing writes (publish, release) unless the plan PASSED with mode publish, recover or finish; finish runs nothing but the release job', () => {
   for (const world of worlds()) {
     if (world.state.publish.result !== 'skipped') assert.equal(mode(world), 'publish');
-    if (world.state.release.result !== 'skipped') assert.ok(['publish', 'recover'].includes(mode(world)));
+    if (world.state.release.result !== 'skipped') assert.ok(['publish', 'recover', 'finish'].includes(mode(world)));
+    if (mode(world) === 'finish') assert.deepEqual(LATER.filter((id) => world.state[id].result !== 'skipped'), world.cancelled ? [] : ['release']);
   }
+});
+
+// The finish clause's `needs.verify.result == 'skipped'` half (review, workflow-yaml-2 and tests-5):
+// the simulator cannot make verify run under finish (verify needs a build), so the walk above cannot
+// see it; evaluate the release job's condition directly. A finish plan whose verify somehow ran is
+// not a finish the route planned, and the release job must not act on it.
+test('the release job runs for finish only with verify skipped', () => {
+  const tree = parseCondition(jobs.release.if);
+  const plan = { result: 'success', outputs: MODES.finish };
+  const runs = (verify) => evaluate(tree, { cancelled: false, needs: { plan, verify: { result: verify, outputs: {} } } });
+  assert.equal(runs('skipped'), true);
+  for (const verify of ['success', 'failure', 'cancelled']) assert.equal(runs(verify), false, verify);
 });
 
 // The table in the doc, computed again. Each row: the case, then whether each later job runs.
@@ -113,6 +128,7 @@ const CASES = [
   ['`recover`, every job green', { plan: { result: 'success', outputs: MODES.recover } }],
   ['`recover`, build red', { plan: { result: 'success', outputs: MODES.recover }, results: { build: 'failure' } }],
   ['`recover`, verify red', { plan: { result: 'success', outputs: MODES.recover }, results: { verify: 'failure' } }],
+  ['`finish`', { plan: { result: 'success', outputs: MODES.finish } }],
   ['`dry-run`, compare=yes, every job green', { plan: { result: 'success', outputs: MODES['dry-run compare=yes'] } }],
   ['`dry-run`, compare=no, every job green', { plan: { result: 'success', outputs: MODES['dry-run compare=no'] } }],
   ['`dry-run`, hold red', { plan: { result: 'success', outputs: MODES['dry-run compare=yes'] }, results: { hold: 'failure' } }],

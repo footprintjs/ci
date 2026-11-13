@@ -12,20 +12,27 @@ import { observe } from '../../src/release-route/observe.mjs';
 import { plan } from '../../src/release-route/plan.mjs';
 import { blobId, recordedGit } from './recorded-git.mjs';
 import { fakeFetch, json } from './fake-fetch.mjs';
+import { WORKFLOWS } from './storydeck-today.mjs';
 
 const fixture = (path) => readFileSync(new URL(`fixtures/${path}`, import.meta.url));
 const COMMIT = 'a3936e304d8670f7fcec40d227df1309a994d46c';
 const TOOL = '1df988109047e3143c71bf459f3e10c968376e13';
+// GitHub's release for tag v0.13.1, read 2026-11-13 (trimmed to four fields).
+const RELEASE = 'https://api.github.com/repos/footprintjs/storydeck/releases/tags/v0.13.1';
 const today = {
   'package.json': fixture('storydeck-today/package.json'),
   'CHANGELOG.md': fixture('storydeck-today/CHANGELOG.md'),
   '.github/release.json': fixture('family/storydeck.release.json'),
+  // storydeck's two caller files (main d7eef62), pinned at the tool commit of these runs.
+  ...WORKFLOWS,
 };
 const npmRoutes = {
   'https://registry.npmjs.org/footprint-storydeck': json(fixture('npm/footprint-storydeck.abbrev.json').toString()),
   [`https://api.github.com/repos/footprintjs/ci/compare/main...${TOOL}?per_page=1`]: json(fixture('github/compare-behind.json').toString()),
+  [RELEASE]: json(fixture('github/release-storydeck-v0.13.1.json').toString()),
 };
-const env = (extra = {}) => ({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL, ...extra });
+const env = (extra = {}) => ({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL,
+  GITHUB_REPOSITORY: 'footprintjs/storydeck', ...extra });
 // The tip of main as github.com answered on 2026-11-12 (`git ls-remote origin refs/heads/main`).
 const TIP = fixture('storydeck-today/ls-remote-main.txt').toString().split('\t')[0];
 async function run({ files = today, lsRemote = fixture('storydeck-today/ls-remote.txt').toString(), routes = npmRoutes, extra, mainTip = TIP } = {}) {
@@ -46,15 +53,100 @@ test('the fixtures are the real storydeck blobs at a3936e3 (package.json with it
 test('footprint-storydeck 0.13.1 on main today: nothing to do', async () => {
   const { observed, result } = await run();
   assert.deepEqual(observed.facts, { action: 'publish', refIsMain: true, commitIsMainTip: true, toolCommitPlain: true, toolReviewed: true, settingsRead: true,
-    packageNamed: true, packagePrivate: false, versionPlain: true, tagExists: true, packageKnown: true, npmHasVersion: true,
-    versionNewer: false, changelogFound: true });
+    packageNamed: true, packagePrivate: false, versionPlain: true, pinsAgree: true, tagExists: true, tagAtCommit: false, releaseExists: true,
+    packageKnown: true, npmHasVersion: true, versionNewer: false, changelogFound: true });
   assert.deepEqual([result.rule, result.mode], ['released', 'nothing']);
-  assert.deepEqual(observed.context, { commit: COMMIT, name: 'footprint-storydeck', version: '0.13.1', changelogStyle: 'titled', node: '22' });
+  assert.deepEqual(observed.context, { commit: COMMIT, name: 'footprint-storydeck', version: '0.13.1', changelogStyle: 'titled', node: '22', latest: 'yes' });
 });
 
-test('the same day as a dry run compares the rebuild with npm', async () => {
-  const { result } = await run({ extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/some-branch' } });
+// Correction 1, the fault itself: main a3936e3 is a later commit than the one tagged v0.13.1
+// (c94c2a6), and two of its shipped files differ from what npm serves, so a compare could only be
+// red (storydeck runs 43334890647 and 43336400518). This case planned compare=yes before.
+test('the same day as a dry run: the tag names another commit, so nothing is compared with npm', async () => {
+  const { observed, result } = await run({ extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/some-branch' } });
+  assert.equal(observed.facts.tagAtCommit, false);
+  assert.deepEqual([result.rule, result.mode, result.compare], ['dry-run-not-released-commit', 'dry-run', 'no']);
+});
+
+test('a dry run AT the tagged commit compares the rebuild with npm (a real reproducibility check)', async () => {
+  const tagged = `${COMMIT}\trefs/tags/v0.13.1\n`;
+  const { observed, result } = await run({ lsRemote: tagged, extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/some-branch' } });
+  assert.equal(observed.facts.tagAtCommit, true);
   assert.deepEqual([result.rule, result.mode, result.compare], ['dry-run-released', 'dry-run', 'yes']);
+  // An annotated tag is read by its peeled line, the commit it names.
+  const annotated = `${'e'.repeat(40)}\trefs/tags/v0.13.1\n${COMMIT}\trefs/tags/v0.13.1^{}\n`;
+  assert.equal((await run({ lsRemote: annotated })).observed.facts.tagAtCommit, true);
+});
+
+// Correction 7: the tag and npm have the version but GitHub has no release.
+test('no GitHub release for the tag: finish at the tagged commit, a named refusal at a later tip, unreadable when GitHub does not answer', async () => {
+  const tagged = `${COMMIT}\trefs/tags/v0.13.1\n`;
+  const missing = { ...npmRoutes, [RELEASE]: json({ message: 'Not Found' }, 404) };
+  const finish = await run({ lsRemote: tagged, routes: missing });
+  assert.deepEqual([finish.observed.facts.releaseExists, finish.result.rule, finish.result.mode, finish.result.compare], [false, 'finish', 'finish', 'no']);
+  const later = await run({ routes: missing });
+  assert.deepEqual([later.result.rule, later.result.refuse], ['finish-tag-elsewhere', 'tag-elsewhere']);
+  const offMain = await run({ lsRemote: tagged, routes: missing, extra: { GITHUB_REF: 'refs/heads/x' } });
+  assert.deepEqual([offMain.result.rule, offMain.result.refuse], ['finish-off-main', 'finish-off-main']);
+  const old = await run({ lsRemote: tagged, routes: missing, mainTip: 'f'.repeat(40) });
+  assert.deepEqual([old.result.rule, old.result.mode], ['finish-not-tip', 'nothing']);
+  const down = await run({ routes: { ...npmRoutes, [RELEASE]: json({}, 502) } });
+  assert.deepEqual([down.observed.facts.releaseExists, down.observed.causes.releaseExists.code, down.result.rule], [null, 'response-status', 'facts-unreadable']);
+  const other = await run({ routes: { ...npmRoutes, [RELEASE]: json({ tag_name: 'v0.13.0', draft: false }) } });
+  assert.deepEqual([other.observed.causes.releaseExists.code, other.result.rule], ['release-unexpected', 'facts-unreadable']);
+  // No tag: nothing is asked of GitHub's releases, and the facts are false.
+  const files = bumped('0.13.2', '\n## 0.13.2 \u2014 a test\n\n- x\n');
+  const { fetcher, calls } = fakeFetch(npmRoutes);
+  const observed = await observe({ env: env(), git: recordedGit({ commit: COMMIT, files, lsRemote: '', mainTip: TIP }).git, fetcher });
+  assert.deepEqual([observed.facts.tagExists, observed.facts.tagAtCommit, observed.facts.releaseExists], [false, false, false]);
+  assert.equal(calls.some((call) => call.url.includes('/releases/')), false);
+  // The token goes to the fixed host in one header.
+  const asked = fakeFetch({ ...npmRoutes });
+  await observe({ env: env({ GITHUB_TOKEN: 'ghs_x' }), git: recordedGit({ commit: COMMIT, files: today, lsRemote: fixture('storydeck-today/ls-remote.txt').toString(), mainTip: TIP }).git,
+    fetcher: asked.fetcher });
+  const releaseCall = asked.calls.find((call) => call.url === RELEASE);
+  assert.equal(releaseCall.headers.authorization, 'Bearer ghs_x');
+  // A bad repository name is never put in a URL.
+  const badRepo = await run({ extra: { GITHUB_REPOSITORY: '../x' } });
+  assert.deepEqual([badRepo.observed.causes.releaseExists.code, badRepo.observed.causes.releaseExists.detail], ['input-invalid', 'GITHUB_REPOSITORY']);
+});
+
+// Correction 8: whether the version is (or, once published, will be) the newest npm has.
+test('latest: yes for the newest version, no for an older one, yes for a version about to be published', async () => {
+  assert.equal((await run()).observed.context.latest, 'yes');
+  const doc = (...versions) => json({ name: 'footprint-storydeck', versions: Object.fromEntries(versions.map((version) => [version, { version }])) });
+  const newer = { ...npmRoutes, 'https://registry.npmjs.org/footprint-storydeck': doc('0.13.1', '0.14.0') };
+  assert.equal((await run({ routes: newer })).observed.context.latest, 'no');
+  const files = bumped('0.13.2', '\n## 0.13.2 \u2014 a test\n\n- x\n');
+  assert.equal((await run({ files, lsRemote: '' })).observed.context.latest, 'yes');
+  // A plain version is newer than its own prereleases, older than the next one's.
+  assert.equal((await run({ routes: { ...npmRoutes, 'https://registry.npmjs.org/footprint-storydeck': doc('0.13.1', '0.13.1-rc.0') } })).observed.context.latest, 'yes');
+  assert.equal((await run({ routes: { ...npmRoutes, 'https://registry.npmjs.org/footprint-storydeck': doc('0.13.1', '0.13.2-rc.0') } })).observed.context.latest, 'no');
+});
+
+// Correction 5, through observe: the caller's workflow files at the planned commit.
+test('pinsAgree: every route line pins the commit running; the first that does not is kept, cleaned, for the refusal', async () => {
+  const at = (pin) => `    uses: footprintjs/ci/.github/workflows/release-route.yml@${pin} # the reviewed ci commit\n`;
+  const withFiles = (extra) => ({ ...today, ...Object.fromEntries(Object.entries(extra).map(([name, text]) => [`.github/workflows/${name}`, Buffer.from(text)])) });
+  const agree = await run({ files: withFiles({ 'publish.yml': at(TOOL), 'ci.yaml': `  release-check:\n    uses: footprintjs/ci/.github/workflows/release-check.yml@${TOOL}\n` }) });
+  assert.equal(agree.observed.facts.pinsAgree, true);
+  const differ = await run({ files: withFiles({ 'publish.yml': at(TOOL), 'pr.yml': at('main') }) });
+  assert.deepEqual([differ.observed.facts.pinsAgree, differ.observed.context.pinsDiffer, differ.result.rule], [false, 'pr.yml pins main', 'pins-differ']);
+  // Not asked for a tool commit that is not plain (tool-commit-invalid names that first).
+  const notPlain = await run({ files: withFiles({ 'pr.yml': at('main') }), extra: { ROUTE_TOOL_SHA: 'main' } });
+  assert.deepEqual([notPlain.observed.facts.pinsAgree, notPlain.result.rule], [undefined, 'tool-commit-invalid']);
+  // No route pin at all (a commit whose workflow files name no route) and a pin spelled another way
+  // are unreadable, never agreement.
+  const { '.github/workflows/publish.yml': _p, '.github/workflows/release-check.yml': _c, ...noWorkflows } = today;
+  const none = await run({ files: noWorkflows });
+  assert.deepEqual([none.observed.facts.pinsAgree, none.observed.causes.pinsAgree.detail, none.result.rule],
+    [null, 'no route pin in .github/workflows', 'facts-unreadable']);
+  const flow = await run({ files: withFiles({ 'odd.yml': `jobs:\n  release: { uses: footprintjs/ci/.github/workflows/release-route.yml@main }\n` }) });
+  assert.deepEqual([flow.observed.facts.pinsAgree, flow.observed.causes.pinsAgree.detail], [null, 'odd.yml: a route pin not on a plain uses line']);
+  // A symlinked workflow file is unreadable, never followed.
+  const linked = recordedGit({ commit: COMMIT, files: withFiles({ 'publish.yml': at(TOOL) }), modes: { '.github/workflows/publish.yml': '120000 blob' } });
+  const observed = await observe({ env: env(), git: linked.git, fetcher: fakeFetch(npmRoutes).fetcher });
+  assert.deepEqual([observed.facts.pinsAgree, observed.causes.pinsAgree.code], [null, 'workflows-unreadable']);
 });
 
 const bumped = (version, changelogHead) => ({

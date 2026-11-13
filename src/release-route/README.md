@@ -14,5 +14,8 @@ Two rules to keep when changing anything here:
 - Every stop is a code in `refusals.mjs`. A new stop adds its code and sentence there and a test
   that names it; `refusals-coverage.test.mjs` fails otherwise.
 - The decision is `rules.mjs`, data only. A new row that overlaps a later one with a different
-  result declares it in `outranks`, and a mode that writes requires `refIsMain: true`;
-  `plan.test.mjs` fails otherwise.
+  result declares it in `outranks`, a mode that writes requires `refIsMain: true` and
+  `commitIsMainTip: true`, and every row says what it decided in its own sentence (`says`), which
+  states no fact the row does not require; `plan.test.mjs` and `rule-sentences.test.mjs` fail
+  otherwise. Example: `not-main-tip` says "npm does not have this version, but this commit is no
+  longer the tip of main", never "the version is tagged".

@@ -16,7 +16,7 @@
 //   resolves against the workspace, by GitHub's rule).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { HOLD_ACTION, PINS, TOOL_GUARD, readWorkflow } from './support/route-workflow.mjs';
+import { HOLD_ACTION, PINS, RELEASE_CREATE, SETUP_NODE_WITH, TOOL_GUARD, readWorkflow } from './support/route-workflow.mjs';
 
 const route = readWorkflow('release-route.yml').yaml;
 const check = readWorkflow('release-check.yml').yaml;
@@ -28,7 +28,7 @@ const STEP = '"$GITHUB_WORKSPACE/tool/scripts/release-route.mjs"';
 const CHART = '"$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs"';
 const TOOL_CHECKOUT = { name: 'Check out the release tool at this workflow\'s commit', uses: use('actions/checkout'),
   with: { repository: 'footprintjs/ci', ref: '${{ job.workflow_sha }}', path: 'tool', 'persist-credentials': false } };
-const NODE_22 = { name: 'Node for the tool', uses: use('actions/setup-node'), with: { 'node-version': '22' } };
+const NODE_22 = { name: 'Node for the tool', uses: use('actions/setup-node'), with: { 'node-version': '22', 'package-manager-cache': false } };
 const HOLD_STEP = { name: 'Refuse while a hold-release label is open', uses: HOLD_ACTION };
 const FETCH = { name: 'Fetch the built package', uses: use('actions/download-artifact'), with: { name: 'release-route-package', path: '${{ runner.temp }}/package' } };
 const PLANNED = '${{ needs.plan.outputs.commit }}';
@@ -55,7 +55,7 @@ const BUILD_STEPS = [
   TOOL_GUARD,
   TOOL_CHECKOUT,
   CALLER_AT_PLANNED('Check out the caller at the planned commit'),
-  { name: 'Node the settings name', uses: use('actions/setup-node'), with: { 'node-version': '${{ needs.plan.outputs.node }}' } },
+  { name: 'Node the settings name', uses: use('actions/setup-node'), with: { 'node-version': '${{ needs.plan.outputs.node }}', 'package-manager-cache': false } },
   UNPACK_NPM('Unpack the pinned npm'),
   { name: 'Build', env: { ROUTE_COMMIT: PLANNED, ROUTE_OUT: '${{ runner.temp }}/out', ROUTE_NPM_DIR: '${{ runner.temp }}/npm', ROUTE_SOURCE: 'source' },
     run: `node ${STEP} build` },
@@ -103,17 +103,19 @@ const RELEASE_STEPS = [
   CALLER_AT_PLANNED('Check out the caller at the planned commit'),
   NODE_22,
   { name: 'Ask about the tag and the GitHub release', id: 'tag',
-    env: { ROUTE_COMMIT: PLANNED, ROUTE_VERSION: '${{ needs.plan.outputs.version }}', ROUTE_SOURCE: 'source', GITHUB_TOKEN: '${{ github.token }}' },
+    env: { ROUTE_COMMIT: PLANNED, ROUTE_VERSION: '${{ needs.plan.outputs.version }}', ROUTE_MODE: '${{ needs.plan.outputs.mode }}', ROUTE_SOURCE: 'source',
+      GITHUB_TOKEN: '${{ github.token }}' },
     run: `node ${STEP} tag` },
   { name: 'Write the release title and notes to files',
     env: { ROUTE_COMMIT: PLANNED, ROUTE_OUT: '${{ runner.temp }}/notes', ROUTE_SOURCE: 'source' },
     run: `node ${STEP} notes` },
-  { name: 'Create the tag', if: "${{ steps.tag.outputs.tag == 'create' }}",
+  { name: 'Create the tag', if: "${{ steps.tag.outputs.tag == 'create' && (needs.plan.outputs.mode == 'publish' || needs.plan.outputs.mode == 'recover') }}",
     env: { GH_TOKEN: '${{ github.token }}', ROUTE_COMMIT: PLANNED, ROUTE_VERSION: '${{ needs.plan.outputs.version }}' },
     run: 'gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/v$ROUTE_VERSION" -f "sha=$ROUTE_COMMIT" --silent' },
   { name: 'Create the GitHub release', if: "${{ steps.tag.outputs.release == 'create' }}",
-    env: { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}', ROUTE_VERSION: '${{ needs.plan.outputs.version }}', ROUTE_OUT: '${{ runner.temp }}/notes' },
-    run: 'title="$(cat -- "$ROUTE_OUT/title.txt")"\ngh release create "v$ROUTE_VERSION" --verify-tag --title "$title" --notes-file "$ROUTE_OUT/notes.md"\n' },
+    env: { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}', ROUTE_VERSION: '${{ needs.plan.outputs.version }}',
+      ROUTE_LATEST: '${{ needs.plan.outputs.latest }}', ROUTE_OUT: '${{ runner.temp }}/notes' },
+    run: RELEASE_CREATE },
 ];
 
 test('a step has only the keys name, id, if, uses, with, env, run, in every job of both workflows', () => {
@@ -166,10 +168,13 @@ test('the release job\'s steps, whole: the job that writes the tag and the GitHu
   assert.deepEqual(route.jobs.release.steps, RELEASE_STEPS);
 });
 
-test('no env names NODE_OPTIONS, NODE_PATH or npm_config_*; every setup-node has exactly one input, node-version', () => {
+test('no env names NODE_OPTIONS, NODE_PATH or npm_config_*; every setup-node has exactly node-version and package-manager-cache: false', () => {
   for (const [where, step] of everyStep()) {
     for (const name of Object.keys(step.env ?? {})) assert.doesNotMatch(name, /^(NODE_OPTIONS|NODE_PATH)$|^npm_config_/i, `${where}: ${name}`);
-    if (String(step.uses).startsWith('actions/setup-node@')) assert.deepEqual(Object.keys(step.with), ['node-version'], where);
+    if (String(step.uses).startsWith('actions/setup-node@')) {
+      assert.deepEqual(Object.keys(step.with), SETUP_NODE_WITH, where);
+      assert.equal(step.with['package-manager-cache'], false, where);
+    }
   }
 });
 

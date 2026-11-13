@@ -34,19 +34,19 @@ const code = (fn) => { try { fn(); } catch (error) { return asRefusal(error).cod
 test('why mode: the decision, the rule, each fact with the stage that observed it, and the walk back', async (t) => {
   const lines = explain(readRouteRecord(await savedPlan(t)));
   assert.match(lines[0], /^Why mode = "nothing" in the plan record of run \S+\.$/);
-  assert.equal(lines[1], 'Decision at decide#11: rule released matched.');
+  assert.equal(lines[1], 'Decision at decide#12: rule released matched.');
   assert.deepEqual(lines.slice(2, 5), [
-    'Fact tagExists eq true: was true, holds; observed by Look for the tag (look-tag#6).',
-    'Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#7).',
+    'Fact tagExists eq true: was true, holds; observed by Look for the tag and its release (look-tag#7).',
+    'Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#8).',
     'Fact action eq "publish": was "publish", holds; observed by Read the request (request#0).',
   ]);
-  assert.ok(lines.includes('Walk: . Decide by the rule table (decide#11) ← [control: released]'));
+  assert.ok(lines.includes('Walk: . Decide by the rule table (decide#12) ← [control: released]'));
 });
 
 test('why on a refusal names the rule and the fact that decided it', async (t) => {
   const lines = explain(readRouteRecord(await savedPlan(t, { lsRemote: '', mainTip: 'f'.repeat(40) })));
   assert.match(lines[0], /^Why refusal = "release-unfinished"/);
-  assert.equal(lines[1], 'Decision at decide#11: rule unfinished-not-tip matched.');
+  assert.equal(lines[1], 'Decision at decide#12: rule unfinished-not-tip matched.');
   assert.ok(lines.includes('Fact commitIsMainTip eq false: was false, holds; observed by Look at the tip of main (look-tip#1).'));
 });
 
@@ -133,8 +133,8 @@ test('why names the decision that governs the value asked about, or says that no
 test('why on a fact of the plan: no decision governs it, no rule is named, and one line names the stage that observed it', async (t) => {
   const record = readRouteRecord(await savedPlan(t));
   const lines = explain(record, 'tagExists');
-  assert.equal(lines[1], 'No decision governs tagExists: Gather what was seen (gather-second#9) wrote it, and that stage runs whatever is decided.');
-  assert.equal(lines[2], 'Observed by Look for the tag (look-tag#6).');
+  assert.equal(lines[1], 'No decision governs tagExists: Gather what was seen (gather-second#10) wrote it, and that stage runs whatever is decided.');
+  assert.equal(lines[2], 'Observed by Look for the tag and its release (look-tag#7).');
   assert.ok(!lines.some((line) => line.startsWith('Decision at') || line.startsWith('Fact ')), lines.join('\n'));
   // The look that measured the fact, even where the walk shows it four steps down (R2-N3).
   assert.equal(explain(record, 'commitIsMainTip')[2], 'Observed by Look at the tip of main (look-tip#1).');
@@ -149,13 +149,13 @@ const governedBy = (lines) => lines.find((line) => /^(Observed|Written) by /.tes
 
 test('why on a plan record: a fact or a context value is Observed by, a computed key or the runs container is Written by', async (t) => {
   const record = readRouteRecord(await savedPlan(t));
-  assert.equal(governedBy(explain(record, 'tagExists')), 'Observed by Look for the tag (look-tag#6).');
+  assert.equal(governedBy(explain(record, 'tagExists')), 'Observed by Look for the tag and its release (look-tag#7).');
   assert.equal(governedBy(explain(record, 'action')), 'Observed by Read the request (request#0).');
   assert.equal(governedBy(explain(record, 'commit')), 'Observed by Read the request (request#0).');
   assert.equal(governedBy(explain(record, 'changelogStyle')), 'Observed by Read the settings (look-settings#3).');
   assert.equal(governedBy(explain(record, 'node')), 'Observed by Read the settings (look-settings#3).');
-  assert.equal(governedBy(explain(record, 'factsReadable')), 'Written by Weigh the facts (weigh#10).');
-  assert.equal(governedBy(explain(record, 'runs')), 'Written by Ask npm (look-npm#7).');
+  assert.equal(governedBy(explain(record, 'factsReadable')), 'Written by Weigh the facts (weigh#11).');
+  assert.equal(governedBy(explain(record, 'runs')), 'Written by Look for the tag and its release (look-tag#7).');
 });
 
 test('why on a verify record: a context value is Observed by, a computed key is Written by', async (t) => {

@@ -556,63 +556,213 @@ var FACTS = Object.freeze({
   action: Object.freeze(["publish", "dry-run"]),
   toolCommitPlain: Object.freeze([true, false]),
   toolReviewed: Object.freeze([true, false]),
+  pinsAgree: Object.freeze([true, false]),
   settingsRead: Object.freeze([true]),
   packageNamed: Object.freeze([true, false]),
   packagePrivate: Object.freeze([true, false]),
   versionPlain: Object.freeze([true, false]),
   packageKnown: Object.freeze([true, false]),
   tagExists: Object.freeze([true, false]),
+  tagAtCommit: Object.freeze([true, false]),
+  releaseExists: Object.freeze([true, false]),
   npmHasVersion: Object.freeze([true, false]),
   changelogFound: Object.freeze([true, false]),
   versionNewer: Object.freeze([true, false]),
   refIsMain: Object.freeze([true, false]),
   commitIsMainTip: Object.freeze([true, false])
 });
-var WRITING_MODES = Object.freeze(["publish", "recover"]);
+var WRITING_MODES = Object.freeze(["publish", "recover", "finish"]);
 var row = (value) => Object.freeze({ ...value, when: Object.freeze(value.when) });
+var RELEASED = Object.freeze({ tagExists: true, npmHasVersion: true, action: "publish" });
+var WAY_OUT = "write the release for that tag by hand, or, if the release job of the run that made the tag failed, use Re-run failed jobs on that run while GitHub still allows it";
+var UNFINISHED = Object.freeze({ ...RELEASED, releaseExists: false });
 var RULES = Object.freeze([
-  row({ id: "tool-commit-invalid", when: { toolCommitPlain: false }, refuse: "tool-commit-invalid", outranks: "later" }),
-  row({ id: "tool-not-reviewed", when: { toolReviewed: false }, refuse: "tool-not-reviewed", outranks: "later" }),
-  row({ id: "package-unnamed", when: { packageNamed: false }, refuse: "not-publishable", outranks: "later" }),
-  row({ id: "package-private", when: { packagePrivate: true }, refuse: "not-publishable", outranks: "later" }),
-  row({ id: "version-not-plain", when: { versionPlain: false }, refuse: "version-not-plain", outranks: "later" }),
-  row({ id: "package-unknown", when: { packageKnown: false }, refuse: "package-unknown", outranks: "later" }),
-  row({ id: "facts-unreadable", when: { factsReadable: false }, refuse: "fact-unreadable", outranks: "later" }),
-  row({ id: "released", when: { tagExists: true, npmHasVersion: true, action: "publish" }, mode: "nothing", compare: "no" }),
-  row({ id: "dry-run-released", when: { tagExists: true, npmHasVersion: true, action: "dry-run" }, mode: "dry-run", compare: "yes" }),
-  row({ id: "tag-without-package", when: { tagExists: true, npmHasVersion: false }, refuse: "tag-without-package" }),
+  row({
+    id: "tool-commit-invalid",
+    when: { toolCommitPlain: false },
+    refuse: "tool-commit-invalid",
+    outranks: "later",
+    says: "the release tool commit is not a full commit id"
+  }),
+  row({
+    id: "tool-not-reviewed",
+    when: { toolReviewed: false },
+    refuse: "tool-not-reviewed",
+    outranks: "later",
+    says: "the release tool commit is not on footprintjs/ci main"
+  }),
+  row({
+    id: "pins-differ",
+    when: { pinsAgree: false },
+    refuse: "pins-differ",
+    outranks: "later",
+    says: "a workflow file of this repository pins the release route at another commit than the one running"
+  }),
+  row({
+    id: "package-unnamed",
+    when: { packageNamed: false },
+    refuse: "not-publishable",
+    outranks: "later",
+    says: "package.json has no name"
+  }),
+  row({
+    id: "package-private",
+    when: { packagePrivate: true },
+    refuse: "not-publishable",
+    outranks: "later",
+    says: "package.json marks the package private"
+  }),
+  row({
+    id: "version-not-plain",
+    when: { versionPlain: false },
+    refuse: "version-not-plain",
+    outranks: "later",
+    says: "the version is not plain x.y.z"
+  }),
+  row({
+    id: "package-unknown",
+    when: { packageKnown: false },
+    refuse: "package-unknown",
+    outranks: "later",
+    says: "npm does not know this package"
+  }),
+  row({
+    id: "facts-unreadable",
+    when: { factsReadable: false },
+    refuse: "fact-unreadable",
+    outranks: "later",
+    says: "a fact could not be read, so nothing is decided"
+  }),
+  row({
+    id: "released",
+    when: { ...RELEASED, releaseExists: true },
+    mode: "nothing",
+    compare: "no",
+    says: "nothing to do: the version is tagged, on npm and has its GitHub release"
+  }),
+  row({
+    id: "dry-run-released",
+    when: { tagExists: true, npmHasVersion: true, action: "dry-run", tagAtCommit: true },
+    mode: "dry-run",
+    compare: "yes",
+    says: "dry run: the tag of this version names this commit and npm has the version; rebuild and compare with what npm serves"
+  }),
+  row({
+    id: "dry-run-not-released-commit",
+    when: { tagExists: true, npmHasVersion: true, action: "dry-run", tagAtCommit: false },
+    mode: "dry-run",
+    compare: "no",
+    says: "dry run: this commit is not the one released as this version (its tag names another commit), so nothing is compared with npm"
+  }),
+  row({
+    id: "tag-without-package",
+    when: { tagExists: true, npmHasVersion: false },
+    refuse: "tag-without-package",
+    says: "the tag of this version exists but npm does not have the version"
+  }),
+  row({
+    id: "finish-off-main",
+    when: { ...UNFINISHED, refIsMain: false },
+    refuse: "finish-off-main",
+    says: "the version is tagged and on npm without a published GitHub release, and writing that release runs only from main"
+  }),
+  row({
+    id: "finish-not-tip",
+    when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: false },
+    mode: "nothing",
+    compare: "no",
+    says: `nothing to do in this run: the version is tagged and on npm without a published GitHub release, but this commit is no longer the tip of main; ${WAY_OUT}`
+  }),
+  row({
+    id: "finish-tag-elsewhere",
+    when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: false },
+    refuse: "tag-elsewhere",
+    says: `the version is tagged and on npm without a published GitHub release, and its tag names another commit than this one; ${WAY_OUT}`
+  }),
+  row({
+    id: "finish-changelog-missing",
+    when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: true, changelogFound: false },
+    refuse: "changelog-missing",
+    says: "the tag of this version names this commit and npm has the version, but there is no published GitHub release and CHANGELOG.md has no section for this version to write it from"
+  }),
+  row({
+    id: "finish",
+    when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: true, changelogFound: true },
+    mode: "finish",
+    compare: "no",
+    says: "the tag of this version names this commit and npm has the version, but there is no published GitHub release: write the release for the existing tag"
+  }),
   row({
     id: "not-main-tip",
     when: { tagExists: false, npmHasVersion: false, action: "publish", refIsMain: true, commitIsMainTip: false },
     mode: "nothing",
     compare: "no",
-    outranks: ["changelog-missing", "version-not-newer"]
+    outranks: ["changelog-missing", "version-not-newer"],
+    says: "nothing to do in this run: npm does not have this version, but this commit is no longer the tip of main; the run of the newer tip decides"
   }),
   row({
     id: "unfinished-not-tip",
     when: { tagExists: false, npmHasVersion: true, action: "publish", refIsMain: true, commitIsMainTip: false },
     refuse: "release-unfinished",
-    outranks: ["changelog-missing"]
+    outranks: ["changelog-missing"],
+    says: "npm has this version without a tag, and this commit is no longer the tip of main"
   }),
   row({
     id: "changelog-missing",
     when: { tagExists: false, changelogFound: false },
     refuse: "changelog-missing",
-    outranks: ["recover-off-main", "recover", "dry-run-recover", "version-not-newer", "publish-off-main", "publish", "dry-run-would-publish"]
+    outranks: ["recover-off-main", "recover", "dry-run-recover", "version-not-newer", "publish-off-main", "publish", "dry-run-would-publish"],
+    says: "CHANGELOG.md has no section for this version"
   }),
-  row({ id: "recover-off-main", when: { tagExists: false, npmHasVersion: true, action: "publish", refIsMain: false }, refuse: "recover-off-main" }),
-  row({ id: "recover", when: { tagExists: false, npmHasVersion: true, action: "publish", refIsMain: true, commitIsMainTip: true }, mode: "recover", compare: "yes" }),
-  row({ id: "dry-run-recover", when: { tagExists: false, npmHasVersion: true, action: "dry-run" }, mode: "dry-run", compare: "yes" }),
+  row({
+    id: "recover-off-main",
+    when: { tagExists: false, npmHasVersion: true, action: "publish", refIsMain: false },
+    refuse: "recover-off-main",
+    says: "npm has this version without a tag, and writing the tag runs only from main"
+  }),
+  row({
+    id: "recover",
+    when: { tagExists: false, npmHasVersion: true, action: "publish", refIsMain: true, commitIsMainTip: true },
+    mode: "recover",
+    compare: "yes",
+    says: "npm has this version but there is no tag: rebuild, compare with npm, then tag and release"
+  }),
+  row({
+    id: "dry-run-recover",
+    when: { tagExists: false, npmHasVersion: true, action: "dry-run" },
+    mode: "dry-run",
+    compare: "yes",
+    says: "dry run: npm has this version without a tag; rebuild and compare with what npm serves"
+  }),
   row({
     id: "version-not-newer",
     when: { tagExists: false, npmHasVersion: false, versionNewer: false },
     refuse: "version-not-newer",
-    outranks: ["publish-off-main", "publish", "dry-run-would-publish"]
+    outranks: ["publish-off-main", "publish", "dry-run-would-publish"],
+    says: "the version is not newer than every version npm has"
   }),
-  row({ id: "publish-off-main", when: { tagExists: false, npmHasVersion: false, action: "publish", refIsMain: false }, refuse: "publish-off-main" }),
-  row({ id: "publish", when: { tagExists: false, npmHasVersion: false, action: "publish", refIsMain: true, commitIsMainTip: true }, mode: "publish", compare: "yes" }),
-  row({ id: "dry-run-would-publish", when: { tagExists: false, npmHasVersion: false, action: "dry-run" }, mode: "dry-run", compare: "no" })
+  row({
+    id: "publish-off-main",
+    when: { tagExists: false, npmHasVersion: false, action: "publish", refIsMain: false },
+    refuse: "publish-off-main",
+    says: "npm does not have this version, and a real publish runs only from main"
+  }),
+  row({
+    id: "publish",
+    when: { tagExists: false, npmHasVersion: false, action: "publish", refIsMain: true, commitIsMainTip: true },
+    mode: "publish",
+    compare: "yes",
+    says: "publish {version}, then verify, tag and release"
+  }),
+  row({
+    id: "dry-run-would-publish",
+    when: { tagExists: false, npmHasVersion: false, action: "dry-run" },
+    mode: "dry-run",
+    compare: "no",
+    says: "dry run: npm does not have {version}; a publish from the tip of main would publish it"
+  })
 ]);
+var sentenceOf = (rule, version) => rule.says.replaceAll("{version}", version ?? "this version");
 
 // src/release-route/plan.mjs
 var inDomain = (name, value) => FACTS[name].includes(value);
@@ -652,6 +802,7 @@ var REFUSALS = Object.freeze({
   "changelog-duplicate": "CHANGELOG.md names this version's heading more than once, anywhere (a quote or code counts); it must appear once.",
   // Git and the checkout.
   "git-failed": "A git question failed, so the route could not see the repository.",
+  "workflows-unreadable": "A workflow file is a link, over its bound, one too many or not plain text, names the route other than on a plain uses: line, or no route pin is found.",
   "checkout-mismatch": "The checkout is not the planned commit with a clean tree.",
   // The network: npm and GitHub answers.
   "request-failed": "A request could not be made or did not finish in time.",
@@ -665,11 +816,13 @@ var REFUSALS = Object.freeze({
   "fact-unreadable": "A fact the decision needs could not be read, so the route does not guess.",
   "tool-commit-invalid": "The release tool commit is not 40 lowercase hex characters.",
   "tool-not-reviewed": "The release tool commit is not on footprintjs/ci main, so it was never reviewed there.",
+  "pins-differ": "A workflow file here pins release-route.yml or release-check.yml of footprintjs/ci at another commit than the one running.",
   "package-unknown": "npm does not know this package; the first publish of a new name is done by hand.",
   "tag-without-package": "The tag for this version exists but npm does not have the version; decide by hand.",
   "version-not-newer": "The version is not newer than every version npm already has.",
   "publish-off-main": "A real publish runs only from main.",
   "recover-off-main": "Recovering a release writes a tag and a GitHub release, so it runs only from main.",
+  "finish-off-main": "Finishing a release writes its GitHub release, so it runs only from main.",
   "release-unfinished": "npm has this version but no tag: use Re-run failed jobs on the run that published it, or tag v<version> at that commit by hand.",
   "no-rule-matched": "No rule of the decision matched these facts, so nothing is decided.",
   "plan-stale": "The plan is no longer true: main moved on, or a newer version is on npm. This job published nothing; start a new run from main (a push or a dispatch).",
@@ -686,6 +839,7 @@ var REFUSALS = Object.freeze({
   "registry-late": "npm did not show this version within the bounded wait.",
   // The release job and the pinned npm.
   "tag-elsewhere": "The tag for this version exists at another commit; the route never moves or reuses a tag.",
+  "tag-gone": "Mode finish writes only the GitHub release of an existing tag, and the tag is gone; nothing was written.",
   "release-unexpected": "A GitHub release for this tag exists but is a draft or names another tag; decide by hand.",
   "npm-tool": "The vendored npm does not match its pinned digest, or its folder is not new, private and outside the checkout.",
   // The charted steps' record and its reader.
@@ -772,12 +926,12 @@ function clean(value, max = 80) {
   return cut(neutralise(flatten(value, Number.MAX_SAFE_INTEGER)), max);
 }
 function cleanLines(text, { maxLines = 400, maxLine = 400 } = {}) {
-  const lines = (typeof text === "string" ? text : "").split(/\r\n|\n|\r|\u{2028}|\u{2029}/u);
-  const kept = lines.slice(0, maxLines).map((line) => {
+  const lines2 = (typeof text === "string" ? text : "").split(/\r\n|\n|\r|\u{2028}|\u{2029}/u);
+  const kept = lines2.slice(0, maxLines).map((line) => {
     const indent = /^ */.exec(line)[0].slice(0, 16);
     return line.trim() === "" ? "" : indent + flatten(line, maxLine);
   });
-  if (lines.length > maxLines) kept.push("", "(The section is longer than the route copies; the rest is in CHANGELOG.md.)");
+  if (lines2.length > maxLines) kept.push("", "(The section is longer than the route copies; the rest is in CHANGELOG.md.)");
   return kept;
 }
 
@@ -799,20 +953,19 @@ function reportPlan({ result, causes, context, report: report2 }) {
     report2.say(`Unreadable fact ${name}: ${cause ? `${cause.code} (${cause.sentence})${cause.detail ? ` ${clean(cause.detail)}` : ""}` : "not asked or not known"}.`);
   }
   report2.say(`Facts seen: ${Object.entries(result.seen).map(([name, value]) => `${name}=${clean(String(value), 20)}`).join(", ")}.`);
+  const row2 = RULES.find((rule) => rule.id === result.rule);
+  const says = row2 ? sentenceOf(row2, context.version) : "no rule of the decision matched these facts";
   if (result.refuse) {
+    report2.say(`Decision: rule ${result.rule} refuses ${result.refuse}, ${says}.`);
     const first = unreadableFacts(result.seen)[0];
-    refuse(result.refuse, result.rule === "facts-unreadable" ? first : `rule ${result.rule}`);
+    const detail = result.rule === "facts-unreadable" ? first : result.rule === "pins-differ" && context.pinsDiffer ? `rule pins-differ: ${clean(context.pinsDiffer, 200)}` : `rule ${result.rule}`;
+    refuse(result.refuse, detail);
   }
   report2.output("node", context.node);
+  report2.output("latest", context.latest);
   report2.output("mode", result.mode);
   report2.output("compare", result.compare);
-  const what = {
-    nothing: "nothing to do: the version is tagged and on npm",
-    publish: "publish, then verify, tag and release",
-    recover: "npm has it but there is no tag: rebuild, compare with npm, then tag and release",
-    "dry-run": result.compare === "yes" ? "dry run: rebuild and compare with what npm serves" : `dry run: would publish ${context.version}`
-  }[result.mode];
-  report2.say(`Decision: rule ${result.rule} gives mode ${result.mode}, ${what}.`);
+  report2.say(`Decision: rule ${result.rule} gives mode ${result.mode}, ${says}.`);
 }
 function verifyInputs(env2) {
   const name = input(env2, "ROUTE_PACKAGE", isPackageName);
@@ -2989,7 +3142,7 @@ var OVERLAP_WORDS = {
   "view-not-placed": "possibly: the array does not show where the view sits"
 };
 function formatCausalChain(root) {
-  const lines = [];
+  const lines2 = [];
   const visited = /* @__PURE__ */ new Set();
   const weightSuffix = (edge) => edge !== void 0 && edge.weight !== 1 ? ` (${edge.weight})` : "";
   const overlapSuffix = (edges, shown2) => Object.keys(OVERLAP_WORDS).map((mark) => {
@@ -3001,7 +3154,7 @@ function formatCausalChain(root) {
   }).join("");
   function walk2(node, indent, edgesFromChild) {
     if (visited.has(node.runtimeStageId)) {
-      lines.push(`${"  ".repeat(indent)}\u21B3 ${node.runtimeStageId} (see above)`);
+      lines2.push(`${"  ".repeat(indent)}\u21B3 ${node.runtimeStageId} (see above)`);
       return;
     }
     visited.add(node.runtimeStageId);
@@ -3015,9 +3168,9 @@ function formatCausalChain(root) {
     }
     const link = linkParts.length > 0 ? ` \u2190 ${linkParts.join(" \u2190 ")}` : "";
     const writes = node.keysWritten.length > 0 ? ` [wrote: ${node.keysWritten.map(shownPath).join(", ")}]` : "";
-    lines.push(`${"  ".repeat(indent)}${node.stageName} (${node.runtimeStageId})${link}${writes}`);
+    lines2.push(`${"  ".repeat(indent)}${node.stageName} (${node.runtimeStageId})${link}${writes}`);
     if (node.incompleteSources && node.incompleteSources.length > 0) {
-      lines.push(`${"  ".repeat(indent + 1)}\u26A0 also consumed ${node.incompleteSources.join("/")} \u2014 slice may be incomplete here`);
+      lines2.push(`${"  ".repeat(indent + 1)}\u26A0 also consumed ${node.incompleteSources.join("/")} \u2014 slice may be incomplete here`);
     }
     for (const parent of node.parents) {
       walk2(parent, indent + 1, node.parentEdges.filter((e) => e.parent === parent));
@@ -3026,9 +3179,9 @@ function formatCausalChain(root) {
   walk2(root, 0);
   if (root.truncated) {
     const causes = [root.truncated.byDepth && "maxDepth reached", root.truncated.byNodes && "maxNodes reached"].filter(Boolean).join(", ");
-    lines.push(`\u26A0 slice truncated (${causes}) \u2014 older causes exist beyond this horizon`);
+    lines2.push(`\u26A0 slice truncated (${causes}) \u2014 older causes exist beyond this horizon`);
   }
-  return lines.join("\n");
+  return lines2.join("\n");
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/backtrack.js
@@ -24950,7 +25103,7 @@ var RunContext = class {
 
 // node_modules/footprintjs/dist/esm/lib/runner/RunnableChart.js
 function chartToMermaid(root) {
-  const lines = ["flowchart TD"];
+  const lines2 = ["flowchart TD"];
   const mermaidIds = /* @__PURE__ */ new Map();
   const taken = /* @__PURE__ */ new Set();
   const idOf = (id) => {
@@ -24971,18 +25124,18 @@ function chartToMermaid(root) {
       return;
     visited.add(n.id);
     const nid = idOf(n.id);
-    lines.push(`${nid}["${String(n.name).replace(/"/g, "#quot;")}"]`);
+    lines2.push(`${nid}["${String(n.name).replace(/"/g, "#quot;")}"]`);
     for (const c of n.children || []) {
-      lines.push(`${nid} --> ${idOf(c.id)}`);
+      lines2.push(`${nid} --> ${idOf(c.id)}`);
       walk2(c);
     }
     if (n.next) {
-      lines.push(`${nid} --> ${idOf(n.next.id)}`);
+      lines2.push(`${nid} --> ${idOf(n.next.id)}`);
       walk2(n.next);
     }
   };
   walk2(root);
-  return lines.join("\n");
+  return lines2.join("\n");
 }
 var openAPICache = /* @__PURE__ */ new WeakMap();
 var mcpCache = /* @__PURE__ */ new WeakMap();
@@ -26910,14 +27063,14 @@ var FlowChartBuilder = class {
     this._stepCounter++;
     this._stageStepMap.set(id, this._stepCounter);
     if (subflow.description) {
-      const lines = subflow.description.split("\n");
-      const stepsIdx = lines.findIndex((l) => l.startsWith("Steps:"));
+      const lines2 = subflow.description.split("\n");
+      const stepsIdx = lines2.findIndex((l) => l.startsWith("Steps:"));
       if (stepsIdx >= 0) {
-        const summary = lines.slice(0, stepsIdx).join(" ").trim();
+        const summary = lines2.slice(0, stepsIdx).join(" ").trim();
         this._descriptionParts.push(summary ? `${this._stepCounter}. [Sub-Execution: ${name}] \u2014 ${summary}` : `${this._stepCounter}. [Sub-Execution: ${name}]`);
-        for (let i = stepsIdx + 1; i < lines.length; i++) {
-          if (lines[i].trim())
-            this._descriptionParts.push(`   ${lines[i]}`);
+        for (let i = stepsIdx + 1; i < lines2.length; i++) {
+          if (lines2[i].trim())
+            this._descriptionParts.push(`   ${lines2[i]}`);
         }
       } else {
         this._descriptionParts.push(`${this._stepCounter}. [Sub-Execution: ${name}] \u2014 ${subflow.description}`);
@@ -28865,7 +29018,9 @@ var CONTEXT_CHECKS = Object.freeze({
   packageName: isPackageName,
   version: isPlainVersion,
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
-  node: isNodeMajor
+  node: isNodeMajor,
+  latest: (value) => value === "yes" || value === "no",
+  pinsDiffer: (value) => typeof value === "string" && value.length <= 300 && clean(value, 300) === value
 });
 var CONTEXT_NAMES = Object.freeze(Object.keys(CONTEXT_CHECKS));
 function writeObservation(scope, found) {
@@ -28928,9 +29083,9 @@ var closes = (line, fence) => {
   const match = FENCE_CLOSE.exec(line);
   return match !== null && match[1][0] === fence.char && match[1].length >= fence.length;
 };
-function fencedLines(lines) {
+function fencedLines(lines2) {
   let fence = null;
-  return lines.map((line) => {
+  return lines2.map((line) => {
     if (fence) {
       if (closes(line, fence)) fence = null;
       return true;
@@ -28955,17 +29110,17 @@ function findSection(text, version, style) {
   const at = occurrences[0].index;
   const lineStart = Math.max(text.lastIndexOf("\n", at - 1), text.lastIndexOf("\r", at - 1)) + 1;
   if (lineStart !== at) return null;
-  const lines = text.split(/\r\n|\n|\r/);
+  const lines2 = text.split(/\r\n|\n|\r/);
   const index = text.slice(0, at).split(/\r\n|\n|\r/).length - 1;
-  const match = HEADINGS[style].exec(lines[index]);
-  const fenced = fencedLines(lines);
+  const match = HEADINGS[style].exec(lines2[index]);
+  const fenced = fencedLines(lines2);
   if (!match || match[1] !== version || fenced[index]) return null;
-  let end = lines.length;
-  for (let i = index + 1; i < lines.length; i++) if (!fenced[i] && lines[i].startsWith("## ")) {
+  let end = lines2.length;
+  for (let i = index + 1; i < lines2.length; i++) if (!fenced[i] && lines2[i].startsWith("## ")) {
     end = i;
     break;
   }
-  const body = lines.slice(index + 1, end);
+  const body = lines2.slice(index + 1, end);
   while (body.length > 0 && (body.at(-1).trim() === "" || LINK_DEFINITION.test(body.at(-1)))) body.pop();
   while (body.length > 0 && body[0].trim() === "") body.shift();
   return { title: flatten(match[2] ?? "", 120), lines: body.length > 0 ? cleanLines(body.join("\n")) : [] };
@@ -28974,7 +29129,9 @@ function findSection(text, version, style) {
 // src/shared/github.mjs
 var GITHUB_API = "https://api.github.com";
 var TOKEN = /^[\x21-\x7e]{1,8192}$/;
+var REPOSITORY = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 var isToken = (token) => typeof token === "string" && TOKEN.test(token);
+var isRepository = (repo) => typeof repo === "string" && REPOSITORY.test(repo) && !repo.split("/").some((part) => /^\.+$/.test(part));
 function githubHeaders(token) {
   const headers = { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" };
   if (token !== void 0) headers.authorization = `Bearer ${token}`;
@@ -29116,6 +29273,161 @@ async function toolReviewed({ fetcher, sha, token }) {
   refuse("response-shape", "GitHub compare status");
 }
 var RELEASE = { maxBytes: 4 * 1024 * 1024, maxValues: 2e5 };
+async function readRelease({ fetcher, repo, version, token }) {
+  if (!isRepository(repo)) refuse("input-invalid", "GITHUB_REPOSITORY");
+  if (!isPlainVersion(version)) refuse("input-invalid", "version");
+  if (token !== void 0 && token !== "" && !isToken(token)) refuse("input-invalid", "GITHUB_TOKEN");
+  const { status, bytes } = await boundedGet2({
+    fetcher,
+    url: `${GITHUB_API}/repos/${repo}/releases/tags/v${version}`,
+    headers: githubHeaders(token || void 0),
+    maxBytes: RELEASE.maxBytes
+  });
+  if (status === 404) return null;
+  if (status !== 200) refuse("response-status", `GitHub HTTP ${status}`);
+  const answer = answerJson(bytes, RELEASE, new URL(GITHUB_API).host);
+  if (typeof answer.tag_name !== "string" || typeof answer.draft !== "boolean") refuse("response-shape", "GitHub release");
+  return { tagName: answer.tag_name, draft: answer.draft };
+}
+
+// src/release-route/repo.mjs
+var REGULAR = /* @__PURE__ */ new Set(["100644", "100755"]);
+function ask(git2, args, question) {
+  try {
+    const out = git2(args);
+    return Buffer.isBuffer(out) ? out : Buffer.from(String(out));
+  } catch {
+    refuse("git-failed", question);
+  }
+}
+function readAtCommit(git2, commit, path2, maxBytes, unreadable) {
+  if (!isCommit(commit)) refuse("input-invalid", "commit");
+  const listing = ask(git2, ["ls-tree", "-z", "--full-tree", commit, "--", path2], `ls-tree ${path2}`).toString("utf8");
+  if (listing === "") return null;
+  const match = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40})\t([^\0]+)\0$/.exec(listing);
+  if (!match || match[4] !== path2) refuse("git-failed", `ls-tree ${path2}`);
+  if (match[2] !== "blob" || !REGULAR.has(match[1])) refuse(unreadable, path2);
+  return readBlob(git2, match[3], maxBytes, unreadable, path2);
+}
+function readBlob(git2, id, maxBytes, unreadable, label) {
+  if (!/^[a-f0-9]{40}$/.test(id)) refuse("git-failed", `blob of ${label}`);
+  const size = Number(ask(git2, ["cat-file", "-s", id], `size of ${label}`).toString("utf8").trim());
+  if (!Number.isSafeInteger(size) || size < 0) refuse("git-failed", `size of ${label}`);
+  if (size > maxBytes) refuse(unreadable, label);
+  const bytes = ask(git2, ["cat-file", "blob", id], `read ${label}`);
+  if (bytes.length !== size) refuse("git-failed", `read ${label}`);
+  return bytes;
+}
+function listAtCommit(git2, commit, dir, maxEntries, unreadable) {
+  if (!isCommit(commit)) refuse("input-invalid", "commit");
+  const out = ask(git2, ["ls-tree", "-z", "--full-tree", commit, "--", `${dir}/`], `ls-tree ${dir}`).toString("utf8");
+  if (out === "") return [];
+  if (!out.endsWith("\0")) refuse("git-failed", `ls-tree ${dir}`);
+  const records = out.slice(0, -1).split("\0");
+  if (records.length > maxEntries) refuse(unreadable, `more than ${maxEntries} entries in ${dir}`);
+  return records.map((record) => {
+    const match = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40})\t([^\0]+)$/.exec(record);
+    if (!match || !match[4].startsWith(`${dir}/`) || match[4].slice(dir.length + 1).includes("/") || match[4].length === dir.length + 1)
+      refuse("git-failed", `ls-tree ${dir}`);
+    return { mode: match[1], type: match[2], id: match[3], path: match[4] };
+  });
+}
+var isRegularBlob = (entry) => entry.type === "blob" && REGULAR.has(entry.mode);
+function remoteCommit(git2, ref, question, peeled) {
+  const out = ask(git2, ["ls-remote", "origin", ref, `${ref}^{}`], question).toString("utf8");
+  if (out === "") return null;
+  if (!out.endsWith("\n")) refuse("git-failed", question);
+  const found = /* @__PURE__ */ new Map();
+  for (const line of out.slice(0, -1).split("\n")) {
+    const match = /^([a-f0-9]{40})\t(\S+)$/.exec(line);
+    if (!match) refuse("git-failed", question);
+    if (match[2] !== ref && match[2] !== `${ref}^{}`) continue;
+    if (found.has(match[2])) refuse("git-failed", question);
+    found.set(match[2], match[1]);
+  }
+  if (peeled === "refuse" && found.has(`${ref}^{}`)) refuse("git-failed", question);
+  if (!found.has(ref)) {
+    if (found.size > 0) refuse("git-failed", question);
+    return null;
+  }
+  return found.get(`${ref}^{}`) ?? found.get(ref);
+}
+function tagCommit(git2, version) {
+  if (!isPlainVersion(version)) refuse("input-invalid", "version");
+  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags", "follow");
+}
+function mainTip(git2) {
+  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main", "refuse");
+  if (tip === null) refuse("git-failed", "ls-remote main");
+  return tip;
+}
+
+// src/release-route/pins.mjs
+var WORKFLOWS_DIR = ".github/workflows";
+var MAX_FILES = 200;
+var MAX_FILE_BYTES = 512 * 1024;
+var WORKFLOW_FILE = /\.ya?ml$/i;
+var LINE_BREAK = /\r\n|[\n\r]/;
+var UNUSUAL_BREAK = /[\u{85}\u{2028}\u{2029}]/u;
+var UTF8 = new TextDecoder("utf-8", { fatal: true });
+var USES_LINE = /^[\t ]*(?:-[\t ]+)?uses:[\t ]+(\S+)/;
+var ROUTE_WORKFLOW = /^footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/i;
+var unquoted = (word) => /^(["']).*\1$/.test(word) && word.length >= 2 ? word.slice(1, -1) : word;
+function routePins(text) {
+  const pins = [];
+  for (const line of lines(text)) {
+    const match = USES_LINE.exec(line);
+    if (!match) continue;
+    const value = unquoted(match[1]);
+    if (ROUTE_WORKFLOW.test(value)) pins.push(value.slice(value.indexOf("@") + 1));
+  }
+  return pins;
+}
+var lines = (text) => text.replace(/^\uFEFF/, "").split(LINE_BREAK);
+var COMMENT_LINE = /^[\t ]*#/;
+var TRAILING_COMMENT = /^[\t ]+#.*$/;
+var CLOSED_VALUE = /^(?:[^"']*|"[^"\\]*"|'[^']*')$/;
+var WHITE = /\s/gu;
+var ESCAPED_SLASH = /\\\//g;
+var MENTION = /footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/giu;
+function withoutCertainComment(line) {
+  if (COMMENT_LINE.test(line)) return "";
+  const uses = USES_LINE.exec(line);
+  if (!uses || !CLOSED_VALUE.test(uses[1])) return line;
+  return uses[0] + line.slice(uses[0].length).replace(TRAILING_COMMENT, "");
+}
+function routeMentions(text) {
+  const bare = lines(text).map(withoutCertainComment).join("").replace(WHITE, "").replace(ESCAPED_SLASH, "/");
+  return (bare.match(MENTION) ?? []).length;
+}
+function workflowText(bytes, name) {
+  let text;
+  try {
+    text = UTF8.decode(bytes);
+  } catch {
+    refuse("workflows-unreadable", `${name}: not UTF-8 text`);
+  }
+  if (text.includes("\0")) refuse("workflows-unreadable", `${name}: a NUL character`);
+  if (UNUSUAL_BREAK.test(text)) refuse("workflows-unreadable", `${name}: an unusual line-break character`);
+  return text;
+}
+function workflowPins(git2, commit, sha) {
+  if (!isCommit(sha)) refuse("input-invalid", "tool commit");
+  const files = listAtCommit(git2, commit, WORKFLOWS_DIR, MAX_FILES, "workflows-unreadable").filter((entry) => entry.type !== "tree" && WORKFLOW_FILE.test(entry.path));
+  let read2 = 0;
+  for (const entry of files) {
+    const name = clean(entry.path.slice(WORKFLOWS_DIR.length + 1), 100);
+    if (!isRegularBlob(entry)) refuse("workflows-unreadable", name);
+    const text = workflowText(readBlob(git2, entry.id, MAX_FILE_BYTES, "workflows-unreadable", name), name);
+    const pins = routePins(text);
+    if (routeMentions(text) > pins.length) refuse("workflows-unreadable", `${name}: a route pin not on a plain uses line`);
+    read2 += pins.length;
+    const differs = pins.find((pin) => pin !== sha);
+    if (differs !== void 0) return { agree: false, file: name, pin: clean(differs, 80) };
+  }
+  if (read2 === 0) refuse("workflows-unreadable", `no route pin in ${WORKFLOWS_DIR}`);
+  return { agree: true };
+}
 
 // src/release-route/registry.mjs
 var import_node_crypto = require("node:crypto");
@@ -29187,58 +29499,11 @@ async function downloadTarball({ fetcher, url }) {
   return bytes;
 }
 
-// src/release-route/repo.mjs
-var REGULAR = /* @__PURE__ */ new Set(["100644", "100755"]);
-function ask(git2, args, question) {
-  try {
-    const out = git2(args);
-    return Buffer.isBuffer(out) ? out : Buffer.from(String(out));
-  } catch {
-    refuse("git-failed", question);
-  }
-}
-function readAtCommit(git2, commit, path2, maxBytes, unreadable) {
-  if (!isCommit(commit)) refuse("input-invalid", "commit");
-  const listing = ask(git2, ["ls-tree", "-z", "--full-tree", commit, "--", path2], `ls-tree ${path2}`).toString("utf8");
-  if (listing === "") return null;
-  const match = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40})\t([^\0]+)\0$/.exec(listing);
-  if (!match || match[4] !== path2) refuse("git-failed", `ls-tree ${path2}`);
-  if (match[2] !== "blob" || !REGULAR.has(match[1])) refuse(unreadable, path2);
-  const size = Number(ask(git2, ["cat-file", "-s", match[3]], `size of ${path2}`).toString("utf8").trim());
-  if (!Number.isSafeInteger(size) || size < 0) refuse("git-failed", `size of ${path2}`);
-  if (size > maxBytes) refuse(unreadable, path2);
-  const bytes = ask(git2, ["cat-file", "blob", match[3]], `read ${path2}`);
-  if (bytes.length !== size) refuse("git-failed", `read ${path2}`);
-  return bytes;
-}
-function remoteCommit(git2, ref, question, peeled) {
-  const out = ask(git2, ["ls-remote", "origin", ref, `${ref}^{}`], question).toString("utf8");
-  if (out === "") return null;
-  if (!out.endsWith("\n")) refuse("git-failed", question);
-  const found = /* @__PURE__ */ new Map();
-  for (const line of out.slice(0, -1).split("\n")) {
-    const match = /^([a-f0-9]{40})\t(\S+)$/.exec(line);
-    if (!match) refuse("git-failed", question);
-    if (match[2] !== ref && match[2] !== `${ref}^{}`) continue;
-    if (found.has(match[2])) refuse("git-failed", question);
-    found.set(match[2], match[1]);
-  }
-  if (peeled === "refuse" && found.has(`${ref}^{}`)) refuse("git-failed", question);
-  if (!found.has(ref)) {
-    if (found.size > 0) refuse("git-failed", question);
-    return null;
-  }
-  return found.get(`${ref}^{}`) ?? found.get(ref);
-}
-function tagCommit(git2, version) {
-  if (!isPlainVersion(version)) refuse("input-invalid", "version");
-  return remoteCommit(git2, `refs/tags/v${version}`, "ls-remote tags", "follow");
-}
-var tagExists = (git2, version) => tagCommit(git2, version) !== null;
-function mainTip(git2) {
-  const tip = remoteCommit(git2, "refs/heads/main", "ls-remote main", "refuse");
-  if (tip === null) refuse("git-failed", "ls-remote main");
-  return tip;
+// src/release-route/tag.mjs
+function decideRelease({ release, version }) {
+  if (release === null) return "create";
+  if (release.tagName === `v${version}` && release.draft === false) return "skip";
+  refuse("release-unexpected", release.draft ? "draft" : "another tag");
 }
 
 // src/release-route/observe.mjs
@@ -29289,6 +29554,16 @@ async function observeTool({ env: env2, fetcher }) {
     await read2("toolReviewed", () => toolReviewed({ fetcher, sha: env2.ROUTE_TOOL_SHA, token: env2.GITHUB_TOKEN }));
   return found;
 }
+async function observePins({ env: env2, git: git2, commit }) {
+  const { found, read: read2 } = observation();
+  if (isCommit(env2.ROUTE_TOOL_SHA))
+    await read2("pinsAgree", () => {
+      const pins = workflowPins(git2, commit, env2.ROUTE_TOOL_SHA);
+      if (!pins.agree) found.context.pinsDiffer = `${pins.file} pins ${pins.pin}`;
+      return pins.agree;
+    });
+  return found;
+}
 async function observeSettings({ git: git2, commit }) {
   const { found, read: read2 } = observation();
   await read2("settingsRead", () => {
@@ -29322,9 +29597,31 @@ async function observePackage({ git: git2, commit }) {
   }
   return found;
 }
-async function observeTag({ git: git2, version }) {
+async function observeTag({ git: git2, version, commit }) {
   const { found, read: read2 } = observation();
-  if (version) await read2("tagExists", () => tagExists(git2, version));
+  if (!version) return found;
+  let tagAt = null;
+  await read2("tagExists", () => {
+    tagAt = tagCommit(git2, version);
+    return tagAt !== null;
+  });
+  if (found.facts.tagExists === null) {
+    found.facts.tagAtCommit = null;
+    found.causes.tagAtCommit = found.causes.tagExists;
+  } else found.facts.tagAtCommit = tagAt === commit;
+  return found;
+}
+async function observeRelease({ env: env2, fetcher, version, tagExists }) {
+  const { found, read: read2 } = observation();
+  if (!version || tagExists !== true && tagExists !== false) return found;
+  if (tagExists === false) {
+    found.facts.releaseExists = false;
+    return found;
+  }
+  await read2("releaseExists", async () => decideRelease({
+    release: await readRelease({ fetcher, repo: env2.GITHUB_REPOSITORY, version, token: env2.GITHUB_TOKEN }),
+    version
+  }) === "skip");
   return found;
 }
 async function observeNpm({ fetcher, name, version }) {
@@ -29339,6 +29636,8 @@ async function observeNpm({ fetcher, name, version }) {
   if (found.facts.packageKnown === true && version) {
     found.facts.npmHasVersion = versions.includes(version);
     await read2("versionNewer", () => newerThanAll(version, versions) ?? refuse("response-shape", "a version npm lists is not semver"));
+    const newest = newerThanAll(version, versions.filter((other) => other !== version));
+    if (newest !== null) found.context.latest = newest ? "yes" : "no";
   }
   return found;
 }
@@ -29350,6 +29649,13 @@ async function observeChangelog({ git: git2, commit, changelogStyle, version }) 
       return bytes !== null && findSection(decodeChangelog(bytes), version, changelogStyle) !== null;
     });
   return found;
+}
+function merge(...found) {
+  return {
+    facts: Object.assign({}, ...found.map((one) => one.facts)),
+    causes: Object.assign({}, ...found.map((one) => one.causes)),
+    context: Object.assign({}, ...found.map((one) => one.context))
+  };
 }
 
 // src/release-route/chart/stages/changelog.mjs
@@ -29398,6 +29704,14 @@ var PACKAGE = Object.freeze({
   make: ({ git: git2 }) => async (scope) => writeObservation(scope, await observePackage({ git: git2, commit: scope.commit }))
 });
 
+// src/release-route/chart/stages/pins.mjs
+var PINS = Object.freeze({
+  id: "look-pins",
+  name: "Read the caller's pins",
+  description: "Does every `uses:` line that names the route pin the commit running?",
+  make: ({ env: env2, git: git2 }) => async (scope) => writeObservation(scope, await observePins({ env: env2, git: git2, commit: scope.commit }))
+});
+
 // src/release-route/chart/stages/request.mjs
 var REQUEST = Object.freeze({
   id: "request",
@@ -29417,9 +29731,13 @@ var SETTINGS = Object.freeze({
 // src/release-route/chart/stages/tag.mjs
 var TAG = Object.freeze({
   id: "look-tag",
-  name: "Look for the tag",
-  description: "Does origin have tag v<version>?",
-  make: ({ git: git2 }) => async (scope) => writeObservation(scope, await observeTag({ git: git2, version: scope.version }))
+  name: "Look for the tag and its release",
+  description: "Does origin have tag v<version>, at this commit, and has it a GitHub release?",
+  make: ({ git: git2, env: env2, fetcher }) => async (scope) => {
+    const tag = await observeTag({ git: git2, version: scope.version, commit: scope.commit });
+    const release = await observeRelease({ env: env2, fetcher, version: scope.version, tagExists: tag.facts.tagExists });
+    writeObservation(scope, merge(tag, release));
+  }
 });
 
 // src/release-route/chart/stages/tip.mjs
@@ -29439,7 +29757,7 @@ var TOOL = Object.freeze({
 });
 
 // src/release-route/chart/plan-chart.mjs
-var FIRST_LOOKS = Object.freeze([TIP, TOOL, SETTINGS, PACKAGE]);
+var FIRST_LOOKS = Object.freeze([TIP, TOOL, SETTINGS, PACKAGE, PINS]);
 var SECOND_LOOKS = Object.freeze([TAG, NPM, CHANGELOG]);
 var PLAN_STAGES = Object.freeze({
   request: REQUEST,
@@ -29467,6 +29785,8 @@ var fromState = (state) => {
   if (state.packageName) context.name = state.packageName;
   if (state.version) context.version = state.version;
   if (state.node) context.node = state.node;
+  if (state.latest) context.latest = state.latest;
+  if (state.pinsDiffer) context.pinsDiffer = state.pinsDiffer;
   return { facts, causes, context };
 };
 function chartResult(state) {
@@ -30079,32 +30399,32 @@ function decisionLines(record, key, writer) {
       `${OBSERVED_KEYS.has(key) ? "Observed" : "Written"} by ${observedBy(observerOf(record, key))}.`
     ];
   const matched = decision.evidence.rules.find((rule) => isObject5(rule) && rule.matched === true);
-  const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
+  const lines2 = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
-    lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; observed by ${observedBy(observerOf(record, condition.key))}.`);
+    lines2.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; observed by ${observedBy(observerOf(record, condition.key))}.`);
   }
-  return lines;
+  return lines2;
 }
 function explain(record, key = defaultKey(record.state)) {
   if (typeof key !== "string" || !KEY.test(key)) refuse("input-invalid", "key");
   const { state } = record;
-  const lines = [`Why ${key} = ${show(state[key])} in the ${record.step} record of run ${clean(String(record.runId), 60)}.`];
-  if (!Object.hasOwn(state, key)) return [...lines, "The run never wrote that key."];
+  const lines2 = [`Why ${key} = ${show(state[key])} in the ${record.step} record of run ${clean(String(record.runId), 60)}.`];
+  if (!Object.hasOwn(state, key)) return [...lines2, "The run never wrote that key."];
   const writer = findLastWriter(record.commitLog, key);
-  lines.push(...decisionLines(record, key, writer));
+  lines2.push(...decisionLines(record, key, writer));
   for (const [fact, cause] of Object.entries(isObject5(state.causes) ? state.causes : {}))
-    lines.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
-  if (!writer) return [...lines, "No commit in the record wrote that key."];
+    lines2.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
+  if (!writer) return [...lines2, "No commit in the record wrote that key."];
   const reads = keysReadFromExecutionTree(record.executionTree);
   const controlDeps = (id) => Object.hasOwn(record.control.controlDeps, id) ? record.control.controlDeps[id] : void 0;
   const chain = causalChain(record.commitLog, writer.runtimeStageId, reads.lookup, { controlDeps, edgeAttribution: "per-write" });
-  lines.push('Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):');
-  lines.push(SIDE_BY_SIDE);
+  lines2.push('Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):');
+  lines2.push(SIDE_BY_SIDE);
   if (chain) for (const line of formatCausalChain(chain).split("\n")) {
     const [, indent, text] = /^( *)(.*)$/.exec(line);
-    lines.push(`Walk: ${". ".repeat(Math.floor(indent.length / 2))}${text}`);
+    lines2.push(`Walk: ${". ".repeat(Math.floor(indent.length / 2))}${text}`);
   }
-  return lines;
+  return lines2;
 }
 
 // src/release-route/chart/steps.mjs
@@ -30192,9 +30512,10 @@ function appendWhole(path2, text, io = import_node_fs3.default) {
 
 // src/release-route/report.mjs
 var OUTPUTS = Object.freeze({
-  mode: (v) => /^(publish|recover|dry-run|nothing)$/.test(v),
+  mode: (v) => /^(publish|recover|finish|dry-run|nothing)$/.test(v),
   rule: (v) => /^[a-z][a-z-]{1,40}$/.test(v),
   compare: (v) => /^(yes|no)$/.test(v),
+  latest: (v) => v === "yes" || v === "no",
   commit: (v) => COMMIT.test(v),
   version: (v) => PLAIN_VERSION.test(v),
   package: (v) => isPackageName(v),
@@ -30224,13 +30545,13 @@ function createReport({
   append = import_node_fs4.appendFileSync,
   appendOutputs = appendWhole
 } = {}) {
-  const lines = [];
+  const lines2 = [];
   const outputs = [];
   let ended = false;
   return {
     say(line) {
       const safe = safeLine(line);
-      lines.push(safe);
+      lines2.push(safe);
       print(safe);
     },
     output(key, value) {
@@ -30246,7 +30567,7 @@ function createReport({
       ended = true;
       const held = outputs.splice(0);
       if (env2.GITHUB_STEP_SUMMARY) append(env2.GITHUB_STEP_SUMMARY, `<pre>
-${lines.map(escapeHtml).join("\n")}
+${lines2.map(escapeHtml).join("\n")}
 </pre>
 `);
       const kept = inWriteOrder(code === 0 ? held : held.filter(([key]) => NAMES_THE_RUN.includes(key)));
@@ -30254,7 +30575,7 @@ ${lines.map(escapeHtml).join("\n")}
 `).join(""));
     },
     get lines() {
-      return [...lines];
+      return [...lines2];
     }
   };
 }
