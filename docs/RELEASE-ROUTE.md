@@ -274,8 +274,8 @@ Three facts came from the first real runs (13 November 2026):
   and a value followed by ` #`, is read as if it stood outside, so the rest of that line is
   dropped as a comment though YAML reads it as content (in a quoted value the dropped rest can be a
   pin GitHub runs; in a block scalar the dropped text is the scalar's own and begins with `#`,
-  after a space, a line break or the start of the value, so a `uses:` value built that way holds a
-  `#` before the dropped `@`, which the route's path at a pin never does; this is reasoned from
+  after white space, a line break or the start of the value, so a `uses:` value built that way
+  holds a `#` before its `@`, which the route's path at a pin never does; this is reasoned from
   YAML's rules and was not run on GitHub); (2) an escape sequence other than `\/`
   inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation); (3) a
   YAML tag that rewrites the value: `uses: !!binary <base64 of the path and pin>` decodes, in a
