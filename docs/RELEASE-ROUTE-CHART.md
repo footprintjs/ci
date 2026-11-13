@@ -152,7 +152,7 @@ it to each child and to the stage after it. The `default` box is the library's d
 | `look-tool` | Look at the tool commit | Is the release tool commit on footprintjs/ci main? |
 | `look-settings` | Read the settings | Is .github/release.json at the commit readable and valid? |
 | `look-package` | Read package.json | The package name, private flag and version at the commit |
-| `look-pins` | Read the caller's pins | Does every workflow file that calls the route pin the commit running? |
+| `look-pins` | Read the caller's pins | Does every `uses:` line that names the route pin the commit running? |
 | `gather-first` | Gather what was seen | Lift the facts the looks found side by side to their names |
 | `look-tag` | Look for the tag and its release | Does origin have tag v<version>, at this commit, and has it a GitHub release? |
 | `look-npm` | Ask npm | Does npm know the package, have the version, and is the version newer? |
@@ -187,10 +187,15 @@ in RELEASE-ROUTE.md numbers them from 1.
 
 The agreement test runs one decision chart (the weigh and decide stages, seeded with the facts)
 against `plan.mjs` on every combination `plan.test.mjs` enumerates (65,536 since the facts
-`pinsAgree`, `tagAtCommit` and `releaseExists` were added), and on each
-combination with one fact made unreadable as `null`, `undefined`, a string and a number
-(`test/release-route/chart/agreement-*.test.mjs`): the same rule, mode, compare and refusal every
-time.
+`pinsAgree`, `tagAtCommit` and `releaseExists` were added): the same rule, mode, compare and
+refusal every time (`test/release-route/chart/agreement-readable.test.mjs`). For a fact made
+unreadable (`null`, `undefined`, a string, a number), `agreement-unread.test.mjs` holds the chart's
+own part between the facts and the decision: the weigh stage's function on every combination with
+every fact made unreadable in every kind (a pure function, no engine), and the whole chart on one
+witness of every row with each fact made unreadable and each one-fact change. Together with
+`plan.test.mjs`'s exhaustive walk of the plain plan over the same unreadable cases, that is the
+proof four files used to give by running the whole chart 4.46 million times; the file's header
+says why.
 
 ## The verify chart
 

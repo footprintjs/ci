@@ -574,6 +574,7 @@ var FACTS = Object.freeze({
 var WRITING_MODES = Object.freeze(["publish", "recover", "finish"]);
 var row = (value) => Object.freeze({ ...value, when: Object.freeze(value.when) });
 var RELEASED = Object.freeze({ tagExists: true, npmHasVersion: true, action: "publish" });
+var WAY_OUT = "write the release for that tag by hand, or, if the release job of the run that made the tag failed, use Re-run failed jobs on that run while GitHub still allows it";
 var UNFINISHED = Object.freeze({ ...RELEASED, releaseExists: false });
 var RULES = Object.freeze([
   row({
@@ -651,7 +652,7 @@ var RULES = Object.freeze([
     when: { tagExists: true, npmHasVersion: true, action: "dry-run", tagAtCommit: false },
     mode: "dry-run",
     compare: "no",
-    says: "dry run: this commit is not the one released as this version (its tag names another commit), so the build is checked and nothing is compared"
+    says: "dry run: this commit is not the one released as this version (its tag names another commit), so nothing is compared with npm"
   }),
   row({
     id: "tag-without-package",
@@ -663,33 +664,33 @@ var RULES = Object.freeze([
     id: "finish-off-main",
     when: { ...UNFINISHED, refIsMain: false },
     refuse: "finish-off-main",
-    says: "the version is tagged and on npm without a GitHub release, and writing that release runs only from main"
+    says: "the version is tagged and on npm without a published GitHub release, and writing that release runs only from main"
   }),
   row({
     id: "finish-not-tip",
     when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: false },
     mode: "nothing",
     compare: "no",
-    says: "nothing to do in this run: the version is tagged and on npm without a GitHub release, but this commit is no longer the tip of main; the run of the tip takes it up"
+    says: `nothing to do in this run: the version is tagged and on npm without a published GitHub release, but this commit is no longer the tip of main; ${WAY_OUT}`
   }),
   row({
     id: "finish-tag-elsewhere",
     when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: false },
     refuse: "tag-elsewhere",
-    says: "the version is tagged and on npm without a GitHub release, and its tag names another commit than this one; write the release for that tag by hand, or use Re-run failed jobs on the run that made the tag"
+    says: `the version is tagged and on npm without a published GitHub release, and its tag names another commit than this one; ${WAY_OUT}`
   }),
   row({
     id: "finish-changelog-missing",
     when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: true, changelogFound: false },
     refuse: "changelog-missing",
-    says: "the tag of this version names this commit and npm has the version, but there is no GitHub release and CHANGELOG.md has no section for this version to write it from"
+    says: "the tag of this version names this commit and npm has the version, but there is no published GitHub release and CHANGELOG.md has no section for this version to write it from"
   }),
   row({
     id: "finish",
     when: { ...UNFINISHED, refIsMain: true, commitIsMainTip: true, tagAtCommit: true, changelogFound: true },
     mode: "finish",
     compare: "no",
-    says: "the tag of this version names this commit and npm has the version, but there is no GitHub release: write the release for the existing tag"
+    says: "the tag of this version names this commit and npm has the version, but there is no published GitHub release: write the release for the existing tag"
   }),
   row({
     id: "not-main-tip",
@@ -758,7 +759,7 @@ var RULES = Object.freeze([
     when: { tagExists: false, npmHasVersion: false, action: "dry-run" },
     mode: "dry-run",
     compare: "no",
-    says: "dry run: would publish {version}"
+    says: "dry run: npm does not have {version}; a publish from the tip of main would publish it"
   })
 ]);
 var sentenceOf = (rule, version) => rule.says.replaceAll("{version}", version ?? "this version");
@@ -801,7 +802,7 @@ var REFUSALS = Object.freeze({
   "changelog-duplicate": "CHANGELOG.md names this version's heading more than once, anywhere (a quote or code counts); it must appear once.",
   // Git and the checkout.
   "git-failed": "A git question failed, so the route could not see the repository.",
-  "workflows-unreadable": "A file under .github/workflows is not a regular file or is larger than its bound, or there are more files than the bound.",
+  "workflows-unreadable": "A workflow file is a link, over its bound or one too many, names the route other than on a plain uses: line, or no route pin is found.",
   "checkout-mismatch": "The checkout is not the planned commit with a clean tree.",
   // The network: npm and GitHub answers.
   "request-failed": "A request could not be made or did not finish in time.",
@@ -925,12 +926,12 @@ function clean(value, max = 80) {
   return cut(neutralise(flatten(value, Number.MAX_SAFE_INTEGER)), max);
 }
 function cleanLines(text, { maxLines = 400, maxLine = 400 } = {}) {
-  const lines = (typeof text === "string" ? text : "").split(/\r\n|\n|\r|\u{2028}|\u{2029}/u);
-  const kept = lines.slice(0, maxLines).map((line) => {
+  const lines2 = (typeof text === "string" ? text : "").split(/\r\n|\n|\r|\u{2028}|\u{2029}/u);
+  const kept = lines2.slice(0, maxLines).map((line) => {
     const indent = /^ */.exec(line)[0].slice(0, 16);
     return line.trim() === "" ? "" : indent + flatten(line, maxLine);
   });
-  if (lines.length > maxLines) kept.push("", "(The section is longer than the route copies; the rest is in CHANGELOG.md.)");
+  if (lines2.length > maxLines) kept.push("", "(The section is longer than the route copies; the rest is in CHANGELOG.md.)");
   return kept;
 }
 
@@ -3141,7 +3142,7 @@ var OVERLAP_WORDS = {
   "view-not-placed": "possibly: the array does not show where the view sits"
 };
 function formatCausalChain(root) {
-  const lines = [];
+  const lines2 = [];
   const visited = /* @__PURE__ */ new Set();
   const weightSuffix = (edge) => edge !== void 0 && edge.weight !== 1 ? ` (${edge.weight})` : "";
   const overlapSuffix = (edges, shown2) => Object.keys(OVERLAP_WORDS).map((mark) => {
@@ -3153,7 +3154,7 @@ function formatCausalChain(root) {
   }).join("");
   function walk2(node, indent, edgesFromChild) {
     if (visited.has(node.runtimeStageId)) {
-      lines.push(`${"  ".repeat(indent)}\u21B3 ${node.runtimeStageId} (see above)`);
+      lines2.push(`${"  ".repeat(indent)}\u21B3 ${node.runtimeStageId} (see above)`);
       return;
     }
     visited.add(node.runtimeStageId);
@@ -3167,9 +3168,9 @@ function formatCausalChain(root) {
     }
     const link = linkParts.length > 0 ? ` \u2190 ${linkParts.join(" \u2190 ")}` : "";
     const writes = node.keysWritten.length > 0 ? ` [wrote: ${node.keysWritten.map(shownPath).join(", ")}]` : "";
-    lines.push(`${"  ".repeat(indent)}${node.stageName} (${node.runtimeStageId})${link}${writes}`);
+    lines2.push(`${"  ".repeat(indent)}${node.stageName} (${node.runtimeStageId})${link}${writes}`);
     if (node.incompleteSources && node.incompleteSources.length > 0) {
-      lines.push(`${"  ".repeat(indent + 1)}\u26A0 also consumed ${node.incompleteSources.join("/")} \u2014 slice may be incomplete here`);
+      lines2.push(`${"  ".repeat(indent + 1)}\u26A0 also consumed ${node.incompleteSources.join("/")} \u2014 slice may be incomplete here`);
     }
     for (const parent of node.parents) {
       walk2(parent, indent + 1, node.parentEdges.filter((e) => e.parent === parent));
@@ -3178,9 +3179,9 @@ function formatCausalChain(root) {
   walk2(root, 0);
   if (root.truncated) {
     const causes = [root.truncated.byDepth && "maxDepth reached", root.truncated.byNodes && "maxNodes reached"].filter(Boolean).join(", ");
-    lines.push(`\u26A0 slice truncated (${causes}) \u2014 older causes exist beyond this horizon`);
+    lines2.push(`\u26A0 slice truncated (${causes}) \u2014 older causes exist beyond this horizon`);
   }
-  return lines.join("\n");
+  return lines2.join("\n");
 }
 
 // node_modules/foottrace/dist/esm/lib/memory/backtrack.js
@@ -25102,7 +25103,7 @@ var RunContext = class {
 
 // node_modules/footprintjs/dist/esm/lib/runner/RunnableChart.js
 function chartToMermaid(root) {
-  const lines = ["flowchart TD"];
+  const lines2 = ["flowchart TD"];
   const mermaidIds = /* @__PURE__ */ new Map();
   const taken = /* @__PURE__ */ new Set();
   const idOf = (id) => {
@@ -25123,18 +25124,18 @@ function chartToMermaid(root) {
       return;
     visited.add(n.id);
     const nid = idOf(n.id);
-    lines.push(`${nid}["${String(n.name).replace(/"/g, "#quot;")}"]`);
+    lines2.push(`${nid}["${String(n.name).replace(/"/g, "#quot;")}"]`);
     for (const c of n.children || []) {
-      lines.push(`${nid} --> ${idOf(c.id)}`);
+      lines2.push(`${nid} --> ${idOf(c.id)}`);
       walk2(c);
     }
     if (n.next) {
-      lines.push(`${nid} --> ${idOf(n.next.id)}`);
+      lines2.push(`${nid} --> ${idOf(n.next.id)}`);
       walk2(n.next);
     }
   };
   walk2(root);
-  return lines.join("\n");
+  return lines2.join("\n");
 }
 var openAPICache = /* @__PURE__ */ new WeakMap();
 var mcpCache = /* @__PURE__ */ new WeakMap();
@@ -27062,14 +27063,14 @@ var FlowChartBuilder = class {
     this._stepCounter++;
     this._stageStepMap.set(id, this._stepCounter);
     if (subflow.description) {
-      const lines = subflow.description.split("\n");
-      const stepsIdx = lines.findIndex((l) => l.startsWith("Steps:"));
+      const lines2 = subflow.description.split("\n");
+      const stepsIdx = lines2.findIndex((l) => l.startsWith("Steps:"));
       if (stepsIdx >= 0) {
-        const summary = lines.slice(0, stepsIdx).join(" ").trim();
+        const summary = lines2.slice(0, stepsIdx).join(" ").trim();
         this._descriptionParts.push(summary ? `${this._stepCounter}. [Sub-Execution: ${name}] \u2014 ${summary}` : `${this._stepCounter}. [Sub-Execution: ${name}]`);
-        for (let i = stepsIdx + 1; i < lines.length; i++) {
-          if (lines[i].trim())
-            this._descriptionParts.push(`   ${lines[i]}`);
+        for (let i = stepsIdx + 1; i < lines2.length; i++) {
+          if (lines2[i].trim())
+            this._descriptionParts.push(`   ${lines2[i]}`);
         }
       } else {
         this._descriptionParts.push(`${this._stepCounter}. [Sub-Execution: ${name}] \u2014 ${subflow.description}`);
@@ -29082,9 +29083,9 @@ var closes = (line, fence) => {
   const match = FENCE_CLOSE.exec(line);
   return match !== null && match[1][0] === fence.char && match[1].length >= fence.length;
 };
-function fencedLines(lines) {
+function fencedLines(lines2) {
   let fence = null;
-  return lines.map((line) => {
+  return lines2.map((line) => {
     if (fence) {
       if (closes(line, fence)) fence = null;
       return true;
@@ -29109,17 +29110,17 @@ function findSection(text, version, style) {
   const at = occurrences[0].index;
   const lineStart = Math.max(text.lastIndexOf("\n", at - 1), text.lastIndexOf("\r", at - 1)) + 1;
   if (lineStart !== at) return null;
-  const lines = text.split(/\r\n|\n|\r/);
+  const lines2 = text.split(/\r\n|\n|\r/);
   const index = text.slice(0, at).split(/\r\n|\n|\r/).length - 1;
-  const match = HEADINGS[style].exec(lines[index]);
-  const fenced = fencedLines(lines);
+  const match = HEADINGS[style].exec(lines2[index]);
+  const fenced = fencedLines(lines2);
   if (!match || match[1] !== version || fenced[index]) return null;
-  let end = lines.length;
-  for (let i = index + 1; i < lines.length; i++) if (!fenced[i] && lines[i].startsWith("## ")) {
+  let end = lines2.length;
+  for (let i = index + 1; i < lines2.length; i++) if (!fenced[i] && lines2[i].startsWith("## ")) {
     end = i;
     break;
   }
-  const body = lines.slice(index + 1, end);
+  const body = lines2.slice(index + 1, end);
   while (body.length > 0 && (body.at(-1).trim() === "" || LINK_DEFINITION.test(body.at(-1)))) body.pop();
   while (body.length > 0 && body[0].trim() === "") body.shift();
   return { title: flatten(match[2] ?? "", 120), lines: body.length > 0 ? cleanLines(body.join("\n")) : [] };
@@ -29372,7 +29373,7 @@ var ROUTE_WORKFLOW = /^footprintjs\/ci\/\.github\/workflows\/release-(?:route|ch
 var unquoted = (word) => /^(["']).*\1$/.test(word) && word.length >= 2 ? word.slice(1, -1) : word;
 function routePins(text) {
   const pins = [];
-  for (const line of text.replace(/^\uFEFF/, "").split(LINE_BREAK)) {
+  for (const line of lines(text)) {
     const match = USES_LINE.exec(line);
     if (!match) continue;
     const value = unquoted(match[1]);
@@ -29380,16 +29381,29 @@ function routePins(text) {
   }
   return pins;
 }
+var lines = (text) => text.replace(/^\uFEFF/, "").split(LINE_BREAK);
+var COMMENT = /(^|[\t ])#.*$/;
+var WHITE = /[\s\u0085]/gu;
+var MENTION = /footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/giu;
+function routeMentions(text) {
+  const bare = lines(text).map((line) => line.replace(COMMENT, "$1")).join("").replace(WHITE, "");
+  return (bare.match(MENTION) ?? []).length;
+}
 function workflowPins(git2, commit, sha) {
   if (!isCommit(sha)) refuse("input-invalid", "tool commit");
   const files = listAtCommit(git2, commit, WORKFLOWS_DIR, MAX_FILES, "workflows-unreadable").filter((entry) => entry.type !== "tree" && WORKFLOW_FILE.test(entry.path));
+  let read2 = 0;
   for (const entry of files) {
     const name = clean(entry.path.slice(WORKFLOWS_DIR.length + 1), 100);
     if (!isRegularBlob(entry)) refuse("workflows-unreadable", name);
     const text = readBlob(git2, entry.id, MAX_FILE_BYTES, "workflows-unreadable", name).toString("utf8");
-    const differs = routePins(text).find((pin) => pin !== sha);
+    const pins = routePins(text);
+    if (routeMentions(text) > pins.length) refuse("workflows-unreadable", `${name}: a route pin not on a plain uses line`);
+    read2 += pins.length;
+    const differs = pins.find((pin) => pin !== sha);
     if (differs !== void 0) return { agree: false, file: name, pin: clean(differs, 80) };
   }
+  if (read2 === 0) refuse("workflows-unreadable", `no route pin in ${WORKFLOWS_DIR}`);
   return { agree: true };
 }
 
@@ -29672,7 +29686,7 @@ var PACKAGE = Object.freeze({
 var PINS = Object.freeze({
   id: "look-pins",
   name: "Read the caller's pins",
-  description: "Does every workflow file that calls the route pin the commit running?",
+  description: "Does every `uses:` line that names the route pin the commit running?",
   make: ({ env: env2, git: git2 }) => async (scope) => writeObservation(scope, await observePins({ env: env2, git: git2, commit: scope.commit }))
 });
 
@@ -30363,32 +30377,32 @@ function decisionLines(record, key, writer) {
       `${OBSERVED_KEYS.has(key) ? "Observed" : "Written"} by ${observedBy(observerOf(record, key))}.`
     ];
   const matched = decision.evidence.rules.find((rule) => isObject5(rule) && rule.matched === true);
-  const lines = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
+  const lines2 = [`Decision at ${clean(decision.deciderRuntimeStageId, 60)}: ${matched ? `rule ${clean(matched.label, 60)} matched` : `no rule matched, default ${clean(decision.evidence.default, 60)}`}.`];
   for (const condition of Array.isArray(matched?.conditions) ? matched.conditions : []) {
-    lines.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; observed by ${observedBy(observerOf(record, condition.key))}.`);
+    lines2.push(`Fact ${clean(condition.key, 40)} ${clean(condition.op, 8)} ${show(condition.threshold)}: was ${clean(condition.actualSummary, 40)}, ${condition.result ? "holds" : "does not hold"}; observed by ${observedBy(observerOf(record, condition.key))}.`);
   }
-  return lines;
+  return lines2;
 }
 function explain(record, key = defaultKey(record.state)) {
   if (typeof key !== "string" || !KEY.test(key)) refuse("input-invalid", "key");
   const { state } = record;
-  const lines = [`Why ${key} = ${show(state[key])} in the ${record.step} record of run ${clean(String(record.runId), 60)}.`];
-  if (!Object.hasOwn(state, key)) return [...lines, "The run never wrote that key."];
+  const lines2 = [`Why ${key} = ${show(state[key])} in the ${record.step} record of run ${clean(String(record.runId), 60)}.`];
+  if (!Object.hasOwn(state, key)) return [...lines2, "The run never wrote that key."];
   const writer = findLastWriter(record.commitLog, key);
-  lines.push(...decisionLines(record, key, writer));
+  lines2.push(...decisionLines(record, key, writer));
   for (const [fact, cause] of Object.entries(isObject5(state.causes) ? state.causes : {}))
-    lines.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
-  if (!writer) return [...lines, "No commit in the record wrote that key."];
+    lines2.push(`Unreadable fact ${clean(fact, 40)}: ${clean(cause?.code, 40)} ${clean(cause?.detail, 120)}.`);
+  if (!writer) return [...lines2, "No commit in the record wrote that key."];
   const reads = keysReadFromExecutionTree(record.executionTree);
   const controlDeps = (id) => Object.hasOwn(record.control.controlDeps, id) ? record.control.controlDeps[id] : void 0;
   const chain = causalChain(record.commitLog, writer.runtimeStageId, reads.lookup, { controlDeps, edgeAttribution: "per-write" });
-  lines.push('Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):');
-  lines.push(SIDE_BY_SIDE);
+  lines2.push('Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):');
+  lines2.push(SIDE_BY_SIDE);
   if (chain) for (const line of formatCausalChain(chain).split("\n")) {
     const [, indent, text] = /^( *)(.*)$/.exec(line);
-    lines.push(`Walk: ${". ".repeat(Math.floor(indent.length / 2))}${text}`);
+    lines2.push(`Walk: ${". ".repeat(Math.floor(indent.length / 2))}${text}`);
   }
-  return lines;
+  return lines2;
 }
 
 // src/release-route/chart/steps.mjs
@@ -30509,13 +30523,13 @@ function createReport({
   append = import_node_fs4.appendFileSync,
   appendOutputs = appendWhole
 } = {}) {
-  const lines = [];
+  const lines2 = [];
   const outputs = [];
   let ended = false;
   return {
     say(line) {
       const safe = safeLine(line);
-      lines.push(safe);
+      lines2.push(safe);
       print(safe);
     },
     output(key, value) {
@@ -30531,7 +30545,7 @@ function createReport({
       ended = true;
       const held = outputs.splice(0);
       if (env2.GITHUB_STEP_SUMMARY) append(env2.GITHUB_STEP_SUMMARY, `<pre>
-${lines.map(escapeHtml).join("\n")}
+${lines2.map(escapeHtml).join("\n")}
 </pre>
 `);
       const kept = inWriteOrder(code === 0 ? held : held.filter(([key]) => NAMES_THE_RUN.includes(key)));
@@ -30539,7 +30553,7 @@ ${lines.map(escapeHtml).join("\n")}
 `).join(""));
     },
     get lines() {
-      return [...lines];
+      return [...lines2];
     }
   };
 }

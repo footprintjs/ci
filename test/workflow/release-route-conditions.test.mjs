@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { parseCondition } from './support/expression.mjs';
+import { evaluate, parseCondition } from './support/expression.mjs';
 import { readWorkflow, simulate } from './support/route-workflow.mjs';
 
 const { yaml } = readWorkflow('release-route.yml');
@@ -97,6 +97,18 @@ test('nothing writes (publish, release) unless the plan PASSED with mode publish
     if (world.state.release.result !== 'skipped') assert.ok(['publish', 'recover', 'finish'].includes(mode(world)));
     if (mode(world) === 'finish') assert.deepEqual(LATER.filter((id) => world.state[id].result !== 'skipped'), world.cancelled ? [] : ['release']);
   }
+});
+
+// The finish clause's `needs.verify.result == 'skipped'` half (review, workflow-yaml-2 and tests-5):
+// the simulator cannot make verify run under finish (verify needs a build), so the walk above cannot
+// see it; evaluate the release job's condition directly. A finish plan whose verify somehow ran is
+// not a finish the route planned, and the release job must not act on it.
+test('the release job runs for finish only with verify skipped', () => {
+  const tree = parseCondition(jobs.release.if);
+  const plan = { result: 'success', outputs: MODES.finish };
+  const runs = (verify) => evaluate(tree, { cancelled: false, needs: { plan, verify: { result: verify, outputs: {} } } });
+  assert.equal(runs('skipped'), true);
+  for (const verify of ['success', 'failure', 'cancelled']) assert.equal(runs(verify), false, verify);
 });
 
 // The table in the doc, computed again. Each row: the case, then whether each later job runs.

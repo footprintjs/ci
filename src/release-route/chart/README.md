@@ -18,5 +18,5 @@ package (footprintjs, foottrace), and nothing outside it imports it.
 | `steps.mjs`, `cli.mjs` | The charted steps (plan, verify, why) on the shared step runner. |
 
 Two rules to keep: `rules.mjs` is the one owner of the decision (the decide stage only hands it
-to `decide()`), and `plan.mjs` stays the oracle (`agreement-*.test.mjs` runs both on every
-combination). Read `docs/RELEASE-ROUTE-CHART.md` for the drawings, the record and why.
+to `decide()`), and `plan.mjs` stays the oracle (`agreement-readable.test.mjs` runs both on every
+readable combination; `agreement-unread.test.mjs` holds the unreadable cases, its header says how). Read `docs/RELEASE-ROUTE-CHART.md` for the drawings, the record and why.

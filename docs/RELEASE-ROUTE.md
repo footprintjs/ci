@@ -247,19 +247,38 @@ Three facts came from the first real runs (13 November 2026):
 - `pinsAgree`: every line of the caller's `.github/workflows/*.yml` / `*.yaml` at the planned commit
   whose first token is `uses:` (or `- uses:`) and which names
   `footprintjs/ci/.github/workflows/release-route.yml@...` or `.../release-check.yml@...` names
-  exactly `ROUTE_TOOL_SHA`. A file that names neither says nothing. `pins.mjs` reads at most 200
-  files of at most 512 KiB, each by its blob id (a name never becomes a git pathspec); a file
-  that is not a regular blob (a link) or is over the bound is `workflows-unreadable`; lines are
-  split on every break a reader might honour (LF, CR, NEL, LS, PS); nothing of a file leaves the
-  reader but the first disagreeing file's name and the pin it found, both cleaned and cut.
+  exactly `ROUTE_TOOL_SHA` (compared exactly: the lower-case 40-character commit). That plain line
+  is all the reader reads (no YAML parser on untrusted text), so it refuses what it could not read
+  (`workflows-unreadable`): a file in which the route's path, with comments and then all white
+  space removed, is named in more places than the plain lines gave pins (a block scalar, the value
+  on the next line, a flow mapping, a quoted key, a space before the colon, an anchor or alias, a
+  `!!str` tag, a complex key, a JSON file, a mention in a `run:` script or a `with:` value; removing
+  white space is what makes a folded or split value visible), and no route pin at all across the
+  files (the workflow that is running names the route, so none read means the reader missed it).
+  Every plain form agrees or differs; every other spelling of the path refuses; text that hides the
+  path on purpose (an escape sequence inside a quoted value) is outside what a catcher of mistakes
+  covers. A file that names neither workflow says nothing. `pins.mjs` reads at most 200 files of at
+  most 512 KiB, each by its blob id (a name never becomes a git pathspec); a file that is not a
+  regular blob (a link) or is over the bound is `workflows-unreadable`; lines are split on every
+  break a reader might honour (LF, CR, NEL, LS, PS); nothing of a file leaves the reader but the
+  first disagreeing file's name and the pin it found, both cleaned and cut. What an honest caller
+  can be refused for: a symlinked workflow file (even one that does not name the route), the route's
+  path named outside a plain `uses:` line and outside a `#` comment (write each pin as a plain
+  `uses: footprintjs/ci/.github/workflows/release-....yml@<commit>` line), and a pin that is not the
+  lower-case commit; a `uses:` line inside a `run: |` block counts as a pin.
 - `tagAtCommit`: the tag `v<version>` exists AND names the planned commit, from the same
   `ls-remote` answer as `tagExists` (the tag peeled). With no tag it is `false` and nothing more is
   asked; an unreadable tag leaves both unknown with the same cause.
-- `releaseExists`: GitHub has a published release for tag `v<version>`, read with the job's token
+- `releaseExists`: GitHub has a PUBLISHED release for tag `v<version>`, read with the job's token
   from the fixed host by the release job's own rule (`tag.mjs · decideRelease`): none is `false`,
-  one for exactly this tag is `true`, a draft or a release naming another tag is
-  `release-unexpected` (the fact unknown, the cause printed). With no tag it is `false` and GitHub
-  is not asked.
+  one for exactly this tag is `true`, a release naming another tag is `release-unexpected` (the
+  fact unknown, the cause printed). A draft is not seen: the endpoint answers only a published
+  release (see "What `tag` cannot see" above), so a draft reads as no release, and `finish` (like
+  `publish` and `recover`) then writes a published release beside it; `decideRelease`'s draft
+  branch is a guard only. With no tag it is `false` and GitHub is not asked.
+
+Every fact is read in every mode, a dry run and the pull-request check included, so they too turn
+red (`fact-unreadable`) when GitHub or npm cannot answer; run them again.
 
 The rows, first match wins (`src/release-route/rules.mjs`):
 
@@ -312,22 +331,37 @@ Why this order:
   (`dry-run-released` needs `tagAtCommit = true`). Between two releases a shipped file
   (`package.json`, the README) has usually changed, so the rebuild of a later commit differs from
   npm by design, and the dry run was red for no fault (storydeck runs 43334890647 and
-  43336400518). At any other commit, `dry-run-not-released-commit`: the build is checked and
-  inspected, and nothing is compared.
+  43336400518). At any other commit, `dry-run-not-released-commit`: nothing is compared with npm
+  (the dry run's build is still checked and inspected; the pull-request check builds nothing).
 - **The route keeps the tag, npm and the GitHub release in step.** A version that is tagged and on
-  npm but has no GitHub release is unfinished, not `released`. With the tag at this very commit on
+  npm but has no published GitHub release is unfinished, not `released`. With the tag at this very commit on
   the tip of `main`, `finish` runs only the release job, which writes the release for the existing
   tag (its `tag` step answers `skip`; in this mode it refuses `tag-gone` rather than ever creating
   a tag, and the workflow's tag step runs only for `publish` and `recover`). It needs the version's
   CHANGELOG section, as `publish` and `recover` do (`finish-changelog-missing`). With the tag at
   another commit (main has moved on since the release), this run cannot write it (the release job
   writes from the planned commit and refuses a tag elsewhere), so the plan refuses at once with
-  `tag-elsewhere` (`finish-tag-elsewhere`), and the decision line says what to do: write the
-  release for that tag by hand, or "Re-run failed jobs" on the run that made the tag. Off the tip
-  it is `nothing` (`finish-not-tip`): the tip's run takes it up. So a release deleted by hand
-  comes back on the next run of `main` asked to publish while the tagged commit is still the tip
-  (a dispatch: a push always brings a newer commit), and once `main` has moved on it is named in
-  red by every push that keeps the version until it is written by hand.
+  `tag-elsewhere` (`finish-tag-elsewhere`), and the decision line gives the way out: write the
+  release for that tag by hand (below), or, if the release job of the run that made the tag failed,
+  use "Re-run failed jobs" on that run while GitHub still allows it. Off the tip it is `nothing`
+  (`finish-not-tip`: an old run does not turn red for being old), with the same way out in its
+  sentence, and it promises nothing about another run, because no later run writes this release:
+  a tip that keeps the version refuses `tag-elsewhere` and names the gap; a tip that raised the
+  version never looks at the old version again. So a release deleted by hand comes back only on a
+  run of `main` asked to publish while the tagged commit is still the tip (a dispatch: a push
+  always brings a newer commit); once `main` has moved on it is named in red by every push that
+  keeps the version, and written by hand.
+
+  **Writing the release by hand.** From a checkout of the package at the tagged commit and of
+  footprintjs/ci, the route's own `notes` step writes the title and the notes, then `gh` makes the
+  release for the existing tag:
+
+  ```
+  ROUTE_COMMIT=<the tagged commit> ROUTE_OUT=<a new empty folder> ROUTE_SOURCE=<the package checkout> \
+    node <ci checkout>/scripts/release-route.mjs notes
+  gh release create v<version> --verify-tag --title "$(cat <folder>/title.txt)" --notes-file <folder>/notes.md \
+    --latest   # or --latest=false when a newer version is on npm
+  ```
 - **`commitIsMainTip` is measured**, not told: `git ls-remote origin refs/heads/main` must equal
   the planned commit. "Re-run all jobs" of an old run of `main` plans that run's OLD commit
   again; with the version still unreleased it would otherwise publish older code. ("Re-run failed
@@ -350,8 +384,8 @@ Why this order:
   version was tagged at (which shows whether the build is byte-reproducible). `finish` compares
   nothing: it writes no package and no tag.
 
-Rows that can match the same facts with different results say so (`outranks`: `'later'` for the
-first seven, explicit lists for `not-main-tip`, `unfinished-not-tip`, `changelog-missing` and
+Rows that can match the same facts with different results say so (`outranks`: `'later'` for
+every row up to and including `facts-unreadable`, explicit lists for `not-main-tip`, `unfinished-not-tip`, `changelog-missing` and
 `version-not-newer`).
 `test/release-route/plan.test.mjs` enumerates all 65,536 combinations of readable facts (and each
 with one fact unknown) and fails on an overlap nobody declared, on a declaration that never
@@ -454,6 +488,9 @@ the workflow as parsed YAML), or why no test can.
     `npm publish`") wants the moment it looks to be the last one before the publish; `ready` only reads npm.
 - **W7.** `verify` runs after the publish job on both `publish=yes` and `publish=no` (and after a failed publish); the
   release job needs `verify` green.
+  - Kept, with one exception: mode `finish`, which writes only the GitHub release of a tag that already names the
+    planned commit and a version npm already has, runs no build and no verify, and its release job runs only with
+    verify skipped (test: "the release job runs for finish only with verify skipped").
   - Kept: the conditions between the jobs (section "The workflows", the truth table). Test:
     `release-route-conditions.test.mjs`, which evaluates every job's `if:` from the YAML over every mode, a
     refused plan, and every result of every job that runs, and computes the doc's table again.
@@ -484,9 +521,10 @@ the workflow as parsed YAML), or why no test can.
     doc and holds its `with:` to the route's inputs. Each package's own file is checked when it adopts the
     route, not here. Why a group per kind: GitHub keeps one running and one pending run per group, and a newer
     queued run cancels a PENDING one. With one group per ref, a manual dry run queued behind a running release
-    cancelled a release push still waiting (second reader, storydeck pull request 46), and the version stayed
-    unpublished until the next push. Now a newer run cancels only a pending run of its own kind; among runs that
-    may publish that is harmless (the newest plans the tip), and a dry run never cancels one.
+    could cancel a release push still waiting (GitHub's rule, read by the second reader of storydeck pull request
+    46; not seen in a run), and the version would stay unpublished until the next push. Now a newer run cancels
+    only a pending run of its own kind, and a dry run never cancels one; among runs that may publish the newest
+    plans the tip, but a version raised only in the cancelled push is skipped: never published or tagged.
 - **W12.** `ROUTE_OUT`, `ROUTE_TARBALL_DIR` and `ROUTE_NPM_DIR` are fresh folders under `RUNNER_TEMP`, one per job.
   - Kept: each is `${{ runner.temp }}/<name>`, one folder per variable in a job, no two variables sharing one
     (`ROUTE_RECORD_DIR` and the publish's empty folder too). Fresh because GitHub empties `RUNNER_TEMP` at the
@@ -613,7 +651,7 @@ No condition in this file is what stops a publish from a branch or from an old c
 those (`publish-off-main`, `not-main-tip`), and writes `mode` only when it passes; on a re-run that
 reuses an old plan, `ready` refuses it (`plan-stale`).
 
-**Four things to know when adopting the route.**
+**Things to know when adopting the route (or moving to a newer pin of it).**
 
 - The build's Node is the major the settings name, at the minor `actions/setup-node` v7.1.0 finds when the
   job runs: the runner image's cached 22.x when it has one, not always the newest (it looks for a
@@ -628,6 +666,9 @@ reuses an old plan, `ready` refuses it (`plan-stale`).
 - A publish that was held still lets `verify` run (it runs after a failed publish, W7): it waits its
   bounded time and ends `registry-late`: red for the right reason (nothing was published), with a
   misleading name.
+- The package's current version must have its published GitHub release before the move: otherwise
+  the first push after it (the move itself, or anything that keeps the version) is refused
+  `tag-elsewhere` (rule `finish-tag-elsewhere`) until the release is written by hand.
 
 **Artifacts.**
 
@@ -661,8 +702,8 @@ repository keeps an artifact, the same as this repository's shadow records.
 No input, `contents: read`, one job: the route's plan job with the action fixed to `dry-run` and no
 outputs (`test/workflow/release-check.test.mjs` holds it equal to that job except for those).
 Without a build, hold or secret it answers: a pull request that leaves a released version alone reads
-"this commit is not the one released as this version ... nothing is compared" (its merge commit is
-never the tagged one); one that raises it reads "would publish x.y.z"; a version with no CHANGELOG
+"this commit is not the one released as this version ... nothing is compared with npm" (its merge commit is
+never the tagged one); one that raises it reads "npm does not have x.y.z; a publish from the tip of main would publish it"; a version with no CHANGELOG
 section, an invalid settings file, a private package, or a workflow file that pins the route at
 another commit than this check's (`pins-differ`) is red with its named refusal. The record is
 uploaded as `release-check-plan-record-<attempt>`.
@@ -743,7 +784,8 @@ jobs:
 **To release** (by hand until change notes and `prepare` exist):
 
 1. In a pull request, raise `version` in `package.json` (and the lock file) and write that version's
-   CHANGELOG section. The release check says "would publish x.y.z", or names what is missing.
+   CHANGELOG section. The release check says "npm does not have x.y.z; a publish from the tip of main would
+   publish it", or names what is missing.
 2. Merge it. The push to `main` runs the route as `publish`: plan, hold, build, publish, verify, release.
 3. Read the run: the plan's summary says what it decided and why; verify's says npm serves the built
    bytes; the release job writes tag `v<version>` and the GitHub release. The records are the run's
@@ -766,7 +808,7 @@ run keeps its package for 30 days and its records for 90).
 | npm accepted, verify red with `registry-differs` | stops; no tag, no release | investigate; never tag over a mismatch |
 | npm shows the version late (`registry-late`) | verify red after its bounded wait; no tag | "Re-run failed jobs" later: verify compares again with the same run's package |
 | Published, then the TAG failed (no tag was made) | the next run plans `recover`: rebuild, compare with npm, then tag and release | if the rebuild is not byte-equal, "Re-run failed jobs" on the ORIGINAL run (its package is kept 30 days) |
-| Tagged, then the GitHub release failed (or the release was deleted by hand) | the plan sees the tag and the version on npm and no GitHub release. While the tagged commit is still the tip of `main`, a run of `main` asked to publish (a dispatch of `publish`; a push always brings a newer commit) plans `finish`: the release job alone writes the release for the existing tag. Once `main` has moved past it, every later push that keeps the version is refused `tag-elsewhere` (rule `finish-tag-elsewhere`), red until the release exists | "Re-run failed jobs" on the run that failed, within GitHub's re-run window (`tag` answers skip for the tag, create for the release); or, while the tagged commit is the tip, a dispatch of `publish`; after that, write the release for the tag by hand |
+| Tagged, then the GitHub release failed (or the release was deleted by hand) | the plan sees the tag and the version on npm and no published GitHub release. While the tagged commit is still the tip of `main`, a run of `main` asked to publish (a dispatch of `publish`; a push always brings a newer commit) plans `finish`: the release job alone writes the release for the existing tag. Once `main` has moved past it, every later push that keeps the version is refused `tag-elsewhere` (rule `finish-tag-elsewhere`), red until the release exists | write the release for that tag by hand ("Writing the release by hand", above), or, if the release job of the run that made the tag failed, use "Re-run failed jobs" on that run while GitHub still allows it (`tag` answers skip for the tag, create for the release); or, while the tagged commit is the tip, a dispatch of `publish` |
 | A run of an older commit of `main` finds its version on npm with no tag | refused, `release-unfinished` | "Re-run failed jobs" on the run that published it, or write the tag at that commit by hand |
 | Tag exists, npm does not have the version | refused, `tag-without-package` | decide by hand (delete the stray tag, or raise the version) |
 | Package unknown on npm | refused, `package-unknown` | the first publish of a new name is by hand (npm requires it) |

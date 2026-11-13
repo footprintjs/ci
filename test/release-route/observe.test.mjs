@@ -12,6 +12,7 @@ import { observe } from '../../src/release-route/observe.mjs';
 import { plan } from '../../src/release-route/plan.mjs';
 import { blobId, recordedGit } from './recorded-git.mjs';
 import { fakeFetch, json } from './fake-fetch.mjs';
+import { WORKFLOWS } from './storydeck-today.mjs';
 
 const fixture = (path) => readFileSync(new URL(`fixtures/${path}`, import.meta.url));
 const COMMIT = 'a3936e304d8670f7fcec40d227df1309a994d46c';
@@ -22,6 +23,8 @@ const today = {
   'package.json': fixture('storydeck-today/package.json'),
   'CHANGELOG.md': fixture('storydeck-today/CHANGELOG.md'),
   '.github/release.json': fixture('family/storydeck.release.json'),
+  // storydeck's two caller files (main d7eef62), pinned at the tool commit of these runs.
+  ...WORKFLOWS,
 };
 const npmRoutes = {
   'https://registry.npmjs.org/footprint-storydeck': json(fixture('npm/footprint-storydeck.abbrev.json').toString()),
@@ -59,7 +62,7 @@ test('footprint-storydeck 0.13.1 on main today: nothing to do', async () => {
 // Correction 1, the fault itself: main a3936e3 is a later commit than the one tagged v0.13.1
 // (c94c2a6), and two of its shipped files differ from what npm serves, so a compare could only be
 // red (storydeck runs 43334890647 and 43336400518). This case planned compare=yes before.
-test('the same day as a dry run: the tag names another commit, so the build is checked and nothing is compared', async () => {
+test('the same day as a dry run: the tag names another commit, so nothing is compared with npm', async () => {
   const { observed, result } = await run({ extra: { ROUTE_ACTION: 'dry-run', GITHUB_REF: 'refs/heads/some-branch' } });
   assert.equal(observed.facts.tagAtCommit, false);
   assert.deepEqual([result.rule, result.mode, result.compare], ['dry-run-not-released-commit', 'dry-run', 'no']);
@@ -132,6 +135,14 @@ test('pinsAgree: every route line pins the commit running; the first that does n
   // Not asked for a tool commit that is not plain (tool-commit-invalid names that first).
   const notPlain = await run({ files: withFiles({ 'pr.yml': at('main') }), extra: { ROUTE_TOOL_SHA: 'main' } });
   assert.deepEqual([notPlain.observed.facts.pinsAgree, notPlain.result.rule], [undefined, 'tool-commit-invalid']);
+  // No route pin at all (a commit whose workflow files name no route) and a pin spelled another way
+  // are unreadable, never agreement.
+  const { '.github/workflows/publish.yml': _p, '.github/workflows/release-check.yml': _c, ...noWorkflows } = today;
+  const none = await run({ files: noWorkflows });
+  assert.deepEqual([none.observed.facts.pinsAgree, none.observed.causes.pinsAgree.detail, none.result.rule],
+    [null, 'no route pin in .github/workflows', 'facts-unreadable']);
+  const flow = await run({ files: withFiles({ 'odd.yml': `jobs:\n  release: { uses: footprintjs/ci/.github/workflows/release-route.yml@main }\n` }) });
+  assert.deepEqual([flow.observed.facts.pinsAgree, flow.observed.causes.pinsAgree.detail], [null, 'odd.yml: a route pin not on a plain uses line']);
   // A symlinked workflow file is unreadable, never followed.
   const linked = recordedGit({ commit: COMMIT, files: withFiles({ 'publish.yml': at(TOOL) }), modes: { '.github/workflows/publish.yml': '120000 blob' } });
   const observed = await observe({ env: env(), git: linked.git, fetcher: fakeFetch(npmRoutes).fetcher });

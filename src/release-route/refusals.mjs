@@ -36,7 +36,7 @@ export const REFUSALS = Object.freeze({
 
   // Git and the checkout.
   'git-failed': 'A git question failed, so the route could not see the repository.',
-  'workflows-unreadable': 'A file under .github/workflows is not a regular file or is larger than its bound, or there are more files than the bound.',
+  'workflows-unreadable': 'A workflow file is a link, over its bound or one too many, names the route other than on a plain uses: line, or no route pin is found.',
   'checkout-mismatch': 'The checkout is not the planned commit with a clean tree.',
 
   // The network: npm and GitHub answers.

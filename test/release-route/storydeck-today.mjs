@@ -9,10 +9,19 @@ import { recordedGit } from './recorded-git.mjs';
 export const fixture = (path) => readFileSync(new URL(`fixtures/${path}`, import.meta.url));
 export const COMMIT = 'a3936e304d8670f7fcec40d227df1309a994d46c';
 export const TOOL = '1df988109047e3143c71bf459f3e10c968376e13';
+// storydeck's two real caller files (main d7eef62, fixtures/storydeck-workflows/), their route pin
+// set to the tool commit these doors run as, so `pinsAgree` reads true as on a real run of the route.
+const STORYDECK_PIN = '67dc3738bfba1e8cdf960b0301450db6ff410692';
+export const callerFile = (name, pin = TOOL) => Buffer.from(fixture(`storydeck-workflows/${name}`).toString().replace(STORYDECK_PIN, pin));
+export const WORKFLOWS = Object.freeze({
+  '.github/workflows/publish.yml': callerFile('publish.yml'),
+  '.github/workflows/release-check.yml': callerFile('release-check.yml'),
+});
 export const FILES = Object.freeze({
   'package.json': fixture('storydeck-today/package.json'),
   'CHANGELOG.md': fixture('storydeck-today/CHANGELOG.md'),
   '.github/release.json': fixture('family/storydeck.release.json'),
+  ...WORKFLOWS,
 });
 export const ROUTES = Object.freeze({
   'https://registry.npmjs.org/footprint-storydeck': json(fixture('npm/footprint-storydeck.abbrev.json').toString()),

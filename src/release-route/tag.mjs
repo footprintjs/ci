@@ -7,7 +7,7 @@
 //                    at the planned commit -> skip;
 //                    at another commit -> refuse tag-elsewhere (never move or reuse a tag)
 //   GitHub release:  absent -> create; present for tag v<version>, not a draft -> skip;
-//                    anything else -> refuse release-unexpected
+//                    anything else -> refuse release-unexpected (a draft is never seen: below)
 //
 // `decideTag` and `decideRelease` are pure; `tagPlan` gathers their facts through the git door
 // (repo.mjs · tagCommit, asked of origin) and the GitHub door (github.mjs · readRelease, the
@@ -23,6 +23,8 @@ export function decideTag({ tagAt, commit, mode }) {
   refuse('tag-elsewhere', `v-tag at ${String(tagAt).slice(0, 40)}`);
 }
 
+// The `draft` branch is a GUARD only: the endpoint readRelease asks answers only a published
+// release, so GitHub never hands this a draft today (a draft reads as null, "create").
 export function decideRelease({ release, version }) {
   if (release === null) return 'create';
   if (release.tagName === `v${version}` && release.draft === false) return 'skip';

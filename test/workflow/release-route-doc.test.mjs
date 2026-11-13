@@ -20,7 +20,7 @@ test('N2: a tag made and a release failed is not called a recover; the remedy th
   assert.doesNotMatch(row, /`released`, nothing to do/);
   assert.match(row, /plans `finish`: the release job alone writes the release for the existing tag/);
   assert.match(row, /refused `tag-elsewhere` \(rule `finish-tag-elsewhere`\)/);
-  assert.match(row, /"Re-run failed jobs" on the run that failed, within GitHub's re-run window/);
+  assert.match(row, /if the release job of the run that made the tag failed, use "Re-run failed jobs" on that run while GitHub still allows it/);
   assert.match(row, /by hand/);
 });
 
@@ -52,10 +52,28 @@ test('correction 4: W11 and the adoption notes say a dry run has its own group; 
   const whole = doc.replace(/\s+/g, ' ');
   assert.doesNotMatch(whole, /Harmless: the newest run plans the tip/);
   assert.match(whole, /a dry run never cancels a waiting release/);
-  assert.match(whole, /a manual dry run queued behind a running release cancelled a release push still waiting/);
+  // Said as GitHub's rule, not as something a run showed (review, docs-truth-4).
+  assert.match(whole, /a manual dry run queued behind a running release could cancel a release push still waiting \(GitHub's rule, read by the second reader of storydeck pull request 46; not seen in a run\)/);
+  assert.doesNotMatch(whole, /cancelled a release push still waiting/);
+  assert.match(whole, /a version raised only in the cancelled push is skipped: never published or tagged/);
 });
 
 // Correction 9: where the hold is described, it says it stops a publish and not a recover.
+// Round 2 of the review: what the finish rows really lead to, and the one way out written once.
+test('round 2: finish-not-tip promises nothing about another run; the way out and the hand command are written; W7 names finish', () => {
+  const whole = doc.replace(/\s+/g, ' ');
+  assert.doesNotMatch(whole, /takes it up/);
+  assert.match(whole, /a tip that keeps the version refuses `tag-elsewhere` and names the gap; a tip that raised the version never looks at the old version again/);
+  assert.match(whole, /if the release job of the run that made the tag failed, use "Re-run failed jobs" on that run while GitHub still allows it/);
+  assert.match(whole, /gh release create v<version> --verify-tag --title "\$\(cat <folder>\/title\.txt\)" --notes-file <folder>\/notes\.md/);
+  assert.match(whole, /Kept, with one exception: mode `finish`/);
+  assert.match(whole, /The package's current version must have its published GitHub release before the move/);
+  assert.match(whole, /A draft is not seen: the endpoint answers only a published release/);
+  assert.doesNotMatch(whole, /a draft or a release naming another tag is `release-unexpected`/);
+  assert.match(whole, /Every fact is read in every mode, a dry run and the pull-request check included/);
+  assert.doesNotMatch(whole, /for the first seven/);
+});
+
 test('correction 9: the hold stops a publish, not a recover or a finish, said where the hold is described', () => {
   const whole = doc.replace(/\s+/g, ' ');
   assert.match(whole, /A hold stops a publish only: `recover` and `finish` do not ask it, because they tag and release a version npm already serves/);

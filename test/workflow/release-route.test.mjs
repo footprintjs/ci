@@ -256,8 +256,8 @@ test('W10: no ${{ }} inside any run: line; every value reaches a script through 
 });
 
 // Correction 4: GitHub keeps one waiting run per concurrency group, so with one group per ref a manual
-// dry run queued behind a running release cancelled a release push still waiting (second reader,
-// storydeck pull request 46). Runs that may publish (a push, a dispatch of publish) share a group; a
+// dry run queued behind a running release could cancel a release push still waiting (GitHub's rule,
+// read by the second reader of storydeck pull request 46; not seen in a run). Runs that may publish (a push, a dispatch of publish) share a group; a
 // dry run has its own.
 const CALLER_GROUP = "release-${{ github.ref }}-${{ github.event_name == 'push' && 'publish' || inputs.action }}";
 test('W11: the caller in the doc keeps one run that may publish per ref at a time, never cancelling one in progress, and a dry run in its own group', () => {

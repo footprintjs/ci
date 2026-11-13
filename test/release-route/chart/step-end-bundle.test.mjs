@@ -32,6 +32,8 @@ function repository(dir) {
   writeFileSync(join(repo, 'package.json'), FILES['package.json'].toString().replace('"version": "0.13.1"', '"version": "0.13.2"'));
   writeFileSync(join(repo, 'CHANGELOG.md'), FILES['CHANGELOG.md'].toString().replace('# Changelog\n', '# Changelog\n\n## 0.13.2 \u{2014} t\n\n- x\n'));
   writeFileSync(join(repo, '.github', 'release.json'), FILES['.github/release.json']);
+  mkdirSync(join(repo, '.github', 'workflows'));
+  for (const name of ['publish.yml', 'release-check.yml']) writeFileSync(join(repo, '.github', 'workflows', name), FILES[`.github/workflows/${name}`]);
   const git = (...args) => execFileSync('git', ['-C', repo, ...args], { env: { PATH: process.env.PATH, ...GIT_ENV }, encoding: 'utf8' });
   git('init', '-q', '-b', 'main');
   git('add', '.');

@@ -4,11 +4,12 @@
 # test/workflow/release-check.test.mjs holds it equal to that plan job except for those two words.
 #
 # What it answers (docs/RELEASE-ROUTE.md, "The workflows"): a pull request that leaves a released
-# version alone reads "this commit is not the one released as this version ... nothing is
-# compared"; one that raises it reads "would publish x.y.z"; a version with no CHANGELOG section, an
-# invalid settings file, a private package or a workflow file pinning the route at another commit
-# (pins-differ) is red with its named refusal. The tool is checked out at THIS file's commit (job.workflow_sha), never at the
-# pull request's: nothing the pull request changes in the package can change the code that checks it.
+# version alone reads "this commit is not the one released as this version ... nothing is compared
+# with npm"; one that raises it reads "npm does not have x.y.z; a publish from the tip of main would
+# publish it"; a version with no CHANGELOG section, an invalid settings file, a private package or
+# a workflow file pinning the route at another commit (pins-differ) is red with its named refusal.
+# The tool is checked out at THIS file's commit (job.workflow_sha), never at the pull request's:
+# nothing the pull request changes in the package can change the code that checks it.
 name: Release check
 
 on:

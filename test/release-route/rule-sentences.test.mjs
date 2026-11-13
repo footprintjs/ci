@@ -20,8 +20,13 @@ const CLAIMS = [
   [/\bon npm\b(?! without a tag)|\bnpm has (this|the) version\b/, { npmHasVersion: true }],
   [/\bnpm does not have\b/, { npmHasVersion: false }],
   [/\bhas its GitHub release\b/, { releaseExists: true }],
-  [/\bwithout a GitHub release\b|\bthere is no GitHub release\b/, { releaseExists: false }],
+  [/\bwithout a (published )?GitHub release\b|\bthere is no (published )?GitHub release\b/, { releaseExists: false }],
   [/\bno longer the tip of main\b/, { refIsMain: true, commitIsMainTip: false }],
+  // A claim that THIS commit is the tip (review, tests-4): "a publish from the tip of main" is not one.
+  [/(?<!no longer )\bis the tip of main\b/, { refIsMain: true, commitIsMainTip: true }],
+  // A promise about another run (review: finish-not-tip said "the run of the tip takes it up", which
+  // no run does): a sentence may not say a later run writes or takes up anything.
+  [/\btakes it up\b|\bthe run of the tip (writes|finishes)\b/, { never: true }],
   [/\bruns only from main\b/, { refIsMain: false }],
   [/^dry run\b/, { action: 'dry-run' }],
   [/\bwould publish\b/, { action: 'dry-run', tagExists: false, npmHasVersion: false }],
@@ -57,6 +62,20 @@ test('the check above is not empty: every row whose sentence names a fact is hel
   assert.deepEqual(RULES.filter((rule) => !held.includes(rule)).map((rule) => rule.id), ['publish']);
 });
 
+// Mutant 2c of the review: a sentence claiming this commit is the tip of main, on a row that does
+// not require it, goes red.
+test('the phrase check goes red on a claim about the tip the row does not require (review mutant 2c), and on a promise about another run', () => {
+  const row = RULES.find((rule) => rule.id === 'recover-off-main');
+  const claimed = (sentence) => CLAIMS.filter(([phrase]) => phrase.test(sentence)).flatMap(([, claims]) => Object.entries(claims))
+    .filter(([name, value]) => row.when[name] !== value);
+  assert.deepEqual(claimed('npm has this version without a tag, and this commit is the tip of main'), [['refIsMain', true], ['commitIsMainTip', true]]);
+  assert.deepEqual(claimed(row.says), []);
+  const notTip = RULES.find((rule) => rule.id === 'finish-not-tip');
+  const old = 'nothing to do in this run: the version is tagged and on npm without a GitHub release, but this commit is no longer the tip of main; the run of the tip takes it up';
+  assert.ok(CLAIMS.some(([phrase, claims]) => phrase.test(old) && claims.never), 'the old finish-not-tip sentence is caught');
+  assert.ok(!CLAIMS.some(([phrase, claims]) => phrase.test(notTip.says) && claims.never));
+});
+
 test('the phrase check goes red on the old sentence: not-main-tip may not say the version is tagged and on npm', () => {
   const row = RULES.find((rule) => rule.id === 'not-main-tip');
   const old = 'nothing to do: the version is tagged and on npm';
@@ -84,7 +103,8 @@ test('the decision line of not-main-tip says what is true, and every printed lin
   const line = printed(BASE);
   assert.equal(line, 'Decision: rule not-main-tip gives mode nothing, nothing to do in this run: npm does not have this version, but this commit is no longer the tip of main; the run of the newer tip decides.');
   assert.doesNotMatch(line, /tagged/);
-  assert.equal(printed({ ...BASE, commitIsMainTip: true, action: 'dry-run' }), 'Decision: rule dry-run-would-publish gives mode dry-run, dry run: would publish 0.13.2.');
+  assert.equal(printed({ ...BASE, commitIsMainTip: true, action: 'dry-run' }),
+    'Decision: rule dry-run-would-publish gives mode dry-run, dry run: npm does not have 0.13.2; a publish from the tip of main would publish it.');
   assert.equal(printed({ ...BASE, packagePrivate: true }), 'Decision: rule package-private refuses not-publishable, package.json marks the package private.');
   for (const rule of RULES) assert.ok(rule.says.includes('{version}') || !sentenceOf(rule, '9.9.9').includes('9.9.9'), rule.id);
 });

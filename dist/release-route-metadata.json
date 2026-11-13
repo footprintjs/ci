@@ -3,8 +3,8 @@
   "format": "cjs",
   "target": "node22",
   "entry": "bin/release-route.mjs",
-  "sha256": "6cf9c8c36b5dd1b55ce219fd4899d38f66f2e92c0ff11bce1d3b3a6643616e3b",
-  "bytes": 1237980,
+  "sha256": "58f92c21f2eeb189cebcfd077ab9e8b85c406fcb4f07f0a0bc42ba8ddbda8d5c",
+  "bytes": 1238837,
   "libraries": {
     "footprintjs": "12.1.0",
     "foottrace": "1.15.0"
@@ -1344,7 +1344,7 @@
     },
     {
       "path": "src/release-route/chart/stages/pins.mjs",
-      "bytes": 512
+      "bytes": 590
     },
     {
       "path": "src/release-route/chart/stages/request.mjs",
@@ -1420,11 +1420,11 @@
     },
     {
       "path": "src/release-route/observe.mjs",
-      "bytes": 10596
+      "bytes": 11022
     },
     {
       "path": "src/release-route/pins.mjs",
-      "bytes": 4431
+      "bytes": 7473
     },
     {
       "path": "src/release-route/plan.mjs",
@@ -1432,7 +1432,7 @@
     },
     {
       "path": "src/release-route/refusals.mjs",
-      "bytes": 12380
+      "bytes": 12393
     },
     {
       "path": "src/release-route/registry.mjs",
@@ -1448,7 +1448,7 @@
     },
     {
       "path": "src/release-route/rules.mjs",
-      "bytes": 13267
+      "bytes": 14256
     },
     {
       "path": "src/release-route/settings.mjs",
@@ -1464,7 +1464,7 @@
     },
     {
       "path": "src/release-route/tag.mjs",
-      "bytes": 1928
+      "bytes": 2141
     },
     {
       "path": "src/shared/append-whole.mjs",

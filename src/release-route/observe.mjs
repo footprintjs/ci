@@ -85,9 +85,11 @@ export async function observeTool({ env, fetcher }) {
   return found;
 }
 
-// Every workflow file of the caller pins the route at the commit running (pins.mjs). Asked only for
-// a plain tool commit (tool-commit-invalid names the reason otherwise). When a pin differs, the
-// file and the pin, cleaned, are kept as `pinsDiffer` for the refusal's detail.
+// Every plain `uses:` line of the caller's workflow files that names release-route.yml or
+// release-check.yml pins the commit running (pins.mjs: a mention written any other way, or no
+// route pin at all, is unreadable). Asked only for a plain tool commit (tool-commit-invalid names
+// the reason otherwise). When a pin differs, the file and the pin, cleaned, are kept as
+// `pinsDiffer` for the refusal's detail.
 export async function observePins({ env, git, commit }) {
   const { found, read } = observation();
   if (isCommit(env.ROUTE_TOOL_SHA))
@@ -153,11 +155,14 @@ export async function observeTag({ git, version, commit }) {
   return found;
 }
 
-// Is there a GitHub release for tag v<version> (releaseExists)? Asked, with the job's token from the
-// fixed host (github.mjs · readRelease), only when the tag exists; with no tag it is false and
-// nothing is asked. The answer is read by the release job's own rule (tag.mjs · decideRelease): a
-// published release for exactly this tag is true, none is false, and a draft or a release naming
-// another tag is the refusal release-unexpected (the fact unknown, the cause printed).
+// Is there a PUBLISHED GitHub release for tag v<version> (releaseExists)? Asked, with the job's
+// token from the fixed host (github.mjs · readRelease), only when the tag exists; with no tag it is
+// false and nothing is asked. The answer is read by the release job's own rule (tag.mjs ·
+// decideRelease): a release for exactly this tag is true, none is false, and a release naming
+// another tag is the refusal release-unexpected (the fact unknown, the cause printed). A draft is
+// NOT seen: the endpoint asked, GET /repos/{repo}/releases/tags/{tag}, answers only a published
+// release, so a draft reads as no release, and finish (like publish and recover) then writes a
+// published release beside it (docs/RELEASE-ROUTE.md, "What tag cannot see: a draft release").
 export async function observeRelease({ env, fetcher, version, tagExists }) {
   const { found, read } = observation();
   if (!version || (tagExists !== true && tagExists !== false)) return found;

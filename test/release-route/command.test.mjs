@@ -12,6 +12,7 @@ import { createReport } from '../../src/release-route/report.mjs';
 import fixture from './archive/fixture.cjs';
 import { fakeFetch, json, bytes } from './fake-fetch.mjs';
 import { recordedGit } from './recorded-git.mjs';
+import { WORKFLOWS } from './storydeck-today.mjs';
 
 const cli = resolve('scripts/release-route.mjs');
 const runCli = (args, env = {}) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', env: { PATH: process.env.PATH, ...env } });
@@ -19,7 +20,7 @@ const saved = (path) => readFileSync(new URL(`fixtures/${path}`, import.meta.url
 const COMMIT = 'a3936e304d8670f7fcec40d227df1309a994d46c';
 const TOOL = '1df988109047e3143c71bf459f3e10c968376e13';
 const storydeck = { 'package.json': saved('storydeck-today/package.json'), 'CHANGELOG.md': saved('storydeck-today/CHANGELOG.md'),
-  '.github/release.json': saved('family/storydeck.release.json') };
+  '.github/release.json': saved('family/storydeck.release.json'), ...WORKFLOWS };
 const routes = {
   'https://registry.npmjs.org/footprint-storydeck': json(saved('npm/footprint-storydeck.abbrev.json').toString()),
   [`https://api.github.com/repos/footprintjs/ci/compare/main...${TOOL}?per_page=1`]: json(saved('github/compare-behind.json').toString()),

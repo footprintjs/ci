@@ -3,17 +3,19 @@
 // files a fork's pull request could write: odd names, hidden line breaks, links, big files.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { MAX_FILE_BYTES, MAX_FILES, routePins, workflowPins } from '../../src/release-route/pins.mjs';
+import { MAX_FILE_BYTES, MAX_FILES, routeMentions, routePins, workflowPins } from '../../src/release-route/pins.mjs';
+import { recordedGit } from './recorded-git.mjs';
 import { asRefusal } from '../../src/release-route/refusals.mjs';
 import { listAtCommit } from '../../src/release-route/repo.mjs';
 
 const SHA = '67dc3738bfba1e8cdf960b0301450db6ff410692';
 const ROUTE = 'footprintjs/ci/.github/workflows/release-route.yml';
 const CHECK = 'footprintjs/ci/.github/workflows/release-check.yml';
+const COMMIT = 'c'.repeat(40);
 
 test('the line rule: a `uses:` line naming release-route.yml or release-check.yml gives its pin; nothing else counts', () => {
   assert.deepEqual(routePins(`jobs:\n  release:\n    uses: ${ROUTE}@${SHA} # the reviewed ci commit\n`), [SHA]);
@@ -61,9 +63,89 @@ test('through git: both files at the commit running agree; one file elsewhere is
   assert.deepEqual(workflowPins(ok.git, ok.commit, SHA), { agree: true });
   const bad = repo(t, { 'publish.yml': publish, 'ci.yml': `jobs:\n  release-check:\n    uses: ${CHECK}@${'b'.repeat(40)}\n` });
   assert.deepEqual(workflowPins(bad.git, bad.commit, SHA), { agree: false, file: 'ci.yml', pin: 'b'.repeat(40) });
-  // A file that names neither workflow says nothing; no workflows folder at all agrees.
+  // A file that names neither workflow says nothing; but no route pin anywhere is unreadable (the
+  // workflow that is running names the route, so the reader missed it).
   const none = repo(t, {});
-  assert.deepEqual(workflowPins(none.git, none.commit, SHA), { agree: true });
+  assert.equal(answer(() => workflowPins(none.git, none.commit, SHA)), 'workflows-unreadable no route pin in .github/workflows');
+  const noPin = repo(t, { 'ci.yml': 'on: push\njobs:\n  test:\n    runs-on: ubuntu-24.04\n' });
+  assert.equal(answer(() => workflowPins(noPin.git, noPin.commit, SHA)), 'workflows-unreadable no route pin in .github/workflows');
+});
+
+// The review's three cases (pins-reader-3): the second file is read, two pins in one file are both
+// read, and a folder is never read.
+test('through git: the second file is read; two pins in one file are both read; a folder is never read', (t) => {
+  const second = repo(t, { 'a.yml': `uses: ${ROUTE}@${SHA}\n`, 'z.yml': `uses: ${CHECK}@main\n` });
+  assert.deepEqual(workflowPins(second.git, second.commit, SHA), { agree: false, file: 'z.yml', pin: 'main' });
+  const two = repo(t, { 'a.yml': `uses: ${ROUTE}@${SHA}\nuses: ${CHECK}@main\n` });
+  assert.deepEqual(workflowPins(two.git, two.commit, SHA), { agree: false, file: 'a.yml', pin: 'main' });
+  const folder = repo(t, { 'a.yml': `uses: ${ROUTE}@${SHA}\n`, 'x.yml/inner.yml': `uses: ${ROUTE}@main\n` });
+  assert.deepEqual(workflowPins(folder.git, folder.commit, SHA), { agree: true });
+  // A folder named x.yml with nothing else: no pin read at all (not "unreadable x.yml").
+  const only = repo(t, { 'x.yml/y.yml': `uses: ${ROUTE}@x\n` });
+  assert.equal(answer(() => workflowPins(only.git, only.commit, SHA)), 'workflows-unreadable no route pin in .github/workflows');
+});
+
+test('through git: a .yaml file pinning another commit is named, like a .yml one', (t) => {
+  const r = repo(t, { 'publish.yml': `uses: ${ROUTE}@${SHA}\n`, 'release-check.yaml': `jobs:\n  release-check:\n    uses: ${CHECK}@main\n` });
+  assert.deepEqual(workflowPins(r.git, r.commit, SHA), { agree: false, file: 'release-check.yaml', pin: 'main' });
+});
+
+// Correction B of the review: a route pin spelled any way but a plain `uses: <value>` line is not
+// read by the line rule, so it must refuse, never count as agreeing. Each form below is valid YAML
+// that gives GitHub the pin `bbbb...` (pins-reader-1's list, checked with a YAML parser there); a
+// plain `uses:` line pinning the commit running sits in another file, as in a real caller.
+const B = 'b'.repeat(40);
+const UNREAD_FORMS = {
+  'folded block scalar': `jobs:\n  release:\n    uses: >-\n      ${ROUTE}@${B}\n`,
+  'literal block scalar': `jobs:\n  release:\n    uses: |-\n      ${ROUTE}@${B}\n`,
+  'the value on the next line': `jobs:\n  release:\n    uses:\n      ${ROUTE}@${B}\n`,
+  'a flow mapping': `jobs:\n  release: { uses: ${ROUTE}@${B} }\n`,
+  'a flow sequence of mappings': `x: [ { uses: ${ROUTE}@${B} } ]\n`,
+  'a double-quoted key': `jobs:\n  release:\n    "uses": ${ROUTE}@${B}\n`,
+  'a single-quoted key': `jobs:\n  release:\n    'uses': ${ROUTE}@${B}\n`,
+  'a space before the colon': `jobs:\n  release:\n    uses : ${ROUTE}@${B}\n`,
+  'an anchor': `jobs:\n  release:\n    uses: &r ${ROUTE}@${B}\n`,
+  'an alias': `x: &r ${ROUTE}@${B}\njobs:\n  release:\n    uses: *r\n`,
+  'a !!str tag': `jobs:\n  release:\n    uses: !!str ${ROUTE}@${B}\n`,
+  'a complex key': `jobs:\n  release:\n    ? uses\n    : ${ROUTE}@${B}\n`,
+  'a double-quoted value split over two lines': `jobs:\n  release:\n    uses: "${ROUTE}@bbbb\n      ${B.slice(4)}"\n`,
+  'a folded value split inside the path': `jobs:\n  release:\n    uses: >-\n      footprintjs/ci/.github/workflows/release-\n      route.yml@${B}\n`,
+  'a JSON workflow file': JSON.stringify({ name: 'publish', jobs: { release: { uses: `${ROUTE}@${B}` } } }),
+  'a mention in a run script': `jobs:\n  x:\n    steps:\n      - run: echo uses: ${ROUTE}@${B}\n`,
+  'a mention in a with value': `jobs:\n  x:\n    with: { uses: ${ROUTE}@${B} }\n`,
+};
+
+test('every spelling of a route pin the line rule does not read refuses workflows-unreadable, naming the file', () => {
+  for (const [form, text] of Object.entries(UNREAD_FORMS)) {
+    assert.ok(routeMentions(text) > routePins(text).length, form);
+    const files = { '.github/workflows/a.yml': Buffer.from(`uses: ${ROUTE}@${SHA}\n`), '.github/workflows/odd.yml': Buffer.from(text) };
+    const { git } = recordedGit({ commit: COMMIT, files });
+    assert.equal(answer(() => workflowPins(git, COMMIT, SHA)), 'workflows-unreadable odd.yml: a route pin not on a plain uses line', form);
+  }
+});
+
+test('comments never count: a plain pin with a comment that names another pin agrees; a commented-out pin is nothing', () => {
+  for (const text of [`uses: ${ROUTE}@${SHA} # was ${ROUTE}@main\n`, `# uses: ${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`, `#${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`,
+    `  # ${CHECK}@main\n  - uses: "${CHECK}@${SHA}" # reviewed\n`]) {
+    assert.equal(routeMentions(text), routePins(text).length, text);
+    const { git } = recordedGit({ commit: COMMIT, files: { '.github/workflows/a.yml': Buffer.from(text) } });
+    assert.deepEqual(workflowPins(git, COMMIT, SHA), { agree: true }, text);
+  }
+  // A `#` with no white space before it is not a comment (YAML's rule), so the mention counts.
+  assert.equal(routeMentions(`x: y#${ROUTE}@main\n`), 1);
+});
+
+test('storydeck\'s two real caller files (main d7eef62) give one pin each and agree; its ci.yml gives none', () => {
+  const real = (name) => readFileSync(new URL(`fixtures/storydeck-workflows/${name}`, import.meta.url), 'utf8');
+  for (const name of ['publish.yml', 'release-check.yml']) {
+    assert.deepEqual(routePins(real(name)), ['67dc3738bfba1e8cdf960b0301450db6ff410692'], name);
+    assert.equal(routeMentions(real(name)), 1, name);
+  }
+  assert.deepEqual([routePins(real('ci.yml')), routeMentions(real('ci.yml'))], [[], 0]);
+  const files = Object.fromEntries(['publish.yml', 'release-check.yml', 'ci.yml'].map((name) => [`.github/workflows/${name}`, Buffer.from(real(name))]));
+  const { git } = recordedGit({ commit: COMMIT, files });
+  assert.deepEqual(workflowPins(git, COMMIT, '67dc3738bfba1e8cdf960b0301450db6ff410692'), { agree: true });
+  assert.deepEqual(workflowPins(git, COMMIT, 'd'.repeat(40)), { agree: false, file: 'publish.yml', pin: '67dc3738bfba1e8cdf960b0301450db6ff410692' });
 });
 
 test('through git: only the folder itself counts (GitHub reads no subfolder), any letter case of .yml/.yaml counts', (t) => {
