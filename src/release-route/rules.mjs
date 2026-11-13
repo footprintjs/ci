@@ -34,9 +34,11 @@
 //   not turn red for being old; so it stands before the changelog and newer-version refusals
 //   too (they are the tip's run to raise).
 // - But not the tip with npm HAVING the version and no tag is unfinished work, not an old run:
-//   the version was published from this commit and its release job never finished, and no later
-//   run will name it again. Row `unfinished-not-tip` refuses (`release-unfinished`), red on
-//   purpose, and the sentence says what to do (found by the second reader, round 2).
+//   the version was published from this commit and its release job never finished, and a later
+//   run names it again only when the tip of main keeps the version (it then plans `recover` at
+//   the tip, unless an earlier row refuses). Row `unfinished-not-tip` refuses
+//   (`release-unfinished`), red on purpose, and the sentence says what to do (found by the second
+//   reader, round 2).
 // - A missing CHANGELOG section stops `recover` too, not only `publish`: both write a GitHub
 //   release whose notes come from that section. A dry run says the same, so it tells the truth
 //   about what a publish would do.

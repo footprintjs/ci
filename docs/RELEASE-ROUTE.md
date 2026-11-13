@@ -250,16 +250,17 @@ Three facts came from the first real runs (13 November 2026):
   exactly `ROUTE_TOOL_SHA` (compared exactly: the lower-case 40-character commit). That plain line
   is all the reader reads (no YAML parser on untrusted text), so it refuses what it could not read
   (`workflows-unreadable`). One rule decides what that is: a mention is counted on the file's text
-  with only what is certainly a comment removed, and anything the reader is not certain about
-  refuses. It refuses three things. A file it cannot be sure it sees as GitHub does ("not plain
+  with only two kinds of comment removed (named below), and anything the reader is not certain
+  about refuses. It refuses three things. A file it cannot be sure it sees as GitHub does ("not plain
   text" in the refusal's sentence), with the reason in the detail: not UTF-8 ("not UTF-8 text",
   such as a UTF-16 file with either byte-order mark), a NUL character ("a NUL character"), or
   NEL, LS or PS ("an unusual line-break character":
   YAML 1.1 ends a line at those and YAML 1.2 does not, and which one GitHub follows was not
   measured, so a `#` after one may or may not start a line). A file in which the route's path is
   named in more places than the plain lines gave pins, counted after removing only a line whose
-  first character after spaces and tabs is `#` and, on a plain `uses:` line whose value has no open
-  quote, a ` #...` right after the value, then all white space, with an escaped slash `\/` (as some
+  first character after spaces and tabs is `#` and, on a plain `uses:` line whose value is a value
+  with no quote, or one quoted value with no backslash and no inner quote, a ` #...` right after
+  the value, then all white space, with an escaped slash `\/` (as some
   JSON writers emit it) read as `/`. A `#` anywhere else stays, because it may sit inside a quoted
   value, where YAML reads it as text; so a block scalar, the value on the next line, a flow mapping
   (also one with a `#` in a quoted value before the pin, such as
@@ -268,23 +269,40 @@ Three facts came from the first real runs (13 November 2026):
   `"name":"PR #checks"`, or with escaped slashes), a mention in a `run:` script or a `with:` value
   all refuse; removing white space is what makes a folded or split value visible. And no route
   pin at all across the files (the workflow that is running names the route, so none read means
-  the reader missed it). What is not caught: a value in quotes written over several lines, inside
-  which a line that starts with `#`, or with `uses:` and a value followed by ` #`, is read as if it
-  stood outside the quotes, so the rest of that line is dropped as a comment; and an escape
-  sequence other than `\/` inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation). Both
-  need a deliberately odd spelling. Every spelling `test/release-route/pins.test.mjs` lists agrees,
-  differs or refuses as that test says. A file that names neither workflow and holds none of those
-  characters says nothing. `pins.mjs` reads at most 200 files of at most 512 KiB, each by its blob
+  the reader missed it). What is not caught: (1) a value in quotes written over several lines, or
+  a block scalar (`run: |`, `uses: >-`), inside which a line that starts with `#`, or with `uses:`
+  and a value followed by ` #`, is read as if it stood outside, so the rest of that line is
+  dropped as a comment though YAML reads it as content (in a quoted value the dropped rest can be a
+  pin GitHub runs; in a block scalar it is that scalar's own text, so a `uses:` value built that
+  way starts with `#` or `uses:`, not with the path); (2) an escape sequence other than `\/`
+  inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation); (3) a
+  YAML tag that rewrites the value: `uses: !!binary <base64 of the path and pin>` decodes, in a
+  YAML parser, to the path and pin, and so do its other spellings (`!<tag:yaml.org,2002:binary>`,
+  a `%TAG` handle, a `%`-escaped suffix), while the text holds no mention. Of (3), what is known:
+  GitHub's published workflow parser (`actions/languageservices`,
+  `yaml-object-reader.ts · getLiteralToken`) rejects a value that is not a string, a number or a
+  boolean; what is not known: GitHub's server parser was not measured. The three gaps have one
+  cause (the reader reads text, not parsed values), and each needs a deliberately odd spelling by
+  someone who can already change the workflow files. Every spelling
+  `test/release-route/pins.test.mjs` lists agrees, differs or refuses as that test says (its
+  known-gaps test pins all three). A regular file within the bounds, in UTF-8, that names neither
+  workflow and holds no NEL, LS, PS or NUL says nothing. A route reached through a workflow of
+  another repository is not seen: the reader reads only this repository's `.github/workflows`. `pins.mjs` reads at most 200 files of at most 512 KiB, each by its blob
   id (a name never becomes a git pathspec); a file that is not a regular blob (a link) or is over
   the bound is `workflows-unreadable`; lines are split on LF, CR and CRLF (NEL, LS and PS never
   reach the line rule: the file is refused first); nothing of a file leaves the reader but the
   first disagreeing file's name and the pin it found, both cleaned and cut. What an honest caller
-  can be refused for: a symlinked workflow file (even one that does not name the route); the
-  route's path with `@` named outside a plain `uses:` line and outside the two comments the reader
-  removes, which includes (a) a mention in a trailing comment on a line that is not a plain `uses:`
-  line (`- run: echo hi # see footprintjs/ci/.github/workflows/release-check.yml@main`) and (b) a
-  file that holds NEL, LS, PS or a NUL character, or is not UTF-8; and a pin that is not the
-  lower-case commit. Write each pin as a plain
+  can be refused for: a symlinked workflow file (even one that does not name the route); a file
+  that holds NEL, LS, PS or a NUL character, or is not UTF-8 (even one that does not name the
+  route); a pin that is not the lower-case commit; a pin written directly before `,`, `}` or `]`
+  (a flow mapping over several lines), which is read with that character and so prints
+  `pins-differ` with a pin such as `<commit>,`; and the route's path with `@` named outside a
+  plain `uses:` line and outside the two comments the reader removes, which includes a mention in
+  a trailing comment on a line that is not a plain `uses:` line
+  (`- run: echo hi # see footprintjs/ci/.github/workflows/release-check.yml@main`) and a comment
+  after a `uses:` value that holds a backslash or an inner quote. Two of these are the price of
+  the one rule: the file with NEL, LS, PS, NUL or bytes that are not UTF-8, and the mention
+  outside the two removed comments. Write each pin as a plain
   `uses: footprintjs/ci/.github/workflows/release-....yml@<commit>` line; a mention on a `#` line,
   or in a comment right after a plain pin, is fine; a `uses:` line inside a `run: |` block counts as
   a pin.
@@ -400,8 +418,9 @@ Why this order:
   decides and its own run plans. Not a refusal, because an old run must not turn red for being
   old, so it also stands before `changelog-missing` and `version-not-newer` (those are the tip's
   run to raise). But when npm HAS the version and there is no tag, the version was published
-  from this commit and its release never finished, and no later run will name it again: that is
-  `unfinished-not-tip`, refused (`release-unfinished`) on purpose, telling the person to use
+  from this commit and its release never finished, and a later run names it again only when the
+  tip of `main` keeps the version (it then plans `recover` at the tip, unless an earlier row
+  refuses): that is `unfinished-not-tip`, refused (`release-unfinished`) on purpose, telling the person to use
   "Re-run failed jobs" on the run that published it (it reuses that run's plan) or to write the
   tag at that commit by hand. `refIsMain` is still read from `GITHUB_REF`, which the runner sets.
 - A missing CHANGELOG section stops `recover` as well as `publish`: both write a GitHub release

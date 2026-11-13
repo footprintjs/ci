@@ -14,10 +14,10 @@
 // (another commit, `@main`, `@v1`, an upper-case commit: the pin is compared exactly).
 //
 // What the rule READS is only that plain line; a fact the route could not read refuses. One rule
-// holds every refusal below: a mention is counted on the file's text with only what is CERTAINLY a
-// comment removed, and anything the reader is not certain about refuses. Refusing an honest caller
-// now and then is the accepted cost; reading a hidden pin as agreement is not. So three more
-// refusals (`workflows-unreadable`):
+// holds every refusal below: a mention is counted on the file's text with only two kinds of
+// comment removed (named below), and anything the reader is not certain about refuses. Refusing
+// an honest caller now and then is the accepted cost; reading a hidden pin as agreement is not.
+// So three more refusals (`workflows-unreadable`):
 // - A file the reader cannot be sure it sees as GitHub does, named with the reason: "not UTF-8
 //   text" (a UTF-16 file, whose byte-order mark FF FE or FE FF is never UTF-8, decodes to nothing
 //   the line rule can see), "a NUL character" (what a UTF-16 file without its mark shows), or "an
@@ -27,7 +27,8 @@
 // - A mention the line rule did not read. In each file exactly two things are removed as comments:
 //   a line whose first character after spaces and tabs is `#`, and, on a line the plain `uses:`
 //   rule matched, a ` #...` (space or tab before the `#`) right after the matched value, when that
-//   value has no open quote. Nothing else is removed: a `#` anywhere else may sit inside a quoted
+//   value is a value with no quote, or one quoted value with no backslash and no inner quote
+//   (CLOSED_VALUE). Nothing else is removed: a `#` anywhere else may sit inside a quoted
 //   value, where YAML reads it as text (`release: { name: "Release check #2", uses: ... }` in a
 //   flow mapping, `{"name":"PR #checks", ...}` in a one-line JSON file), and the rest of that line
 //   may be a pin GitHub runs. Then ALL white space is removed, an escaped slash `\/` (as some
@@ -41,23 +42,37 @@
 //   `route.yml@main` on the next becomes one `...release-route.yml@main`.
 // - No pin at all. The workflow that is running names the route, so at least one pin must be read
 //   across the files; none means the reader missed it.
-// What is NOT caught: (1) a value in quotes written over several lines: inside it, a line that
-// starts with `#`, or with `uses:` and a value followed by ` #`, is read as if it stood outside the
-// quotes, so the rest of that line is dropped as a comment; (2) an escape sequence other than
-// `\/` inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation). Both need a
-// deliberately odd spelling. Every spelling test/release-route/pins.test.mjs lists either agrees,
-// differs or refuses as it says there.
+// What is NOT caught: (1) a value in quotes written over several lines, or a block scalar
+// (`run: |`, `uses: >-`): inside it, a line that starts with `#`, or with `uses:` and a value
+// followed by ` #`, is read as if it stood outside, so the rest of that line is dropped as a
+// comment though YAML reads it as content. In a quoted value the dropped rest can be a pin GitHub
+// runs; in a block scalar it is that scalar's own text, so a `uses:` value built that way starts
+// with `#` or `uses:`, not with the path. (2) An escape sequence other than
+// `\/` inside a quoted value (`\x2e`, `\u002f`, a `\` line continuation). (3) A YAML tag that
+// rewrites the value: `uses: !!binary <base64 of the path and pin>` decodes, in a YAML parser, to
+// the path and pin, and so do its other spellings (`!<tag:yaml.org,2002:binary>`, a `%TAG` handle,
+// a `%`-escaped suffix); the text holds no mention, so the file says nothing. GitHub's published
+// workflow parser (actions/languageservices, yaml-object-reader.ts · getLiteralToken) rejects a
+// value that is not a string, a number or a boolean; GitHub's server parser was not measured. The
+// three have one cause, the reader reads text and not parsed values, and each needs a deliberately
+// odd spelling by someone who can already change the workflow files. Every spelling
+// test/release-route/pins.test.mjs lists either agrees, differs or refuses as it says there (the
+// three gaps are pinned in its known-gaps test).
 //
 // What an honest caller can be refused for: a symlinked workflow file (refused even when it does
-// not name the route); a pin that is not the lower-case 40-character commit; a mention of the
-// route's path with `@` outside a plain `uses:` line and outside the two comments removed above.
-// Two of these are the price of the one rule: (a) such a mention in a trailing comment on a line
-// that is not a plain `uses:` line, for example
+// not name the route); a file that holds NEL, LS, PS or a NUL character, or is not UTF-8 (refused
+// even when it does not name the route); a pin that is not the lower-case 40-character commit; a
+// pin written directly before `,`, `}` or `]` (a flow mapping over several lines), which is read
+// with that character and so prints `pins-differ` with a pin such as `<commit>,`; a mention of the
+// route's path with `@` outside a plain `uses:` line and outside the two comments removed above
+// (which includes a comment after a `uses:` value that holds a backslash or an inner quote). Two
+// of these are the price of the one rule: the file with NEL, LS, PS, NUL or bytes that are not
+// UTF-8, and the mention outside the two removed comments, for example one in a trailing comment
+// on a line that is not a plain `uses:` line:
 //
 //   - run: echo hi # see footprintjs/ci/.github/workflows/release-check.yml@main
 //
-// and (b) a file that holds NEL, LS, PS or a NUL character, or is not UTF-8, even one that does
-// not name the route. Write each pin as a plain
+// Write each pin as a plain
 // `uses: footprintjs/ci/.github/workflows/release-....yml@<commit>` line; a mention on a `#` line,
 // or in a comment right after a plain pin, is fine. A `uses:` line inside a `run: |` block counts
 // as a pin.
@@ -112,12 +127,15 @@ export function routePins(text) {
 }
 
 const lines = (text) => text.replace(/^\uFEFF/, '').split(LINE_BREAK);
-// The two things that are CERTAINLY a comment (see the header). A line whose first character
-// after spaces and tabs is `#`:
+// The two things removed as comments (see the header; inside a multi-line quoted value or a block
+// scalar the first can drop content, gap (1)). A line whose first character after spaces and tabs
+// is `#`:
 const COMMENT_LINE = /^[\t ]*#/;
 // And, on a plain `uses:` line, what follows its value from a space or tab and a `#` on, when the
-// value has no open quote. Example: `uses: footprintjs/ci/...release-route.yml@<commit> # was @main`
-// loses ` # was @main`; `uses: "x #", other: ...` loses nothing (its `"x` is an open quote).
+// value is a value with no quote, or one quoted value with no backslash and no inner quote.
+// Example: `uses: footprintjs/ci/...release-route.yml@<commit> # was @main` loses ` # was @main`;
+// `uses: "x #", other: ...` loses nothing (its value `"x` opens a quote it does not close), nor does
+// `uses: "a\" #" }, ...` (a backslash) or `uses: 'a'' #' }, ...` (an inner quote).
 const TRAILING_COMMENT = /^[\t ]+#.*$/;
 const CLOSED_VALUE = /^(?:[^"']*|"[^"\\]*"|'[^']*')$/;
 // White space; NEL, LS and PS never get here (a file holding one is refused first).
@@ -126,7 +144,7 @@ const WHITE = /\s/gu;
 const ESCAPED_SLASH = /\\\//g;
 const MENTION = /footprintjs\/ci\/\.github\/workflows\/release-(?:route|check)\.yml@/giu;
 
-// One line with only what is certainly a comment removed.
+// One line with only the two kinds of comment removed (see the header).
 function withoutCertainComment(line) {
   if (COMMENT_LINE.test(line)) return '';
   const uses = USES_LINE.exec(line);
@@ -134,8 +152,8 @@ function withoutCertainComment(line) {
   return uses[0] + line.slice(uses[0].length).replace(TRAILING_COMMENT, '');
 }
 
-// How many places in one file's text name a route workflow with an `@`, only certain comments and
-// all white space removed (see the header: this is what finds a pin the line rule did not read).
+// How many places in one file's text name a route workflow with an `@`, only the two kinds of
+// comment and all white space removed (see the header: this is what finds a pin the line rule did not read).
 export function routeMentions(text) {
   const bare = lines(text).map(withoutCertainComment).join('').replace(WHITE, '').replace(ESCAPED_SLASH, '/');
   return (bare.match(MENTION) ?? []).length;

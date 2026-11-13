@@ -122,6 +122,13 @@ const UNREAD_FORMS = {
   'a flow mapping with a tab before the #': `on: pull_request\njobs:\n  release-check: { name: "Release check\t#2", uses: ${CHECK}@${B} }\n`,
   'a with value after "x #y"': `jobs:\n  r:\n    with: { note: "x #y", other: ${ROUTE}@${B} }\n`,
   'a uses-led line whose quoted value holds " #"': `jobs: { r: { with: {\n  uses: "a #" }, uses: ${ROUTE}@${B} } }\n`,
+  // Round 4 (review round 3): each part of the open-quote guard (pins.mjs · CLOSED_VALUE). YAML reads
+  // `"a\" #"` and `'a'' #'` as ONE closed value holding a quote, so what follows on the line is
+  // still the mapping and its pin runs; the guard keeps the line because the value holds a backslash
+  // or an inner quote. `'a #' }` is a value that opens a single quote and closes it later.
+  'a uses-led line whose double-quoted value holds an escaped quote': `jobs: { r: { with: {\n  uses: "a\\" #" }, uses: ${ROUTE}@${B} } }\n`,
+  "a uses-led line whose single-quoted value holds ''": `jobs: { r: { with: {\n  uses: 'a'' #' }, uses: ${ROUTE}@${B} } }\n`,
+  'a uses-led line whose value opens a single quote': `jobs: { r: { with: {\n  uses: 'a #' }, uses: ${ROUTE}@${B} } }\n`,
   // pins-2: an escaped slash, as some JSON writers emit it.
   'a JSON file with escaped slashes': JSON.stringify({ name: 'publish', jobs: { release: { uses: `${ROUTE}@${B}` } } }).replaceAll('/', '\\/'),
 };
@@ -137,7 +144,9 @@ test('every spelling of a route pin the line rule does not read refuses workflow
 
 test('comments never count: a plain pin with a comment that names another pin agrees; a commented-out pin is nothing', () => {
   for (const text of [`uses: ${ROUTE}@${SHA} # was ${ROUTE}@main\n`, `uses: ${ROUTE}@${SHA}\t# was ${ROUTE}@main\n`, `# uses: ${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`,
-    `#${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`, `\t # ${CHECK}@main\n  - uses: "${CHECK}@${SHA}" # reviewed\n`, `  - uses: '${CHECK}@${SHA}'\t#${CHECK}@main\n`]) {
+    `#${ROUTE}@main\nuses: ${ROUTE}@${SHA}\n`, `\t # ${CHECK}@main\n  - uses: "${CHECK}@${SHA}" # reviewed\n`, `  - uses: '${CHECK}@${SHA}'\t#${CHECK}@main\n`,
+    // A double-quoted pin is a closed value, so its trailing comment is removed (CLOSED_VALUE's "..." part).
+    `  - uses: "${CHECK}@${SHA}" # was ${CHECK}@main\n`]) {
     assert.equal(routeMentions(text), routePins(text).length, text);
     const { git } = recordedGit({ commit: COMMIT, files: { '.github/workflows/a.yml': Buffer.from(text) } });
     assert.deepEqual(workflowPins(git, COMMIT, SHA), { agree: true }, text);
@@ -146,7 +155,7 @@ test('comments never count: a plain pin with a comment that names another pin ag
   assert.equal(routeMentions(`x: y#${ROUTE}@main\n`), 1);
 });
 
-// The cost the header names: only what is CERTAINLY a comment is removed, so a mention of the path
+// The cost the header names: only two kinds of comment are removed, so a mention of the path
 // with `@` in a trailing comment on any other line refuses, even when the file's pins agree.
 test('the accepted cost: a route mention in a trailing comment that is not right after a plain pin refuses', () => {
   for (const text of [`uses: ${CHECK}@${SHA}\nother:\n  steps:\n    - run: echo hi # see ${CHECK}@main\n`,
@@ -189,12 +198,19 @@ test('a file with NEL, LS, PS or NUL, or not UTF-8 (UTF-16 with either mark), re
 // What the header says is NOT caught, pinned so the header and the code cannot drift apart: a line
 // inside a quoted value written over several lines that starts with `#`, or with `uses:` and a
 // value followed by ` #`, is read as if it stood outside the quotes; an escape other than `\/`
-// inside a quoted value hides the path. Each text below gives GitHub a pin at `main` and reads here
-// as no mention at all. If one starts to count, the reader got better: move it into UNREAD_FORMS.
-test('known gaps (the header): a #- or uses:-led line inside a multi-line quoted value, an escape other than \\/', () => {
+// inside a quoted value hides the path; a YAML tag that rewrites the value (`!!binary`, whose base64
+// a YAML parser decodes to the path and pin) hides it too. Each text below gives a YAML parser a
+// pin at `main`, reads here as no mention at all, and so agrees beside a plain pin at the commit
+// running. If one starts to count, the reader got better: move it into UNREAD_FORMS.
+test('known gaps (the header): a #- or uses:-led line inside a multi-line quoted value, an escape other than \\/, a !!binary tag', () => {
   for (const text of [`jobs: { r: { name: "a\n  # ", uses: ${CHECK}@main } }\n`, `jobs: { r: { name: "a\n  uses: x # ", uses: ${CHECK}@main } }\n`,
-    `jobs:\n  r:\n    uses: "footprintjs/ci/.github/workflows/release-check\\x2eyml@main"\n`])
+    `jobs:\n  r:\n    uses: "footprintjs/ci/.github/workflows/release-check\\x2eyml@main"\n`,
+    `jobs:\n  r:\n    uses: !!binary ${Buffer.from(`${CHECK}@main`).toString('base64')}\n`]) {
     assert.deepEqual([routePins(text), routeMentions(text)], [[], 0], text);
+    const files = { '.github/workflows/a.yml': Buffer.from(`uses: ${ROUTE}@${SHA}\n`), '.github/workflows/odd.yml': Buffer.from(text) };
+    const { git } = recordedGit({ commit: COMMIT, files });
+    assert.deepEqual(workflowPins(git, COMMIT, SHA), { agree: true }, text);
+  }
 });
 
 test('storydeck\'s two real caller files (main d7eef62) give one pin each and agree; its ci.yml gives none', () => {

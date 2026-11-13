@@ -22,8 +22,9 @@
 //   plan.mjs · matches does.
 // - (c) below: the whole chart on EVERY combination once, with one fact made unreadable; the fact
 //   and its bad kind rotate with the combination's index i (fact NAMES[i % 17], kind
-//   BADS[floor(i / 17) % 4]), 65,536 chart runs. It is what catches a decide stage that departs
-//   from decide(RULE_FILTERS) on a pattern of OTHER facts, which no witness need hit: the review's
+//   BADS[floor(i / 17) % 4]), 65,536 chart runs. It catches a decide stage that departs from
+//   decide(RULE_FILTERS), for any unreadable fact, on a pattern of OTHER facts, which no witness
+//   need hit: the review's
 //   DM2 (a dry run off main skips facts-unreadable) and DM4 (no tag, tagAtCommit and releaseExists
 //   false, skips it) passed (a), (b) and the readable walk, and fail here.
 //

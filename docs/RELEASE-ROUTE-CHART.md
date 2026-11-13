@@ -196,10 +196,11 @@ every kind (a pure function, no engine: it computes `factsReadable` exactly as `
 each one-fact change; (c) the whole chart on every combination once, with one fact made
 unreadable, the fact and its kind rotating with the combination's index (65,536 chart runs).
 Beside `plan.test.mjs`'s exhaustive walk of the plain plan over every combination with any one
-fact unreadable in any kind, they hold: the weigh stage on every case exhaustively; the chart's
+fact unreadable in any kind, the readable walk and these three parts hold: the weigh stage on every case exhaustively; the chart's
 decision on every readable combination exhaustively, and with a fact unreadable on every row's
 witness (every fact, every kind) and on every combination once (one fact, one kind each). Part (c)
-is what catches a decide stage that departs from the rule table on a pattern of other facts (the
+catches a decide stage that departs from the rule table, for any unreadable fact, on a pattern of
+other facts (the
 review's mutants DM2 and DM4 passed the other parts). They do not hold what four files used to
 hold by running the whole chart 4.46 million times (every combination with every fact unreadable
 in every kind):
