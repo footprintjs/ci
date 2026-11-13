@@ -17,9 +17,23 @@ const lsRemote = (text) => (args) => {
 };
 
 test('the tag: absent -> create, at the planned commit -> skip, at another commit -> tag-elsewhere', async () => {
-  assert.equal(decideTag({ tagAt: null, commit: COMMIT }), 'create');
-  assert.equal(decideTag({ tagAt: COMMIT, commit: COMMIT }), 'skip');
-  assert.equal(await code(() => decideTag({ tagAt: OTHER, commit: COMMIT })), `tag-elsewhere v-tag at ${OTHER}`);
+  for (const mode of ['publish', 'recover']) {
+    assert.equal(decideTag({ tagAt: null, commit: COMMIT, mode }), 'create');
+    assert.equal(decideTag({ tagAt: COMMIT, commit: COMMIT, mode }), 'skip');
+    assert.equal(await code(() => decideTag({ tagAt: OTHER, commit: COMMIT, mode })), `tag-elsewhere v-tag at ${OTHER}`);
+  }
+});
+
+// Correction 7: mode finish writes nothing but the GitHub release of a tag that exists at the planned
+// commit; it never creates a tag (no verify ran in that run) and never uses one elsewhere.
+test('mode finish: the tag at the planned commit -> skip; absent -> tag-gone; elsewhere -> tag-elsewhere; never create', async () => {
+  assert.equal(decideTag({ tagAt: COMMIT, commit: COMMIT, mode: 'finish' }), 'skip');
+  assert.equal(await code(() => decideTag({ tagAt: null, commit: COMMIT, mode: 'finish' })), 'tag-gone v-tag absent');
+  assert.equal(await code(() => decideTag({ tagAt: OTHER, commit: COMMIT, mode: 'finish' })), `tag-elsewhere v-tag at ${OTHER}`);
+  const fetcher = fakeFetch({ [RELEASE_URL]: json({ message: 'Not Found' }, 404) }).fetcher;
+  assert.deepEqual(await tagPlan({ git: lsRemote(`${COMMIT}\trefs/tags/v0.13.1\n`), fetcher, repo: 'footprintjs/storydeck', version: '0.13.1', commit: COMMIT, mode: 'finish' }),
+    { tag: 'skip', release: 'create' });
+  assert.equal(await code(() => tagPlan({ git: lsRemote(''), fetcher, repo: 'footprintjs/storydeck', version: '0.13.1', commit: COMMIT, mode: 'finish' })), 'tag-gone v-tag absent');
 });
 
 test('the GitHub release: absent -> create, present for this tag -> skip, a draft or another tag -> release-unexpected', async () => {

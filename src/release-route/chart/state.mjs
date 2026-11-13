@@ -9,15 +9,17 @@
 // by the `why` reader, so only bounded, checked values go in):
 // - a cause is { code, detail }: a refusal code from THE table and its detail as it is shown
 //   (step-common.mjs · shownDetail, the one bound for printed and recorded details);
-// - the context is the commit (40 hex), the package name, the plain version, the changelog style
-//   and the settings' Node major, each checked against its own shape, or left out (the same shapes
-//   the plain step needs).
+// - the context is the commit (40 hex), the package name, the plain version, the changelog style,
+//   the settings' Node major, `latest` (yes or no) and `pinsDiffer` (the file and pin pins.mjs
+//   found, already cleaned: kept only when it is its own cleaned form, at most 300 characters),
+//   each checked against its own shape, or left out (the same shapes the plain step needs).
 // The token never enters: it stays inside the doors the stages were built with.
 import { isCommit, isNodeMajor, isPackageName, isPlainVersion } from '../identity.mjs';
 import { Refusal } from '../refusals.mjs';
 import { FACTS } from '../rules.mjs';
 import { CHANGELOG_STYLES } from '../settings.mjs';
 import { shownDetail } from '../step-common.mjs';
+import { clean } from '../../shared/text.mjs';
 
 export const FACT_NAMES = Object.freeze(Object.keys(FACTS));
 
@@ -34,6 +36,8 @@ const CONTEXT_CHECKS = Object.freeze({
   version: isPlainVersion,
   changelogStyle: (value) => CHANGELOG_STYLES.includes(value),
   node: isNodeMajor,
+  latest: (value) => value === 'yes' || value === 'no',
+  pinsDiffer: (value) => typeof value === 'string' && value.length <= 300 && clean(value, 300) === value,
 });
 
 // The names of the context values a look reads (the keys above), as FACT_NAMES is the facts'.

@@ -8,7 +8,7 @@ import { chartDecides, combinations, oracle } from './agreement.mjs';
 
 const BAD = { null: null, undefined: undefined, string: 'true', number: 1 }['undefined'];
 
-test('chart and plan.mjs agree with any one fact undefined (8192 x 14 cases)', async () => {
+test('chart and plan.mjs agree with any one fact undefined (65536 x 17 cases)', async () => {
   let count = 0;
   for (const facts of combinations())
     for (const name of Object.keys(FACTS)) {
@@ -16,5 +16,5 @@ test('chart and plan.mjs agree with any one fact undefined (8192 x 14 cases)', a
       assert.equal(await chartDecides(odd), oracle(plan({ facts: odd })), JSON.stringify(odd));
       count++;
     }
-  assert.equal(count, 2 ** 13 * 14);
+  assert.equal(count, 2 ** 16 * 17);
 });

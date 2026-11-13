@@ -23,7 +23,9 @@ const storydeck = { 'package.json': saved('storydeck-today/package.json'), 'CHAN
 const routes = {
   'https://registry.npmjs.org/footprint-storydeck': json(saved('npm/footprint-storydeck.abbrev.json').toString()),
   [`https://api.github.com/repos/footprintjs/ci/compare/main...${TOOL}?per_page=1`]: json(saved('github/compare-behind.json').toString()),
+  'https://api.github.com/repos/footprintjs/storydeck/releases/tags/v0.13.1': json(saved('github/release-storydeck-v0.13.1.json').toString()),
 };
+const PLAN_ENV = { GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL, GITHUB_REPOSITORY: 'footprintjs/storydeck' };
 function doors(env, { files = storydeck, lsRemote = saved('storydeck-today/ls-remote.txt').toString(), fetched = routes, mainTip = COMMIT } = {}) {
   const written = {};
   const printed = [];
@@ -64,11 +66,29 @@ test('the script writes outputs and summary only to the runner files, and masks 
 });
 
 test('plan for storydeck today: nothing, exit 0, closed outputs', async () => {
-  const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL });
+  const { doors: d, written, printed } = doors(PLAN_ENV);
   assert.equal(await runStep('plan', d), 0);
-  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=22\ncompare=no\nmode=nothing\n`);
-  assert.match(printed.at(-1), /^Decision: rule released gives mode nothing, nothing to do/);
-  assert.match(written.summary, /Facts seen: action=publish, .*tagExists=true/);
+  assert.equal(written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=22\nlatest=yes\ncompare=no\nmode=nothing\n`);
+  assert.equal(printed.at(-1), 'Decision: rule released gives mode nothing, nothing to do: the version is tagged, on npm and has its GitHub release.');
+  assert.match(written.summary, /Facts seen: action=publish, .*tagExists=true, tagAtCommit=false, releaseExists=true/);
+  // The same sentence reaches the job summary.
+  assert.match(written.summary, /Decision: rule released gives mode nothing, nothing to do: the version is tagged, on npm and has its GitHub release\./);
+});
+
+// Correction 5: a workflow file that pins the route at another commit is refused by name, with the
+// file and the pin it found (cleaned), before anything else is decided.
+test('plan refuses pins-differ, naming the file and the pin, and writes no mode', async () => {
+  const files = { ...storydeck,
+    '.github/workflows/publish.yml': Buffer.from(`jobs:\n  release:\n    uses: footprintjs/ci/.github/workflows/release-route.yml@${TOOL} # pinned\n`),
+    '.github/workflows/ci.yml': Buffer.from(`jobs:\n  release-check:\n    uses: footprintjs/ci/.github/workflows/release-check.yml@${'b'.repeat(40)}\n`) };
+  const { doors: d, written, printed } = doors(PLAN_ENV, { files });
+  assert.equal(await runStep('plan', d), 1);
+  assert.doesNotMatch(written.out, /mode=/);
+  assert.ok(printed.includes('Decision: rule pins-differ refuses pins-differ, a workflow file of this repository pins the release route at another commit than the one running.'), printed.join('\n'));
+  assert.ok(printed.includes(`Detail: rule pins-differ: ci.yml pins ${'b'.repeat(40)}`), printed.join('\n'));
+  // Both files at the commit running: the plan goes on and decides.
+  const agreeing = { ...files, '.github/workflows/ci.yml': Buffer.from(`    uses: footprintjs/ci/.github/workflows/release-check.yml@${TOOL}\n`) };
+  assert.equal(await runStep('plan', doors(PLAN_ENV, { files: agreeing }).doors), 0);
 });
 
 // The build job sets up the Node major the settings name before it starts (it cannot read the
@@ -77,10 +97,10 @@ test('plan for storydeck today: nothing, exit 0, closed outputs', async () => {
 test('plan hands the settings\' Node major to the build job as `node`, only when it passes', async () => {
   const settings = JSON.parse(storydeck['.github/release.json']);
   const files = { ...storydeck, '.github/release.json': Buffer.from(JSON.stringify({ ...settings, node: '24' })) };
-  const env = { GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL };
+  const env = PLAN_ENV;
   const passed = doors(env, { files });
   assert.equal(await runStep('plan', passed.doors), 0, passed.printed.join('\n'));
-  assert.equal(passed.written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=24\ncompare=no\nmode=nothing\n`);
+  assert.equal(passed.written.out, `rule=released\ncommit=${COMMIT}\npackage=footprint-storydeck\nversion=0.13.1\nnode=24\nlatest=yes\ncompare=no\nmode=nothing\n`);
   // A refusal by the first row: the settings were read (the build would have had its Node), and still no node.
   const refused = doors({ ...env, ROUTE_TOOL_SHA: 'main' }, { files });
   assert.equal(await runStep('plan', refused.doors), 1);
@@ -89,7 +109,7 @@ test('plan hands the settings\' Node major to the build job as `node`, only when
 
 test('plan refused: exit 1, no mode written, the unreadable fact and its cause printed', async () => {
   const { '.github/release.json': _, ...noSettings } = storydeck;
-  const { doors: d, written, printed } = doors({ GITHUB_SHA: COMMIT, GITHUB_REF: 'refs/heads/main', ROUTE_ACTION: 'publish', ROUTE_TOOL_SHA: TOOL }, { files: noSettings });
+  const { doors: d, written, printed } = doors(PLAN_ENV, { files: noSettings });
   assert.equal(await runStep('plan', d), 1);
   assert.doesNotMatch(written.out, /mode=|node=/);
   assert.ok(printed.some((l) => l.startsWith('Unreadable fact settingsRead: settings-unreadable')));
@@ -181,14 +201,23 @@ test('ready, tag and npm-tool as steps: closed outputs, and a refusal is exit 1'
   assert.equal(r1.written.out, 'publish=yes\n');
 
   const releaseUrl = 'https://api.github.com/repos/footprintjs/storydeck/releases/tags/v0.13.1';
-  const r2 = doors({ ROUTE_COMMIT: COMMIT, ROUTE_VERSION: '0.13.1', GITHUB_REPOSITORY: 'footprintjs/storydeck' },
-    { lsRemote: `${'e'.repeat(40)}\trefs/tags/v0.13.1\n`, fetched: { [releaseUrl]: json({}, 404) } });
+  const tagEnv = { ROUTE_COMMIT: COMMIT, ROUTE_VERSION: '0.13.1', ROUTE_MODE: 'publish', GITHUB_REPOSITORY: 'footprintjs/storydeck' };
+  const r2 = doors(tagEnv, { lsRemote: `${'e'.repeat(40)}\trefs/tags/v0.13.1\n`, fetched: { [releaseUrl]: json({}, 404) } });
   assert.equal(await runStep('tag', r2.doors), 1);
   assert.match(r2.printed[0], /^Refused: tag-elsewhere\./);
-  const r3 = doors({ ROUTE_COMMIT: COMMIT, ROUTE_VERSION: '0.13.1', GITHUB_REPOSITORY: 'footprintjs/storydeck' },
-    { lsRemote: '', fetched: { [releaseUrl]: json({}, 404) } });
+  const r3 = doors(tagEnv, { lsRemote: '', fetched: { [releaseUrl]: json({}, 404) } });
   assert.equal(await runStep('tag', r3.doors), 0);
   assert.equal(r3.written.out, 'tag=create\nrelease=create\n');
+  // Correction 7: in mode finish the tag must already be at the commit; a missing tag is never created.
+  const finish = doors({ ...tagEnv, ROUTE_MODE: 'finish' }, { lsRemote: `${COMMIT}\trefs/tags/v0.13.1\n`, fetched: { [releaseUrl]: json({}, 404) } });
+  assert.equal(await runStep('tag', finish.doors), 0, finish.printed.join('\n'));
+  assert.equal(finish.written.out, 'tag=skip\nrelease=create\n');
+  const gone = doors({ ...tagEnv, ROUTE_MODE: 'finish' }, { lsRemote: '', fetched: { [releaseUrl]: json({}, 404) } });
+  assert.equal(await runStep('tag', gone.doors), 1);
+  assert.match(gone.printed[0], /^Refused: tag-gone\./);
+  assert.equal(gone.written.out, undefined);
+  for (const mode of [undefined, '', 'dry-run', 'nothing', 'finish '])
+    assert.equal(await runStep('tag', doors({ ...tagEnv, ROUTE_MODE: mode }, { lsRemote: '', fetched: { [releaseUrl]: json({}, 404) } }).doors), 1, String(mode));
 
   const npmDir = join(folder(t), 'npm');
   const r4 = doors({ ROUTE_NPM_DIR: npmDir, ROUTE_SOURCE: process.cwd() });

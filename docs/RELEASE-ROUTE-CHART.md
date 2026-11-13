@@ -45,9 +45,9 @@ back: each is one check whose refusal already names what it found.
 
 ## The plan chart
 
-Read the request; then, side by side, the tip of `main`, the tool commit, the settings and
-`package.json`; gather; then, side by side, the tag, npm and the changelog (they need the name and
-the version); gather; weigh; decide. Each stage calls the same reader of `observe.mjs` the plain step
+Read the request; then, side by side, the tip of `main`, the tool commit, the settings,
+`package.json` and the caller's pins of the route; gather; then, side by side, the tag with its
+GitHub release, npm and the changelog (they need the name and the version); gather; weigh; decide. Each stage calls the same reader of `observe.mjs` the plain step
 calls, through the same doors (git, fetch, the environment), and writes its facts under the names of
 `rules.mjs`. The doors are bound when the chart is built and never enter its state.
 
@@ -63,10 +63,12 @@ request --> look_settings
 look_settings["Read the settings"]
 request --> look_package
 look_package["Read package.json"]
+request --> look_pins
+look_pins["Read the caller's pins"]
 request --> gather_first
 gather_first["Gather what was seen"]
 gather_first --> look_tag
-look_tag["Look for the tag"]
+look_tag["Look for the tag and its release"]
 gather_first --> look_npm
 look_npm["Ask npm"]
 gather_first --> look_changelog
@@ -81,6 +83,8 @@ decide --> tool_commit_invalid
 tool_commit_invalid["Rule tool-commit-invalid"]
 decide --> tool_not_reviewed
 tool_not_reviewed["Rule tool-not-reviewed"]
+decide --> pins_differ
+pins_differ["Rule pins-differ"]
 decide --> package_unnamed
 package_unnamed["Rule package-unnamed"]
 decide --> package_private
@@ -95,8 +99,20 @@ decide --> released
 released["Rule released"]
 decide --> dry_run_released
 dry_run_released["Rule dry-run-released"]
+decide --> dry_run_not_released_commit
+dry_run_not_released_commit["Rule dry-run-not-released-commit"]
 decide --> tag_without_package
 tag_without_package["Rule tag-without-package"]
+decide --> finish_off_main
+finish_off_main["Rule finish-off-main"]
+decide --> finish_not_tip
+finish_not_tip["Rule finish-not-tip"]
+decide --> finish_tag_elsewhere
+finish_tag_elsewhere["Rule finish-tag-elsewhere"]
+decide --> finish_changelog_missing
+finish_changelog_missing["Rule finish-changelog-missing"]
+decide --> finish
+finish["Rule finish"]
 decide --> not_main_tip
 not_main_tip["Rule not-main-tip"]
 decide --> unfinished_not_tip
@@ -136,8 +152,9 @@ it to each child and to the stage after it. The `default` box is the library's d
 | `look-tool` | Look at the tool commit | Is the release tool commit on footprintjs/ci main? |
 | `look-settings` | Read the settings | Is .github/release.json at the commit readable and valid? |
 | `look-package` | Read package.json | The package name, private flag and version at the commit |
+| `look-pins` | Read the caller's pins | Does every workflow file that calls the route pin the commit running? |
 | `gather-first` | Gather what was seen | Lift the facts the looks found side by side to their names |
-| `look-tag` | Look for the tag | Does origin have tag v<version>? |
+| `look-tag` | Look for the tag and its release | Does origin have tag v<version>, at this commit, and has it a GitHub release? |
 | `look-npm` | Ask npm | Does npm know the package, have the version, and is the version newer? |
 | `look-changelog` | Read the changelog | Has CHANGELOG.md a section for the version? |
 | `gather-second` | Gather what was seen | Lift the facts the looks found side by side to their names |
@@ -169,7 +186,8 @@ row was changed. `decide()` numbers its rules from 0 in its story ("Rule 7 "rele
 in RELEASE-ROUTE.md numbers them from 1.
 
 The agreement test runs one decision chart (the weigh and decide stages, seeded with the facts)
-against `plan.mjs` on every combination `plan.test.mjs` enumerates (8,192), and on each
+against `plan.mjs` on every combination `plan.test.mjs` enumerates (65,536 since the facts
+`pinsAgree`, `tagAtCommit` and `releaseExists` were added), and on each
 combination with one fact made unreadable as `null`, `undefined`, a string and a number
 (`test/release-route/chart/agreement-*.test.mjs`): the same rule, mode, compare and refusal every
 time.
@@ -270,14 +288,15 @@ From the recorded storydeck case (`why.test.mjs`), cut short:
 
 ```
 Why mode = "nothing" in the plan record of run 1794509344113-0000000001.
-Decision at decide#11: rule released matched.
-Fact tagExists eq true: was true, holds; observed by Look for the tag (look-tag#6).
-Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#7).
+Decision at decide#12: rule released matched.
+Fact tagExists eq true: was true, holds; observed by Look for the tag and its release (look-tag#7).
+Fact npmHasVersion eq true: was true, holds; observed by Ask npm (look-npm#8).
 Fact action eq "publish": was "publish", holds; observed by Read the request (request#0).
+Fact releaseExists eq true: was true, holds; observed by Look for the tag and its release (look-tag#7).
 Walk back (foottrace causalChain, with the decision edges the run recorded; each ". " is one step back):
 Note: steps that ran side by side may be shown one under another in the walk; the "observed by" line says which step observed the fact.
-Walk: Rule released (released#12) [wrote: rule, mode, compare]
-Walk: . Decide by the rule table (decide#11) ← [control: released]
+Walk: Rule released (released#13) [wrote: rule, mode, compare]
+Walk: . Decide by the rule table (decide#12) ← [control: released]
 Walk: . . Read the request (request#0) ← via toolCommitPlain [wrote: action, refIsMain, toolCommitPlain, commit]
 ...
 ```

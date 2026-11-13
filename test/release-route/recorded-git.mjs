@@ -1,6 +1,6 @@
-// A git door that answers the route's four questions from recorded files, the way git itself
-// does: `ls-tree -z --full-tree`, `cat-file -s`, `cat-file blob`, and `ls-remote` (recorded
-// text). Blob ids are git's own (sha1 of "blob <size>\0<bytes>"), so a fixture that is not the
+// A git door that answers the route's questions from recorded files, the way git itself
+// does: `ls-tree -z --full-tree` (one path, or a folder's entries for a path ending in `/`),
+// `cat-file -s`, `cat-file blob`, and `ls-remote` (recorded text). Blob ids are git's own (sha1 of "blob <size>\0<bytes>"), so a fixture that is not the
 // real blob shows up as a different id. Anything else throws, like a failing git.
 import { createHash } from 'node:crypto';
 
@@ -14,6 +14,11 @@ export function recordedGit({ commit, files, lsRemote = '', modes = {}, mainTip 
   const git = (args) => {
     calls.push(args.join(' '));
     const [command, ...rest] = args;
+    if (command === 'ls-tree' && rest[0] === '-z' && rest[1] === '--full-tree' && rest[2] === commit && rest[3] === '--' && rest[4].endsWith('/')) {
+      // A folder: the entries directly in it, in git's order (by name).
+      const inside = Object.keys(files).filter((path) => path.startsWith(rest[4]) && !path.slice(rest[4].length).includes('/')).sort();
+      return Buffer.from(inside.map((path) => `${modes[path] ?? '100644 blob'} ${blobId(files[path])}\t${path}\0`).join(''));
+    }
     if (command === 'ls-tree' && rest[0] === '-z' && rest[1] === '--full-tree' && rest[2] === commit && rest[3] === '--') {
       const bytes = files[rest[4]];
       return Buffer.from(bytes === undefined ? '' : `${modes[rest[4]] ?? '100644 blob'} ${blobId(bytes)}\t${rest[4]}\0`);

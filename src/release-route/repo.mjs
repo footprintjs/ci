@@ -28,13 +28,43 @@ export function readAtCommit(git, commit, path, maxBytes, unreadable) {
   const match = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40})\t([^\0]+)\0$/.exec(listing);
   if (!match || match[4] !== path) refuse('git-failed', `ls-tree ${path}`);
   if (match[2] !== 'blob' || !REGULAR.has(match[1])) refuse(unreadable, path);
-  const size = Number(ask(git, ['cat-file', '-s', match[3]], `size of ${path}`).toString('utf8').trim());
-  if (!Number.isSafeInteger(size) || size < 0) refuse('git-failed', `size of ${path}`);
-  if (size > maxBytes) refuse(unreadable, path);
-  const bytes = ask(git, ['cat-file', 'blob', match[3]], `read ${path}`);
-  if (bytes.length !== size) refuse('git-failed', `read ${path}`);
+  return readBlob(git, match[3], maxBytes, unreadable, path);
+}
+
+// The bytes of the blob `id` (40 hex, from a listing git made), bounded: its size is asked first,
+// so nothing larger than `maxBytes` is ever read (`unreadable` names that refusal). Read by id, not
+// by path, so a path from a listing never becomes a pathspec (where `*` or `:(glob)` would mean
+// something to git).
+export function readBlob(git, id, maxBytes, unreadable, label) {
+  if (!/^[a-f0-9]{40}$/.test(id)) refuse('git-failed', `blob of ${label}`);
+  const size = Number(ask(git, ['cat-file', '-s', id], `size of ${label}`).toString('utf8').trim());
+  if (!Number.isSafeInteger(size) || size < 0) refuse('git-failed', `size of ${label}`);
+  if (size > maxBytes) refuse(unreadable, label);
+  const bytes = ask(git, ['cat-file', 'blob', id], `read ${label}`);
+  if (bytes.length !== size) refuse('git-failed', `read ${label}`);
   return bytes;
 }
+
+// The entries directly in folder `dir` at `commit` (no recursion): [{ mode, type, id, path }], an
+// empty list when the commit has no such folder. `dir` is a fixed folder of the route's own (no
+// pattern), asked with a trailing `/` so git lists what is in it. Every record must be exactly
+// git's shape and lie directly in `dir`; anything else is git-failed, never guessed. At most
+// `maxEntries` entries (more is `unreadable`).
+export function listAtCommit(git, commit, dir, maxEntries, unreadable) {
+  if (!isCommit(commit)) refuse('input-invalid', 'commit');
+  const out = ask(git, ['ls-tree', '-z', '--full-tree', commit, '--', `${dir}/`], `ls-tree ${dir}`).toString('utf8');
+  if (out === '') return [];
+  if (!out.endsWith('\0')) refuse('git-failed', `ls-tree ${dir}`);
+  const records = out.slice(0, -1).split('\0');
+  if (records.length > maxEntries) refuse(unreadable, `more than ${maxEntries} entries in ${dir}`);
+  return records.map((record) => {
+    const match = /^([0-7]{6}) (blob|tree|commit) ([a-f0-9]{40})\t([^\0]+)$/.exec(record);
+    if (!match || !match[4].startsWith(`${dir}/`) || match[4].slice(dir.length + 1).includes('/') || match[4].length === dir.length + 1)
+      refuse('git-failed', `ls-tree ${dir}`);
+    return { mode: match[1], type: match[2], id: match[3], path: match[4] };
+  });
+}
+export const isRegularBlob = (entry) => entry.type === 'blob' && REGULAR.has(entry.mode);
 
 // The commit `ref` names on origin, or null when origin has no such ref. Asked of `origin`
 // itself, not of the local refs, which a shallow checkout does not hold. An annotated tag is

@@ -3,14 +3,14 @@
 // into a script line); each step prints a short summary, writes closed-alphabet outputs, and
 // returns 0 or 1. Every exception ends as a named refusal and exit 1: no catch here passes.
 //
-//   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, [GITHUB_TOKEN]
-//            -> mode, rule, compare, node, commit, [package, version] (exit 0 also for "nothing")
+//   plan     GITHUB_SHA, GITHUB_REF, ROUTE_ACTION, ROUTE_TOOL_SHA, GITHUB_REPOSITORY, [GITHUB_TOKEN]
+//            -> mode, rule, compare, node, latest, commit, [package, version] (exit 0 also for "nothing")
 //   npm-tool ROUTE_NPM_DIR                                             (the pinned npm, unpacked)
 //   build    ROUTE_COMMIT, ROUTE_OUT, [ROUTE_NPM_DIR]                  -> file
 //   inspect  ROUTE_COMMIT, ROUTE_TARBALL_DIR                           (re-checks package.tgz)
 //   ready    ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR, ROUTE_COMMIT -> publish (yes|no)
 //   verify   ROUTE_PACKAGE, ROUTE_VERSION, ROUTE_TARBALL_DIR           (npm serves these bytes)
-//   tag      ROUTE_COMMIT, ROUTE_VERSION, GITHUB_REPOSITORY, [GITHUB_TOKEN] -> tag, release (create|skip)
+//   tag      ROUTE_COMMIT, ROUTE_VERSION, ROUTE_MODE, GITHUB_REPOSITORY, [GITHUB_TOKEN] -> tag, release (create|skip)
 //   notes    ROUTE_COMMIT, ROUTE_OUT                                   -> title-file, notes-file
 // ROUTE_SOURCE (default ".") is the repository checkout every git question is asked in.
 import archivePort from './archive/check-archive.cjs';
@@ -26,6 +26,7 @@ import { plan } from './plan.mjs';
 import { compareWithNpm } from './registry.mjs';
 import { readAtCommit } from './repo.mjs';
 import { refuse } from './refusals.mjs';
+import { WRITING_MODES } from './rules.mjs';
 import { MAX_SETTINGS_BYTES, readSettings, SETTINGS_PATH } from './settings.mjs';
 import { clean as printable } from '../shared/text.mjs';
 
@@ -76,9 +77,12 @@ async function readyStep({ env, git, fetcher, report }) {
     : `Ready: npm already serves ${name}@${version} with exactly these bytes; do not publish again, go on to verify.`);
 }
 
+// The release job runs only for a mode that writes; the mode decides whether a missing tag may be
+// created (publish, recover) or means the plan is stale (finish).
 async function tagStep({ env, git, fetcher, report }) {
   const version = input(env, 'ROUTE_VERSION', isPlainVersion);
-  const result = await tagPlan({ git, fetcher, repo: env.GITHUB_REPOSITORY, version, commit: commitInput(env), token: env.GITHUB_TOKEN });
+  const mode = input(env, 'ROUTE_MODE', (value) => WRITING_MODES.includes(value));
+  const result = await tagPlan({ git, fetcher, repo: env.GITHUB_REPOSITORY, version, commit: commitInput(env), token: env.GITHUB_TOKEN, mode });
   report.output('tag', result.tag);
   report.output('release', result.release);
   report.say(`Tag v${version}: ${result.tag}. GitHub release: ${result.release}.`);

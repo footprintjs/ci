@@ -1,7 +1,10 @@
 // The release job's decision, so the workflow writes no logic of its own: write the tag and the
 // GitHub release, or skip what is already there, or stop.
 //
-//   tag v<version>:  absent on origin -> create; at the planned commit -> skip;
+//   tag v<version>:  absent on origin -> create (mode publish or recover), or refuse tag-gone
+//                    (mode finish: it writes only a release for a tag that EXISTS, so a tag gone
+//                    since the plan is never made again here, where no verify ran);
+//                    at the planned commit -> skip;
 //                    at another commit -> refuse tag-elsewhere (never move or reuse a tag)
 //   GitHub release:  absent -> create; present for tag v<version>, not a draft -> skip;
 //                    anything else -> refuse release-unexpected
@@ -13,7 +16,8 @@ import { readRelease } from './github.mjs';
 import { tagCommit } from './repo.mjs';
 import { refuse } from './refusals.mjs';
 
-export function decideTag({ tagAt, commit }) {
+export function decideTag({ tagAt, commit, mode }) {
+  if (tagAt === null && mode === 'finish') refuse('tag-gone', `v-tag absent`);
   if (tagAt === null) return 'create';
   if (tagAt === commit) return 'skip';
   refuse('tag-elsewhere', `v-tag at ${String(tagAt).slice(0, 40)}`);
@@ -25,8 +29,8 @@ export function decideRelease({ release, version }) {
   refuse('release-unexpected', release.draft ? 'draft' : 'another tag');
 }
 
-export async function tagPlan({ git, fetcher, repo, version, commit, token }) {
-  const tag = decideTag({ tagAt: tagCommit(git, version), commit });
+export async function tagPlan({ git, fetcher, repo, version, commit, token, mode }) {
+  const tag = decideTag({ tagAt: tagCommit(git, version), commit, mode });
   const release = decideRelease({ release: await readRelease({ fetcher, repo, version, token }), version });
   return { tag, release };
 }

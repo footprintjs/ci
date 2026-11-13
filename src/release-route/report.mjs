@@ -38,9 +38,10 @@ import { refuse } from './refusals.mjs';
 import { clean } from '../shared/text.mjs';
 
 const OUTPUTS = Object.freeze({
-  mode: (v) => /^(publish|recover|dry-run|nothing)$/.test(v),
+  mode: (v) => /^(publish|recover|finish|dry-run|nothing)$/.test(v),
   rule: (v) => /^[a-z][a-z-]{1,40}$/.test(v),
   compare: (v) => /^(yes|no)$/.test(v),
+  latest: (v) => v === 'yes' || v === 'no',
   commit: (v) => COMMIT.test(v),
   version: (v) => PLAIN_VERSION.test(v),
   package: (v) => isPackageName(v),

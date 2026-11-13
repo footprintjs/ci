@@ -15,7 +15,8 @@ test('a reusable workflow with no input, no secret, no permissions of its own, a
   assert.deepEqual(Object.keys(check.yaml.jobs), ['plan']);
   assert.deepEqual(check.yaml.jobs.plan.permissions, { contents: 'read' });
   // Read from the parsed file, so the comments may say what the job does NOT do.
-  assert.doesNotMatch(JSON.stringify(check.yaml), /secrets|write|id-token|hold|build|npm-tool|concurrency|cache/);
+  // The one `cache` word allowed is setup-node's automatic cache turned off (package-manager-cache: false).
+  assert.doesNotMatch(JSON.stringify(check.yaml).replaceAll('"package-manager-cache":false', ''), /secrets|write|id-token|hold|build|npm-tool|concurrency|cache/);
 });
 
 test('the same job as the route\'s plan job, but the action is dry-run and the record has its own name; no outputs', () => {

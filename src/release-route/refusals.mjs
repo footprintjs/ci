@@ -36,6 +36,7 @@ export const REFUSALS = Object.freeze({
 
   // Git and the checkout.
   'git-failed': 'A git question failed, so the route could not see the repository.',
+  'workflows-unreadable': 'A file under .github/workflows is not a regular file or is larger than its bound, or there are more files than the bound.',
   'checkout-mismatch': 'The checkout is not the planned commit with a clean tree.',
 
   // The network: npm and GitHub answers.
@@ -51,11 +52,13 @@ export const REFUSALS = Object.freeze({
   'fact-unreadable': 'A fact the decision needs could not be read, so the route does not guess.',
   'tool-commit-invalid': 'The release tool commit is not 40 lowercase hex characters.',
   'tool-not-reviewed': 'The release tool commit is not on footprintjs/ci main, so it was never reviewed there.',
+  'pins-differ': 'A workflow file here pins release-route.yml or release-check.yml of footprintjs/ci at another commit than the one running.',
   'package-unknown': 'npm does not know this package; the first publish of a new name is done by hand.',
   'tag-without-package': 'The tag for this version exists but npm does not have the version; decide by hand.',
   'version-not-newer': 'The version is not newer than every version npm already has.',
   'publish-off-main': 'A real publish runs only from main.',
   'recover-off-main': 'Recovering a release writes a tag and a GitHub release, so it runs only from main.',
+  'finish-off-main': 'Finishing a release writes its GitHub release, so it runs only from main.',
   'release-unfinished': 'npm has this version but no tag: use Re-run failed jobs on the run that published it, or tag v<version> at that commit by hand.',
   'no-rule-matched': 'No rule of the decision matched these facts, so nothing is decided.',
   'plan-stale': 'The plan is no longer true: main moved on, or a newer version is on npm. This job published nothing; start a new run from main (a push or a dispatch).',
@@ -75,6 +78,7 @@ export const REFUSALS = Object.freeze({
 
   // The release job and the pinned npm.
   'tag-elsewhere': 'The tag for this version exists at another commit; the route never moves or reuses a tag.',
+  'tag-gone': 'Mode finish writes only the GitHub release of an existing tag, and the tag is gone; nothing was written.',
   'release-unexpected': 'A GitHub release for this tag exists but is a draft or names another tag; decide by hand.',
   'npm-tool': 'The vendored npm does not match its pinned digest, or its folder is not new, private and outside the checkout.',
 

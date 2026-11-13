@@ -3,7 +3,8 @@
 // stopped it is kept in `causes` so the plan step can print WHY it is unknown.
 //
 // One OBSERVER per thing the route looks at (the request, the tip of main, the tool commit, the
-// settings, the package, the tag, npm, the changelog). Each returns { facts, causes, context } and
+// caller's pins of the route, the settings, the package, the tag, the GitHub release, npm, the
+// changelog). Each returns { facts, causes, context } and
 // is the one reader of its facts: `observe` runs them in order for the plain step, and the
 // charted step (chart/) runs the same observers as stages, side by side where they do not depend
 // on each other. Some facts are not asked when an earlier fact makes them meaningless (no tag
@@ -11,13 +12,15 @@
 // null, and the rule table names the earlier reason first (see rules.mjs).
 import strictJson from './archive/strict-json.cjs';
 import { decodeChangelog, findSection, MAX_CHANGELOG_BYTES } from './changelog.mjs';
-import { toolReviewed } from './github.mjs';
+import { readRelease, toolReviewed } from './github.mjs';
 import { isCommit, isPackageName, isPlainVersion, newerThanAll } from './identity.mjs';
+import { workflowPins } from './pins.mjs';
 import { readVersions } from './registry.mjs';
-import { mainTip, readAtCommit, tagExists } from './repo.mjs';
+import { mainTip, readAtCommit, tagCommit } from './repo.mjs';
 import { asRefusal, Refusal, refuse } from './refusals.mjs';
 import { FACTS } from './rules.mjs';
 import { readSettings, MAX_SETTINGS_BYTES, SETTINGS_PATH } from './settings.mjs';
+import { decideRelease } from './tag.mjs';
 
 const MAX_PACKAGE_BYTES = 1024 * 1024;
 
@@ -82,6 +85,20 @@ export async function observeTool({ env, fetcher }) {
   return found;
 }
 
+// Every workflow file of the caller pins the route at the commit running (pins.mjs). Asked only for
+// a plain tool commit (tool-commit-invalid names the reason otherwise). When a pin differs, the
+// file and the pin, cleaned, are kept as `pinsDiffer` for the refusal's detail.
+export async function observePins({ env, git, commit }) {
+  const { found, read } = observation();
+  if (isCommit(env.ROUTE_TOOL_SHA))
+    await read('pinsAgree', () => {
+      const pins = workflowPins(git, commit, env.ROUTE_TOOL_SHA);
+      if (!pins.agree) found.context.pinsDiffer = `${pins.file} pins ${pins.pin}`;
+      return pins.agree;
+    });
+  return found;
+}
+
 export async function observeSettings({ git, commit }) {
   const { found, read } = observation();
   await read('settingsRead', () => {
@@ -118,9 +135,38 @@ export async function observePackage({ git, commit }) {
   return found;
 }
 
-export async function observeTag({ git, version }) {
+// Does origin have tag v<version> (tagExists), and does it name the planned commit (tagAtCommit)?
+// One question (`ls-remote`, the tag peeled): when there is no tag, tagAtCommit is false and nothing
+// more is asked; when the tag could not be read, both are unknown with the same cause.
+export async function observeTag({ git, version, commit }) {
   const { found, read } = observation();
-  if (version) await read('tagExists', () => tagExists(git, version));
+  if (!version) return found;
+  let tagAt = null;
+  await read('tagExists', () => {
+    tagAt = tagCommit(git, version);
+    return tagAt !== null;
+  });
+  if (found.facts.tagExists === null) {
+    found.facts.tagAtCommit = null;
+    found.causes.tagAtCommit = found.causes.tagExists;
+  } else found.facts.tagAtCommit = tagAt === commit;
+  return found;
+}
+
+// Is there a GitHub release for tag v<version> (releaseExists)? Asked, with the job's token from the
+// fixed host (github.mjs · readRelease), only when the tag exists; with no tag it is false and
+// nothing is asked. The answer is read by the release job's own rule (tag.mjs · decideRelease): a
+// published release for exactly this tag is true, none is false, and a draft or a release naming
+// another tag is the refusal release-unexpected (the fact unknown, the cause printed).
+export async function observeRelease({ env, fetcher, version, tagExists }) {
+  const { found, read } = observation();
+  if (!version || (tagExists !== true && tagExists !== false)) return found;
+  if (tagExists === false) {
+    found.facts.releaseExists = false;
+    return found;
+  }
+  await read('releaseExists', async () => decideRelease({
+    release: await readRelease({ fetcher, repo: env.GITHUB_REPOSITORY, version, token: env.GITHUB_TOKEN }), version }) === 'skip');
   return found;
 }
 
@@ -136,6 +182,11 @@ export async function observeNpm({ fetcher, name, version }) {
   if (found.facts.packageKnown === true && version) {
     found.facts.npmHasVersion = versions.includes(version);
     await read('versionNewer', () => newerThanAll(version, versions) ?? refuse('response-shape', 'a version npm lists is not semver'));
+    // Is this version the newest npm has, or will have once it is published? The release job marks
+    // the GitHub release "Latest" only then (`latest`: yes or no), so a recover or a finish of an
+    // older version never takes "Latest" from a newer one. Not a fact: no rule decides on it.
+    const newest = newerThanAll(version, versions.filter((other) => other !== version));
+    if (newest !== null) found.context.latest = newest ? 'yes' : 'no';
   }
   return found;
 }
@@ -167,9 +218,11 @@ export async function observe({ env, git, fetcher }) {
   const tool = await observeTool({ env, fetcher });
   const settings = await observeSettings({ git, commit });
   const pkg = await observePackage({ git, commit });
+  const pins = await observePins({ env, git, commit });
   const { name, version } = pkg.context;
-  const tag = await observeTag({ git, version });
+  const tag = await observeTag({ git, version, commit });
+  const release = await observeRelease({ env, fetcher, version, tagExists: tag.facts.tagExists });
   const npm = await observeNpm({ fetcher, name, version });
   const changelog = await observeChangelog({ git, commit, changelogStyle: settings.context.changelogStyle, version });
-  return merge(request, tip, tool, settings, pkg, tag, npm, changelog);
+  return merge(request, tip, tool, settings, pkg, pins, tag, release, npm, changelog);
 }

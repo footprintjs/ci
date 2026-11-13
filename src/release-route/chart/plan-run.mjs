@@ -15,6 +15,8 @@ const fromState = (state) => {
   if (state.packageName) context.name = state.packageName;
   if (state.version) context.version = state.version;
   if (state.node) context.node = state.node;
+  if (state.latest) context.latest = state.latest;
+  if (state.pinsDiffer) context.pinsDiffer = state.pinsDiffer;
   return { facts, causes, context };
 };
 

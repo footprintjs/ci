@@ -18,6 +18,7 @@ const NAMES = { rule: 'some-rule', commit: 'a'.repeat(40), package: 'footprint-s
 const MODES = {
   publish: { ...NAMES, node: '22', mode: 'publish', compare: 'yes' },
   recover: { ...NAMES, node: '22', mode: 'recover', compare: 'yes' },
+  finish: { ...NAMES, node: '22', mode: 'finish', compare: 'no' },
   'dry-run compare=yes': { ...NAMES, node: '22', mode: 'dry-run', compare: 'yes' },
   'dry-run compare=no': { ...NAMES, node: '22', mode: 'dry-run', compare: 'no' },
   nothing: { ...NAMES, node: '22', mode: 'nothing', compare: 'no' },
@@ -57,7 +58,8 @@ const EXPECTED = {
   publish: (w) => !w.cancelled && mode(w) === 'publish' && ok(w.state, 'build'),
   verify: (w) => !w.cancelled && w.plan.result === 'success' && w.plan.outputs.compare === 'yes' && ok(w.state, 'build') &&
     (mode(w) !== 'publish' || ['success', 'failure'].includes(w.state.publish.result)),
-  release: (w) => !w.cancelled && ['publish', 'recover'].includes(mode(w)) && ok(w.state, 'verify'),
+  // finish writes only the GitHub release for a tag that exists: no build, no verify, the release job alone.
+  release: (w) => !w.cancelled && ((['publish', 'recover'].includes(mode(w)) && ok(w.state, 'verify')) || mode(w) === 'finish'),
 };
 
 test('every job but plan starts its condition with !cancelled(), so the condition alone decides', () => {
@@ -89,10 +91,11 @@ test('no job runs because a job it needs FAILED, except verify after a failed pu
     }
 });
 
-test('nothing writes (publish, release) unless the plan PASSED with mode publish or recover', () => {
+test('nothing writes (publish, release) unless the plan PASSED with mode publish, recover or finish; finish runs nothing but the release job', () => {
   for (const world of worlds()) {
     if (world.state.publish.result !== 'skipped') assert.equal(mode(world), 'publish');
-    if (world.state.release.result !== 'skipped') assert.ok(['publish', 'recover'].includes(mode(world)));
+    if (world.state.release.result !== 'skipped') assert.ok(['publish', 'recover', 'finish'].includes(mode(world)));
+    if (mode(world) === 'finish') assert.deepEqual(LATER.filter((id) => world.state[id].result !== 'skipped'), world.cancelled ? [] : ['release']);
   }
 });
 
@@ -113,6 +116,7 @@ const CASES = [
   ['`recover`, every job green', { plan: { result: 'success', outputs: MODES.recover } }],
   ['`recover`, build red', { plan: { result: 'success', outputs: MODES.recover }, results: { build: 'failure' } }],
   ['`recover`, verify red', { plan: { result: 'success', outputs: MODES.recover }, results: { verify: 'failure' } }],
+  ['`finish`', { plan: { result: 'success', outputs: MODES.finish } }],
   ['`dry-run`, compare=yes, every job green', { plan: { result: 'success', outputs: MODES['dry-run compare=yes'] } }],
   ['`dry-run`, compare=no, every job green', { plan: { result: 'success', outputs: MODES['dry-run compare=no'] } }],
   ['`dry-run`, hold red', { plan: { result: 'success', outputs: MODES['dry-run compare=yes'] }, results: { hold: 'failure' } }],

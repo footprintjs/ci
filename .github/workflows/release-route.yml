@@ -4,7 +4,7 @@
 # to it. Every decision is a step of footprintjs/ci, checked out at THIS file's own commit
 # (job.workflow_sha): this file only wires the steps into jobs, gives each job the least power, and
 # reads the steps' closed-alphabet outputs. Nothing here decides whether to publish: plan does, and
-# plan says publish or recover only for the tip of main.
+# plan says publish, recover or finish only for the tip of main.
 #
 # Every condition between jobs starts with !cancelled() and names each job it depends on by its
 # result, so a job's truth table is its expression alone (no implied success() to reason about).
@@ -39,6 +39,7 @@ jobs:
       package: ${{ steps.plan.outputs.package }}
       version: ${{ steps.plan.outputs.version }}
       node: ${{ steps.plan.outputs.node }}
+      latest: ${{ steps.plan.outputs.latest }}
       compare: ${{ steps.plan.outputs.compare }}
       mode: ${{ steps.plan.outputs.mode }}
     steps:
@@ -49,22 +50,23 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the caller at the commit being planned
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           path: source
           persist-credentials: false
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Node for the tool
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Plan (charted)
         id: plan
         env:
@@ -76,7 +78,7 @@ jobs:
         run: node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" plan
       - name: Keep the plan's record
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-route-plan-record-${{ github.run_attempt }}
           path: ${{ runner.temp }}/plan-record/
@@ -103,16 +105,17 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Node for the tool
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Refuse while a hold-release label is open
         uses: ./tool/.github/actions/hold
 
@@ -133,22 +136,23 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Check out the caller at the planned commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.commit }}
           path: source
           persist-credentials: false
       - name: Node the settings name
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ needs.plan.outputs.node }}
+          package-manager-cache: false
       - name: Unpack the pinned npm
         env:
           ROUTE_NPM_DIR: ${{ runner.temp }}/npm
@@ -162,7 +166,7 @@ jobs:
           ROUTE_SOURCE: source
         run: node "$GITHUB_WORKSPACE/tool/scripts/release-route.mjs" build
       - name: Hand on the package (the one thing other jobs may read)
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-route-package
           path: ${{ runner.temp }}/out/package.tgz
@@ -191,24 +195,25 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Check out the caller at the planned commit (data for inspect)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.commit }}
           path: source
           persist-credentials: false
       - name: Node for the tool
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch the built package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-route-package
           path: ${{ runner.temp }}/package
@@ -265,18 +270,19 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Node for the tool
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Fetch the built package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-route-package
           path: ${{ runner.temp }}/package
@@ -289,21 +295,25 @@ jobs:
         run: node "$GITHUB_WORKSPACE/tool/scripts/release-route-chart.mjs" verify
       - name: Keep the verify record
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-route-verify-record-${{ github.run_attempt }}
           path: ${{ runner.temp }}/verify-record/
           retention-days: 90
           if-no-files-found: warn
 
-  # The tag and the GitHub release, only after verify is green, for publish and recover. The tag is
-  # created through the API's create-only call (POST git/refs answers 422 when the tag exists), so
-  # a tag is never moved by construction; tag's own answer already refused one at another commit.
-  # The title reaches gh as ONE argument from title.txt, the notes from notes.md, never printed.
-  # The hold is not asked here (design question 6: the tag records what npm already serves).
+  # The tag and the GitHub release, only after verify is green, for publish and recover; for finish
+  # (a tag at this commit and a version npm has, with no GitHub release) only the release, with no
+  # build and no verify: nothing new reaches npm or a tag. The tag is created through the API's
+  # create-only call (POST git/refs answers 422 when the tag exists), so a tag is never moved by
+  # construction; tag's own answer already refused one at another commit, and in mode finish it
+  # never answers create (and the step is not run for finish either). The title reaches gh as ONE
+  # argument from title.txt, the notes from notes.md, never printed. "Latest" is set on purpose
+  # from the plan's `latest`: only the newest version npm has takes it. The hold is not asked here
+  # (design question 6: the tag records what npm already serves).
   release:
     needs: [plan, verify]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.verify.result == 'success' && (needs.plan.outputs.mode == 'publish' || needs.plan.outputs.mode == 'recover') }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && ((needs.verify.result == 'success' && (needs.plan.outputs.mode == 'publish' || needs.plan.outputs.mode == 'recover')) || (needs.verify.result == 'skipped' && needs.plan.outputs.mode == 'finish')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -315,27 +325,29 @@ jobs:
         run: |
           [[ "$ROUTE_TOOL_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "Refused: the tool commit (job.workflow_sha) is not 40 lowercase hex."; exit 1; }
       - name: Check out the release tool at this workflow's commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: footprintjs/ci
           ref: ${{ job.workflow_sha }}
           path: tool
           persist-credentials: false
       - name: Check out the caller at the planned commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.commit }}
           path: source
           persist-credentials: false
       - name: Node for the tool
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Ask about the tag and the GitHub release
         id: tag
         env:
           ROUTE_COMMIT: ${{ needs.plan.outputs.commit }}
           ROUTE_VERSION: ${{ needs.plan.outputs.version }}
+          ROUTE_MODE: ${{ needs.plan.outputs.mode }}
           ROUTE_SOURCE: source
           GITHUB_TOKEN: ${{ github.token }}
         run: node "$GITHUB_WORKSPACE/tool/scripts/release-route.mjs" tag
@@ -346,7 +358,7 @@ jobs:
           ROUTE_SOURCE: source
         run: node "$GITHUB_WORKSPACE/tool/scripts/release-route.mjs" notes
       - name: Create the tag
-        if: ${{ steps.tag.outputs.tag == 'create' }}
+        if: ${{ steps.tag.outputs.tag == 'create' && (needs.plan.outputs.mode == 'publish' || needs.plan.outputs.mode == 'recover') }}
         env:
           GH_TOKEN: ${{ github.token }}
           ROUTE_COMMIT: ${{ needs.plan.outputs.commit }}
@@ -358,7 +370,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           ROUTE_VERSION: ${{ needs.plan.outputs.version }}
+          ROUTE_LATEST: ${{ needs.plan.outputs.latest }}
           ROUTE_OUT: ${{ runner.temp }}/notes
         run: |
           title="$(cat -- "$ROUTE_OUT/title.txt")"
-          gh release create "v$ROUTE_VERSION" --verify-tag --title "$title" --notes-file "$ROUTE_OUT/notes.md"
+          case "$ROUTE_LATEST" in
+            yes) latest=--latest ;;
+            no) latest=--latest=false ;;
+            *) echo "Refused: the plan's latest is not yes or no."; exit 1 ;;
+          esac
+          gh release create "v$ROUTE_VERSION" --verify-tag "$latest" --title "$title" --notes-file "$ROUTE_OUT/notes.md"

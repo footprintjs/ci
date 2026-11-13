@@ -5,6 +5,7 @@ import archivePort from './archive/check-archive.cjs';
 import { isCommit, isPackageName, isPlainVersion } from './identity.mjs';
 import { unreadableFacts } from './plan.mjs';
 import { asRefusal, Refusal, REFUSALS, refuse } from './refusals.mjs';
+import { RULES, sentenceOf } from './rules.mjs';
 import { clean as printable } from '../shared/text.mjs';
 
 export const input = (env, name, check) => {
@@ -18,6 +19,11 @@ export const pathInput = (env, name) => input(env, name, (value) => value.length
 // What a plan step prints and outputs, from its decision: the plain step and the charted step
 // (chart/) both end here, so their outputs cannot drift apart. Throws the refusal when the
 // decision is one.
+//
+// The decision line is the row's own sentence (rules.mjs · `says`), for a mode and for a refusal
+// alike, so it never states a fact the row did not require. Example:
+//   Decision: rule not-main-tip gives mode nothing, nothing to do in this run: npm does not have
+//   this version, but this commit is no longer the tip of main; the run of the newer tip decides.
 export function reportPlan({ result, causes, context, report }) {
   report.say(`Release route plan for commit ${context.commit}${context.name ? ` of ${printable(context.name, 214)}` : ''}${context.version ? ` ${context.version}` : ''}.`);
   report.output('rule', result.rule);
@@ -29,21 +35,27 @@ export function reportPlan({ result, causes, context, report }) {
     report.say(`Unreadable fact ${name}: ${cause ? `${cause.code} (${cause.sentence})${cause.detail ? ` ${printable(cause.detail)}` : ''}` : 'not asked or not known'}.`);
   }
   report.say(`Facts seen: ${Object.entries(result.seen).map(([name, value]) => `${name}=${printable(String(value), 20)}`).join(', ')}.`);
+  const row = RULES.find((rule) => rule.id === result.rule);
+  const says = row ? sentenceOf(row, context.version) : 'no rule of the decision matched these facts';
   if (result.refuse) {
+    report.say(`Decision: rule ${result.rule} refuses ${result.refuse}, ${says}.`);
     const first = unreadableFacts(result.seen)[0];
-    refuse(result.refuse, result.rule === 'facts-unreadable' ? first : `rule ${result.rule}`);
+    // A pin that differs is named (file and pin, both cleaned by pins.mjs and again here).
+    const detail = result.rule === 'facts-unreadable' ? first
+      : result.rule === 'pins-differ' && context.pinsDiffer ? `rule pins-differ: ${printable(context.pinsDiffer, 200)}` : `rule ${result.rule}`;
+    refuse(result.refuse, detail);
   }
   // The build job runs on the Node major the settings name (build refuses any other), so the
   // workflow needs it before that job starts: one closed-alphabet output, from the settings the
   // plan already read (every mode needs settingsRead, so a decision always has it). It is held
   // with the other outputs and written only when the step passes (report.mjs · end).
   report.output('node', context.node);
+  // Whether the release job marks the GitHub release "Latest" (observe.mjs · observeNpm): every
+  // mode needs npm read, so a decision always has it.
+  report.output('latest', context.latest);
   report.output('mode', result.mode);
   report.output('compare', result.compare);
-  const what = { nothing: 'nothing to do: the version is tagged and on npm', publish: 'publish, then verify, tag and release',
-    recover: 'npm has it but there is no tag: rebuild, compare with npm, then tag and release',
-    'dry-run': result.compare === 'yes' ? 'dry run: rebuild and compare with what npm serves' : `dry run: would publish ${context.version}` }[result.mode];
-  report.say(`Decision: rule ${result.rule} gives mode ${result.mode}, ${what}.`);
+  report.say(`Decision: rule ${result.rule} gives mode ${result.mode}, ${says}.`);
 }
 
 // The verify step's inputs, checked: shared with the charted verify (chart/).
