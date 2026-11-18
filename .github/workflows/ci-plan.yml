@@ -1,0 +1,53 @@
+name: CI plan (observe)
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  observe:
+    name: Decisions (observe)
+    if: >-
+      (github.repository == 'footprintjs/agentfootprint' || github.repository == 'footprintjs/footPrint')
+      && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate the workflow revision
+        env:
+          CI_PLAN_WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: |
+          [[ "$CI_PLAN_WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]
+      - name: Check out the plan at this workflow revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: footprintjs/ci
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+          path: plan-tool
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Install the locked plan dependencies
+        working-directory: plan-tool/src/ci-plan
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Record advisory decisions
+        working-directory: plan-tool/src/ci-plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_PLAN_WORKFLOW_SHA: ${{ job.workflow_sha }}
+        run: node cli.mjs
+      - name: Record an unavailable plan
+        if: ${{ failure() }}
+        run: |
+          printf '%s\n' '### CI plan (observe)' 'Decision: run every check. The advisory plan could not finish.' >> "$GITHUB_STEP_SUMMARY"
