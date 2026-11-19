@@ -1,0 +1,12 @@
+{
+  "name": "@footprintjs/ci-observe-plan",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": { "test": "node --test *.test.mjs" },
+  "dependencies": {
+    "footprintjs": "13.0.0",
+    "foottrace": "2.0.0"
+  }
+}
