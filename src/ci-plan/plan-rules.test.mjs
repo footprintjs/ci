@@ -122,11 +122,29 @@ test('red-first rule 2: one additional changed file fails the exact planner diff
   expectRun(planCell({ candidate, versionProof: changed }, cell), 'planner-diff-mismatch');
 });
 
-test('an exact version-only proof recognizes a consumed fragment and excludes declared inputs', () => {
+test('amendment B: an input-disjoint version-only change runs without a prior success', () => {
   const { planCell } = fixture();
   const row = planCell({ candidate, versionProof }, cell);
+  expectRun(row, 'no-prior-success');
+  assert.equal(row.classification, 'version-only');
+});
+
+test('amendment B: a verified success on another tree cannot be reused for a version-only change', () => {
+  const { planCell, receipt } = fixture();
+  const row = planCell({ candidate, versionProof, previousReceipts: [receipt()] }, cell);
+  expectRun(row, 'tree-changed');
+  assert.equal(row.evidence.priorTree, tree);
+});
+
+test('amendment B: an input-disjoint version-only change can reuse a verified success on the base tree', () => {
+  const { planCell, receipt } = fixture();
+  const prior = receipt(cell, { tree: baseTree });
+  const row = planCell({ candidate, versionProof, previousReceipts: [prior] }, cell);
   assert.equal(row.rule, 'version-only');
   assert.equal(row.decision, 'would-skip');
+  assert.equal(row.evidence.priorTree, baseTree);
+  assert.equal(row.evidence.receiptId, prior.receiptId);
+  assert.equal(row.evidence.jobId, prior.cells[0].jobId);
   assert.equal(row.evidence.diffDigest, versionProof.candidateDiffDigest);
   assert.equal(row.evidence.fragmentsDigest, versionProof.fragmentsDigest);
 });

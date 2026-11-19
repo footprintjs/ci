@@ -42,12 +42,23 @@ jobs:
         working-directory: plan-tool/src/ci-plan
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Record advisory decisions
+        id: record
         working-directory: plan-tool/src/ci-plan
         env:
           GH_TOKEN: ${{ github.token }}
           CI_PLAN_WORKFLOW_SHA: ${{ job.workflow_sha }}
-        run: node cli.mjs
+        run: |
+          record_dir=$(mktemp -d "${RUNNER_TEMP:?}/ci-plan.XXXXXXXX")
+          record_path="$record_dir/ci-plan.json"
+          CI_PLAN_RECORD_PATH="$record_path" node cli.mjs
+          printf 'record-path=%s\n' "$record_path" >> "$GITHUB_OUTPUT"
       - name: Record an unavailable plan
         if: ${{ failure() }}
         run: |
           printf '%s\n' '### CI plan (observe)' 'Decision: run every check. The advisory plan could not finish.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the advisory decision record
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.record.outputs.record-path }}
+          if-no-files-found: error

@@ -40,7 +40,7 @@ const reasons = {
   'prior-packed-package-changed': 'The prior successful consumer cell did not use this packed package.',
   'failed-control': 'The rule is disqualified for this cell by a failed observe-mode control.',
   'same-inputs': 'The same check cell succeeded with the same tree and all bound inputs.',
-  'version-only': 'The trusted release planner reproduced the diff and the cell excludes all changed inputs.',
+  'version-only': 'The trusted release planner reproduced the diff, the cell excludes all changed inputs, and a trusted receipt records its success on the base tree.',
   'equal-package': 'The packed package and consumer inputs match those used by a prior successful cell.',
 };
 
@@ -269,7 +269,14 @@ export function createPlanRules({ isVerifiedReceipt = () => false } = {}) {
     if (!isGitId(candidate.workflowRevision) || !isTrigger(candidate.trigger) || !isToolchain(candidate.toolchain)) {
       return finish('unknown-candidate-inputs', version?.evidence);
     }
-    if (version) return finish('version-only', version.evidence, 'version-only');
+    if (version) {
+      const prior = findPrior(
+        facts.previousReceipts, { ...candidate, tree: candidate.baseTree }, cell, undefined, isVerifiedReceipt,
+      );
+      const evidence = { ...prior.evidence, ...version.evidence };
+      if (!prior.eligible) return finish(prior.code, evidence);
+      return finish('version-only', evidence, 'version-only');
+    }
 
     const prior = findPrior(facts.previousReceipts, candidate, cell, undefined, isVerifiedReceipt);
     if (prior.eligible) return finish('same-inputs', prior.evidence, 'same-inputs');
