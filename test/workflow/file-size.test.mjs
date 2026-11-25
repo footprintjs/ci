@@ -14,8 +14,16 @@ test('new source over 600 lines is refused with path and measured limit', () => 
 test('an existing oversized source may not grow', () => {
   has(run({ 'src/old.ts': 702 }, baseline({ 'src/old.ts': 700 }), baseline({ 'src/old.ts': 700 })), 'src/old.ts: 702 > 700');
 });
-test('shrinking to the limit requires removing the old baseline entry', () => {
-  has(run({ 'src/old.ts': 600 }, baseline({ 'src/old.ts': 700 }), baseline({ 'src/old.ts': 700 })), 'remove baseline');
+const notes = (result, text) => assert.ok(result.notes.some((note) => note.includes(text)), JSON.stringify(result));
+const clean = (result) => assert.deepEqual(result.errors, [], JSON.stringify(result));
+const old = baseline({ 'src/old.ts': 700 });
+test('shrinking to the limit passes without a baseline edit, and the stale entry is only a note', () => {
+  const result = run({ 'src/old.ts': 600 }, old, old, { 'src/old.ts': 700 });
+  clean(result);
+  notes(result, 'src/old.ts: baseline entry can be removed');
+});
+test('a stale entry admits nothing: a file at most 600 lines at base is held to 600', () => {
+  has(run({ 'src/old.ts': 601 }, old, old, { 'src/old.ts': 600 }), 'src/old.ts: 601 > 600 lines');
 });
 test('ordinary and unchanged or tightened oversized files pass', () => {
   assert.deepEqual(run({ 'src/a.ts': 600, 'src/b.ts': 650 }, baseline({ 'src/b.ts': 650 }), baseline({ 'src/b.ts': 700 })).errors, []);
@@ -26,11 +34,24 @@ test('raising the baseline cannot hide growth', () => {
 test('adding a new oversized baseline entry cannot admit a new oversized source', () => {
   has(run({ 'src/new.ts': 601 }, baseline({ 'src/new.ts': 601 })), 'new baseline entry');
 });
-test('shrinking above 600 must tighten the baseline to the measured size', () => {
-  has(run({ 'src/old.ts': 650 }, baseline({ 'src/old.ts': 700 }), baseline({ 'src/old.ts': 700 })), 'tighten baseline to 650');
+test('shrinking above 600 passes without a baseline edit, and the loose entry is only a note', () => {
+  const result = run({ 'src/old.ts': 650 }, old, old, { 'src/old.ts': 700 });
+  clean(result);
+  notes(result, 'src/old.ts: baseline can be tightened to 650 (is 700)');
 });
-test('deleted source must leave the baseline', () => {
-  has(run({}, baseline({ 'src/deleted.ts': 700 }), baseline({ 'src/deleted.ts': 700 })), 'remove baseline');
+test('a shrink holds without an edit: the measured base is the cap when it is below the stored ceiling', () => {
+  has(run({ 'src/old.ts': 651 }, old, old, { 'src/old.ts': 650 }), 'src/old.ts: 651 > 650 lines at the base commit');
+  clean(run({ 'src/old.ts': 650 }, old, old, { 'src/old.ts': 650 }));
+});
+test('the stored ceiling still holds when the base tree is larger than it', () => {
+  has(run({ 'src/old.ts': 701 }, old, old, { 'src/old.ts': 705 }), 'src/old.ts: 701 > 700 lines');
+});
+test('a deleted source passes without a baseline edit, and cannot come back oversized through its old entry', () => {
+  const deleted = baseline({ 'src/deleted.ts': 700 });
+  const gone = run({}, deleted, deleted, { 'src/deleted.ts': 700 });
+  clean(gone);
+  notes(gone, 'src/deleted.ts: baseline entry can be removed');
+  has(run({ 'src/deleted.ts': 700 }, deleted, deleted, {}), 'src/deleted.ts: 700 > 600 lines');
 });
 test('initial seed admits only existing oversized files, at their current size', () => {
   assert.deepEqual(run({ 'src/old.ts': 650 }, baseline({ 'src/old.ts': 650 }), null, { 'src/old.ts': 700 }).errors, []);

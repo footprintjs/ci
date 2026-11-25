@@ -11,7 +11,11 @@ The fixed ceiling is 600 lines. Each library commits `.file-size-baseline.json`:
 }
 ```
 
-Seed only files that were already oversized at the comparison base. Record their actual current counts. An existing entry cannot increase, and a new oversized file cannot receive a new exception. Whenever an oversized file shrinks, tighten its entry to the measured size in the same PR. At 600 lines or below, or after deletion, remove its entry. Split files instead of raising caps.
+Seed only files that were already oversized at the comparison base. Record their actual current counts. An existing entry cannot increase, and a new oversized file cannot receive a new exception. Split files instead of raising caps.
+
+A shrink needs no edit to the baseline. A listed file may be at most the smaller of its stored entry and its measured size at the comparison base, so an oversized file can only shrink from one commit to the next. A file that was at most 600 lines at the base, or absent there, is held to 600 whatever the baseline says: an entry left behind by a shrink or a deletion admits nothing. The check prints such entries as notes (`baseline can be tightened`, `baseline entry can be removed`) and still passes.
+
+Why: the stored number repeated a fact the base commit already holds. Requiring it to be rewritten on every shrink made nearly every pull request edit the same small file, and two green pull requests then conflicted with each other. Tighten or remove entries whenever convenient, for example in a release commit.
 
 Generated, vendored or test files require explicit exclusions in this same file: for example `{ "path": "src/generated/", "reason": "generated" }`. Paths are exact files or directories ending in `/`; there are no inferred extensions or glob patterns. Reasons are `generated`, `vendored` or `test`. The exclusion list may only shrink after its initial seed. Tests outside `src/` are outside the stated source scope.
 
