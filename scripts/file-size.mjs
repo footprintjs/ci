@@ -12,6 +12,7 @@ try {
   const base = readTree(repo, args[3]);
   const result = checkFileSizes({ files: current.files, baseline: current.baseline, previous: base.baseline, before: base.files });
   for (const error of result.errors) console.error(error);
+  for (const note of result.notes) console.log(`note: ${note}`);
   console.log(`File-size ratchet: ${result.checked} source files, ${result.oversized} oversized baseline entries, ${result.errors.length} violations.`);
   if (result.errors.length) process.exitCode = 1;
 } catch (error) {

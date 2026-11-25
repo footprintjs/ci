@@ -28,6 +28,7 @@ export function checkFileSizes({ files, baseline, previous, before }) {
   validateBaseline(baseline);
   if (previous !== null) validateBaseline(previous);
   const errors = [];
+  const notes = [];
   if (previous !== null) {
     for (const entry of baseline.exclude) {
       if (!previous.exclude.some((old) => old.path === entry.path && old.reason === entry.reason))
@@ -43,15 +44,31 @@ export function checkFileSizes({ files, baseline, previous, before }) {
     } else if (cap > before[path]) {
       errors.push(`${path}: ${cap} > ${before[path]} at base`);
     }
-    if (!own(files, path) || files[path] <= LIMIT || excluded(path, baseline.exclude))
-      errors.push(`${path}: remove baseline entry (missing, excluded or at most ${LIMIT} lines)`);
-    else if (files[path] < cap) errors.push(`${path}: tighten baseline to ${files[path]} (was ${cap})`);
+    // A stale entry is housekeeping, never a failure: the measured base below is what holds the ratchet.
+    // An entry for an excluded path stays an error: removing the exclusion later would admit the file unsplit.
+    if (excluded(path, baseline.exclude)) errors.push(`${path}: remove baseline entry (the path is excluded)`);
+    else if (!own(files, path) || files[path] <= LIMIT)
+      notes.push(`${path}: baseline entry can be removed (missing or at most ${LIMIT} lines)`);
+    else if (files[path] < cap) notes.push(`${path}: baseline can be tightened to ${files[path]} (is ${cap})`);
   }
   for (const [path, lines] of Object.entries(files)) {
     if (excluded(path, baseline.exclude)) continue;
-    const cap = own(baseline.files, path) ? baseline.files[path] : LIMIT;
-    if (lines > cap) errors.push(`${path}: ${lines} > ${cap} lines`);
+    const cap = capOf(path, baseline, before);
+    if (lines <= cap.lines) continue;
+    errors.push(cap.measured
+      ? `${path}: ${lines} > ${cap.lines} lines at the base commit; an oversized file may only shrink`
+      : `${path}: ${lines} > ${cap.lines} lines`);
   }
-  return { errors, checked: Object.keys(files).filter((path) => !excluded(path, baseline.exclude)).length,
+  return { errors, notes, checked: Object.keys(files).filter((path) => !excluded(path, baseline.exclude)).length,
     oversized: Object.keys(baseline.files).length };
+}
+
+// One file's cap. A listed file that was oversized at the base commit may be at most the smaller of its
+// stored ceiling and its measured size there, so a shrink holds without an edit to the baseline. Any other
+// file (unlisted, at most LIMIT at base, or absent at base) is held to LIMIT: an entry left behind by a
+// shrink or a deletion admits nothing.
+function capOf(path, baseline, before) {
+  if (!own(baseline.files, path) || !own(before, path) || before[path] <= LIMIT) return { lines: LIMIT, measured: false };
+  const ceiling = baseline.files[path];
+  return before[path] < ceiling ? { lines: before[path], measured: true } : { lines: ceiling, measured: false };
 }
