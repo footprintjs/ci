@@ -45,8 +45,10 @@ export function checkFileSizes({ files, baseline, previous, before }) {
       errors.push(`${path}: ${cap} > ${before[path]} at base`);
     }
     // A stale entry is housekeeping, never a failure: the measured base below is what holds the ratchet.
-    if (!own(files, path) || files[path] <= LIMIT || excluded(path, baseline.exclude))
-      notes.push(`${path}: baseline entry can be removed (missing, excluded or at most ${LIMIT} lines)`);
+    // An entry for an excluded path stays an error: removing the exclusion later would admit the file unsplit.
+    if (excluded(path, baseline.exclude)) errors.push(`${path}: remove baseline entry (the path is excluded)`);
+    else if (!own(files, path) || files[path] <= LIMIT)
+      notes.push(`${path}: baseline entry can be removed (missing or at most ${LIMIT} lines)`);
     else if (files[path] < cap) notes.push(`${path}: baseline can be tightened to ${files[path]} (is ${cap})`);
   }
   for (const [path, lines] of Object.entries(files)) {

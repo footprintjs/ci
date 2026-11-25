@@ -43,6 +43,14 @@ test('a shrink holds without an edit: the measured base is the cap when it is be
   has(run({ 'src/old.ts': 651 }, old, old, { 'src/old.ts': 650 }), 'src/old.ts: 651 > 650 lines at the base commit');
   clean(run({ 'src/old.ts': 650 }, old, old, { 'src/old.ts': 650 }));
 });
+test('a listed file that was at most 600 lines at base may grow back to 600, not past it', () => {
+  clean(run({ 'src/old.ts': 600 }, old, old, { 'src/old.ts': 500 }));
+});
+test('an entry for an excluded path is still refused, so lifting the exclusion cannot admit the file', () => {
+  const exclude = [{ path: 'src/gen/', reason: 'generated' }];
+  const seeded = baseline({ 'src/gen/a.ts': 900 }, exclude);
+  has(run({ 'src/gen/a.ts': 900 }, seeded, seeded), 'src/gen/a.ts: remove baseline entry (the path is excluded)');
+});
 test('the stored ceiling still holds when the base tree is larger than it', () => {
   has(run({ 'src/old.ts': 701 }, old, old, { 'src/old.ts': 705 }), 'src/old.ts: 701 > 700 lines');
 });

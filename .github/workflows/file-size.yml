@@ -45,11 +45,18 @@ jobs:
       - name: Enforce source and baseline ratchet
         env:
           EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
           SOURCE_SHA: ${{ inputs.source_sha }}
         run: |
           if [[ -n "$SOURCE_SHA" ]]; then
             test "$(git -C source rev-parse HEAD)" = "$SOURCE_SHA"
             BASE_SHA=$(git -C source rev-parse HEAD^)
+          elif [[ "$EVENT_NAME" == pull_request ]]; then
+            # The candidate is GitHub's merge commit: its first parent is the base tip it was
+            # merged onto. The event's recorded base can be older than that, and an older base
+            # can be larger, which would let a file regrow to a size main has already left.
+            test "$(git -C source rev-list --parents -n 1 HEAD | wc -w)" -eq 3
+            BASE_SHA=$(git -C source rev-parse HEAD^1)
           else
             BASE_SHA=$EVENT_BASE
           fi
